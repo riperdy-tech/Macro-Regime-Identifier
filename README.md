@@ -32,3 +32,43 @@ pytest
 macro-engine validate-config
 macro-engine run-toy --as-of 2026-05-08
 ```
+
+## Phase B: Ingestion And Storage Only
+
+Phase B proves the data foundation before any new scoring work. It fetches a
+small controlled FRED source set, stores canonical raw tables locally, computes
+source health, and exports Parquet files.
+
+Controlled Phase B source file:
+
+```text
+config/phase_b_sources.yaml
+```
+
+Initial enabled series:
+
+```text
+INDPRO, PAYEMS, UNRATE, CPIAUCSL, PCEPI, FEDFUNDS, DGS10, BAA10Y, NFCI, T10Y2Y
+```
+
+Commands:
+
+```powershell
+python -m macro_engine.cli ingest --config config/phase_b_sources.yaml
+python -m macro_engine.cli ingest --series FEDFUNDS
+python -m macro_engine.cli health
+python -m macro_engine.cli inspect-series FEDFUNDS
+```
+
+Storage artifacts:
+
+```text
+data/macro_engine.duckdb
+data/raw/fred/ingestion_runs.parquet
+data/raw/fred/series_metadata.parquet
+data/raw/fred/raw_observations.parquet
+data/raw/fred/source_health.parquet
+```
+
+Phase B does not implement transforms, normalization, dimension scoring, regime
+scoring, backtesting, or reports.
