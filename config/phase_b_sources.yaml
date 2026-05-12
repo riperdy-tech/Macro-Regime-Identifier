@@ -289,6 +289,17 @@ regime_scoring:
   probability_method: softmax
   softmax_temperature: 1.0
 
+historical_diagnostic:
+  start_date: "1990-01-01"
+  end_date: null
+  mode: revised_data
+  min_valid_regimes: 2
+  low_confidence_threshold: 0.05
+  smoothing:
+    enabled: false
+    min_months_before_switch: 2
+    probability_gap_required: 0.10
+
 regimes:
   - regime_id: goldilocks
     enabled: true

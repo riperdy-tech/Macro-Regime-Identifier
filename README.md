@@ -247,3 +247,56 @@ regime_health:
   valid_regime_count
   reason
 ```
+
+## Phase F: Historical Revised-Data Diagnostic
+
+Phase F consumes stored regime scores and regime health to build a historical
+timeline, transition history, and summary diagnostics. This is explicitly a
+revised-data diagnostic, not an ALFRED/vintage point-in-time backtest.
+
+Commands:
+
+```powershell
+python -m macro_engine.cli run-historical-diagnostic --config config/phase_b_sources.yaml
+python -m macro_engine.cli regime-timeline
+python -m macro_engine.cli regime-transitions
+python -m macro_engine.cli diagnostic-summary
+```
+
+Canonical diagnostic outputs:
+
+```text
+historical_regime_timeline:
+  date
+  dominant_regime
+  dominant_probability
+  second_regime
+  second_probability
+  confidence
+  entropy
+  valid_regime_count
+  valid
+  reason
+
+regime_transitions:
+  transition_date
+  from_regime
+  to_regime
+  from_probability
+  to_probability
+  confidence
+  reason
+
+diagnostic_summary:
+  start_date
+  end_date
+  mode
+  valid_date_count
+  invalid_date_count
+  regime_switch_count
+  average_regime_duration
+  average_confidence
+  dominant_regime_distribution
+  low_confidence_period_count
+  label
+```

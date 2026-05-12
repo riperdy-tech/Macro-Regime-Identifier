@@ -202,6 +202,52 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS historical_regime_timeline (
+                    date DATE PRIMARY KEY,
+                    dominant_regime TEXT,
+                    dominant_probability DOUBLE,
+                    second_regime TEXT,
+                    second_probability DOUBLE,
+                    confidence DOUBLE,
+                    entropy DOUBLE,
+                    valid_regime_count INTEGER,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS regime_transitions (
+                    transition_date DATE,
+                    from_regime TEXT,
+                    to_regime TEXT,
+                    from_probability DOUBLE,
+                    to_probability DOUBLE,
+                    confidence DOUBLE,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS diagnostic_summary (
+                    start_date TEXT,
+                    end_date TEXT,
+                    mode TEXT,
+                    valid_date_count INTEGER,
+                    invalid_date_count INTEGER,
+                    regime_switch_count INTEGER,
+                    average_regime_duration DOUBLE,
+                    average_confidence DOUBLE,
+                    dominant_regime_distribution JSON,
+                    low_confidence_period_count INTEGER,
+                    label TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -393,6 +439,51 @@ class DuckDBStore:
                     """
                 )
 
+    def replace_diagnostic_outputs(
+        self,
+        timeline: pd.DataFrame,
+        transitions: pd.DataFrame,
+        summary: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM historical_regime_timeline")
+            con.execute("DELETE FROM regime_transitions")
+            con.execute("DELETE FROM diagnostic_summary")
+            if not timeline.empty:
+                con.register("timeline_frame", timeline)
+                con.execute(
+                    """
+                    INSERT INTO historical_regime_timeline
+                    SELECT date, dominant_regime, dominant_probability, second_regime,
+                           second_probability, confidence, entropy, valid_regime_count,
+                           valid, reason
+                    FROM timeline_frame
+                    """
+                )
+            if not transitions.empty:
+                con.register("transition_frame", transitions)
+                con.execute(
+                    """
+                    INSERT INTO regime_transitions
+                    SELECT transition_date, from_regime, to_regime, from_probability,
+                           to_probability, confidence, reason
+                    FROM transition_frame
+                    """
+                )
+            if not summary.empty:
+                con.register("summary_frame", summary)
+                con.execute(
+                    """
+                    INSERT INTO diagnostic_summary
+                    SELECT start_date, end_date, mode, valid_date_count,
+                           invalid_date_count, regime_switch_count,
+                           average_regime_duration, average_confidence,
+                           dominant_regime_distribution,
+                           low_confidence_period_count, label
+                    FROM summary_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -450,6 +541,9 @@ class DuckDBStore:
                 "regime_dimension_contributions",
                 "regime_scores",
                 "regime_health",
+                "historical_regime_timeline",
+                "regime_transitions",
+                "diagnostic_summary",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

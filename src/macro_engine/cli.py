@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from macro_engine.config.loader import load_all_configs
+from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
@@ -314,6 +315,54 @@ def current_regime(db_path: str = "data/macro_engine.duckdb") -> None:
             "valid": True,
         }
     )
+
+
+@app.command()
+def run_historical_diagnostic(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase F: build revised-data historical diagnostic tables from regime outputs."""
+    result = run_stored_historical_diagnostic(
+        config_path=config,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+    )
+    console.print_json(data=result.summary)
+
+
+@app.command()
+def regime_timeline(db_path: str = "data/macro_engine.duckdb", limit: int = 20) -> None:
+    """Show stored historical revised-data regime timeline rows."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("historical_regime_timeline").sort_values("date").tail(limit)
+    if table.empty:
+        console.print("[yellow]No historical timeline rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(table.to_string(index=False))
+
+
+@app.command()
+def regime_transitions(db_path: str = "data/macro_engine.duckdb", limit: int = 20) -> None:
+    """Show stored historical revised-data regime transition rows."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("regime_transitions").sort_values("transition_date").tail(limit)
+    if table.empty:
+        console.print("[yellow]No regime transitions found[/yellow]")
+        return
+    console.print(table.to_string(index=False))
+
+
+@app.command()
+def diagnostic_summary(db_path: str = "data/macro_engine.duckdb") -> None:
+    """Print stored historical revised-data diagnostic summary as JSON."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("diagnostic_summary")
+    if table.empty:
+        console.print_json(data={"valid": False, "reason": "no_diagnostic_summary"})
+        raise typer.Exit(code=1)
+    console.print_json(json.dumps(table.iloc[-1].to_dict(), default=str))
 
 
 if __name__ == "__main__":
