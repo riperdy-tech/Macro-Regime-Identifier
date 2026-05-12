@@ -284,3 +284,113 @@ dimensions:
       - feature_id: yield_curve_10y2y_level_z
         weight: 1.00
         polarity: positive
+
+regime_scoring:
+  probability_method: softmax
+  softmax_temperature: 1.0
+
+regimes:
+  - regime_id: goldilocks
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: positive
+      - dimension_id: inflation_pressure
+        weight: 0.25
+        polarity: penalize_positive_only
+      - dimension_id: credit_liquidity
+        weight: 0.20
+        polarity: positive
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: reward_near_zero
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: positive
+
+  - regime_id: reflation
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: positive
+      - dimension_id: inflation_pressure
+        weight: 0.25
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.20
+        polarity: positive
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: positive
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: positive
+
+  - regime_id: stagflation
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: negative
+      - dimension_id: inflation_pressure
+        weight: 0.30
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.15
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: negative
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: negative
+
+  - regime_id: recession
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.35
+        polarity: negative
+      - dimension_id: inflation_pressure
+        weight: 0.10
+        polarity: penalize_positive_only
+      - dimension_id: credit_liquidity
+        weight: 0.25
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: positive
+      - dimension_id: yield_curve
+        weight: 0.15
+        polarity: negative
+
+  - regime_id: tightening
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.20
+        polarity: positive_only
+      - dimension_id: inflation_pressure
+        weight: 0.30
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.15
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.25
+        polarity: negative
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: negative

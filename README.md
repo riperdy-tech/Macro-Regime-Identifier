@@ -186,3 +186,64 @@ dimension_health:
   invalid_features
   reason
 ```
+
+## Phase E: Regime Scoring Only
+
+Phase E converts dimension scores into transparent regime contributions, raw
+regime scores, probabilities, and regime health. It does not run backtests,
+write markdown reports, make trading recommendations, or perform portfolio
+sizing.
+
+Initial regimes:
+
+```text
+goldilocks, reflation, stagflation, recession, tightening
+```
+
+Commands:
+
+```powershell
+python -m macro_engine.cli build-regimes --config config/phase_b_sources.yaml
+python -m macro_engine.cli inspect-regime goldilocks
+python -m macro_engine.cli regime-health
+python -m macro_engine.cli current-regime
+```
+
+Canonical regime outputs:
+
+```text
+regime_dimension_contributions:
+  regime_id
+  dimension_id
+  date
+  dimension_score
+  weight
+  normalized_weight
+  polarity
+  transformed_dimension_value
+  contribution
+  valid
+  reason
+
+regime_scores:
+  regime_id
+  date
+  raw_score
+  probability
+  rank
+  valid_dimension_count
+  configured_dimension_count
+  coverage_ratio
+  valid
+  reason
+
+regime_health:
+  date
+  valid
+  dominant_regime
+  dominant_probability
+  confidence
+  entropy
+  valid_regime_count
+  reason
+```

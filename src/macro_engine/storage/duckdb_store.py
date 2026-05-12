@@ -155,6 +155,53 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS regime_dimension_contributions (
+                    regime_id TEXT,
+                    dimension_id TEXT,
+                    date DATE,
+                    dimension_score DOUBLE,
+                    weight DOUBLE,
+                    normalized_weight DOUBLE,
+                    polarity TEXT,
+                    transformed_dimension_value DOUBLE,
+                    contribution DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS regime_scores (
+                    regime_id TEXT,
+                    date DATE,
+                    raw_score DOUBLE,
+                    probability DOUBLE,
+                    rank INTEGER,
+                    valid_dimension_count INTEGER,
+                    configured_dimension_count INTEGER,
+                    coverage_ratio DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS regime_health (
+                    date DATE PRIMARY KEY,
+                    valid BOOLEAN,
+                    dominant_regime TEXT,
+                    dominant_probability DOUBLE,
+                    confidence DOUBLE,
+                    entropy DOUBLE,
+                    valid_regime_count INTEGER,
+                    reason TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -303,6 +350,49 @@ class DuckDBStore:
                     """
                 )
 
+    def replace_regime_outputs(
+        self,
+        contributions: pd.DataFrame,
+        scores: pd.DataFrame,
+        health: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM regime_dimension_contributions")
+            con.execute("DELETE FROM regime_scores")
+            con.execute("DELETE FROM regime_health")
+            if not contributions.empty:
+                con.register("regime_contribution_frame", contributions)
+                con.execute(
+                    """
+                    INSERT INTO regime_dimension_contributions
+                    SELECT regime_id, dimension_id, date, dimension_score, weight,
+                           normalized_weight, polarity, transformed_dimension_value,
+                           contribution, valid, reason
+                    FROM regime_contribution_frame
+                    """
+                )
+            if not scores.empty:
+                con.register("regime_score_frame", scores)
+                con.execute(
+                    """
+                    INSERT INTO regime_scores
+                    SELECT regime_id, date, raw_score, probability, rank,
+                           valid_dimension_count, configured_dimension_count,
+                           coverage_ratio, valid, reason
+                    FROM regime_score_frame
+                    """
+                )
+            if not health.empty:
+                con.register("regime_health_frame", health)
+                con.execute(
+                    """
+                    INSERT INTO regime_health
+                    SELECT date, valid, dominant_regime, dominant_probability,
+                           confidence, entropy, valid_regime_count, reason
+                    FROM regime_health_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -334,6 +424,15 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM dimension_scores ORDER BY dimension_id, date").fetchdf()
 
+    def read_regime_scores(self, regime_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if regime_id:
+                return con.execute(
+                    "SELECT * FROM regime_scores WHERE regime_id = ? ORDER BY date",
+                    [regime_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM regime_scores ORDER BY date, rank").fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -348,6 +447,9 @@ class DuckDBStore:
                 "dimension_feature_contributions",
                 "dimension_scores",
                 "dimension_health",
+                "regime_dimension_contributions",
+                "regime_scores",
+                "regime_health",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

@@ -16,6 +16,7 @@ from macro_engine.ingest.service import run_fred_ingestion
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
 from macro_engine.pipeline import classify_observations
+from macro_engine.regimes.service import build_stored_regimes
 from macro_engine.storage.duckdb_store import DuckDBStore
 from macro_engine.toy_data import build_toy_observations
 
@@ -230,6 +231,89 @@ def dimension_health(db_path: str = "data/macro_engine.duckdb") -> None:
     for row in table.sort_values(["dimension_id", "date"]).tail(30).to_dict(orient="records"):
         rich_table.add_row(*(str(row.get(column)) for column in columns))
     console.print(rich_table)
+
+
+@app.command()
+def build_regimes(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase E: build regime contributions, scores, probabilities, and health."""
+    result = build_stored_regimes(config_path=config, db_path=db_path, parquet_dir=parquet_dir)
+    console.print_json(
+        data={
+            "contribution_rows": int(len(result.contributions)),
+            "regime_score_rows": int(len(result.regime_scores)),
+            "valid_regime_rows": int(result.regime_scores["valid"].fillna(False).sum()),
+            "regime_health_rows": int(len(result.regime_health)),
+        }
+    )
+
+
+@app.command()
+def inspect_regime(
+    regime_id: str,
+    db_path: str = "data/macro_engine.duckdb",
+    limit: int = 10,
+) -> None:
+    """Inspect latest stored regime scores for one regime."""
+    store = DuckDBStore(db_path)
+    scores = store.read_regime_scores(regime_id).tail(limit)
+    if scores.empty:
+        console.print("[yellow]No regime score rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(scores.to_string(index=False))
+
+
+@app.command()
+def regime_health(db_path: str = "data/macro_engine.duckdb") -> None:
+    """Show latest regime health rows from local storage."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("regime_health")
+    rich_table = Table(title="Regime Health")
+    columns = [
+        "date",
+        "valid",
+        "dominant_regime",
+        "dominant_probability",
+        "confidence",
+        "valid_regime_count",
+        "reason",
+    ]
+    for column in columns:
+        rich_table.add_column(column)
+    for row in table.sort_values("date").tail(30).to_dict(orient="records"):
+        rich_table.add_row(*(str(row.get(column)) for column in columns))
+    console.print(rich_table)
+
+
+@app.command()
+def current_regime(db_path: str = "data/macro_engine.duckdb") -> None:
+    """Print the latest valid dominant regime as JSON."""
+    store = DuckDBStore(db_path)
+    health = store.read_table("regime_health")
+    valid_health = health[health["valid"]].sort_values("date")
+    if valid_health.empty:
+        console.print_json(data={"valid": False, "reason": "no_valid_regime"})
+        raise typer.Exit(code=1)
+    latest = valid_health.iloc[-1]
+    scores = store.read_regime_scores()
+    latest_scores = scores[(scores["date"] == latest["date"]) & scores["probability"].notna()]
+    probabilities = {
+        row["regime_id"]: float(row["probability"])
+        for row in latest_scores.sort_values("rank").to_dict(orient="records")
+    }
+    console.print_json(
+        data={
+            "date": str(latest["date"]),
+            "dominant_regime": latest["dominant_regime"],
+            "probability": float(latest["dominant_probability"]),
+            "confidence": float(latest["confidence"]),
+            "regime_probabilities": probabilities,
+            "valid": True,
+        }
+    )
 
 
 if __name__ == "__main__":
