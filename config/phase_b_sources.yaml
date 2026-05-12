@@ -300,6 +300,13 @@ historical_diagnostic:
     min_months_before_switch: 2
     probability_gap_required: 0.10
 
+reports:
+  output_dir: outputs
+  include_feature_details: true
+  include_dimension_details: true
+  include_diagnostic_summary: true
+  max_contributors: 5
+
 regimes:
   - regime_id: goldilocks
     enabled: true

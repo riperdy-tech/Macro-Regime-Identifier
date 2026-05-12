@@ -300,3 +300,34 @@ diagnostic_summary:
   low_confidence_period_count
   label
 ```
+
+## Phase G: Human-Readable Reports
+
+Phase G writes JSON and Markdown reports from stored feature, dimension, regime,
+and diagnostic outputs. It does not recompute model scores and does not provide
+trading, allocation, portfolio sizing, or investment recommendations.
+
+Commands:
+
+```powershell
+python -m macro_engine.cli write-current-report --config config/phase_b_sources.yaml
+python -m macro_engine.cli write-diagnostic-report --config config/phase_b_sources.yaml
+```
+
+Outputs:
+
+```text
+outputs/current_regime.json
+outputs/current_regime.md
+outputs/historical_diagnostic.json
+outputs/historical_diagnostic.md
+```
+
+Current reports include the dominant regime, probability, confidence, regime
+probability table, contribution-backed supporting/opposing dimensions, invalid
+or missing dimensions, data health warnings, and an investment-advice disclaimer.
+
+Historical diagnostic reports include revised-data mode, date range, regime
+distribution, switch count, average duration, average confidence, low-confidence
+period count, latest transitions, invalid date count, and a clear note that the
+diagnostic is not a point-in-time vintage backtest.

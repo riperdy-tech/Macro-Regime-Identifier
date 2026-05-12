@@ -18,6 +18,10 @@ from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
 from macro_engine.pipeline import classify_observations
 from macro_engine.regimes.service import build_stored_regimes
+from macro_engine.reports.service import (
+    write_current_regime_report as write_current_regime_report_service,
+    write_historical_diagnostic_report as write_historical_diagnostic_report_service,
+)
 from macro_engine.storage.duckdb_store import DuckDBStore
 from macro_engine.toy_data import build_toy_observations
 
@@ -363,6 +367,32 @@ def diagnostic_summary(db_path: str = "data/macro_engine.duckdb") -> None:
         console.print_json(data={"valid": False, "reason": "no_diagnostic_summary"})
         raise typer.Exit(code=1)
     console.print_json(json.dumps(table.iloc[-1].to_dict(), default=str))
+
+
+@app.command()
+def write_current_report(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Phase G: write current regime JSON and Markdown reports from stored outputs."""
+    json_path, markdown_path = write_current_regime_report_service(
+        config_path=config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command()
+def write_diagnostic_report(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Phase G: write historical diagnostic JSON and Markdown reports from stored outputs."""
+    json_path, markdown_path = write_historical_diagnostic_report_service(
+        config_path=config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
 if __name__ == "__main__":
