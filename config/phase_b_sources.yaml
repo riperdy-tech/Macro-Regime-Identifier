@@ -109,3 +109,109 @@ sources:
     reason_disabled: discontinued_or_stale
     stale_after_days: 45
     unusable_after_days: 120
+
+features:
+  - feature_id: industrial_production_yoy_z
+    series_id: INDPRO
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 24
+
+  - feature_id: payrolls_yoy_z
+    series_id: PAYEMS
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 24
+
+  - feature_id: unemployment_6m_change_z
+    series_id: UNRATE
+    transform: diff_6m
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 24
+
+  - feature_id: unemployment_12m_change_z
+    series_id: UNRATE
+    transform: diff_12m
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 24
+
+  - feature_id: headline_cpi_yoy_z
+    series_id: CPIAUCSL
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_inflationary
+    enabled: true
+    min_observations: 24
+
+  - feature_id: pce_price_yoy_z
+    series_id: PCEPI
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_inflationary
+    enabled: true
+    min_observations: 24
+
+  - feature_id: fed_funds_level_z
+    series_id: FEDFUNDS
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 24
+
+  - feature_id: fed_funds_6m_change_z
+    series_id: FEDFUNDS
+    transform: diff_6m
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 24
+
+  - feature_id: ten_year_yield_level_z
+    series_id: DGS10
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 60
+
+  - feature_id: baa_spread_level_z
+    series_id: BAA10Y
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 60
+
+  - feature_id: nfci_level_z
+    series_id: NFCI
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 52
+
+  - feature_id: yield_curve_10y2y_level_z
+    series_id: T10Y2Y
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 60
+
+  - feature_id: disabled_leading_index_level_z
+    series_id: USSLIND
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: false
+    reason_disabled: discontinued_or_stale
+    min_observations: 24

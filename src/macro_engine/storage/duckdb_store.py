@@ -75,6 +75,39 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS features (
+                    feature_id TEXT,
+                    series_id TEXT,
+                    date DATE,
+                    raw_value DOUBLE,
+                    transformed_value DOUBLE,
+                    normalized_value DOUBLE,
+                    transform TEXT,
+                    normalization TEXT,
+                    window_start DATE,
+                    window_end DATE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS feature_health (
+                    feature_id TEXT PRIMARY KEY,
+                    series_id TEXT,
+                    enabled BOOLEAN,
+                    valid_count INTEGER,
+                    invalid_count INTEGER,
+                    latest_valid_date DATE,
+                    usable BOOLEAN,
+                    reason TEXT,
+                    reason_counts JSON
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -136,6 +169,46 @@ class DuckDBStore:
                 """
             )
 
+    def upsert_features(self, features: pd.DataFrame) -> None:
+        if features.empty:
+            return
+        with self._connect() as con:
+            con.register("features_frame", features)
+            con.execute(
+                """
+                DELETE FROM features
+                USING features_frame
+                WHERE features.feature_id = features_frame.feature_id
+                  AND (
+                    features.date = features_frame.date
+                    OR (features.date IS NULL AND features_frame.date IS NULL)
+                  )
+                """
+            )
+            con.execute(
+                """
+                INSERT INTO features
+                SELECT feature_id, series_id, date, raw_value, transformed_value,
+                       normalized_value, transform, normalization, window_start,
+                       window_end, valid, reason
+                FROM features_frame
+                """
+            )
+
+    def upsert_feature_health(self, health: pd.DataFrame) -> None:
+        if health.empty:
+            return
+        frame = health.copy()
+        frame["reason_counts"] = frame["reason_counts"].map(json.dumps)
+        with self._connect() as con:
+            con.register("feature_health_frame", frame)
+            con.execute(
+                """
+                INSERT OR REPLACE INTO feature_health
+                SELECT * FROM feature_health_frame
+                """
+            )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -149,6 +222,15 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM raw_observations ORDER BY series_id, date").fetchdf()
 
+    def read_features(self, feature_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if feature_id:
+                return con.execute(
+                    "SELECT * FROM features WHERE feature_id = ? ORDER BY date",
+                    [feature_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM features ORDER BY feature_id, date").fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -158,6 +240,8 @@ class DuckDBStore:
                 "series_metadata",
                 "raw_observations",
                 "source_health",
+                "features",
+                "feature_health",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

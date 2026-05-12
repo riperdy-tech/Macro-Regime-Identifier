@@ -72,3 +72,64 @@ data/raw/fred/source_health.parquet
 
 Phase B does not implement transforms, normalization, dimension scoring, regime
 scoring, backtesting, or reports.
+
+## Phase C: Feature Layer Only
+
+Phase C turns stored raw observations into inspectable feature rows. It does not
+combine features into dimensions, classify regimes, run backtests, or produce
+macro reports.
+
+Feature definitions live alongside the controlled Phase B sources:
+
+```text
+config/phase_b_sources.yaml
+```
+
+Commands:
+
+```powershell
+python -m macro_engine.cli build-features --config config/phase_b_sources.yaml
+python -m macro_engine.cli inspect-feature unemployment_6m_change_z
+python -m macro_engine.cli feature-health
+```
+
+Canonical feature outputs:
+
+```text
+features:
+  feature_id
+  series_id
+  date
+  raw_value
+  transformed_value
+  normalized_value
+  transform
+  normalization
+  window_start
+  window_end
+  valid
+  reason
+
+feature_health:
+  feature_id
+  series_id
+  enabled
+  valid_count
+  invalid_count
+  latest_valid_date
+  usable
+  reason
+  reason_counts
+```
+
+Initial transforms:
+
+```text
+level, diff_3m, diff_6m, diff_12m, yoy_pct_change, spread
+```
+
+Initial normalizations:
+
+```text
+none, rolling_z_3y, rolling_z_5y, rolling_z_10y, expanding_z
+```

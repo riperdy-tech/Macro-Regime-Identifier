@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from macro_engine.config.loader import load_all_configs
+from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
 from macro_engine.outputs.json_writer import write_json
@@ -118,6 +119,62 @@ def inspect_series(
         console.print("[yellow]No observations found[/yellow]")
     else:
         console.print(observations.to_string(index=False))
+
+
+@app.command()
+def build_features(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase C: build transformed and normalized feature rows from stored raw data."""
+    result = build_stored_features(config_path=config, db_path=db_path, parquet_dir=parquet_dir)
+    console.print_json(
+        data={
+            "features_total": int(len(result.features)),
+            "features_valid": int(result.features["valid"].fillna(False).sum()),
+            "feature_definitions": int(len(result.feature_health)),
+            "usable_features": int(result.feature_health["usable"].fillna(False).sum()),
+        }
+    )
+
+
+@app.command()
+def feature_health(db_path: str = "data/macro_engine.duckdb") -> None:
+    """Show latest feature health from local storage."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("feature_health")
+    rich_table = Table(title="Feature Health")
+    columns = [
+        "feature_id",
+        "series_id",
+        "enabled",
+        "valid_count",
+        "invalid_count",
+        "latest_valid_date",
+        "usable",
+        "reason",
+    ]
+    for column in columns:
+        rich_table.add_column(column)
+    for row in table.sort_values("feature_id").to_dict(orient="records"):
+        rich_table.add_row(*(str(row.get(column)) for column in columns))
+    console.print(rich_table)
+
+
+@app.command()
+def inspect_feature(
+    feature_id: str,
+    db_path: str = "data/macro_engine.duckdb",
+    limit: int = 10,
+) -> None:
+    """Inspect latest stored feature rows for one feature."""
+    store = DuckDBStore(db_path)
+    features = store.read_features(feature_id).tail(limit)
+    if features.empty:
+        console.print("[yellow]No feature rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(features.to_string(index=False))
 
 
 if __name__ == "__main__":
