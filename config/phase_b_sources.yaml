@@ -215,3 +215,72 @@ features:
     enabled: false
     reason_disabled: discontinued_or_stale
     min_observations: 24
+
+dimensions:
+  - dimension_id: growth_momentum
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.60
+    features:
+      - feature_id: industrial_production_yoy_z
+        weight: 0.35
+        polarity: positive
+      - feature_id: payrolls_yoy_z
+        weight: 0.35
+        polarity: positive
+      - feature_id: unemployment_6m_change_z
+        weight: 0.30
+        polarity: negative
+
+  - dimension_id: inflation_pressure
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.75
+    features:
+      - feature_id: headline_cpi_yoy_z
+        weight: 0.50
+        polarity: positive
+      - feature_id: pce_price_yoy_z
+        weight: 0.50
+        polarity: positive
+
+  - dimension_id: policy_stance
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.60
+    features:
+      - feature_id: fed_funds_level_z
+        weight: 0.40
+        polarity: negative
+      - feature_id: fed_funds_6m_change_z
+        weight: 0.30
+        polarity: negative
+      - feature_id: ten_year_yield_level_z
+        weight: 0.30
+        polarity: negative
+
+  - dimension_id: credit_liquidity
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.75
+    features:
+      - feature_id: baa_spread_level_z
+        weight: 0.45
+        polarity: negative
+      - feature_id: nfci_level_z
+        weight: 0.55
+        polarity: negative
+
+  - dimension_id: yield_curve
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: yield_curve_10y2y_level_z
+        weight: 1.00
+        polarity: positive

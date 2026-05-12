@@ -108,6 +108,53 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dimension_feature_contributions (
+                    dimension_id TEXT,
+                    feature_id TEXT,
+                    date DATE,
+                    normalized_value DOUBLE,
+                    weight DOUBLE,
+                    normalized_weight DOUBLE,
+                    polarity TEXT,
+                    signed_value DOUBLE,
+                    contribution DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dimension_scores (
+                    dimension_id TEXT,
+                    date DATE,
+                    score DOUBLE,
+                    valid_feature_count INTEGER,
+                    configured_feature_count INTEGER,
+                    total_configured_weight DOUBLE,
+                    used_weight DOUBLE,
+                    coverage_ratio DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS dimension_health (
+                    dimension_id TEXT,
+                    date DATE,
+                    valid BOOLEAN,
+                    valid_feature_count INTEGER,
+                    required_feature_count INTEGER,
+                    missing_features JSON,
+                    invalid_features JSON,
+                    reason TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -209,6 +256,53 @@ class DuckDBStore:
                 """
             )
 
+    def replace_dimension_outputs(
+        self,
+        contributions: pd.DataFrame,
+        scores: pd.DataFrame,
+        health: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM dimension_feature_contributions")
+            con.execute("DELETE FROM dimension_scores")
+            con.execute("DELETE FROM dimension_health")
+            if not contributions.empty:
+                con.register("dimension_contribution_frame", contributions)
+                con.execute(
+                    """
+                    INSERT INTO dimension_feature_contributions
+                    SELECT dimension_id, feature_id, date, normalized_value, weight,
+                           normalized_weight, polarity, signed_value, contribution,
+                           valid, reason
+                    FROM dimension_contribution_frame
+                    """
+                )
+            if not scores.empty:
+                con.register("dimension_score_frame", scores)
+                con.execute(
+                    """
+                    INSERT INTO dimension_scores
+                    SELECT dimension_id, date, score, valid_feature_count,
+                           configured_feature_count, total_configured_weight,
+                           used_weight, coverage_ratio, valid, reason
+                    FROM dimension_score_frame
+                    """
+                )
+            if not health.empty:
+                health_frame = health.copy()
+                health_frame["missing_features"] = health_frame["missing_features"].map(json.dumps)
+                health_frame["invalid_features"] = health_frame["invalid_features"].map(json.dumps)
+                con.register("dimension_health_frame", health_frame)
+                con.execute(
+                    """
+                    INSERT INTO dimension_health
+                    SELECT dimension_id, date, valid, valid_feature_count,
+                           required_feature_count, missing_features, invalid_features,
+                           reason
+                    FROM dimension_health_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -231,6 +325,15 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM features ORDER BY feature_id, date").fetchdf()
 
+    def read_dimension_scores(self, dimension_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if dimension_id:
+                return con.execute(
+                    "SELECT * FROM dimension_scores WHERE dimension_id = ? ORDER BY date",
+                    [dimension_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM dimension_scores ORDER BY dimension_id, date").fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -242,6 +345,9 @@ class DuckDBStore:
                 "source_health",
                 "features",
                 "feature_health",
+                "dimension_feature_contributions",
+                "dimension_scores",
+                "dimension_health",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

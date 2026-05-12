@@ -133,3 +133,56 @@ Initial normalizations:
 ```text
 none, rolling_z_3y, rolling_z_5y, rolling_z_10y, expanding_z
 ```
+
+## Phase D: Dimension Scoring Only
+
+Phase D combines normalized feature rows into transparent macro dimension scores.
+It does not produce regime probabilities, backtests, markdown reports, trading
+logic, or final macro labels.
+
+Commands:
+
+```powershell
+python -m macro_engine.cli build-dimensions --config config/phase_b_sources.yaml
+python -m macro_engine.cli inspect-dimension growth_momentum
+python -m macro_engine.cli dimension-health
+```
+
+Canonical dimension outputs:
+
+```text
+dimension_feature_contributions:
+  dimension_id
+  feature_id
+  date
+  normalized_value
+  weight
+  normalized_weight
+  polarity
+  signed_value
+  contribution
+  valid
+  reason
+
+dimension_scores:
+  dimension_id
+  date
+  score
+  valid_feature_count
+  configured_feature_count
+  total_configured_weight
+  used_weight
+  coverage_ratio
+  valid
+  reason
+
+dimension_health:
+  dimension_id
+  date
+  valid
+  valid_feature_count
+  required_feature_count
+  missing_features
+  invalid_features
+  reason
+```

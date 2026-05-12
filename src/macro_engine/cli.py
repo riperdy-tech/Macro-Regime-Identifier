@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.table import Table
 
 from macro_engine.config.loader import load_all_configs
+from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
@@ -175,6 +176,60 @@ def inspect_feature(
         console.print("[yellow]No feature rows found[/yellow]")
         raise typer.Exit(code=1)
     console.print(features.to_string(index=False))
+
+
+@app.command()
+def build_dimensions(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase D: build dimension contributions, scores, and health from stored features."""
+    result = build_stored_dimensions(config_path=config, db_path=db_path, parquet_dir=parquet_dir)
+    console.print_json(
+        data={
+            "contribution_rows": int(len(result.contributions)),
+            "dimension_score_rows": int(len(result.dimension_scores)),
+            "valid_dimension_rows": int(result.dimension_scores["valid"].fillna(False).sum()),
+            "dimension_health_rows": int(len(result.dimension_health)),
+        }
+    )
+
+
+@app.command()
+def inspect_dimension(
+    dimension_id: str,
+    db_path: str = "data/macro_engine.duckdb",
+    limit: int = 10,
+) -> None:
+    """Inspect latest stored dimension scores for one dimension."""
+    store = DuckDBStore(db_path)
+    scores = store.read_dimension_scores(dimension_id).tail(limit)
+    if scores.empty:
+        console.print("[yellow]No dimension score rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(scores.to_string(index=False))
+
+
+@app.command()
+def dimension_health(db_path: str = "data/macro_engine.duckdb") -> None:
+    """Show latest dimension health rows from local storage."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("dimension_health")
+    rich_table = Table(title="Dimension Health")
+    columns = [
+        "dimension_id",
+        "date",
+        "valid",
+        "valid_feature_count",
+        "required_feature_count",
+        "reason",
+    ]
+    for column in columns:
+        rich_table.add_column(column)
+    for row in table.sort_values(["dimension_id", "date"]).tail(30).to_dict(orient="records"):
+        rich_table.add_row(*(str(row.get(column)) for column in columns))
+    console.print(rich_table)
 
 
 if __name__ == "__main__":
