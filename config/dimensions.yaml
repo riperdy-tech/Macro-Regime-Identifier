@@ -1,0 +1,110 @@
+dimensions:
+  inflation_pressure:
+    label: Inflation Pressure
+    dimension_type: core
+    required_for_regime: true
+    description: Are price pressures rising, elevated, falling, or benign?
+    positive_means: Inflation pressure is rising or elevated.
+    negative_means: Inflation pressure is falling or benign.
+    min_required_weight: 0.60
+    display_order: 1
+
+  growth_momentum:
+    label: Growth Momentum
+    dimension_type: core
+    required_for_regime: true
+    description: Is real economic activity strengthening or weakening?
+    positive_means: Growth is accelerating or resilient.
+    negative_means: Growth is slowing or contracting.
+    min_required_weight: 0.60
+    display_order: 2
+
+  labor_tightness:
+    label: Labor Tightness
+    dimension_type: core
+    required_for_regime: true
+    description: Is the labor market tight, balanced, or weakening?
+    positive_means: Labor market is tight or wage pressure is elevated.
+    negative_means: Labor market is weakening or unemployment pressure is rising.
+    min_required_weight: 0.60
+    display_order: 3
+
+  policy_stance:
+    label: Policy Stance
+    dimension_type: core
+    required_for_regime: true
+    description: Is monetary policy supportive or restrictive?
+    positive_means: Policy is easier or more supportive.
+    negative_means: Policy is tighter or more restrictive.
+    min_required_weight: 0.60
+    display_order: 4
+
+  financial_conditions:
+    label: Financial Conditions
+    dimension_type: core
+    required_for_regime: true
+    description: Are credit and liquidity conditions easy or tight?
+    positive_means: Financial conditions are easier or liquidity is improving.
+    negative_means: Financial conditions are tighter or credit stress is rising.
+    min_required_weight: 0.60
+    display_order: 5
+
+  market_risk_appetite:
+    label: Market Risk Appetite
+    dimension_type: core
+    required_for_regime: true
+    description: Are markets pricing risk-on or risk-off conditions?
+    positive_means: Markets are risk-on.
+    negative_means: Markets are risk-off.
+    min_required_weight: 0.60
+    display_order: 6
+
+  consumer_health:
+    label: Consumer Health
+    dimension_type: context
+    required_for_regime: false
+    description: Are household balance sheets and spending conditions improving or weakening?
+    positive_means: Consumer conditions are strong or improving.
+    negative_means: Consumer conditions are weak or deteriorating.
+    min_required_weight: 0.50
+    display_order: 7
+
+  housing_cycle:
+    label: Housing Cycle
+    dimension_type: context
+    required_for_regime: false
+    description: Is housing activity expanding or contracting?
+    positive_means: Housing activity is expanding or stabilizing.
+    negative_means: Housing activity is contracting or rate pressure is rising.
+    min_required_weight: 0.50
+    display_order: 8
+
+  fiscal_impulse:
+    label: Fiscal Impulse
+    dimension_type: context
+    required_for_regime: false
+    description: Is fiscal policy adding or subtracting demand?
+    positive_means: Fiscal policy is expansionary or supportive.
+    negative_means: Fiscal policy is becoming a drag.
+    min_required_weight: 0.00
+    display_order: 9
+
+  commodity_pressure:
+    label: Commodity Pressure
+    dimension_type: context
+    required_for_regime: false
+    description: Are commodity prices adding inflation or supply pressure?
+    positive_means: Commodity pressure is rising.
+    negative_means: Commodity pressure is easing.
+    min_required_weight: 0.00
+    display_order: 10
+
+  safe_haven_demand:
+    label: Safe Haven Demand
+    dimension_type: context
+    required_for_regime: false
+    description: Are markets showing demand for defensive stores of value?
+    positive_means: Safe-haven demand is rising.
+    negative_means: Safe-haven demand is easing.
+    min_required_weight: 0.00
+    display_order: 11

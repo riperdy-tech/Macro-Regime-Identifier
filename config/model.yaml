@@ -1,0 +1,56 @@
+model:
+  name: macro-regime-engine
+  version: 0.1.0
+  geography: US
+  base_frequency: daily
+  historical_mode: historical_revised_data_diagnostic
+
+  positioning:
+    description: >
+      Experimental macro regime classification based on official macroeconomic
+      data, market-implied signals, and transparent scoring rules.
+    not_investment_advice: true
+    experimental: true
+
+  normalization:
+    default: rolling_z_5y
+    minimum_observations: 5
+    zscore_clip: 3.0
+    bounded_transform: tanh
+    bounded_transform_divisor: 2.0
+
+  classification:
+    method: asymmetric_rule_based_softmax
+    softmax_temperature: 0.35
+    low_conviction_threshold: 0.35
+    transition_zone_probability_gap: 0.08
+
+  confidence:
+    weights:
+      data_completeness: 0.30
+      data_freshness: 0.25
+      signal_agreement: 0.25
+      regime_decisiveness: 0.20
+
+  freshness_defaults:
+    daily:
+      stale_after_days: 5
+      unusable_after_days: 15
+    weekly:
+      stale_after_days: 14
+      unusable_after_days: 35
+    monthly:
+      stale_after_days: 45
+      unusable_after_days: 120
+    quarterly:
+      stale_after_days: 120
+      unusable_after_days: 240
+    annual:
+      stale_after_days: 450
+      unusable_after_days: 900
+
+  output:
+    write_json: true
+    write_markdown_report: true
+    include_context_dimensions: true
+    include_source_health: true

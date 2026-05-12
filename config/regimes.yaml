@@ -1,0 +1,157 @@
+regimes:
+  goldilocks_expansion:
+    label: Goldilocks Expansion
+    description: Growth is positive, inflation is benign, financial conditions are supportive, and risk appetite is healthy.
+    scoring:
+      growth_momentum:
+        mode: reward_positive
+        weight: 0.25
+      inflation_pressure:
+        mode: penalize_positive
+        weight: 0.25
+      financial_conditions:
+        mode: reward_positive
+        weight: 0.20
+      market_risk_appetite:
+        mode: reward_positive
+        weight: 0.20
+      labor_tightness:
+        mode: neutral_band
+        weight: 0.10
+        target: 0.15
+    driver_templates:
+      positive:
+        - Growth momentum is resilient.
+        - Inflation pressure appears contained.
+        - Financial conditions are supportive.
+        - Market risk appetite is healthy.
+
+  inflationary_expansion:
+    label: Inflationary Expansion
+    description: Growth remains positive, but inflation pressure is high and policy is restrictive or tightening.
+    scoring:
+      growth_momentum:
+        mode: reward_positive
+        weight: 0.25
+      inflation_pressure:
+        mode: reward_positive
+        weight: 0.25
+      policy_stance:
+        mode: reward_negative
+        weight: 0.20
+      labor_tightness:
+        mode: reward_positive
+        weight: 0.15
+      market_risk_appetite:
+        mode: reward_positive
+        weight: 0.10
+      financial_conditions:
+        mode: penalize_negative
+        weight: 0.05
+    driver_templates:
+      positive:
+        - Growth remains resilient despite elevated inflation pressure.
+        - Inflation pressure is elevated.
+        - Policy conditions appear restrictive.
+
+  inflationary_slowdown:
+    label: Inflationary Slowdown
+    description: Inflation pressure remains elevated while growth or financial conditions weaken.
+    scoring:
+      inflation_pressure:
+        mode: reward_positive
+        weight: 0.30
+      growth_momentum:
+        mode: reward_negative
+        weight: 0.25
+      financial_conditions:
+        mode: reward_negative
+        weight: 0.20
+      policy_stance:
+        mode: reward_negative
+        weight: 0.15
+      market_risk_appetite:
+        mode: reward_negative
+        weight: 0.10
+    driver_templates:
+      positive:
+        - Inflation pressure remains elevated.
+        - Growth momentum is weakening.
+        - Financial conditions are tightening.
+
+  recessionary_deleveraging:
+    label: Recessionary Deleveraging
+    description: Growth is weak, labor is deteriorating, financial conditions are tight, and risk appetite is poor.
+    scoring:
+      growth_momentum:
+        mode: reward_negative
+        weight: 0.25
+      labor_tightness:
+        mode: reward_negative
+        weight: 0.20
+      financial_conditions:
+        mode: reward_negative
+        weight: 0.25
+      market_risk_appetite:
+        mode: reward_negative
+        weight: 0.20
+      inflation_pressure:
+        mode: penalize_positive
+        weight: 0.10
+    driver_templates:
+      positive:
+        - Growth momentum is weak.
+        - Labor market conditions are deteriorating.
+        - Credit and liquidity conditions are tight.
+        - Market risk appetite is risk-off.
+
+  policy_easing_recovery:
+    label: Policy Easing Recovery
+    description: Inflation pressure is falling, policy is becoming more supportive, financial conditions are easing, and risk appetite is recovering.
+    scoring:
+      inflation_pressure:
+        mode: reward_negative
+        weight: 0.20
+      policy_stance:
+        mode: reward_positive
+        weight: 0.25
+      financial_conditions:
+        mode: reward_positive
+        weight: 0.20
+      market_risk_appetite:
+        mode: reward_positive
+        weight: 0.20
+      growth_momentum:
+        mode: reward_positive
+        weight: 0.15
+    driver_templates:
+      positive:
+        - Inflation pressure is easing.
+        - Policy conditions are becoming more supportive.
+        - Financial conditions are improving.
+        - Risk appetite is recovering.
+
+  crisis_risk_off:
+    label: Crisis Risk-Off
+    description: Market stress and credit or liquidity stress dominate the macro signal.
+    scoring:
+      market_risk_appetite:
+        mode: reward_negative
+        weight: 0.35
+      financial_conditions:
+        mode: reward_negative
+        weight: 0.35
+      growth_momentum:
+        mode: reward_negative
+        weight: 0.15
+      inflation_pressure:
+        mode: penalize_negative
+        weight: 0.05
+      labor_tightness:
+        mode: reward_negative
+        weight: 0.10
+    driver_templates:
+      positive:
+        - Market risk appetite is sharply negative.
+        - Credit or liquidity stress is elevated.
+        - Growth momentum is deteriorating.
