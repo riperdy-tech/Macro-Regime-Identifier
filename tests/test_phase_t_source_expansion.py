@@ -20,7 +20,8 @@ def test_phase_t_source_expansion_config_validates_and_keeps_production_separate
     expanded_features = {feature.feature_id for feature in load_feature_config(PHASE_T_CONFIG).features}
 
     assert {"ICSA", "RSAFS", "T5YIE", "BAMLH0A0HYM2"}.issubset(expanded_sources)
-    assert {"ICSA", "RSAFS", "T5YIE", "BAMLH0A0HYM2"}.isdisjoint(production_sources)
+    assert {"ICSA", "BAMLH0A0HYM2"}.issubset(production_sources)
+    assert {"RSAFS", "T5YIE"}.isdisjoint(production_sources)
     assert {
         "initial_claims_level_z",
         "retail_sales_yoy_z",

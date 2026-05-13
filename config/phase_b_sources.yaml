@@ -110,6 +110,26 @@ sources:
     stale_after_days: 45
     unusable_after_days: 120
 
+  - series_id: ICSA
+    name: Initial Claims
+    provider: FRED
+    dimension: growth
+    frequency: weekly
+    required: true
+    enabled: true
+    stale_after_days: 14
+    unusable_after_days: 35
+
+  - series_id: BAMLH0A0HYM2
+    name: ICE BofA US High Yield Index Option-Adjusted Spread
+    provider: FRED
+    dimension: credit_liquidity
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
@@ -216,21 +236,40 @@ features:
     reason_disabled: discontinued_or_stale
     min_observations: 24
 
+  - feature_id: initial_claims_level_z
+    series_id: ICSA
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 52
+
+  - feature_id: high_yield_oas_level_z
+    series_id: BAMLH0A0HYM2
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 60
+
 dimensions:
   - dimension_id: growth_momentum
     enabled: true
     required_for_regime: true
-    min_valid_features: 2
+    min_valid_features: 3
     min_coverage_ratio: 0.60
     features:
       - feature_id: industrial_production_yoy_z
-        weight: 0.35
+        weight: 0.30
         polarity: positive
       - feature_id: payrolls_yoy_z
-        weight: 0.35
+        weight: 0.30
         polarity: positive
       - feature_id: unemployment_6m_change_z
-        weight: 0.30
+        weight: 0.25
+        polarity: negative
+      - feature_id: initial_claims_level_z
+        weight: 0.15
         polarity: negative
 
   - dimension_id: inflation_pressure
@@ -266,13 +305,16 @@ dimensions:
     enabled: true
     required_for_regime: true
     min_valid_features: 2
-    min_coverage_ratio: 0.75
+    min_coverage_ratio: 0.60
     features:
       - feature_id: baa_spread_level_z
-        weight: 0.45
+        weight: 0.35
         polarity: negative
       - feature_id: nfci_level_z
-        weight: 0.55
+        weight: 0.35
+        polarity: negative
+      - feature_id: high_yield_oas_level_z
+        weight: 0.30
         polarity: negative
 
   - dimension_id: yield_curve

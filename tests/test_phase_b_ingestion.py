@@ -68,11 +68,11 @@ class FakeFredClient:
         )
 
 
-def test_load_phase_b_controlled_source_set():
+def test_load_production_controlled_source_set():
     sources = load_ingestion_sources("config/phase_b_sources.yaml")
     selected = select_sources(sources)
 
-    assert len(selected) == 10
+    assert len(selected) == 12
     assert {source.series_id for source in selected} == {
         "INDPRO",
         "PAYEMS",
@@ -84,6 +84,8 @@ def test_load_phase_b_controlled_source_set():
         "BAA10Y",
         "NFCI",
         "T10Y2Y",
+        "ICSA",
+        "BAMLH0A0HYM2",
     }
 
 

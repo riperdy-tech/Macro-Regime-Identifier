@@ -16,14 +16,10 @@ PHASE_U_CONFIG = "config/experiments/phase_u_sources.yaml"
 
 def test_phase_u_config_includes_only_selective_source_candidates():
     sources = {source.series_id for source in load_ingestion_sources(PHASE_U_CONFIG)}
-    production_sources = {
-        source.series_id for source in load_ingestion_sources("config/phase_b_sources.yaml")
-    }
     features = {feature.feature_id for feature in load_feature_config(PHASE_U_CONFIG).features}
 
     assert {"ICSA", "BAMLH0A0HYM2"}.issubset(sources)
     assert {"RSAFS", "T5YIE"}.isdisjoint(sources)
-    assert {"ICSA", "BAMLH0A0HYM2"}.isdisjoint(production_sources)
     assert {"initial_claims_level_z", "high_yield_oas_level_z"}.issubset(features)
     assert {"retail_sales_yoy_z", "five_year_breakeven_level_z"}.isdisjoint(features)
 
