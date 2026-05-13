@@ -17,6 +17,7 @@ from macro_engine.ingest.service import run_fred_ingestion
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
 from macro_engine.pipeline import classify_observations
+from macro_engine.pipeline_runner import run_pipeline as run_full_pipeline
 from macro_engine.regimes.service import build_stored_regimes
 from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
@@ -393,6 +394,30 @@ def write_diagnostic_report(
         db_path=db_path,
     )
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command()
+def run_pipeline(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+    mode: Annotated[str, typer.Option("--mode")] = "live",
+    start: Annotated[str | None, typer.Option("--start")] = None,
+    end: Annotated[str | None, typer.Option("--end")] = None,
+) -> None:
+    """Phase H: orchestrate ingestion through reports using existing pipeline layers."""
+    try:
+        summary = run_full_pipeline(
+            config_path=config,
+            db_path=db_path,
+            parquet_dir=parquet_dir,
+            mode=mode,
+            start=start,
+            end=end,
+        )
+    except FredError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print_json(data=summary.to_dict())
 
 
 if __name__ == "__main__":

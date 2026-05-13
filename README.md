@@ -331,3 +331,43 @@ Historical diagnostic reports include revised-data mode, date range, regime
 distribution, switch count, average duration, average confidence, low-confidence
 period count, latest transitions, invalid date count, and a clear note that the
 diagnostic is not a point-in-time vintage backtest.
+
+## Phase H: End-To-End Pipeline Runner
+
+Phase H adds operational orchestration. The pipeline runs existing layers in
+sequence and does not duplicate scoring, report generation, or model logic.
+
+Command:
+
+```powershell
+python -m macro_engine.cli run-pipeline --config config/phase_b_sources.yaml
+```
+
+Live ingestion requires `FRED_API_KEY`. Normal tests use mocked ingestion and do
+not call FRED.
+
+Pipeline order:
+
+```text
+ingest
+build-features
+build-dimensions
+build-regimes
+run-historical-diagnostic
+write-current-report
+write-diagnostic-report
+```
+
+Run summaries are stored in `pipeline_runs`:
+
+```text
+run_id
+started_at
+completed_at
+config_path
+mode
+status
+failed_step
+warning_count
+output_dir
+```

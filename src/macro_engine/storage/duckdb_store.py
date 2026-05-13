@@ -248,6 +248,21 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS pipeline_runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    config_path TEXT,
+                    mode TEXT,
+                    status TEXT,
+                    failed_step TEXT,
+                    warning_count INTEGER,
+                    output_dir TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -257,6 +272,17 @@ class DuckDBStore:
                 """
                 INSERT OR REPLACE INTO ingestion_runs
                 SELECT * FROM run_frame
+                """
+            )
+
+    def record_pipeline_run(self, record: dict[str, Any]) -> None:
+        frame = pd.DataFrame([record])
+        with self._connect() as con:
+            con.register("pipeline_run_frame", frame)
+            con.execute(
+                """
+                INSERT OR REPLACE INTO pipeline_runs
+                SELECT * FROM pipeline_run_frame
                 """
             )
 
@@ -544,6 +570,7 @@ class DuckDBStore:
                 "historical_regime_timeline",
                 "regime_transitions",
                 "diagnostic_summary",
+                "pipeline_runs",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",
