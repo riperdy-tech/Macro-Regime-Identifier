@@ -13,7 +13,11 @@ def build_source_health(
     as_of: str | None = None,
 ) -> pd.DataFrame:
     checked_at = pd.Timestamp(datetime.now(timezone.utc))
-    as_of_date = pd.Timestamp(as_of).normalize() if as_of else checked_at.normalize()
+    as_of_date = (
+        pd.Timestamp(as_of).tz_localize(None).normalize()
+        if as_of
+        else checked_at.tz_localize(None).normalize()
+    )
     rows: list[dict] = []
     raw = raw_observations.copy()
     if raw.empty:

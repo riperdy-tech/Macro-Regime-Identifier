@@ -25,13 +25,12 @@ def build_regimes_from_dimensions(
         dimensions = pd.DataFrame(columns=["dimension_id", "date", "score", "valid", "reason"])
     dimensions["date"] = pd.to_datetime(dimensions["date"], errors="coerce")
 
-    all_dates = sorted(dimensions["date"].dropna().unique())
     contribution_records: list[dict] = []
     score_records: list[dict] = []
     for regime in regimes:
         if not regime.enabled:
             continue
-        contributions = _build_regime_contributions(dimensions, regime, all_dates)
+        contributions = _build_regime_contributions(dimensions, regime)
         contribution_records.extend(contributions.to_dict(orient="records"))
         scores = _build_raw_regime_scores(contributions, regime)
         score_records.extend(scores.to_dict(orient="records"))
@@ -70,16 +69,21 @@ def transform_dimension_value(value: float | None, polarity: str) -> float | Non
 def _build_regime_contributions(
     dimensions: pd.DataFrame,
     regime: RegimeDefinition,
-    all_dates: list[pd.Timestamp],
 ) -> pd.DataFrame:
     rows: list[dict] = []
+    configured = {dimension.dimension_id for dimension in regime.dimensions}
+    regime_dimensions = dimensions[dimensions["dimension_id"].isin(configured)].copy()
+    all_dates = sorted(regime_dimensions["date"].dropna().unique())
+    if not all_dates:
+        return pd.DataFrame(rows, columns=_contribution_columns())
+    latest_by_dimension_date = {
+        (row["dimension_id"], row["date"]): row
+        for row in regime_dimensions.sort_values("date").to_dict(orient="records")
+    }
     for date in all_dates:
         for regime_dimension in regime.dimensions:
-            matches = dimensions[
-                (dimensions["dimension_id"] == regime_dimension.dimension_id)
-                & (dimensions["date"] == date)
-            ]
-            if matches.empty:
+            row = latest_by_dimension_date.get((regime_dimension.dimension_id, date))
+            if row is None:
                 rows.append(
                     _contribution_row(
                         regime.regime_id,
@@ -96,7 +100,6 @@ def _build_regime_contributions(
                     )
                 )
                 continue
-            row = matches.iloc[-1]
             dimension_valid = bool(row["valid"]) and pd.notna(row["score"])
             dimension_score = None if pd.isna(row["score"]) else float(row["score"])
             transformed = (

@@ -29,11 +29,10 @@ def build_dimensions_from_features(
     score_rows: list[dict] = []
     health_rows: list[dict] = []
 
-    all_dates = sorted(feature_frame["date"].dropna().unique())
     for dimension in dimensions:
         if not dimension.enabled:
             continue
-        dimension_contributions = _build_dimension_contributions(feature_frame, dimension, all_dates)
+        dimension_contributions = _build_dimension_contributions(feature_frame, dimension)
         contribution_records.extend(dimension_contributions.to_dict(orient="records"))
         scores = _build_dimension_scores(dimension_contributions, dimension)
         score_rows.extend(scores.to_dict(orient="records"))
@@ -56,17 +55,21 @@ def build_dimensions_from_features(
 def _build_dimension_contributions(
     features: pd.DataFrame,
     dimension: DimensionDefinition,
-    all_dates: list[pd.Timestamp],
 ) -> pd.DataFrame:
     rows: list[dict] = []
     configured = {feature.feature_id: feature for feature in dimension.features}
+    dimension_features = features[features["feature_id"].isin(configured)].copy()
+    all_dates = sorted(dimension_features["date"].dropna().unique())
+    if not all_dates:
+        return pd.DataFrame(rows, columns=_contribution_columns())
+    latest_by_feature_date = {
+        (row["feature_id"], row["date"]): row
+        for row in dimension_features.sort_values("date").to_dict(orient="records")
+    }
     for date in all_dates:
         for dimension_feature in dimension.features:
-            matches = features[
-                (features["feature_id"] == dimension_feature.feature_id)
-                & (features["date"] == date)
-            ]
-            if matches.empty:
+            row = latest_by_feature_date.get((dimension_feature.feature_id, date))
+            if row is None:
                 rows.append(
                     _contribution_row(
                         dimension.dimension_id,
@@ -83,7 +86,6 @@ def _build_dimension_contributions(
                     )
                 )
                 continue
-            row = matches.iloc[-1]
             valid = bool(row["valid"]) and pd.notna(row["normalized_value"])
             normalized_value = (
                 None if pd.isna(row["normalized_value"]) else float(row["normalized_value"])

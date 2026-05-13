@@ -101,6 +101,7 @@ def test_live_pipeline_requires_fred_api_key(tmp_path, monkeypatch):
             parquet_dir=tmp_path / "fred",
             mode="live",
             ingest_runner=_mock_ingest,
+            load_env=False,
         )
 
 

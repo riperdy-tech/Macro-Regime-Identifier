@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable
 
 import pandas as pd
+from dotenv import load_dotenv
 
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
@@ -67,7 +68,10 @@ def run_pipeline(
     start: str | None = None,
     end: str | None = None,
     ingest_runner: Callable | None = None,
+    load_env: bool = True,
 ) -> PipelineSummary:
+    if load_env:
+        load_dotenv()
     config_path = str(config_path)
     db_path = str(db_path)
     parquet_dir = str(parquet_dir)
