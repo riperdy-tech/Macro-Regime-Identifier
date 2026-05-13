@@ -15,6 +15,7 @@ from macro_engine.evaluation.service import (
     build_stored_asof_features,
     build_stored_evaluation_calendar,
 )
+from macro_engine.experiments.runner import run_calibration_experiments
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
@@ -487,6 +488,29 @@ def run_pipeline(
     except FredError as exc:
         raise typer.BadParameter(str(exc)) from exc
     console.print_json(data=summary.to_dict())
+
+
+@app.command("run-calibration-experiments")
+def run_calibration_experiments_cli(
+    experiment_config: Annotated[
+        str,
+        typer.Option("--experiment-config"),
+    ] = "config/experiments/phase_l.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Phase L: run calibration experiments without overwriting production outputs."""
+    result = run_calibration_experiments(
+        experiment_config_path=experiment_config,
+        db_path=db_path,
+    )
+    console.print_json(
+        data={
+            "output_dir": str(result.output_dir),
+            "variant_count": len(result.variant_results),
+            "comparison_path": str(result.output_dir / "comparison.json"),
+            "markdown_path": str(result.markdown_path),
+        }
+    )
 
 
 if __name__ == "__main__":

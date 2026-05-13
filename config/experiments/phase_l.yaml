@@ -1,0 +1,198 @@
+experiment:
+  name: phase_l
+  output_dir: outputs/experiments/phase_l
+  base_config: config/phase_b_sources.yaml
+
+variants:
+  - variant_id: baseline
+    description: Current production formulas at temperature 1.0.
+    softmax_temperature: 1.0
+
+  - variant_id: temperature_0_8
+    description: Current production formulas at temperature 0.8.
+    softmax_temperature: 0.8
+
+  - variant_id: temperature_0_6
+    description: Current production formulas at temperature 0.6.
+    softmax_temperature: 0.6
+
+  - variant_id: temperature_0_5
+    description: Current production formulas at temperature 0.5.
+    softmax_temperature: 0.5
+
+  - variant_id: sharper_stagflation
+    description: Requires high inflation and weak growth together, while reducing purely additive stagflation support.
+    softmax_temperature: 1.0
+    regime_overrides:
+      stagflation:
+        dimensions:
+          - dimension_id: inflation_pressure
+            weight: 0.22
+            polarity: positive
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: negative
+          - dimension_id: credit_liquidity
+            weight: 0.12
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.13
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: negative
+        interactions:
+          - interaction_id: inflation_x_weak_growth
+            weight: 0.25
+            components:
+              - dimension_id: inflation_pressure
+                polarity: positive_only
+              - dimension_id: growth_momentum
+                polarity: negative_only
+
+  - variant_id: sharper_tightening
+    description: Emphasizes inflation plus restrictive policy and reduces support from weak growth.
+    softmax_temperature: 1.0
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.15
+            polarity: penalize_negative_only
+          - dimension_id: inflation_pressure
+            weight: 0.35
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.30
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: negative
+
+  - variant_id: sharper_reflation
+    description: Requires growth and liquidity support while penalizing excessive inflation.
+    softmax_temperature: 1.0
+    regime_overrides:
+      reflation:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.20
+            polarity: reward_near_zero
+          - dimension_id: credit_liquidity
+            weight: 0.25
+            polarity: positive
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: positive
+
+  - variant_id: stronger_recession_credit_curve
+    description: Makes recession depend more heavily on credit stress and yield-curve weakness.
+    softmax_temperature: 1.0
+    regime_overrides:
+      recession:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.30
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.05
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.30
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.25
+            polarity: negative
+
+  - variant_id: combined_formula_sharpening
+    description: Applies sharper stagflation, tightening, reflation, and recession variants together.
+    softmax_temperature: 0.8
+    regime_overrides:
+      stagflation:
+        dimensions:
+          - dimension_id: inflation_pressure
+            weight: 0.22
+            polarity: positive
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: negative
+          - dimension_id: credit_liquidity
+            weight: 0.12
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.13
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: negative
+        interactions:
+          - interaction_id: inflation_x_weak_growth
+            weight: 0.25
+            components:
+              - dimension_id: inflation_pressure
+                polarity: positive_only
+              - dimension_id: growth_momentum
+                polarity: negative_only
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.15
+            polarity: penalize_negative_only
+          - dimension_id: inflation_pressure
+            weight: 0.35
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.30
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: negative
+      reflation:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.20
+            polarity: reward_near_zero
+          - dimension_id: credit_liquidity
+            weight: 0.25
+            polarity: positive
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.10
+            polarity: positive
+      recession:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.30
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.05
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.30
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.25
+            polarity: negative

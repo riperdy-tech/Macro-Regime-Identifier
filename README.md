@@ -425,3 +425,38 @@ max_lag_by_frequency:
 
 `same_date` scoring is preserved behind `scoring_mode: same_date` for diagnostic
 comparisons, but normal pipeline runs should use `calendar_asof`.
+
+## Phase L: Calibration Experiments
+
+Phase L adds an experiment harness for comparing calibration variants against
+the same stored calendar-aligned dimension scores. Experiments do not overwrite
+production regime tables, reports, or pipeline outputs.
+
+Command:
+
+```powershell
+python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_l.yaml
+```
+
+Experiment outputs:
+
+```text
+outputs/experiments/phase_l/
+  baseline.json
+  temperature_0_8.json
+  temperature_0_6.json
+  temperature_0_5.json
+  sharper_stagflation.json
+  sharper_tightening.json
+  sharper_reflation.json
+  stronger_recession_credit_curve.json
+  combined_formula_sharpening.json
+  comparison.json
+  comparison.md
+```
+
+The Phase L harness compares softmax temperature variants, formula-sharpening
+variants, historical confidence, transition behavior, dominant regime
+distribution, and pairwise raw-score correlations. It is a calibration diagnostic
+only: no source expansion, trading logic, allocation logic, or production formula
+replacement is performed by the runner.
