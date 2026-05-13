@@ -77,7 +77,7 @@ def test_regime_config_validates():
         "recession",
         "tightening",
     }
-    assert config.scoring.softmax_temperature == 1.0
+    assert config.scoring.softmax_temperature == 0.6
 
 
 def test_unknown_dimension_id_fails_validation(tmp_path):

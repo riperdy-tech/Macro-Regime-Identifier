@@ -287,7 +287,9 @@ dimensions:
 
 regime_scoring:
   probability_method: softmax
-  softmax_temperature: 1.0
+  # Calibrated in Phase L. Temperature 0.6 improved probability separation
+  # without changing raw-score rankings or regime transitions.
+  softmax_temperature: 0.6
 
 historical_diagnostic:
   start_date: "1990-01-01"
