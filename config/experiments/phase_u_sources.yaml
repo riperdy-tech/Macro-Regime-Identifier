@@ -1,0 +1,478 @@
+sources:
+  - series_id: INDPRO
+    name: Industrial Production Total Index
+    provider: FRED
+    dimension: growth
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: PAYEMS
+    name: All Employees, Total Nonfarm
+    provider: FRED
+    dimension: growth
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: UNRATE
+    name: Unemployment Rate
+    provider: FRED
+    dimension: growth
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: CPIAUCSL
+    name: Consumer Price Index for All Urban Consumers
+    provider: FRED
+    dimension: inflation
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: PCEPI
+    name: Personal Consumption Expenditures Price Index
+    provider: FRED
+    dimension: inflation
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: FEDFUNDS
+    name: Effective Federal Funds Rate
+    provider: FRED
+    dimension: policy
+    frequency: monthly
+    required: true
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: DGS10
+    name: 10-Year Treasury Constant Maturity Rate
+    provider: FRED
+    dimension: policy
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+
+  - series_id: BAA10Y
+    name: Moody's Seasoned Baa Corporate Bond Yield Relative to 10-Year Treasury
+    provider: FRED
+    dimension: credit_liquidity
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+
+  - series_id: NFCI
+    name: Chicago Fed National Financial Conditions Index
+    provider: FRED
+    dimension: credit_liquidity
+    frequency: weekly
+    required: true
+    enabled: true
+    stale_after_days: 14
+    unusable_after_days: 35
+
+  - series_id: T10Y2Y
+    name: 10-Year Treasury Minus 2-Year Treasury Spread
+    provider: FRED
+    dimension: curve
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+
+  - series_id: USSLIND
+    name: Leading Index for the United States
+    provider: FRED
+    dimension: health_test
+    frequency: monthly
+    required: false
+    enabled: false
+    reason_disabled: discontinued_or_stale
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: ICSA
+    name: Initial Claims
+    provider: FRED
+    dimension: growth
+    frequency: weekly
+    required: true
+    enabled: true
+    stale_after_days: 14
+    unusable_after_days: 35
+
+  - series_id: BAMLH0A0HYM2
+    name: ICE BofA US High Yield Index Option-Adjusted Spread
+    provider: FRED
+    dimension: credit_liquidity
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+
+features:
+  - feature_id: industrial_production_yoy_z
+    series_id: INDPRO
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 24
+
+  - feature_id: payrolls_yoy_z
+    series_id: PAYEMS
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 24
+
+  - feature_id: unemployment_6m_change_z
+    series_id: UNRATE
+    transform: diff_6m
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 24
+
+  - feature_id: unemployment_12m_change_z
+    series_id: UNRATE
+    transform: diff_12m
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 24
+
+  - feature_id: headline_cpi_yoy_z
+    series_id: CPIAUCSL
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_inflationary
+    enabled: true
+    min_observations: 24
+
+  - feature_id: pce_price_yoy_z
+    series_id: PCEPI
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_inflationary
+    enabled: true
+    min_observations: 24
+
+  - feature_id: fed_funds_level_z
+    series_id: FEDFUNDS
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 24
+
+  - feature_id: fed_funds_6m_change_z
+    series_id: FEDFUNDS
+    transform: diff_6m
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 24
+
+  - feature_id: ten_year_yield_level_z
+    series_id: DGS10
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_policy_tight
+    enabled: true
+    min_observations: 60
+
+  - feature_id: baa_spread_level_z
+    series_id: BAA10Y
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 60
+
+  - feature_id: nfci_level_z
+    series_id: NFCI
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 52
+
+  - feature_id: yield_curve_10y2y_level_z
+    series_id: T10Y2Y
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_growth_positive
+    enabled: true
+    min_observations: 60
+
+  - feature_id: disabled_leading_index_level_z
+    series_id: USSLIND
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_growth_positive
+    enabled: false
+    reason_disabled: discontinued_or_stale
+    min_observations: 24
+
+  - feature_id: initial_claims_level_z
+    series_id: ICSA
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_growth_negative
+    enabled: true
+    min_observations: 52
+
+  - feature_id: high_yield_oas_level_z
+    series_id: BAMLH0A0HYM2
+    transform: level
+    normalization: rolling_z_5y
+    direction: higher_is_credit_tight
+    enabled: true
+    min_observations: 60
+
+dimensions:
+  - dimension_id: growth_momentum
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 3
+    min_coverage_ratio: 0.60
+    features:
+      - feature_id: industrial_production_yoy_z
+        weight: 0.30
+        polarity: positive
+      - feature_id: payrolls_yoy_z
+        weight: 0.30
+        polarity: positive
+      - feature_id: unemployment_6m_change_z
+        weight: 0.25
+        polarity: negative
+      - feature_id: initial_claims_level_z
+        weight: 0.15
+        polarity: negative
+
+  - dimension_id: inflation_pressure
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.75
+    features:
+      - feature_id: headline_cpi_yoy_z
+        weight: 0.50
+        polarity: positive
+      - feature_id: pce_price_yoy_z
+        weight: 0.50
+        polarity: positive
+
+  - dimension_id: policy_stance
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.60
+    features:
+      - feature_id: fed_funds_level_z
+        weight: 0.40
+        polarity: negative
+      - feature_id: fed_funds_6m_change_z
+        weight: 0.30
+        polarity: negative
+      - feature_id: ten_year_yield_level_z
+        weight: 0.30
+        polarity: negative
+
+  - dimension_id: credit_liquidity
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 2
+    min_coverage_ratio: 0.60
+    features:
+      - feature_id: baa_spread_level_z
+        weight: 0.35
+        polarity: negative
+      - feature_id: nfci_level_z
+        weight: 0.35
+        polarity: negative
+      - feature_id: high_yield_oas_level_z
+        weight: 0.30
+        polarity: negative
+
+  - dimension_id: yield_curve
+    enabled: true
+    required_for_regime: true
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: yield_curve_10y2y_level_z
+        weight: 1.00
+        polarity: positive
+
+regime_scoring:
+  probability_method: softmax
+  # Calibrated in Phase L. Temperature 0.6 improved probability separation
+  # without changing raw-score rankings or regime transitions.
+  softmax_temperature: 0.6
+
+historical_diagnostic:
+  start_date: "1990-01-01"
+  end_date: null
+  mode: revised_data
+  min_valid_regimes: 2
+  low_confidence_threshold: 0.05
+  # Promoted in Phase S. Raw monthly probabilities remain unsmoothed;
+  # reported regime transitions require a small confidence gap.
+  transition_filter:
+    enabled: true
+    min_confidence_to_switch: 0.02
+  smoothing:
+    enabled: false
+    min_months_before_switch: 2
+    probability_gap_required: 0.10
+
+reports:
+  output_dir: outputs/experiments/phase_u/reports
+  include_feature_details: true
+  include_dimension_details: true
+  include_diagnostic_summary: true
+  max_contributors: 5
+
+scoring_mode: calendar_asof
+
+evaluation_calendar:
+  frequency: monthly
+  date_rule: month_start
+  start_date: "1990-01-01"
+  end_date: null
+  as_of_policy: latest_observation_on_or_before_date
+  max_lag_by_frequency:
+    daily: 10
+    weekly: 21
+    monthly: 75
+    quarterly: 140
+    annual: 450
+
+regimes:
+  - regime_id: goldilocks
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: positive
+      - dimension_id: inflation_pressure
+        weight: 0.25
+        polarity: penalize_positive_only
+      - dimension_id: credit_liquidity
+        weight: 0.20
+        polarity: positive
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: reward_near_zero
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: positive
+
+  - regime_id: reflation
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: positive
+      - dimension_id: inflation_pressure
+        weight: 0.25
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.20
+        polarity: positive
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: positive
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: positive
+
+  - regime_id: stagflation
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.30
+        polarity: negative
+      - dimension_id: inflation_pressure
+        weight: 0.30
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.15
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: negative
+      - dimension_id: yield_curve
+        weight: 0.10
+        polarity: negative
+
+  - regime_id: recession
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.35
+        polarity: negative
+      - dimension_id: inflation_pressure
+        weight: 0.10
+        polarity: penalize_positive_only
+      - dimension_id: credit_liquidity
+        weight: 0.25
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.15
+        polarity: positive
+      - dimension_id: yield_curve
+        weight: 0.15
+        polarity: negative
+
+  - regime_id: tightening
+    enabled: true
+    min_valid_dimensions: 3
+    min_coverage_ratio: 0.60
+    dimensions:
+      - dimension_id: growth_momentum
+        weight: 0.18
+        polarity: positive
+      - dimension_id: inflation_pressure
+        weight: 0.27
+        polarity: positive
+      - dimension_id: credit_liquidity
+        weight: 0.10
+        polarity: negative
+      - dimension_id: policy_stance
+        weight: 0.32
+        polarity: negative
+      - dimension_id: yield_curve
+        weight: 0.13
+        polarity: negative
