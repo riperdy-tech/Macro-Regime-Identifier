@@ -460,3 +460,34 @@ variants, historical confidence, transition behavior, dominant regime
 distribution, and pairwise raw-score correlations. It is a calibration diagnostic
 only: no source expansion, trading logic, allocation logic, or production formula
 replacement is performed by the runner.
+
+## Phase O: Formula Experiments
+
+Phase O uses the same experiment harness to test targeted formula ideas from the
+Phase N design review. It keeps production formulas unchanged and writes outputs
+separately.
+
+Command:
+
+```powershell
+python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_o.yaml
+```
+
+Experiment outputs:
+
+```text
+outputs/experiments/phase_o/
+  baseline.json
+  tightening_growth_resilience.json
+  stagflation_interaction_reduced_additive.json
+  reflation_inflation_cap.json
+  recession_growth_confirmation.json
+  policy_tightening_heavy.json
+  policy_stagflation_less_policy.json
+  combined_overlap_reduction.json
+  comparison.json
+  comparison.md
+```
+
+Phase O is still experimental review work. It does not promote formula variants
+to production.

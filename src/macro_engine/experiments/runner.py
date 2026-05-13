@@ -377,7 +377,7 @@ def _build_comparison_markdown(
     comparison: pd.DataFrame,
 ) -> str:
     lines = [
-        "# Phase L Calibration Experiment Comparison",
+        f"# {config.experiment.name} Calibration Experiment Comparison",
         "",
         "These outputs are experimental calibration diagnostics. They do not overwrite production regime outputs.",
         "",
