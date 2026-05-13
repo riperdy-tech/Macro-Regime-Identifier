@@ -351,6 +351,7 @@ Pipeline order:
 ```text
 ingest
 build-features
+build-asof-features
 build-dimensions
 build-regimes
 run-historical-diagnostic
@@ -371,3 +372,56 @@ failed_step
 warning_count
 output_dir
 ```
+
+## Phase J: Evaluation Calendar And As-Of Alignment
+
+Phase J adds a deliberate macro evaluation calendar so mixed-frequency data can
+be scored on coherent dates. The normal v0.1 scoring mode is now
+`calendar_asof`: stored feature rows are aligned to monthly evaluation dates
+using the latest valid observation on or before each evaluation date. This is
+still revised-data mode, not an ALFRED/vintage backtest.
+
+Commands:
+
+```powershell
+python -m macro_engine.cli build-evaluation-calendar --config config/phase_b_sources.yaml
+python -m macro_engine.cli build-asof-features --config config/phase_b_sources.yaml
+python -m macro_engine.cli inspect-asof-feature unemployment_6m_change_z
+```
+
+Canonical Phase J outputs:
+
+```text
+evaluation_calendar:
+  evaluation_date
+  frequency
+  valid
+  reason
+
+asof_feature_values:
+  evaluation_date
+  feature_id
+  source_observation_date
+  transformed_value
+  normalized_value
+  lag_days
+  valid
+  reason
+```
+
+Default calendar policy:
+
+```text
+frequency: monthly
+date_rule: month_start
+as_of_policy: latest_observation_on_or_before_date
+max_lag_by_frequency:
+  daily: 10
+  weekly: 21
+  monthly: 75
+  quarterly: 140
+  annual: 450
+```
+
+`same_date` scoring is preserved behind `scoring_mode: same_date` for diagnostic
+comparisons, but normal pipeline runs should use `calendar_asof`.

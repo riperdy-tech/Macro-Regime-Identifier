@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
+from macro_engine.evaluation.service import build_stored_asof_features
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
@@ -107,6 +108,13 @@ def run_pipeline(
             parquet_dir=parquet_dir,
         )
         _collect_invalid_feature_warnings(feature_result.feature_health, warnings)
+
+        failed_step = "build-asof-features"
+        build_stored_asof_features(
+            config_path=config_path,
+            db_path=db_path,
+            parquet_dir=parquet_dir,
+        )
 
         failed_step = "build-dimensions"
         dimension_result = build_stored_dimensions(

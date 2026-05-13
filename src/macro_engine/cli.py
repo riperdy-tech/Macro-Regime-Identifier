@@ -11,6 +11,10 @@ from rich.table import Table
 from macro_engine.config.loader import load_all_configs
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
+from macro_engine.evaluation.service import (
+    build_stored_asof_features,
+    build_stored_evaluation_calendar,
+)
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
@@ -181,6 +185,71 @@ def inspect_feature(
     features = store.read_features(feature_id).tail(limit)
     if features.empty:
         console.print("[yellow]No feature rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(features.to_string(index=False))
+
+
+@app.command()
+def build_evaluation_calendar(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase J: build configured macro evaluation dates and as-of feature values."""
+    result = build_stored_evaluation_calendar(
+        config_path=config,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+    )
+    console.print_json(
+        data={
+            "evaluation_dates": int(len(result.evaluation_calendar)),
+            "asof_feature_rows": int(len(result.asof_feature_values)),
+            "valid_asof_feature_rows": int(
+                result.asof_feature_values["valid"].fillna(False).sum()
+            )
+            if not result.asof_feature_values.empty
+            else 0,
+        }
+    )
+
+
+@app.command()
+def build_asof_features(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """Phase J: align stored features onto the configured evaluation calendar."""
+    result = build_stored_asof_features(
+        config_path=config,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+    )
+    console.print_json(
+        data={
+            "evaluation_dates": int(len(result.evaluation_calendar)),
+            "asof_feature_rows": int(len(result.asof_feature_values)),
+            "valid_asof_feature_rows": int(
+                result.asof_feature_values["valid"].fillna(False).sum()
+            )
+            if not result.asof_feature_values.empty
+            else 0,
+        }
+    )
+
+
+@app.command()
+def inspect_asof_feature(
+    feature_id: str,
+    db_path: str = "data/macro_engine.duckdb",
+    limit: int = 10,
+) -> None:
+    """Inspect latest calendar-aligned as-of rows for one feature."""
+    store = DuckDBStore(db_path)
+    features = store.read_asof_feature_values(feature_id).tail(limit)
+    if features.empty:
+        console.print("[yellow]No as-of feature rows found[/yellow]")
         raise typer.Exit(code=1)
     console.print(features.to_string(index=False))
 

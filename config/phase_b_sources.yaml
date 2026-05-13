@@ -307,6 +307,21 @@ reports:
   include_diagnostic_summary: true
   max_contributors: 5
 
+scoring_mode: calendar_asof
+
+evaluation_calendar:
+  frequency: monthly
+  date_rule: month_start
+  start_date: "1990-01-01"
+  end_date: null
+  as_of_policy: latest_observation_on_or_before_date
+  max_lag_by_frequency:
+    daily: 10
+    weekly: 21
+    monthly: 75
+    quarterly: 140
+    annual: 450
+
 regimes:
   - regime_id: goldilocks
     enabled: true

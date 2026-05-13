@@ -110,6 +110,31 @@ class DuckDBStore:
             )
             con.execute(
                 """
+                CREATE TABLE IF NOT EXISTS evaluation_calendar (
+                    evaluation_date DATE PRIMARY KEY,
+                    frequency TEXT,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS asof_feature_values (
+                    evaluation_date DATE,
+                    feature_id TEXT,
+                    source_observation_date DATE,
+                    transformed_value DOUBLE,
+                    normalized_value DOUBLE,
+                    lag_days INTEGER,
+                    valid BOOLEAN,
+                    reason TEXT,
+                    PRIMARY KEY(evaluation_date, feature_id)
+                )
+                """
+            )
+            con.execute(
+                """
                 CREATE TABLE IF NOT EXISTS dimension_feature_contributions (
                     dimension_id TEXT,
                     feature_id TEXT,
@@ -375,6 +400,34 @@ class DuckDBStore:
                 """
             )
 
+    def replace_evaluation_outputs(
+        self,
+        calendar: pd.DataFrame,
+        asof_values: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM evaluation_calendar")
+            con.execute("DELETE FROM asof_feature_values")
+            if not calendar.empty:
+                con.register("evaluation_calendar_frame", calendar)
+                con.execute(
+                    """
+                    INSERT INTO evaluation_calendar
+                    SELECT evaluation_date, frequency, valid, reason
+                    FROM evaluation_calendar_frame
+                    """
+                )
+            if not asof_values.empty:
+                con.register("asof_feature_values_frame", asof_values)
+                con.execute(
+                    """
+                    INSERT INTO asof_feature_values
+                    SELECT evaluation_date, feature_id, source_observation_date,
+                           transformed_value, normalized_value, lag_days, valid, reason
+                    FROM asof_feature_values_frame
+                    """
+                )
+
     def replace_dimension_outputs(
         self,
         contributions: pd.DataFrame,
@@ -532,6 +585,21 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM features ORDER BY feature_id, date").fetchdf()
 
+    def read_asof_feature_values(self, feature_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if feature_id:
+                return con.execute(
+                    """
+                    SELECT * FROM asof_feature_values
+                    WHERE feature_id = ?
+                    ORDER BY evaluation_date
+                    """,
+                    [feature_id],
+                ).fetchdf()
+            return con.execute(
+                "SELECT * FROM asof_feature_values ORDER BY feature_id, evaluation_date"
+            ).fetchdf()
+
     def read_dimension_scores(self, dimension_id: str | None = None) -> pd.DataFrame:
         with self._connect() as con:
             if dimension_id:
@@ -561,6 +629,8 @@ class DuckDBStore:
                 "source_health",
                 "features",
                 "feature_health",
+                "evaluation_calendar",
+                "asof_feature_values",
                 "dimension_feature_contributions",
                 "dimension_scores",
                 "dimension_health",
