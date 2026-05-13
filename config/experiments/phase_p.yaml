@@ -1,0 +1,214 @@
+experiment:
+  name: phase_p
+  output_dir: outputs/experiments/phase_p
+  base_config: config/phase_b_sources.yaml
+
+variants:
+  - variant_id: baseline
+    description: Current production formulas with calibrated temperature 0.6.
+    softmax_temperature: 0.6
+
+  - variant_id: policy_tightening_heavy_v2
+    description: Policy-heavy tightening with growth resilience, but slightly less aggressive than Phase O.
+    softmax_temperature: 0.6
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+
+  - variant_id: tightening_growth_resilience_lighter
+    description: Lighter growth-resilience tightening variant to reduce switch-count pressure.
+    softmax_temperature: 0.6
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.15
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.30
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.12
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.28
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.15
+            polarity: negative
+
+  - variant_id: reflation_soft_inflation_cap
+    description: Reflation uses a softer inflation cap by penalizing only strongly positive inflation.
+    softmax_temperature: 0.6
+    regime_overrides:
+      reflation:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.15
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.25
+            polarity: positive
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.15
+            polarity: positive
+
+  - variant_id: recession_inflation_gate
+    description: Recession more strongly penalizes high inflation without adding credit/curve interactions.
+    softmax_temperature: 0.6
+    regime_overrides:
+      recession:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.20
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.20
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.15
+            polarity: negative
+
+  - variant_id: recession_inflation_gate_lighter
+    description: Lighter recession inflation gate to reduce recession/stagflation overlap without over-penalizing recession.
+    softmax_temperature: 0.6
+    regime_overrides:
+      recession:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.15
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.22
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.18
+            polarity: negative
+
+  - variant_id: policy_stagflation_less_policy_combined
+    description: Combines policy-heavy tightening with a smaller direct policy role in stagflation.
+    softmax_temperature: 0.6
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+      stagflation:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.33
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.33
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.14
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.06
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.14
+            polarity: negative
+
+  - variant_id: combined_best_candidate
+    description: Combines policy-heavy tightening v2, soft reflation inflation cap, and lighter recession inflation gate.
+    softmax_temperature: 0.6
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+      reflation:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.15
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.25
+            polarity: positive
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.15
+            polarity: positive
+      recession:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.35
+            polarity: negative
+          - dimension_id: inflation_pressure
+            weight: 0.15
+            polarity: penalize_positive_only
+          - dimension_id: credit_liquidity
+            weight: 0.22
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.10
+            polarity: positive
+          - dimension_id: yield_curve
+            weight: 0.18
+            polarity: negative

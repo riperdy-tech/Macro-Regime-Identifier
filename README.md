@@ -491,3 +491,33 @@ outputs/experiments/phase_o/
 
 Phase O is still experimental review work. It does not promote formula variants
 to production.
+
+## Phase P: Targeted Formula Experiments
+
+Phase P narrows the Phase O findings into targeted follow-up variants. It adds
+transition-review fields to experiment JSON outputs so variants with higher
+switch counts can be inspected directly.
+
+Command:
+
+```powershell
+python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_p.yaml
+```
+
+Experiment outputs:
+
+```text
+outputs/experiments/phase_p/
+  baseline.json
+  policy_tightening_heavy_v2.json
+  tightening_growth_resilience_lighter.json
+  reflation_soft_inflation_cap.json
+  recession_inflation_gate.json
+  recession_inflation_gate_lighter.json
+  policy_stagflation_less_policy_combined.json
+  combined_best_candidate.json
+  comparison.json
+  comparison.md
+```
+
+Phase P does not promote formula variants to production.

@@ -110,6 +110,7 @@ def _run_variant(
     correlations = _raw_score_correlations(regime_result.regime_scores)
     latest = _latest_regime(regime_result.regime_scores, regime_result.regime_health)
     metrics = _metrics_from_summary_and_health(summary, regime_result.regime_health)
+    transition_review = _transition_review(transitions)
     return {
         "variant_id": variant.variant_id,
         "description": variant.description,
@@ -118,6 +119,7 @@ def _run_variant(
         "metrics": metrics,
         "dominant_regime_distribution": summary["dominant_regime_distribution"],
         "pairwise_raw_score_correlations": correlations,
+        "transition_review": transition_review,
         "diagnostic_label": summary["label"],
     }
 
@@ -341,6 +343,47 @@ def _raw_score_correlations(regime_scores: pd.DataFrame) -> dict[str, float | No
             value = correlations.loc[left, right]
             pairs[f"{left}__{right}"] = None if pd.isna(value) else float(value)
     return pairs
+
+
+def _transition_review(transitions: pd.DataFrame) -> dict[str, Any]:
+    if transitions.empty:
+        return {
+            "latest_transitions": [],
+            "near_zero_confidence_transitions": [],
+            "near_zero_confidence_transition_count": 0,
+        }
+    frame = transitions.copy()
+    frame["confidence"] = pd.to_numeric(frame["confidence"], errors="coerce")
+    latest = frame.sort_values("transition_date").tail(10)
+    near_zero = frame[frame["confidence"].fillna(0.0) < 0.01].sort_values("transition_date")
+    return {
+        "latest_transitions": _records_for_json(latest),
+        "near_zero_confidence_transitions": _records_for_json(near_zero.tail(10)),
+        "near_zero_confidence_transition_count": int(len(near_zero)),
+    }
+
+
+def _records_for_json(frame: pd.DataFrame) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for row in frame.to_dict(orient="records"):
+        records.append(
+            {
+                "transition_date": str(row.get("transition_date")),
+                "from_regime": row.get("from_regime"),
+                "to_regime": row.get("to_regime"),
+                "from_probability": None
+                if pd.isna(row.get("from_probability"))
+                else float(row.get("from_probability")),
+                "to_probability": None
+                if pd.isna(row.get("to_probability"))
+                else float(row.get("to_probability")),
+                "confidence": None
+                if pd.isna(row.get("confidence"))
+                else float(row.get("confidence")),
+                "reason": row.get("reason"),
+            }
+        )
+    return records
 
 
 def _build_comparison_frame(variant_results: list[dict[str, Any]]) -> pd.DataFrame:
