@@ -297,6 +297,11 @@ historical_diagnostic:
   mode: revised_data
   min_valid_regimes: 2
   low_confidence_threshold: 0.05
+  # Promoted in Phase S. Raw monthly probabilities remain unsmoothed;
+  # reported regime transitions require a small confidence gap.
+  transition_filter:
+    enabled: true
+    min_confidence_to_switch: 0.02
   smoothing:
     enabled: false
     min_months_before_switch: 2
@@ -415,17 +420,17 @@ regimes:
     min_coverage_ratio: 0.60
     dimensions:
       - dimension_id: growth_momentum
-        weight: 0.20
-        polarity: positive_only
+        weight: 0.18
+        polarity: positive
       - dimension_id: inflation_pressure
-        weight: 0.30
+        weight: 0.27
         polarity: positive
       - dimension_id: credit_liquidity
-        weight: 0.15
+        weight: 0.10
         polarity: negative
       - dimension_id: policy_stance
-        weight: 0.25
+        weight: 0.32
         polarity: negative
       - dimension_id: yield_curve
-        weight: 0.10
+        weight: 0.13
         polarity: negative

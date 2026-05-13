@@ -27,6 +27,7 @@ def build_current_regime_report(
     feature_health: pd.DataFrame,
     source_health: pd.DataFrame,
     config: ReportConfig,
+    timeline: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     valid_health = regime_health[regime_health["valid"]].sort_values("date")
     if valid_health.empty:
@@ -37,10 +38,11 @@ def build_current_regime_report(
         }
     latest = valid_health.iloc[-1]
     latest_date = latest["date"]
+    reported = _reported_state_for_date(timeline, latest)
     latest_scores = regime_scores[
         (regime_scores["date"] == latest_date) & regime_scores["probability"].notna()
     ].sort_values("probability", ascending=False)
-    dominant = latest["dominant_regime"]
+    dominant = reported["reported_regime"]
     contributions = regime_contributions[
         (regime_contributions["date"] == latest_date)
         & (regime_contributions["regime_id"] == dominant)
@@ -58,12 +60,20 @@ def build_current_regime_report(
         "valid": True,
         "date": str(latest_date),
         "dominant_regime": dominant,
-        "dominant_probability": _to_float(latest["dominant_probability"]),
-        "confidence": _to_float(latest["confidence"]),
+        "dominant_probability": _to_float(reported["reported_regime_probability"]),
+        "confidence": _to_float(reported["reported_confidence"]),
+        "reported_regime": dominant,
+        "reported_regime_probability": _to_float(reported["reported_regime_probability"]),
+        "reported_confidence": _to_float(reported["reported_confidence"]),
+        "raw_dominant_regime": latest["dominant_regime"],
+        "raw_dominant_probability": _to_float(latest["dominant_probability"]),
+        "raw_confidence": _to_float(latest["confidence"]),
         "regime_probabilities": {
             row["regime_id"]: _to_float(row["probability"])
             for row in latest_scores.to_dict(orient="records")
         },
+        "transition_filter_applied": reported["transition_filter_applied"],
+        "transition_filter_reason": reported["transition_filter_reason"],
         "top_supporting_dimensions": _contribution_records(
             supporting.head(config.max_contributors)
         ),
@@ -149,9 +159,16 @@ def current_report_markdown(payload: dict[str, Any]) -> str:
     return f"""# Current Macro Regime
 
 Date: {payload["date"]}
-Dominant regime: {payload["dominant_regime"]}
-Probability: {payload["dominant_probability"]:.1%}
-Confidence: {payload["confidence"]:.3f}
+Reported regime: {payload["reported_regime"]}
+Reported probability: {payload["reported_regime_probability"]:.1%}
+Reported confidence: {payload["reported_confidence"]:.3f}
+Transition filter: {payload["transition_filter_reason"]}
+
+## Raw Monthly Signal
+
+Raw dominant regime: {payload["raw_dominant_regime"]}
+Raw probability: {payload["raw_dominant_probability"]:.1%}
+Raw confidence: {payload["raw_confidence"]:.3f}
 
 ## Why
 
@@ -279,6 +296,44 @@ def _health_warnings(feature_health: pd.DataFrame, source_health: pd.DataFrame) 
             for row in unusable_sources.head(5).to_dict(orient="records")
         )
     return warnings
+
+
+def _reported_state_for_date(timeline: pd.DataFrame | None, latest_raw) -> dict[str, Any]:
+    if timeline is None or timeline.empty:
+        return {
+            "reported_regime": latest_raw["dominant_regime"],
+            "reported_regime_probability": latest_raw["dominant_probability"],
+            "reported_confidence": latest_raw["confidence"],
+            "transition_filter_applied": False,
+            "transition_filter_reason": "no_timeline",
+        }
+    rows = timeline[
+        (pd.to_datetime(timeline["date"], errors="coerce") == pd.Timestamp(latest_raw["date"]))
+        & (timeline["valid"])
+    ]
+    if rows.empty:
+        return {
+            "reported_regime": latest_raw["dominant_regime"],
+            "reported_regime_probability": latest_raw["dominant_probability"],
+            "reported_confidence": latest_raw["confidence"],
+            "transition_filter_applied": False,
+            "transition_filter_reason": "no_matching_timeline",
+        }
+    row = rows.iloc[-1]
+    reported_regime = row.get("reported_regime") or row.get("dominant_regime")
+    reported_probability = row.get("reported_regime_probability")
+    if pd.isna(reported_probability):
+        reported_probability = row.get("dominant_probability")
+    reported_confidence = row.get("reported_confidence")
+    if pd.isna(reported_confidence):
+        reported_confidence = row.get("confidence")
+    return {
+        "reported_regime": reported_regime,
+        "reported_regime_probability": reported_probability,
+        "reported_confidence": reported_confidence,
+        "transition_filter_applied": bool(row.get("transition_filter_applied", False)),
+        "transition_filter_reason": row.get("transition_filter_reason", "unknown"),
+    }
 
 
 def _json_safe(value: Any) -> Any:

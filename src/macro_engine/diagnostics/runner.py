@@ -79,12 +79,20 @@ def build_regime_timeline(
                     "date": date.date(),
                     "dominant_regime": None,
                     "dominant_probability": None,
+                    "reported_regime": None,
+                    "reported_regime_probability": None,
+                    "reported_confidence": None,
+                    "raw_dominant_regime": None,
+                    "raw_dominant_probability": None,
+                    "raw_confidence": health_row.get("confidence"),
                     "second_regime": None,
                     "second_probability": None,
                     "confidence": health_row.get("confidence"),
                     "entropy": health_row.get("entropy"),
                     "valid_regime_count": int(health_row.get("valid_regime_count") or 0),
                     "valid": False,
+                    "transition_filter_applied": config.transition_filter.enabled,
+                    "transition_filter_reason": "invalid",
                     "reason": "below_min_valid_regimes"
                     if int(health_row.get("valid_regime_count") or 0) < config.min_valid_regimes
                     else health_row.get("reason", "invalid"),
@@ -98,16 +106,27 @@ def build_regime_timeline(
                 "date": date.date(),
                 "dominant_regime": top["regime_id"],
                 "dominant_probability": float(top["probability"]),
+                "reported_regime": top["regime_id"],
+                "reported_regime_probability": float(top["probability"]),
+                "reported_confidence": health_row.get("confidence"),
+                "raw_dominant_regime": top["regime_id"],
+                "raw_dominant_probability": float(top["probability"]),
+                "raw_confidence": health_row.get("confidence"),
                 "second_regime": None if second is None else second["regime_id"],
                 "second_probability": None if second is None else float(second["probability"]),
                 "confidence": health_row.get("confidence"),
                 "entropy": health_row.get("entropy"),
                 "valid_regime_count": int(health_row.get("valid_regime_count") or 0),
                 "valid": True,
+                "transition_filter_applied": config.transition_filter.enabled,
+                "transition_filter_reason": "no_filter",
                 "reason": "revised_data_diagnostic",
             }
         )
-    return pd.DataFrame(rows, columns=_timeline_columns())
+    timeline = pd.DataFrame(rows, columns=_timeline_columns())
+    if config.transition_filter.enabled:
+        timeline = _apply_transition_filter(timeline, regime_scores, config)
+    return timeline
 
 
 def build_regime_transitions(timeline: pd.DataFrame) -> pd.DataFrame:
@@ -218,14 +237,101 @@ def _timeline_columns() -> list[str]:
         "date",
         "dominant_regime",
         "dominant_probability",
+        "reported_regime",
+        "reported_regime_probability",
+        "reported_confidence",
+        "raw_dominant_regime",
+        "raw_dominant_probability",
+        "raw_confidence",
         "second_regime",
         "second_probability",
         "confidence",
         "entropy",
         "valid_regime_count",
         "valid",
+        "transition_filter_applied",
+        "transition_filter_reason",
         "reason",
     ]
+
+
+def _apply_transition_filter(
+    timeline: pd.DataFrame,
+    regime_scores: pd.DataFrame,
+    config: HistoricalDiagnosticConfig,
+) -> pd.DataFrame:
+    rows: list[dict] = []
+    current_regime = None
+    threshold = config.transition_filter.min_confidence_to_switch
+    scores = regime_scores.copy()
+    scores["date"] = pd.to_datetime(scores["date"], errors="coerce")
+
+    for row in timeline.sort_values("date").to_dict(orient="records"):
+        filtered = row.copy()
+        filtered["transition_filter_applied"] = True
+        if not row.get("valid") or row.get("raw_dominant_regime") is None:
+            filtered["transition_filter_reason"] = "invalid"
+            rows.append(filtered)
+            continue
+
+        raw_regime = row["raw_dominant_regime"]
+        raw_confidence = float(row.get("raw_confidence") or 0.0)
+        if current_regime is None:
+            current_regime = raw_regime
+            filtered["transition_filter_reason"] = "initial_state"
+        elif raw_regime == current_regime:
+            filtered["transition_filter_reason"] = "raw_signal_confirmed"
+        elif raw_confidence >= threshold:
+            current_regime = raw_regime
+            filtered["transition_filter_reason"] = "switch_confirmed"
+        else:
+            filtered["transition_filter_reason"] = "held_below_min_confidence"
+
+        date = pd.Timestamp(row["date"])
+        reported_probability = _probability_for_regime(scores, date, current_regime)
+        filtered["dominant_regime"] = current_regime
+        filtered["reported_regime"] = current_regime
+        filtered["dominant_probability"] = reported_probability
+        filtered["reported_regime_probability"] = reported_probability
+        filtered["reported_confidence"] = _reported_confidence(scores, date, current_regime)
+        filtered["confidence"] = raw_confidence
+        rows.append(filtered)
+
+    return pd.DataFrame(rows, columns=_timeline_columns())
+
+
+def _probability_for_regime(
+    regime_scores: pd.DataFrame,
+    date: pd.Timestamp,
+    regime_id: str,
+) -> float | None:
+    rows = regime_scores[
+        (regime_scores["date"] == date)
+        & (regime_scores["regime_id"] == regime_id)
+        & (regime_scores["probability"].notna())
+    ]
+    if rows.empty:
+        return None
+    return float(rows.iloc[0]["probability"])
+
+
+def _reported_confidence(
+    regime_scores: pd.DataFrame,
+    date: pd.Timestamp,
+    regime_id: str,
+) -> float | None:
+    date_scores = regime_scores[
+        (regime_scores["date"] == date)
+        & (regime_scores["valid"])
+        & (regime_scores["probability"].notna())
+    ]
+    reported_probability = _probability_for_regime(regime_scores, date, regime_id)
+    if date_scores.empty or reported_probability is None:
+        return None
+    other_scores = date_scores[date_scores["regime_id"] != regime_id]
+    if other_scores.empty:
+        return reported_probability
+    return float(reported_probability - other_scores["probability"].astype(float).max())
 
 
 def _transition_columns() -> list[str]:

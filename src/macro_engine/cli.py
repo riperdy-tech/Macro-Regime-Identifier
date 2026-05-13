@@ -4,6 +4,7 @@ from pathlib import Path
 import json
 from typing import Annotated
 
+import pandas as pd
 import typer
 from rich.console import Console
 from rich.table import Table
@@ -380,13 +381,22 @@ def current_regime(db_path: str = "data/macro_engine.duckdb") -> None:
         row["regime_id"]: float(row["probability"])
         for row in latest_scores.sort_values("rank").to_dict(orient="records")
     }
+    reported = _latest_reported_regime(store, latest)
     console.print_json(
         data={
             "date": str(latest["date"]),
-            "dominant_regime": latest["dominant_regime"],
-            "probability": float(latest["dominant_probability"]),
-            "confidence": float(latest["confidence"]),
+            "dominant_regime": reported["reported_regime"],
+            "probability": reported["reported_regime_probability"],
+            "confidence": reported["reported_confidence"],
+            "reported_regime": reported["reported_regime"],
+            "reported_regime_probability": reported["reported_regime_probability"],
+            "reported_confidence": reported["reported_confidence"],
+            "raw_dominant_regime": latest["dominant_regime"],
+            "raw_dominant_probability": float(latest["dominant_probability"]),
+            "raw_confidence": float(latest["confidence"]),
             "regime_probabilities": probabilities,
+            "transition_filter_applied": reported["transition_filter_applied"],
+            "transition_filter_reason": reported["transition_filter_reason"],
             "valid": True,
         }
     )
@@ -511,6 +521,56 @@ def run_calibration_experiments_cli(
             "markdown_path": str(result.markdown_path),
         }
     )
+
+
+def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:
+    try:
+        timeline = store.read_table("historical_regime_timeline")
+    except Exception:
+        timeline = pd.DataFrame()
+    if timeline.empty:
+        return {
+            "reported_regime": latest_raw["dominant_regime"],
+            "reported_regime_probability": float(latest_raw["dominant_probability"]),
+            "reported_confidence": float(latest_raw["confidence"]),
+            "transition_filter_applied": False,
+            "transition_filter_reason": "no_timeline",
+        }
+    latest_date = pd.Timestamp(latest_raw["date"])
+    row = timeline[
+        (pd.to_datetime(timeline["date"], errors="coerce") == latest_date) & (timeline["valid"])
+    ]
+    if row.empty:
+        row = timeline[timeline["valid"]].sort_values("date").tail(1)
+    if row.empty:
+        return {
+            "reported_regime": latest_raw["dominant_regime"],
+            "reported_regime_probability": float(latest_raw["dominant_probability"]),
+            "reported_confidence": float(latest_raw["confidence"]),
+            "transition_filter_applied": False,
+            "transition_filter_reason": "no_valid_timeline",
+        }
+    latest_reported = row.iloc[-1]
+    reported_regime = latest_reported.get("reported_regime") or latest_reported.get(
+        "dominant_regime"
+    )
+    reported_probability = latest_reported.get("reported_regime_probability")
+    if pd.isna(reported_probability):
+        reported_probability = latest_reported.get("dominant_probability")
+    reported_confidence = latest_reported.get("reported_confidence")
+    if pd.isna(reported_confidence):
+        reported_confidence = latest_reported.get("confidence")
+    return {
+        "reported_regime": reported_regime,
+        "reported_regime_probability": None
+        if pd.isna(reported_probability)
+        else float(reported_probability),
+        "reported_confidence": None if pd.isna(reported_confidence) else float(reported_confidence),
+        "transition_filter_applied": bool(
+            latest_reported.get("transition_filter_applied", False)
+        ),
+        "transition_filter_reason": latest_reported.get("transition_filter_reason", "unknown"),
+    }
 
 
 if __name__ == "__main__":

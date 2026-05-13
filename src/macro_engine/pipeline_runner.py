@@ -221,11 +221,22 @@ def _collect_invalid_regime_warnings(regime_scores: pd.DataFrame, warnings: list
 
 
 def _latest_current_regime(store: DuckDBStore) -> dict:
+    timeline = store.read_table("historical_regime_timeline")
+    valid_timeline = timeline[timeline["valid"]].sort_values("date")
+    if not valid_timeline.empty:
+        latest = valid_timeline.iloc[-1]
+        return {
+            "date": str(latest["date"]),
+            "dominant_regime": latest.get("reported_regime") or latest["dominant_regime"],
+            "confidence": None
+            if pd.isna(latest.get("reported_confidence"))
+            else float(latest.get("reported_confidence")),
+        }
     health = store.read_table("regime_health")
-    valid = health[health["valid"]].sort_values("date")
-    if valid.empty:
+    valid_health = health[health["valid"]].sort_values("date")
+    if valid_health.empty:
         return {}
-    latest = valid.iloc[-1]
+    latest = valid_health.iloc[-1]
     return {
         "date": str(latest["date"]),
         "dominant_regime": latest["dominant_regime"],

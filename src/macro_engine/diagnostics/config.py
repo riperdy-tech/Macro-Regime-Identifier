@@ -14,6 +14,11 @@ class DiagnosticSmoothingConfig(BaseModel):
     probability_gap_required: float = Field(default=0.10, ge=0, le=1)
 
 
+class TransitionFilterConfig(BaseModel):
+    enabled: bool = False
+    min_confidence_to_switch: float = Field(default=0.0, ge=0, le=1)
+
+
 class HistoricalDiagnosticConfig(BaseModel):
     start_date: date
     end_date: date | None = None
@@ -21,6 +26,7 @@ class HistoricalDiagnosticConfig(BaseModel):
     min_valid_regimes: int = Field(default=2, ge=1)
     low_confidence_threshold: float = Field(default=0.05, ge=0, le=1)
     smoothing: DiagnosticSmoothingConfig = Field(default_factory=DiagnosticSmoothingConfig)
+    transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
 
     @model_validator(mode="after")
     def end_after_start(self) -> HistoricalDiagnosticConfig:

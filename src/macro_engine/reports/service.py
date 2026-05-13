@@ -23,6 +23,7 @@ def write_current_regime_report(
     payload = build_current_regime_report(
         regime_scores=store.read_table("regime_scores"),
         regime_health=store.read_table("regime_health"),
+        timeline=store.read_table("historical_regime_timeline"),
         regime_contributions=store.read_table("regime_dimension_contributions"),
         dimension_scores=store.read_table("dimension_scores"),
         dimension_contributions=store.read_table("dimension_feature_contributions"),

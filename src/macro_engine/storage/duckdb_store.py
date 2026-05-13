@@ -233,15 +233,47 @@ class DuckDBStore:
                     date DATE PRIMARY KEY,
                     dominant_regime TEXT,
                     dominant_probability DOUBLE,
+                    reported_regime TEXT,
+                    reported_regime_probability DOUBLE,
+                    reported_confidence DOUBLE,
+                    raw_dominant_regime TEXT,
+                    raw_dominant_probability DOUBLE,
+                    raw_confidence DOUBLE,
                     second_regime TEXT,
                     second_probability DOUBLE,
                     confidence DOUBLE,
                     entropy DOUBLE,
                     valid_regime_count INTEGER,
                     valid BOOLEAN,
+                    transition_filter_applied BOOLEAN,
+                    transition_filter_reason TEXT,
                     reason TEXT
                 )
                 """
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS reported_regime TEXT"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS reported_regime_probability DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS reported_confidence DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS raw_dominant_regime TEXT"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS raw_dominant_probability DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS raw_confidence DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS transition_filter_applied BOOLEAN"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS transition_filter_reason TEXT"
             )
             con.execute(
                 """
@@ -529,13 +561,26 @@ class DuckDBStore:
             con.execute("DELETE FROM regime_transitions")
             con.execute("DELETE FROM diagnostic_summary")
             if not timeline.empty:
+                timeline = _ensure_timeline_columns(timeline)
                 con.register("timeline_frame", timeline)
                 con.execute(
                     """
-                    INSERT INTO historical_regime_timeline
-                    SELECT date, dominant_regime, dominant_probability, second_regime,
+                    INSERT INTO historical_regime_timeline (
+                        date, dominant_regime, dominant_probability,
+                        reported_regime, reported_regime_probability,
+                        reported_confidence, raw_dominant_regime,
+                        raw_dominant_probability, raw_confidence, second_regime,
+                        second_probability, confidence, entropy, valid_regime_count,
+                        valid, transition_filter_applied, transition_filter_reason,
+                        reason
+                    )
+                    SELECT date, dominant_regime, dominant_probability,
+                           reported_regime, reported_regime_probability,
+                           reported_confidence, raw_dominant_regime,
+                           raw_dominant_probability, raw_confidence, second_regime,
                            second_probability, confidence, entropy, valid_regime_count,
-                           valid, reason
+                           valid, transition_filter_applied, transition_filter_reason,
+                           reason
                     FROM timeline_frame
                     """
                 )
@@ -649,3 +694,21 @@ class DuckDBStore:
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
         return duckdb.connect(str(self.db_path))
+
+
+def _ensure_timeline_columns(timeline: pd.DataFrame) -> pd.DataFrame:
+    frame = timeline.copy()
+    defaults = {
+        "reported_regime": frame.get("dominant_regime"),
+        "reported_regime_probability": frame.get("dominant_probability"),
+        "reported_confidence": frame.get("confidence"),
+        "raw_dominant_regime": frame.get("dominant_regime"),
+        "raw_dominant_probability": frame.get("dominant_probability"),
+        "raw_confidence": frame.get("confidence"),
+        "transition_filter_applied": False,
+        "transition_filter_reason": "no_filter",
+    }
+    for column, value in defaults.items():
+        if column not in frame.columns:
+            frame[column] = value
+    return frame
