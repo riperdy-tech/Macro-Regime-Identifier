@@ -30,11 +30,18 @@ class RegimeExperimentOverride(BaseModel):
     interactions: list[InteractionConfig] = Field(default_factory=list)
 
 
+class TransitionFilterConfig(BaseModel):
+    min_confidence_to_switch: float = Field(default=0.0, ge=0.0)
+    confirmation_months: int = Field(default=1, ge=1)
+    only_when_confidence_below: float | None = Field(default=None, gt=0.0)
+
+
 class ExperimentVariant(BaseModel):
     variant_id: str
     description: str
     softmax_temperature: float = Field(gt=0)
     regime_overrides: dict[str, RegimeExperimentOverride] = Field(default_factory=dict)
+    transition_filter: TransitionFilterConfig | None = None
 
 
 class ExperimentSettings(BaseModel):
@@ -64,4 +71,3 @@ def load_calibration_experiment_config(
     with Path(path).open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
     return CalibrationExperimentConfig.model_validate(data)
-

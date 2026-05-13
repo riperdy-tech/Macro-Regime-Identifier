@@ -18,6 +18,7 @@ from macro_engine.experiments.config import (
     CalibrationExperimentConfig,
     ExperimentVariant,
     RegimeExperimentOverride,
+    TransitionFilterConfig,
     load_calibration_experiment_config,
 )
 from macro_engine.regimes.config import (
@@ -106,20 +107,37 @@ def _run_variant(
     diagnostic_health["date"] = pd.to_datetime(diagnostic_health["date"], errors="coerce")
     timeline = build_regime_timeline(diagnostic_scores, diagnostic_health, diagnostic_config)
     transitions = build_regime_transitions(timeline)
+    filtered_timeline = _apply_transition_filter(timeline, variant.transition_filter)
+    filtered_transitions = build_regime_transitions(filtered_timeline)
     summary = build_diagnostic_summary(timeline, transitions, diagnostic_config)
+    filtered_summary = build_diagnostic_summary(
+        filtered_timeline,
+        filtered_transitions,
+        diagnostic_config,
+    )
     correlations = _raw_score_correlations(regime_result.regime_scores)
     latest = _latest_regime(regime_result.regime_scores, regime_result.regime_health)
     metrics = _metrics_from_summary_and_health(summary, regime_result.regime_health)
     transition_review = _transition_review(transitions)
+    filtered_transition_review = _filtered_transition_review(
+        raw_timeline=timeline,
+        filtered_timeline=filtered_timeline,
+        filtered_transitions=filtered_transitions,
+        filtered_summary=filtered_summary,
+    )
     return {
         "variant_id": variant.variant_id,
         "description": variant.description,
         "softmax_temperature": variant.softmax_temperature,
+        "transition_filter": None
+        if variant.transition_filter is None
+        else variant.transition_filter.model_dump(),
         "latest": latest,
         "metrics": metrics,
         "dominant_regime_distribution": summary["dominant_regime_distribution"],
         "pairwise_raw_score_correlations": correlations,
         "transition_review": transition_review,
+        "filtered_transition_review": filtered_transition_review,
         "diagnostic_label": summary["label"],
     }
 
@@ -363,6 +381,151 @@ def _transition_review(transitions: pd.DataFrame) -> dict[str, Any]:
     }
 
 
+def _apply_transition_filter(
+    timeline: pd.DataFrame,
+    transition_filter: TransitionFilterConfig | None,
+) -> pd.DataFrame:
+    if transition_filter is None or timeline.empty:
+        return timeline.copy()
+
+    rows: list[dict[str, Any]] = []
+    current_regime: str | None = None
+    pending_regime: str | None = None
+    pending_count = 0
+
+    for row in timeline.sort_values("date").to_dict(orient="records"):
+        filtered_row = row.copy()
+        if not row.get("valid") or row.get("dominant_regime") is None:
+            rows.append(filtered_row)
+            continue
+
+        raw_regime = row["dominant_regime"]
+        confidence = float(row.get("confidence") or 0.0)
+        if current_regime is None:
+            current_regime = raw_regime
+            pending_regime = None
+            pending_count = 0
+        elif raw_regime == current_regime:
+            pending_regime = None
+            pending_count = 0
+        elif confidence < transition_filter.min_confidence_to_switch:
+            pending_regime = None
+            pending_count = 0
+        else:
+            required_confirmation = _required_confirmation_months(
+                confidence,
+                transition_filter,
+            )
+            if pending_regime == raw_regime:
+                pending_count += 1
+            else:
+                pending_regime = raw_regime
+                pending_count = 1
+            if pending_count >= required_confirmation:
+                current_regime = raw_regime
+                pending_regime = None
+                pending_count = 0
+
+        filtered_row["raw_dominant_regime"] = raw_regime
+        filtered_row["dominant_regime"] = current_regime
+        rows.append(filtered_row)
+
+    return pd.DataFrame(rows)
+
+
+def _required_confirmation_months(
+    confidence: float,
+    transition_filter: TransitionFilterConfig,
+) -> int:
+    if transition_filter.only_when_confidence_below is None:
+        return transition_filter.confirmation_months
+    if confidence < transition_filter.only_when_confidence_below:
+        return transition_filter.confirmation_months
+    return 1
+
+
+def _filtered_transition_review(
+    *,
+    raw_timeline: pd.DataFrame,
+    filtered_timeline: pd.DataFrame,
+    filtered_transitions: pd.DataFrame,
+    filtered_summary: dict,
+) -> dict[str, Any]:
+    transitions = filtered_transitions.copy()
+    near_zero_count = 0
+    low_confidence_count = 0
+    latest_transitions: list[dict[str, Any]] = []
+    if not transitions.empty:
+        transitions["confidence"] = pd.to_numeric(transitions["confidence"], errors="coerce")
+        near_zero_count = int((transitions["confidence"].fillna(0.0) < 0.01).sum())
+        low_confidence_count = int((transitions["confidence"].fillna(0.0) < 0.03).sum())
+        latest_transitions = _records_for_json(transitions.sort_values("transition_date").tail(10))
+    return {
+        "raw_regime_switches": int(len(build_regime_transitions(raw_timeline))),
+        "filtered_regime_switches": int(len(transitions)),
+        "average_filtered_regime_duration": filtered_summary["average_regime_duration"],
+        "near_zero_filtered_transition_count": near_zero_count,
+        "low_confidence_filtered_transition_count": low_confidence_count,
+        "reversal_pairs_within_1_month": _reversal_pair_count(transitions, max_months=1),
+        "reversal_pairs_within_2_months": _reversal_pair_count(transitions, max_months=2),
+        "latest_filtered_transitions": latest_transitions,
+        "march_2020_crisis_transition_delayed": _march_2020_crisis_transition_delayed(
+            raw_timeline,
+            filtered_timeline,
+        ),
+    }
+
+
+def _reversal_pair_count(transitions: pd.DataFrame, *, max_months: int) -> int:
+    if transitions.empty:
+        return 0
+    count = 0
+    rows = transitions.sort_values("transition_date").to_dict(orient="records")
+    for index, first in enumerate(rows):
+        first_date = pd.Timestamp(first["transition_date"])
+        for second in rows[index + 1:]:
+            second_date = pd.Timestamp(second["transition_date"])
+            months = (second_date.year - first_date.year) * 12 + second_date.month - first_date.month
+            if months > max_months:
+                break
+            if (
+                second["from_regime"] == first["to_regime"]
+                and second["to_regime"] == first["from_regime"]
+            ):
+                count += 1
+                break
+    return count
+
+
+def _march_2020_crisis_transition_delayed(
+    raw_timeline: pd.DataFrame,
+    filtered_timeline: pd.DataFrame,
+) -> bool:
+    raw_date = _first_recession_date_on_or_after(raw_timeline, "2020-03-01")
+    filtered_date = _first_recession_date_on_or_after(filtered_timeline, "2020-03-01")
+    if raw_date is None or filtered_date is None:
+        return False
+    return filtered_date > raw_date
+
+
+def _first_recession_date_on_or_after(
+    timeline: pd.DataFrame,
+    start_date: str,
+) -> pd.Timestamp | None:
+    if timeline.empty:
+        return None
+    frame = timeline.copy()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame = frame[
+        (frame["date"] >= pd.Timestamp(start_date))
+        & (frame["valid"])
+        & (frame["dominant_regime"] == "recession")
+    ].sort_values("date")
+    if frame.empty:
+        return None
+    return pd.Timestamp(frame.iloc[0]["date"])
+
+
 def _records_for_json(frame: pd.DataFrame) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for row in frame.to_dict(orient="records"):
@@ -391,6 +554,7 @@ def _build_comparison_frame(variant_results: list[dict[str, Any]]) -> pd.DataFra
     for result in variant_results:
         latest = result["latest"]
         metrics = result["metrics"]
+        filtered = result.get("filtered_transition_review") or {}
         rows.append(
             {
                 "variant_id": result["variant_id"],
@@ -405,6 +569,19 @@ def _build_comparison_frame(variant_results: list[dict[str, Any]]) -> pd.DataFra
                 "low_confidence_period_count": metrics["low_confidence_period_count"],
                 "regime_switch_count": metrics["regime_switch_count"],
                 "average_regime_duration": metrics["average_regime_duration"],
+                "filtered_regime_switch_count": filtered.get("filtered_regime_switches"),
+                "near_zero_filtered_transition_count": filtered.get(
+                    "near_zero_filtered_transition_count"
+                ),
+                "low_confidence_filtered_transition_count": filtered.get(
+                    "low_confidence_filtered_transition_count"
+                ),
+                "reversal_pairs_within_2_months": filtered.get(
+                    "reversal_pairs_within_2_months"
+                ),
+                "march_2020_crisis_transition_delayed": filtered.get(
+                    "march_2020_crisis_transition_delayed"
+                ),
             }
         )
     return pd.DataFrame(rows)
@@ -433,13 +610,14 @@ def _build_comparison_markdown(
     for row in comparison.to_dict(orient="records"):
         lines.append(
             "- {variant}: latest {regime} at {prob:.1%}, confidence {conf:.3f}, "
-            "avg confidence {avg:.3f}, switches {switches}".format(
+            "avg confidence {avg:.3f}, raw switches {switches}, filtered switches {filtered_switches}".format(
                 variant=row["variant_id"],
                 regime=row["latest_dominant_regime"],
                 prob=row["latest_dominant_probability"] or 0.0,
                 conf=row["latest_confidence"] or 0.0,
                 avg=row["average_confidence"] or 0.0,
                 switches=row["regime_switch_count"],
+                filtered_switches=row.get("filtered_regime_switch_count"),
             )
         )
     lines.extend(

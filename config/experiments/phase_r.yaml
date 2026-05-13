@@ -1,0 +1,129 @@
+experiment:
+  name: phase_r
+  output_dir: outputs/experiments/phase_r
+  base_config: config/phase_b_sources.yaml
+
+variants:
+  - variant_id: baseline
+    description: Current production formulas with calibrated temperature 0.6 and no transition filter.
+    softmax_temperature: 0.6
+
+  - variant_id: policy_tightening_heavy_v2_raw
+    description: Phase P best formula candidate with no transition filter.
+    softmax_temperature: 0.6
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+
+  - variant_id: policy_tightening_heavy_v2_gap_0_01
+    description: Policy-heavy tightening v2 with a minimum confidence gap of 0.01 for reported switches.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.01
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+
+  - variant_id: policy_tightening_heavy_v2_gap_0_02
+    description: Policy-heavy tightening v2 with a minimum confidence gap of 0.02 for reported switches.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.02
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+
+  - variant_id: policy_tightening_heavy_v2_gap_0_03
+    description: Policy-heavy tightening v2 with a minimum confidence gap of 0.03 for reported switches.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.03
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
+
+  - variant_id: policy_tightening_heavy_v2_gap_0_02_light_persistence
+    description: Policy-heavy tightening v2 with gap 0.02 and two-month confirmation only for switches below confidence 0.05.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.02
+      confirmation_months: 2
+      only_when_confidence_below: 0.05
+    regime_overrides:
+      tightening:
+        dimensions:
+          - dimension_id: growth_momentum
+            weight: 0.18
+            polarity: positive
+          - dimension_id: inflation_pressure
+            weight: 0.27
+            polarity: positive
+          - dimension_id: credit_liquidity
+            weight: 0.10
+            polarity: negative
+          - dimension_id: policy_stance
+            weight: 0.32
+            polarity: negative
+          - dimension_id: yield_curve
+            weight: 0.13
+            polarity: negative
