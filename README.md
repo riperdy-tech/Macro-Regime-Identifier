@@ -1,320 +1,198 @@
 # Macro Regime Intelligence Engine
 
-Experimental local-first U.S. macro regime classification based on structured
-macroeconomic and market-implied data.
+Local-first U.S. macro regime engine for turning FRED data into transparent
+macro regime diagnostics.
 
-This is not investment advice. Phase A is a contract-first prototype: it validates
-the corrected configuration schema, computes source health, and runs a tiny offline
-classification path from toy data before any full live FRED ingestion.
+This project is an experimental v0.1 release candidate. It is not investment
+advice, trading guidance, allocation guidance, or portfolio sizing guidance.
+Historical outputs use revised FRED data and are not ALFRED/vintage
+point-in-time backtests.
 
-## Phase A Scope
+## What It Does
 
-- Corrected YAML config contract.
-- `feature_id` based feature definitions.
-- Separate `transform` and `normalization`.
-- `core`, `context`, and `experimental` dimensions.
-- Source health metadata and validation.
-- Context-only fiscal, commodity, and safe-haven dimensions.
-- Disabled stale candidate source example.
-- Tiny offline end-to-end classification path.
-- Tests for config, source health, scoring, and output shape.
+The engine fetches a controlled U.S. macro source set, stores raw observations,
+builds normalized features, scores macro dimensions, converts dimensions into
+regime probabilities, applies a small reported-transition filter, and writes
+JSON/Markdown reports.
 
-Historical evaluation in v0.1 is labeled `historical_revised_data_diagnostic`.
-It is not a point-in-time vintage backtest.
+Current production model core:
 
-## Quickstart
+```text
+FRED sources
+-> raw observations
+-> transformed/normalized features
+-> monthly as-of feature alignment
+-> dimension scores
+-> raw regime probabilities
+-> reported regime state
+-> revised-data diagnostics
+-> JSON/Markdown reports
+```
+
+The model preserves two separate regime views:
+
+- Raw monthly signal: unsmoothed monthly regime probabilities and raw dominant
+  regime.
+- Reported regime state: transition-filtered state used for human-readable
+  timeline/reporting.
+
+The reported state changes only when the raw leader clears the configured
+confidence threshold. This reduces low-confidence label whipsaws while keeping
+raw probabilities visible.
+
+## Install
 
 ```powershell
 python -m venv .venv
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-pytest
-macro-engine validate-config
-macro-engine run-toy --as-of 2026-05-08
 ```
 
-## Phase B: Ingestion And Storage Only
-
-Phase B proves the data foundation before any new scoring work. It fetches a
-small controlled FRED source set, stores canonical raw tables locally, computes
-source health, and exports Parquet files.
-
-Controlled Phase B source file:
-
-```text
-config/phase_b_sources.yaml
-```
-
-Initial enabled series:
-
-```text
-INDPRO, PAYEMS, UNRATE, CPIAUCSL, PCEPI, FEDFUNDS, DGS10, BAA10Y, NFCI, T10Y2Y
-```
-
-Commands:
+Create a local `.env` file:
 
 ```powershell
-python -m macro_engine.cli ingest --config config/phase_b_sources.yaml
-python -m macro_engine.cli ingest --series FEDFUNDS
-python -m macro_engine.cli health
-python -m macro_engine.cli inspect-series FEDFUNDS
+Copy-Item .env.example .env
 ```
 
-Storage artifacts:
+Then set:
 
 ```text
-data/macro_engine.duckdb
-data/raw/fred/ingestion_runs.parquet
-data/raw/fred/series_metadata.parquet
-data/raw/fred/raw_observations.parquet
-data/raw/fred/source_health.parquet
+FRED_API_KEY=your_key_here
 ```
 
-Phase B does not implement transforms, normalization, dimension scoring, regime
-scoring, backtesting, or reports.
+Never commit `.env`.
 
-## Phase C: Feature Layer Only
+## Core Commands
 
-Phase C turns stored raw observations into inspectable feature rows. It does not
-combine features into dimensions, classify regimes, run backtests, or produce
-macro reports.
-
-Feature definitions live alongside the controlled Phase B sources:
-
-```text
-config/phase_b_sources.yaml
-```
-
-Commands:
+Validate production config:
 
 ```powershell
-python -m macro_engine.cli build-features --config config/phase_b_sources.yaml
-python -m macro_engine.cli inspect-feature unemployment_6m_change_z
-python -m macro_engine.cli feature-health
+python -m macro_engine.cli validate-config
 ```
 
-Canonical feature outputs:
-
-```text
-features:
-  feature_id
-  series_id
-  date
-  raw_value
-  transformed_value
-  normalized_value
-  transform
-  normalization
-  window_start
-  window_end
-  valid
-  reason
-
-feature_health:
-  feature_id
-  series_id
-  enabled
-  valid_count
-  invalid_count
-  latest_valid_date
-  usable
-  reason
-  reason_counts
-```
-
-Initial transforms:
-
-```text
-level, diff_3m, diff_6m, diff_12m, yoy_pct_change, spread
-```
-
-Initial normalizations:
-
-```text
-none, rolling_z_3y, rolling_z_5y, rolling_z_10y, expanding_z
-```
-
-## Phase D: Dimension Scoring Only
-
-Phase D combines normalized feature rows into transparent macro dimension scores.
-It does not produce regime probabilities, backtests, markdown reports, trading
-logic, or final macro labels.
-
-Commands:
+Run tests and lint:
 
 ```powershell
-python -m macro_engine.cli build-dimensions --config config/phase_b_sources.yaml
-python -m macro_engine.cli inspect-dimension growth_momentum
-python -m macro_engine.cli dimension-health
+python -m pytest
+python -m ruff check .
 ```
 
-Canonical dimension outputs:
-
-```text
-dimension_feature_contributions:
-  dimension_id
-  feature_id
-  date
-  normalized_value
-  weight
-  normalized_weight
-  polarity
-  signed_value
-  contribution
-  valid
-  reason
-
-dimension_scores:
-  dimension_id
-  date
-  score
-  valid_feature_count
-  configured_feature_count
-  total_configured_weight
-  used_weight
-  coverage_ratio
-  valid
-  reason
-
-dimension_health:
-  dimension_id
-  date
-  valid
-  valid_feature_count
-  required_feature_count
-  missing_features
-  invalid_features
-  reason
-```
-
-## Phase E: Regime Scoring Only
-
-Phase E converts dimension scores into transparent regime contributions, raw
-regime scores, probabilities, and regime health. It does not run backtests,
-write markdown reports, make trading recommendations, or perform portfolio
-sizing.
-
-Initial regimes:
-
-```text
-goldilocks, reflation, stagflation, recession, tightening
-```
-
-Commands:
+Run the full live pipeline:
 
 ```powershell
-python -m macro_engine.cli build-regimes --config config/phase_b_sources.yaml
-python -m macro_engine.cli inspect-regime goldilocks
-python -m macro_engine.cli regime-health
+python -m macro_engine.cli run-pipeline --config config/phase_b_sources.yaml
+```
+
+Inspect current regime:
+
+```powershell
 python -m macro_engine.cli current-regime
 ```
 
-Canonical regime outputs:
-
-```text
-regime_dimension_contributions:
-  regime_id
-  dimension_id
-  date
-  dimension_score
-  weight
-  normalized_weight
-  polarity
-  transformed_dimension_value
-  contribution
-  valid
-  reason
-
-regime_scores:
-  regime_id
-  date
-  raw_score
-  probability
-  rank
-  valid_dimension_count
-  configured_dimension_count
-  coverage_ratio
-  valid
-  reason
-
-regime_health:
-  date
-  valid
-  dominant_regime
-  dominant_probability
-  confidence
-  entropy
-  valid_regime_count
-  reason
-```
-
-## Phase F: Historical Revised-Data Diagnostic
-
-Phase F consumes stored regime scores and regime health to build a historical
-timeline, transition history, and summary diagnostics. This is explicitly a
-revised-data diagnostic, not an ALFRED/vintage point-in-time backtest.
-
-Commands:
+Inspect diagnostics:
 
 ```powershell
-python -m macro_engine.cli run-historical-diagnostic --config config/phase_b_sources.yaml
-python -m macro_engine.cli regime-timeline
-python -m macro_engine.cli regime-transitions
 python -m macro_engine.cli diagnostic-summary
+python -m macro_engine.cli regime-transitions
+python -m macro_engine.cli regime-timeline
 ```
 
-Canonical diagnostic outputs:
+Inspect health and intermediate layers:
 
-```text
-historical_regime_timeline:
-  date
-  dominant_regime
-  dominant_probability
-  second_regime
-  second_probability
-  confidence
-  entropy
-  valid_regime_count
-  valid
-  reason
-
-regime_transitions:
-  transition_date
-  from_regime
-  to_regime
-  from_probability
-  to_probability
-  confidence
-  reason
-
-diagnostic_summary:
-  start_date
-  end_date
-  mode
-  valid_date_count
-  invalid_date_count
-  regime_switch_count
-  average_regime_duration
-  average_confidence
-  dominant_regime_distribution
-  low_confidence_period_count
-  label
+```powershell
+python -m macro_engine.cli health
+python -m macro_engine.cli feature-health
+python -m macro_engine.cli dimension-health
+python -m macro_engine.cli regime-health
 ```
 
-## Phase G: Human-Readable Reports
-
-Phase G writes JSON and Markdown reports from stored feature, dimension, regime,
-and diagnostic outputs. It does not recompute model scores and does not provide
-trading, allocation, portfolio sizing, or investment recommendations.
-
-Commands:
+Write reports from stored outputs:
 
 ```powershell
 python -m macro_engine.cli write-current-report --config config/phase_b_sources.yaml
 python -m macro_engine.cli write-diagnostic-report --config config/phase_b_sources.yaml
 ```
 
-Outputs:
+## Production Source Set
+
+Production config: `config/phase_b_sources.yaml`
+
+Enabled production sources:
+
+```text
+INDPRO        Industrial Production Total Index
+PAYEMS        All Employees, Total Nonfarm
+UNRATE        Unemployment Rate
+CPIAUCSL      Consumer Price Index
+PCEPI         PCE Price Index
+FEDFUNDS      Effective Federal Funds Rate
+DGS10         10-Year Treasury Rate
+BAA10Y        Baa corporate spread relative to 10-year Treasury
+NFCI          Chicago Fed National Financial Conditions Index
+T10Y2Y        10-Year Treasury minus 2-Year Treasury spread
+ICSA          Initial jobless claims
+BAMLH0A0HYM2  ICE BofA US High Yield OAS
+```
+
+Disabled health-test source:
+
+```text
+USSLIND       Disabled because it is stale/discontinued for live v0.1 use
+```
+
+Not promoted:
+
+```text
+RSAFS
+T5YIE
+```
+
+## Model Configuration
+
+Important production settings:
+
+```yaml
+scoring_mode: calendar_asof
+
+regime_scoring:
+  probability_method: softmax
+  softmax_temperature: 0.6
+
+historical_diagnostic:
+  mode: revised_data
+  transition_filter:
+    enabled: true
+    min_confidence_to_switch: 0.02
+```
+
+The current regime set is:
+
+```text
+goldilocks
+reflation
+stagflation
+recession
+tightening
+```
+
+## Pipeline Stages
+
+You can run stages independently when debugging:
+
+```powershell
+python -m macro_engine.cli ingest --config config/phase_b_sources.yaml
+python -m macro_engine.cli build-features --config config/phase_b_sources.yaml
+python -m macro_engine.cli build-asof-features --config config/phase_b_sources.yaml
+python -m macro_engine.cli build-dimensions --config config/phase_b_sources.yaml
+python -m macro_engine.cli build-regimes --config config/phase_b_sources.yaml
+python -m macro_engine.cli run-historical-diagnostic --config config/phase_b_sources.yaml
+python -m macro_engine.cli write-current-report --config config/phase_b_sources.yaml
+python -m macro_engine.cli write-diagnostic-report --config config/phase_b_sources.yaml
+```
+
+## Outputs
+
+Generated reports:
 
 ```text
 outputs/current_regime.json
@@ -323,201 +201,106 @@ outputs/historical_diagnostic.json
 outputs/historical_diagnostic.md
 ```
 
-Current reports include the dominant regime, probability, confidence, regime
-probability table, contribution-backed supporting/opposing dimensions, invalid
-or missing dimensions, data health warnings, and an investment-advice disclaimer.
-
-Historical diagnostic reports include revised-data mode, date range, regime
-distribution, switch count, average duration, average confidence, low-confidence
-period count, latest transitions, invalid date count, and a clear note that the
-diagnostic is not a point-in-time vintage backtest.
-
-## Phase H: End-To-End Pipeline Runner
-
-Phase H adds operational orchestration. The pipeline runs existing layers in
-sequence and does not duplicate scoring, report generation, or model logic.
-
-Command:
-
-```powershell
-python -m macro_engine.cli run-pipeline --config config/phase_b_sources.yaml
-```
-
-Live ingestion requires `FRED_API_KEY`. Normal tests use mocked ingestion and do
-not call FRED.
-
-Pipeline order:
+Local storage:
 
 ```text
-ingest
-build-features
-build-asof-features
-build-dimensions
-build-regimes
-run-historical-diagnostic
-write-current-report
-write-diagnostic-report
+data/macro_engine.duckdb
+data/raw/fred/*.parquet
 ```
 
-Run summaries are stored in `pipeline_runs`:
+Generated outputs, local DuckDB files, Parquet exports, caches, and `.env` are
+ignored by git. They should be regenerated locally, not committed.
+
+## Reports
+
+The current report includes:
+
+- latest valid date
+- reported regime
+- reported probability/confidence
+- transition filter reason
+- raw monthly dominant regime
+- raw monthly probability/confidence
+- full raw probability table
+- supporting/opposing dimension contributions
+- source/data health warnings
+
+The historical diagnostic report includes:
+
+- revised-data mode
+- date range
+- reported regime distribution
+- reported transition count
+- average regime duration
+- average confidence
+- low-confidence periods
+- invalid date count
+
+## Experiments
+
+Experiment configs live under:
 
 ```text
-run_id
-started_at
-completed_at
-config_path
-mode
-status
-failed_step
-warning_count
-output_dir
+config/experiments/
 ```
 
-## Phase J: Evaluation Calendar And As-Of Alignment
-
-Phase J adds a deliberate macro evaluation calendar so mixed-frequency data can
-be scored on coherent dates. The normal v0.1 scoring mode is now
-`calendar_asof`: stored feature rows are aligned to monthly evaluation dates
-using the latest valid observation on or before each evaluation date. This is
-still revised-data mode, not an ALFRED/vintage backtest.
-
-Commands:
-
-```powershell
-python -m macro_engine.cli build-evaluation-calendar --config config/phase_b_sources.yaml
-python -m macro_engine.cli build-asof-features --config config/phase_b_sources.yaml
-python -m macro_engine.cli inspect-asof-feature unemployment_6m_change_z
-```
-
-Canonical Phase J outputs:
+Experiment outputs are generated under:
 
 ```text
-evaluation_calendar:
-  evaluation_date
-  frequency
-  valid
-  reason
-
-asof_feature_values:
-  evaluation_date
-  feature_id
-  source_observation_date
-  transformed_value
-  normalized_value
-  lag_days
-  valid
-  reason
+outputs/experiments/
 ```
 
-Default calendar policy:
+Experiments should not overwrite production regime tables or mutate production
+config unless a later promotion phase explicitly approves the change.
+
+## Troubleshooting
+
+Missing `FRED_API_KEY`:
 
 ```text
-frequency: monthly
-date_rule: month_start
-as_of_policy: latest_observation_on_or_before_date
-max_lag_by_frequency:
-  daily: 10
-  weekly: 21
-  monthly: 75
-  quarterly: 140
-  annual: 450
+FRED_API_KEY is required for live pipeline ingestion
 ```
 
-`same_date` scoring is preserved behind `scoring_mode: same_date` for diagnostic
-comparisons, but normal pipeline runs should use `calendar_asof`.
+Fix: create `.env` from `.env.example` and set the key.
 
-## Phase L: Calibration Experiments
+Transient FRED HTTP errors:
 
-Phase L adds an experiment harness for comparing calibration variants against
-the same stored calendar-aligned dimension scores. Experiments do not overwrite
-production regime tables, reports, or pipeline outputs.
+- Rerun the pipeline. Ingestion is idempotent.
+- Check `python -m macro_engine.cli health`.
+- Confirm failed/stale sources before interpreting the regime output.
 
-Command:
+Old or missing current regime:
 
-```powershell
-python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_l.yaml
-```
+- Check source health.
+- Check feature health.
+- Check dimension health.
+- Confirm as-of alignment did not mark required features stale.
 
-Experiment outputs:
+DuckDB file lock on Windows:
 
-```text
-outputs/experiments/phase_l/
-  baseline.json
-  temperature_0_8.json
-  temperature_0_6.json
-  temperature_0_5.json
-  sharper_stagflation.json
-  sharper_tightening.json
-  sharper_reflation.json
-  stronger_recession_credit_curve.json
-  combined_formula_sharpening.json
-  comparison.json
-  comparison.md
-```
+- Avoid running multiple CLI inspection commands against the same `.duckdb` file
+  in parallel.
+- Rerun commands sequentially if you see a file-in-use error.
 
-The Phase L harness compares softmax temperature variants, formula-sharpening
-variants, historical confidence, transition behavior, dominant regime
-distribution, and pairwise raw-score correlations. It is a calibration diagnostic
-only: no source expansion, trading logic, allocation logic, or production formula
-replacement is performed by the runner.
+Low confidence:
 
-## Phase O: Formula Experiments
+- This is often expected near regime boundaries.
+- Read the raw probability table and transition filter reason before
+  interpreting the reported label.
 
-Phase O uses the same experiment harness to test targeted formula ideas from the
-Phase N design review. It keeps production formulas unchanged and writes outputs
-separately.
+## Known Limitations
 
-Command:
+See `docs/model_limitations.md`.
 
-```powershell
-python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_o.yaml
-```
+Key limitations:
 
-Experiment outputs:
+- Uses revised FRED data, not vintage point-in-time data.
+- No ALFRED/vintage backtesting yet.
+- No trading, allocation, or portfolio logic.
+- Simple transparent formulas, not ML.
+- U.S.-focused source universe.
+- FRED availability and revision behavior can affect outputs.
 
-```text
-outputs/experiments/phase_o/
-  baseline.json
-  tightening_growth_resilience.json
-  stagflation_interaction_reduced_additive.json
-  reflation_inflation_cap.json
-  recession_growth_confirmation.json
-  policy_tightening_heavy.json
-  policy_stagflation_less_policy.json
-  combined_overlap_reduction.json
-  comparison.json
-  comparison.md
-```
+## Release Checklist
 
-Phase O is still experimental review work. It does not promote formula variants
-to production.
-
-## Phase P: Targeted Formula Experiments
-
-Phase P narrows the Phase O findings into targeted follow-up variants. It adds
-transition-review fields to experiment JSON outputs so variants with higher
-switch counts can be inspected directly.
-
-Command:
-
-```powershell
-python -m macro_engine.cli run-calibration-experiments --experiment-config config/experiments/phase_p.yaml
-```
-
-Experiment outputs:
-
-```text
-outputs/experiments/phase_p/
-  baseline.json
-  policy_tightening_heavy_v2.json
-  tightening_growth_resilience_lighter.json
-  reflation_soft_inflation_cap.json
-  recession_inflation_gate.json
-  recession_inflation_gate_lighter.json
-  policy_stagflation_less_policy_combined.json
-  combined_best_candidate.json
-  comparison.json
-  comparison.md
-```
-
-Phase P does not promote formula variants to production.
+See `docs/release_checklist_v0_1.md`.
