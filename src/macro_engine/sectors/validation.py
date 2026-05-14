@@ -12,6 +12,8 @@ import yaml
 
 from macro_engine.storage.duckdb_store import DuckDBStore
 
+MAX_PRICE_LOOKAHEAD_DAYS = 7
+
 
 class PriceProviderConfig(BaseModel):
     provider: Literal["csv", "stooq"] = "csv"
@@ -380,7 +382,9 @@ def _forward_return(
     if ticker_prices.empty:
         return None
     start = _price_on_or_after(ticker_prices, score_date)
-    end = _price_on_or_after(ticker_prices, score_date + pd.DateOffset(months=horizon_months))
+    end = _price_on_or_after(
+        ticker_prices, score_date + pd.DateOffset(months=horizon_months)
+    )
     if start is None or end is None or start <= 0:
         return None
     return (end / start) - 1.0
@@ -390,7 +394,11 @@ def _price_on_or_after(prices: pd.DataFrame, date: pd.Timestamp) -> float | None
     eligible = prices[prices["date"] >= date].sort_values("date")
     if eligible.empty:
         return None
-    return float(eligible.iloc[0]["close"])
+    first = eligible.iloc[0]
+    lag_days = (pd.Timestamp(first["date"]) - date).days
+    if lag_days > MAX_PRICE_LOOKAHEAD_DAYS:
+        return None
+    return float(first["close"])
 
 
 def _spearman(left: pd.Series, right: pd.Series) -> float | None:
@@ -399,6 +407,8 @@ def _spearman(left: pd.Series, right: pd.Series) -> float | None:
         return None
     left_rank = frame["left"].rank()
     right_rank = frame["right"].rank()
+    if left_rank.nunique() < 2 or right_rank.nunique() < 2:
+        return None
     value = left_rank.corr(right_rank)
     return None if pd.isna(value) else float(value)
 

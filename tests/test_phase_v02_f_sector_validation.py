@@ -156,6 +156,19 @@ def test_missing_price_handling_marks_invalid():
     assert set(utilities["reason"]) == {"missing_forward_prices"}
 
 
+def test_validation_does_not_use_prices_far_after_score_date():
+    early_scores = _sector_scores().assign(date="1990-01-01")
+
+    returns = calculate_validation_returns(
+        sector_scores=early_scores,
+        prices=_prices(),
+        config=_validation_config(),
+    )
+
+    assert returns["valid"].sum() == 0
+    assert set(returns["reason"]) == {"missing_forward_prices"}
+
+
 def test_validation_summary_calculates_rank_ic_and_spreads():
     returns = calculate_validation_returns(
         sector_scores=_sector_scores(),
