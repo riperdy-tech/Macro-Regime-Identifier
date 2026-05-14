@@ -1,0 +1,27 @@
+price_provider:
+  provider: stooq
+  csv_path: data/validation/sector_proxy_prices.csv
+  start_date: "1998-12-22"
+  end_date: null
+  api_key_env: STOOQ_API_KEY
+
+benchmark_ticker: SPY
+horizons_months:
+  - 1
+  - 3
+
+proxies:
+  communication_services: XLC
+  consumer_discretionary: XLY
+  consumer_staples: XLP
+  energy: XLE
+  financials: XLF
+  health_care: XLV
+  industrials: XLI
+  information_technology: XLK
+  materials: XLB
+  real_estate: XLRE
+  utilities: XLU
+
+reports:
+  output_dir: outputs

@@ -137,6 +137,16 @@ python -m macro_engine.cli sector-health
 python -m macro_engine.cli write-sector-report --config config/phase_b_sources.yaml
 ```
 
+Run v0.2 sector ETF proxy validation when local or provider-backed proxy price
+data is available:
+
+```powershell
+python -m macro_engine.cli ingest-sector-proxy-prices --config config/sector_validation.yaml
+python -m macro_engine.cli run-sector-validation --config config/sector_validation.yaml
+python -m macro_engine.cli sector-validation-summary
+python -m macro_engine.cli write-sector-validation-report --config config/sector_validation.yaml
+```
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`
@@ -222,6 +232,7 @@ Sector assumptions live in:
 config/sectors.yaml
 config/sector_exposures.yaml
 config/sector_regime_priors.yaml
+config/sector_validation.yaml
 ```
 
 ## Pipeline Stages
@@ -250,6 +261,8 @@ outputs/historical_diagnostic.json
 outputs/historical_diagnostic.md
 outputs/current_sector_ranking.json
 outputs/current_sector_ranking.md
+outputs/sector_validation.json
+outputs/sector_validation.md
 ```
 
 Local storage:
@@ -298,6 +311,11 @@ The current sector report includes:
 - supporting/opposing sector score components
 - low-confidence warnings
 - non-advice disclaimer
+
+The sector validation report is a diagnostic sanity check only. It compares
+stored sector scores with future sector ETF proxy returns relative to SPY. It is
+not a trading backtest and does not model transaction costs, slippage, execution
+constraints, or allocation sizing.
 
 ## Experiments
 
@@ -361,6 +379,7 @@ Key limitations:
 - No ALFRED/vintage backtesting yet.
 - No trading, allocation, or portfolio logic.
 - Sector scores are macro diagnostics, not sector recommendations.
+- Sector ETF proxy validation is not a trading backtest.
 - Simple transparent formulas, not ML.
 - U.S.-focused source universe.
 - FRED availability and revision behavior can affect outputs.

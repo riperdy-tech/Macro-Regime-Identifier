@@ -31,6 +31,11 @@ from macro_engine.reports.service import (
 )
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.service import build_stored_sector_scores
+from macro_engine.sectors.validation import (
+    ingest_sector_proxy_prices,
+    run_stored_sector_validation,
+)
+from macro_engine.sectors.validation_report import write_sector_validation_report
 from macro_engine.storage.duckdb_store import DuckDBStore
 from macro_engine.toy_data import build_toy_observations
 
@@ -660,6 +665,68 @@ def write_sector_report(
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
+@app.command("ingest-sector-proxy-prices")
+def ingest_sector_proxy_prices_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_validation.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2-F: ingest local sector ETF proxy prices for diagnostic validation."""
+    try:
+        prices = ingest_sector_proxy_prices(config_path=config, db_path=db_path)
+    except FileNotFoundError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print_json(
+        data={
+            "price_rows": int(len(prices)),
+            "tickers": sorted(prices["ticker"].unique().tolist()) if not prices.empty else [],
+        }
+    )
+
+
+@app.command("run-sector-validation")
+def run_sector_validation_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_validation.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2-F: compare stored sector scores with future sector ETF relative returns."""
+    result = run_stored_sector_validation(config_path=config, db_path=db_path)
+    console.print_json(
+        data={
+            "return_rows": int(len(result.returns)),
+            "valid_return_rows": int(result.returns["valid"].fillna(False).sum())
+            if not result.returns.empty
+            else 0,
+            "summary_rows": int(len(result.summary)),
+        }
+    )
+
+
+@app.command("sector-validation-summary")
+def sector_validation_summary(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Show stored sector ETF proxy validation summary."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("sector_validation_summary")
+    if table.empty:
+        console.print_json(data={"valid": False, "reason": "no_sector_validation_summary"})
+        raise typer.Exit(code=1)
+    console.print_json(data=_json_ready({"valid": True, "summary": table.to_dict(orient="records")}))
+
+
+@app.command("write-sector-validation-report")
+def write_sector_validation_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_validation.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2-F: write sector ETF proxy validation JSON and Markdown reports."""
+    json_path, markdown_path = write_sector_validation_report(
+        config_path=config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:
     try:
         timeline = store.read_table("historical_regime_timeline")
@@ -708,6 +775,16 @@ def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:
         ),
         "transition_filter_reason": latest_reported.get("transition_filter_reason", "unknown"),
     }
+
+
+def _json_ready(value):
+    if isinstance(value, dict):
+        return {key: _json_ready(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_ready(item) for item in value]
+    if value is None or pd.isna(value):
+        return None
+    return value
 
 
 if __name__ == "__main__":

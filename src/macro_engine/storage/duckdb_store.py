@@ -364,6 +364,49 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_proxy_prices (
+                    ticker TEXT,
+                    date DATE,
+                    close DOUBLE,
+                    source TEXT,
+                    fetched_at TIMESTAMP,
+                    PRIMARY KEY(ticker, date)
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_validation_returns (
+                    sector_id TEXT,
+                    proxy_ticker TEXT,
+                    score_date DATE,
+                    sector_score DOUBLE,
+                    confidence_adjusted_score DOUBLE,
+                    forward_1m_return DOUBLE,
+                    forward_3m_return DOUBLE,
+                    relative_forward_1m_return DOUBLE,
+                    relative_forward_3m_return DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_validation_summary (
+                    horizon TEXT,
+                    observation_count INTEGER,
+                    rank_ic_spearman DOUBLE,
+                    top_quintile_avg_relative_return DOUBLE,
+                    bottom_quintile_avg_relative_return DOUBLE,
+                    top_minus_bottom_spread DOUBLE,
+                    hit_rate_top_positive DOUBLE,
+                    notes TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -698,6 +741,60 @@ class DuckDBStore:
                     """
                 )
 
+    def upsert_sector_proxy_prices(self, prices: pd.DataFrame) -> None:
+        if prices.empty:
+            return
+        with self._connect() as con:
+            con.register("sector_price_frame", prices)
+            con.execute(
+                """
+                DELETE FROM sector_proxy_prices
+                USING sector_price_frame
+                WHERE sector_proxy_prices.ticker = sector_price_frame.ticker
+                  AND sector_proxy_prices.date = sector_price_frame.date
+                """
+            )
+            con.execute(
+                """
+                INSERT INTO sector_proxy_prices
+                SELECT ticker, date, close, source, fetched_at
+                FROM sector_price_frame
+                """
+            )
+
+    def replace_sector_validation_outputs(
+        self,
+        returns: pd.DataFrame,
+        summary: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM sector_validation_returns")
+            con.execute("DELETE FROM sector_validation_summary")
+            if not returns.empty:
+                con.register("sector_validation_return_frame", returns)
+                con.execute(
+                    """
+                    INSERT INTO sector_validation_returns
+                    SELECT sector_id, proxy_ticker, score_date, sector_score,
+                           confidence_adjusted_score, forward_1m_return,
+                           forward_3m_return, relative_forward_1m_return,
+                           relative_forward_3m_return, valid, reason
+                    FROM sector_validation_return_frame
+                    """
+                )
+            if not summary.empty:
+                con.register("sector_validation_summary_frame", summary)
+                con.execute(
+                    """
+                    INSERT INTO sector_validation_summary
+                    SELECT horizon, observation_count, rank_ic_spearman,
+                           top_quintile_avg_relative_return,
+                           bottom_quintile_avg_relative_return,
+                           top_minus_bottom_spread, hit_rate_top_positive, notes
+                    FROM sector_validation_summary_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -780,6 +877,15 @@ class DuckDBStore:
                 """
             ).fetchdf()
 
+    def read_sector_proxy_prices(self, ticker: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if ticker:
+                return con.execute(
+                    "SELECT * FROM sector_proxy_prices WHERE ticker = ? ORDER BY date",
+                    [ticker],
+                ).fetchdf()
+            return con.execute("SELECT * FROM sector_proxy_prices ORDER BY ticker, date").fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -806,6 +912,9 @@ class DuckDBStore:
                 "sector_scores",
                 "sector_score_components",
                 "sector_health",
+                "sector_proxy_prices",
+                "sector_validation_returns",
+                "sector_validation_summary",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

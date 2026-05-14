@@ -61,6 +61,11 @@ The sector layer does not perform:
 - portfolio construction
 - return forecasting
 
+Sector ETF proxy validation, when run, is a diagnostic sanity check only. It
+compares stored sector scores with later sector ETF proxy returns relative to
+SPY. It does not model transaction costs, slippage, execution constraints,
+allocation sizing, or any implementable strategy.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
