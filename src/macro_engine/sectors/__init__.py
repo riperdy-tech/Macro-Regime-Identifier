@@ -1,0 +1,1 @@
+"""Sector macro attractiveness layer."""

@@ -1,0 +1,65 @@
+sector_regime_priors:
+  goldilocks:
+    communication_services: 0.15
+    consumer_discretionary: 0.25
+    consumer_staples: -0.10
+    energy: -0.05
+    financials: 0.10
+    health_care: -0.05
+    industrials: 0.20
+    information_technology: 0.30
+    materials: 0.10
+    real_estate: 0.05
+    utilities: -0.20
+
+  reflation:
+    communication_services: 0.05
+    consumer_discretionary: 0.15
+    consumer_staples: -0.10
+    energy: 0.30
+    financials: 0.20
+    health_care: -0.10
+    industrials: 0.35
+    information_technology: 0.05
+    materials: 0.35
+    real_estate: -0.05
+    utilities: -0.25
+
+  stagflation:
+    communication_services: -0.15
+    consumer_discretionary: -0.30
+    consumer_staples: 0.25
+    energy: 0.35
+    financials: -0.15
+    health_care: 0.20
+    industrials: -0.15
+    information_technology: -0.30
+    materials: 0.05
+    real_estate: -0.25
+    utilities: 0.10
+
+  recession:
+    communication_services: -0.10
+    consumer_discretionary: -0.35
+    consumer_staples: 0.35
+    energy: -0.15
+    financials: -0.25
+    health_care: 0.30
+    industrials: -0.25
+    information_technology: -0.20
+    materials: -0.20
+    real_estate: -0.25
+    utilities: 0.25
+
+  tightening:
+    communication_services: -0.15
+    consumer_discretionary: -0.20
+    consumer_staples: 0.05
+    energy: 0.10
+    financials: 0.15
+    health_care: 0.00
+    industrials: -0.10
+    information_technology: -0.25
+    materials: -0.05
+    real_estate: -0.40
+    utilities: -0.30

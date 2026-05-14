@@ -320,6 +320,50 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_scores (
+                    sector_id TEXT,
+                    date DATE,
+                    raw_sector_score DOUBLE,
+                    confidence_adjusted_score DOUBLE,
+                    rank INTEGER,
+                    macro_reported_regime TEXT,
+                    macro_raw_dominant_regime TEXT,
+                    macro_confidence DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_score_components (
+                    sector_id TEXT,
+                    date DATE,
+                    component_type TEXT,
+                    component_id TEXT,
+                    input_value DOUBLE,
+                    weight_or_exposure DOUBLE,
+                    contribution DOUBLE,
+                    valid BOOLEAN,
+                    reason TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS sector_health (
+                    sector_id TEXT,
+                    date DATE,
+                    valid BOOLEAN,
+                    component_count INTEGER,
+                    missing_components JSON,
+                    warning_count INTEGER,
+                    reason TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -608,6 +652,52 @@ class DuckDBStore:
                     """
                 )
 
+    def replace_sector_outputs(
+        self,
+        scores: pd.DataFrame,
+        components: pd.DataFrame,
+        health: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM sector_scores")
+            con.execute("DELETE FROM sector_score_components")
+            con.execute("DELETE FROM sector_health")
+            if not scores.empty:
+                con.register("sector_score_frame", scores)
+                con.execute(
+                    """
+                    INSERT INTO sector_scores
+                    SELECT sector_id, date, raw_sector_score,
+                           confidence_adjusted_score, rank, macro_reported_regime,
+                           macro_raw_dominant_regime, macro_confidence, valid, reason
+                    FROM sector_score_frame
+                    """
+                )
+            if not components.empty:
+                con.register("sector_component_frame", components)
+                con.execute(
+                    """
+                    INSERT INTO sector_score_components
+                    SELECT sector_id, date, component_type, component_id, input_value,
+                           weight_or_exposure, contribution, valid, reason
+                    FROM sector_component_frame
+                    """
+                )
+            if not health.empty:
+                health_frame = health.copy()
+                health_frame["missing_components"] = health_frame["missing_components"].map(
+                    json.dumps
+                )
+                con.register("sector_health_frame", health_frame)
+                con.execute(
+                    """
+                    INSERT INTO sector_health
+                    SELECT sector_id, date, valid, component_count, missing_components,
+                           warning_count, reason
+                    FROM sector_health_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -663,6 +753,33 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM regime_scores ORDER BY date, rank").fetchdf()
 
+    def read_sector_scores(self, sector_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if sector_id:
+                return con.execute(
+                    "SELECT * FROM sector_scores WHERE sector_id = ? ORDER BY date",
+                    [sector_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM sector_scores ORDER BY date, rank").fetchdf()
+
+    def read_sector_components(self, sector_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if sector_id:
+                return con.execute(
+                    """
+                    SELECT * FROM sector_score_components
+                    WHERE sector_id = ?
+                    ORDER BY date, component_type, component_id
+                    """,
+                    [sector_id],
+                ).fetchdf()
+            return con.execute(
+                """
+                SELECT * FROM sector_score_components
+                ORDER BY sector_id, date, component_type, component_id
+                """
+            ).fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -686,6 +803,9 @@ class DuckDBStore:
                 "regime_transitions",
                 "diagnostic_summary",
                 "pipeline_runs",
+                "sector_scores",
+                "sector_score_components",
+                "sector_health",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",

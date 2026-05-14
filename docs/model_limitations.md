@@ -11,6 +11,11 @@ guidance, portfolio sizing, or security recommendations.
 Macro regime output may inform future research workflows, but it should not be
 used by itself to make financial decisions.
 
+Sector macro scores are also diagnostics only. They describe how the configured
+macro regime probabilities and macro dimensions map to sector tailwind/headwind
+assumptions. They do not recommend buying, selling, avoiding, overweighting, or
+underweighting any sector, ETF, stock, or portfolio.
+
 ## Revised-Data Diagnostic
 
 Historical diagnostics use revised FRED data.
@@ -37,6 +42,24 @@ Known omitted or deferred areas include:
 - commodity supply shocks
 - detailed housing cycle data
 - survey breadth beyond selected FRED-accessible series
+
+## Sector Mapper
+
+The v0.2 sector layer uses heuristic exposure and regime-prior assumptions for
+the 11 GICS-style U.S. sectors. These values are transparent model assumptions,
+not objective truths.
+
+Sector proxy tickers such as XLE, XLF, XLK, and XLU are reporting and later
+validation references only. They are not security recommendations.
+
+The sector layer does not perform:
+
+- security selection
+- ETF recommendations
+- sector allocation sizing
+- trading rules
+- portfolio construction
+- return forecasting
 
 ## Data Freshness And Revisions
 

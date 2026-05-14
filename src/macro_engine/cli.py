@@ -29,6 +29,8 @@ from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
     write_historical_diagnostic_report as write_historical_diagnostic_report_service,
 )
+from macro_engine.sectors.report import write_current_sector_report
+from macro_engine.sectors.service import build_stored_sector_scores
 from macro_engine.storage.duckdb_store import DuckDBStore
 from macro_engine.toy_data import build_toy_observations
 
@@ -521,6 +523,141 @@ def run_calibration_experiments_cli(
             "markdown_path": str(result.markdown_path),
         }
     )
+
+
+@app.command("build-sector-scores")
+def build_sector_scores_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    exposure_config: Annotated[
+        str,
+        typer.Option("--exposure-config"),
+    ] = "config/sector_exposures.yaml",
+    prior_config: Annotated[
+        str,
+        typer.Option("--prior-config"),
+    ] = "config/sector_regime_priors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/fred",
+) -> None:
+    """v0.2: build sector macro attractiveness scores from stored macro outputs."""
+    result = build_stored_sector_scores(
+        config_path=config,
+        sector_config_path=sector_config,
+        exposure_config_path=exposure_config,
+        prior_config_path=prior_config,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+    )
+    console.print_json(
+        data={
+            "sector_score_rows": int(len(result.sector_scores)),
+            "valid_sector_score_rows": int(result.sector_scores["valid"].fillna(False).sum()),
+            "component_rows": int(len(result.components)),
+            "sector_health_rows": int(len(result.sector_health)),
+        }
+    )
+
+
+@app.command("current-sector-ranking")
+def current_sector_ranking(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Print latest valid sector ranking as JSON."""
+    store = DuckDBStore(db_path)
+    scores = store.read_table("sector_scores")
+    valid_scores = scores[scores["valid"]].sort_values(["date", "rank"])
+    if valid_scores.empty:
+        console.print_json(data={"valid": False, "reason": "no_valid_sector_scores"})
+        raise typer.Exit(code=1)
+    latest_date = valid_scores["date"].max()
+    latest = valid_scores[valid_scores["date"] == latest_date].sort_values("rank")
+    console.print_json(
+        data={
+            "valid": True,
+            "date": str(latest_date),
+            "reported_macro_regime": latest.iloc[0]["macro_reported_regime"],
+            "raw_macro_leader": latest.iloc[0]["macro_raw_dominant_regime"],
+            "macro_confidence": float(latest.iloc[0]["macro_confidence"]),
+            "ranking": [
+                {
+                    "rank": int(row["rank"]),
+                    "sector_id": row["sector_id"],
+                    "raw_sector_score": float(row["raw_sector_score"]),
+                    "confidence_adjusted_score": float(row["confidence_adjusted_score"]),
+                }
+                for row in latest.to_dict(orient="records")
+            ],
+        }
+    )
+
+
+@app.command("inspect-sector")
+def inspect_sector(
+    sector_id: str,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    limit: Annotated[int, typer.Option("--limit")] = 20,
+) -> None:
+    """Inspect latest stored sector score and component rows for one sector."""
+    store = DuckDBStore(db_path)
+    scores = store.read_sector_scores(sector_id)
+    if scores.empty:
+        console.print("[yellow]No sector score rows found[/yellow]")
+        raise typer.Exit(code=1)
+    latest_score = scores.sort_values("date").tail(1)
+    latest_date = latest_score.iloc[-1]["date"]
+    components = store.read_sector_components(sector_id)
+    latest_components = components[components["date"] == latest_date].tail(limit)
+    console.print(f"[bold]{sector_id} latest score[/bold]")
+    console.print(latest_score.to_string(index=False))
+    console.print(f"[bold]{sector_id} latest components[/bold]")
+    console.print(latest_components.to_string(index=False))
+
+
+@app.command("sector-health")
+def sector_health(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Show latest sector health rows from local storage."""
+    store = DuckDBStore(db_path)
+    table = store.read_table("sector_health")
+    if table.empty:
+        console.print("[yellow]No sector health rows found[/yellow]")
+        raise typer.Exit(code=1)
+    latest_date = table["date"].max()
+    latest = table[table["date"] == latest_date].sort_values("sector_id")
+    rich_table = Table(title="Sector Health")
+    columns = ["sector_id", "date", "valid", "component_count", "warning_count", "reason"]
+    for column in columns:
+        rich_table.add_column(column)
+    for row in latest.to_dict(orient="records"):
+        rich_table.add_row(*(str(row.get(column)) for column in columns))
+    console.print(rich_table)
+
+
+@app.command("write-sector-report")
+def write_sector_report(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    exposure_config: Annotated[
+        str,
+        typer.Option("--exposure-config"),
+    ] = "config/sector_exposures.yaml",
+    prior_config: Annotated[
+        str,
+        typer.Option("--prior-config"),
+    ] = "config/sector_regime_priors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2: write current sector ranking JSON and Markdown reports."""
+    json_path, markdown_path = write_current_sector_report(
+        config_path=config,
+        sector_config_path=sector_config,
+        exposure_config_path=exposure_config,
+        prior_config_path=prior_config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:

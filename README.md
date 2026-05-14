@@ -8,6 +8,10 @@ advice, trading guidance, allocation guidance, or portfolio sizing guidance.
 Historical outputs use revised FRED data and are not ALFRED/vintage
 point-in-time backtests.
 
+v0.2 adds a sector macro mapper that translates stored macro regime
+probabilities and dimension scores into sector tailwind/headwind diagnostics.
+Sector scores are not investment recommendations.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
@@ -27,6 +31,16 @@ FRED sources
 -> reported regime state
 -> revised-data diagnostics
 -> JSON/Markdown reports
+```
+
+The optional v0.2 sector layer runs after the macro pipeline:
+
+```text
+stored macro outputs
+-> sector regime priors
+-> sector dimension exposures
+-> sector macro scores
+-> sector ranking report
 ```
 
 The model preserves two separate regime views:
@@ -113,6 +127,16 @@ python -m macro_engine.cli write-current-report --config config/phase_b_sources.
 python -m macro_engine.cli write-diagnostic-report --config config/phase_b_sources.yaml
 ```
 
+Build and inspect v0.2 sector diagnostics from stored macro outputs:
+
+```powershell
+python -m macro_engine.cli build-sector-scores --config config/phase_b_sources.yaml
+python -m macro_engine.cli current-sector-ranking
+python -m macro_engine.cli inspect-sector energy
+python -m macro_engine.cli sector-health
+python -m macro_engine.cli write-sector-report --config config/phase_b_sources.yaml
+```
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`
@@ -175,6 +199,31 @@ recession
 tightening
 ```
 
+The v0.2 sector layer uses 11 GICS-style U.S. sectors. Proxy tickers are
+reporting and later validation references only:
+
+```text
+communication_services     XLC
+consumer_discretionary     XLY
+consumer_staples           XLP
+energy                     XLE
+financials                 XLF
+health_care                XLV
+industrials                XLI
+information_technology     XLK
+materials                  XLB
+real_estate                XLRE
+utilities                  XLU
+```
+
+Sector assumptions live in:
+
+```text
+config/sectors.yaml
+config/sector_exposures.yaml
+config/sector_regime_priors.yaml
+```
+
 ## Pipeline Stages
 
 You can run stages independently when debugging:
@@ -199,6 +248,8 @@ outputs/current_regime.json
 outputs/current_regime.md
 outputs/historical_diagnostic.json
 outputs/historical_diagnostic.md
+outputs/current_sector_ranking.json
+outputs/current_sector_ranking.md
 ```
 
 Local storage:
@@ -235,6 +286,18 @@ The historical diagnostic report includes:
 - average confidence
 - low-confidence periods
 - invalid date count
+
+The current sector report includes:
+
+- latest valid macro date
+- reported macro regime
+- raw macro leader
+- macro confidence
+- sector ranking
+- raw and confidence-adjusted sector scores
+- supporting/opposing sector score components
+- low-confidence warnings
+- non-advice disclaimer
 
 ## Experiments
 
@@ -297,6 +360,7 @@ Key limitations:
 - Uses revised FRED data, not vintage point-in-time data.
 - No ALFRED/vintage backtesting yet.
 - No trading, allocation, or portfolio logic.
+- Sector scores are macro diagnostics, not sector recommendations.
 - Simple transparent formulas, not ML.
 - U.S.-focused source universe.
 - FRED availability and revision behavior can affect outputs.
