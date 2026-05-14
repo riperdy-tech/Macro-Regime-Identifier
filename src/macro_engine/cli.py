@@ -673,7 +673,7 @@ def ingest_sector_proxy_prices_cli(
     """v0.2-F: ingest local sector ETF proxy prices for diagnostic validation."""
     try:
         prices = ingest_sector_proxy_prices(config_path=config, db_path=db_path)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
     console.print_json(
         data={

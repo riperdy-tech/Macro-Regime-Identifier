@@ -6,11 +6,13 @@ Date: 2026-05-14
 
 v0.2-F passes as an implementation of sector ETF proxy validation infrastructure.
 
-The empirical live validation is inconclusive in this environment because the configured Stooq provider returned no usable price rows without a Stooq API key. The validation layer is still ready for use with either:
+The empirical live validation is inconclusive in this environment because the configured Stooq provider returned no usable price rows. A later v0.2-G1 provider repair showed that the original "requires a Stooq API key" interpretation was too strong: Stooq is generally documented as a CSV/download source, but the live `q/d/l` endpoint currently returns an apikey-instruction page in this environment.
+
+The validation layer is ready for use with either:
 
 ```text
 1. a local CSV containing ticker,date,close proxy prices, or
-2. STOOQ_API_KEY set for Stooq CSV downloads.
+2. a repaired/live Stooq download path that returns CSV-shaped responses.
 ```
 
 Do not tune sector exposures or priors yet. There is not enough live validation evidence to justify changing assumptions.
@@ -74,7 +76,6 @@ Configured provider:
 
 ```text
 provider: stooq
-api_key_env: STOOQ_API_KEY
 fallback-compatible provider: csv
 ```
 
@@ -85,7 +86,7 @@ price_rows: 0
 tickers: []
 ```
 
-The Stooq endpoint responded with API-key instructions rather than downloadable CSV data. The provider now handles that cleanly by returning zero rows instead of crashing. This is a data availability issue, not a sector validation logic failure.
+The Stooq endpoint responded with apikey instructions rather than downloadable CSV data. v0.2-G1 records this as a non-CSV provider response rather than treating API-key behavior as the core design assumption.
 
 ## Live Validation Metrics
 
@@ -164,7 +165,7 @@ The implementation remains pluggable:
 
 ```text
 csv provider: deterministic local files
-stooq provider: optional live CSV source when STOOQ_API_KEY is available
+stooq provider: optional live CSV source when the endpoint returns CSV-shaped data
 ```
 
 ## Report Language Review
@@ -197,7 +198,7 @@ do not add news yet
 do not treat sector scores as validated
 ```
 
-The right next step is to run the same validation with usable proxy prices, either from a local CSV or with `STOOQ_API_KEY`.
+The right next step is to run the same validation with usable proxy prices, either from a local CSV or a Stooq response that returns actual CSV data.
 
 ## Recommendation
 

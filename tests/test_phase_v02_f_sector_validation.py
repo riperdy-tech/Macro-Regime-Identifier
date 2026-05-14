@@ -11,10 +11,12 @@ import yaml
 from macro_engine.cli import app
 from macro_engine.sectors.validation import (
     SectorValidationConfig,
+    _fetch_stooq_ticker,
     calculate_validation_returns,
     normalize_price_frame,
     run_sector_validation,
     summarize_validation_returns,
+    to_stooq_symbol,
 )
 from macro_engine.sectors.validation_report import (
     build_sector_validation_report,
@@ -248,6 +250,79 @@ def test_sector_validation_cli_flow_with_mocked_csv(tmp_path: Path):
     assert "diagnostic validation" in markdown
 
 
+def test_stooq_ticker_normalization():
+    assert to_stooq_symbol("SPY") == "spy.us"
+    assert to_stooq_symbol("spy.us") == "spy.us"
+    assert to_stooq_symbol("SPY.US") == "spy.us"
+    assert to_stooq_symbol("^SPX") == "^spx"
+
+
+def test_stooq_csv_parsing():
+    session = _FakeSession(
+        "Date,Open,High,Low,Close,Volume\n2026-01-02,1,2,1,100.5,1000\n"
+    )
+
+    frame, diagnostic = _fetch_stooq_ticker(
+        session,
+        "SPY",
+        start_date="2026-01-01",
+        end_date="2026-01-31",
+        api_key=None,
+    )
+
+    assert diagnostic["classification"] == "csv"
+    assert diagnostic["stooq_symbol"] == "spy.us"
+    assert frame.iloc[0]["ticker"] == "SPY"
+    assert frame.iloc[0]["close"] == 100.5
+
+
+def test_stooq_html_response_handling():
+    session = _FakeSession("<html><body>captcha</body></html>", content_type="text/html")
+
+    frame, diagnostic = _fetch_stooq_ticker(
+        session,
+        "SPY",
+        start_date="2026-01-01",
+        end_date="2026-01-31",
+        api_key=None,
+    )
+
+    assert frame.empty
+    assert diagnostic["classification"] == "html"
+    assert "captcha" in diagnostic["preview"]
+
+
+def test_stooq_empty_response_handling():
+    session = _FakeSession("")
+
+    frame, diagnostic = _fetch_stooq_ticker(
+        session,
+        "SPY",
+        start_date="2026-01-01",
+        end_date="2026-01-31",
+        api_key=None,
+    )
+
+    assert frame.empty
+    assert diagnostic["classification"] == "empty"
+
+
+def test_stooq_apikey_instruction_response_handling():
+    session = _FakeSession("Get your apikey:\nOpen https://stooq.com/q/d/?s=spy.us&get_apikey")
+
+    frame, diagnostic = _fetch_stooq_ticker(
+        session,
+        "SPY",
+        start_date="2026-01-01",
+        end_date="2026-01-31",
+        api_key=None,
+    )
+
+    assert frame.empty
+    assert diagnostic["classification"] == "apikey_instruction"
+    assert diagnostic["content_type"] == "text/plain; charset=UTF-8"
+
+
 def _write_validation_config(tmp_path: Path) -> Path:
     path = tmp_path / "sector_validation.yaml"
     path.write_text(
@@ -271,3 +346,27 @@ def _write_validation_config(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return path
+
+
+class _FakeSession:
+    def __init__(self, text: str, content_type: str = "text/plain; charset=UTF-8") -> None:
+        self._text = text
+        self._content_type = content_type
+
+    def get(self, url, params=None, timeout=30):
+        return _FakeResponse(
+            text=self._text,
+            url=f"{url}?s={params['s']}",
+            content_type=self._content_type,
+        )
+
+
+class _FakeResponse:
+    def __init__(self, *, text: str, url: str, content_type: str) -> None:
+        self.text = text
+        self.url = url
+        self.status_code = 200
+        self.headers = {"content-type": content_type}
+
+    def raise_for_status(self) -> None:
+        return None

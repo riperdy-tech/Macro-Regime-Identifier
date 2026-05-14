@@ -61,20 +61,50 @@ def load_proxy_prices(config: SectorValidationConfig) -> pd.DataFrame:
 def load_stooq_prices(config: SectorValidationConfig) -> pd.DataFrame:
     tickers = sorted(set(config.proxies.values()) | {config.benchmark_ticker})
     frames = []
+    diagnostics = []
+    session = requests.Session()
+    session.headers.update(
+        {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 Chrome/125 Safari/537.36"
+            ),
+            "Accept": "text/csv,text/plain,*/*",
+            "Referer": "https://stooq.com/",
+        }
+    )
+    try:
+        session.get("https://stooq.com/", timeout=30)
+    except requests.RequestException:
+        pass
     for ticker in tickers:
-        frames.append(
-            _fetch_stooq_ticker(
-                ticker,
-                start_date=config.price_provider.start_date,
-                end_date=config.price_provider.end_date,
-                api_key=os.getenv(config.price_provider.api_key_env)
-                if config.price_provider.api_key_env
-                else None,
-            )
+        frame, diagnostic = _fetch_stooq_ticker(
+            session,
+            ticker,
+            start_date=config.price_provider.start_date,
+            end_date=config.price_provider.end_date,
+            api_key=os.getenv(config.price_provider.api_key_env)
+            if config.price_provider.api_key_env
+            else None,
         )
+        diagnostics.append(diagnostic)
+        if not frame.empty:
+            frames.append(frame)
     if not frames:
-        return pd.DataFrame(columns=["ticker", "date", "close", "source", "fetched_at"])
+        raise ValueError(
+            "Stooq provider returned no CSV-shaped price data. "
+            f"First response diagnostic: {diagnostics[0] if diagnostics else 'no responses'}"
+        )
     return normalize_price_frame(pd.concat(frames, ignore_index=True), source="stooq")
+
+
+def to_stooq_symbol(ticker: str) -> str:
+    symbol = ticker.strip().lower()
+    if not symbol:
+        return symbol
+    if symbol.startswith("^") or "." in symbol:
+        return symbol
+    return f"{symbol}.us"
 
 
 def normalize_price_frame(prices: pd.DataFrame, *, source: str = "mock") -> pd.DataFrame:
@@ -93,39 +123,82 @@ def normalize_price_frame(prices: pd.DataFrame, *, source: str = "mock") -> pd.D
 
 
 def _fetch_stooq_ticker(
+    session: requests.Session,
     ticker: str,
     *,
     start_date: str,
     end_date: str | None,
     api_key: str | None,
-) -> pd.DataFrame:
+) -> tuple[pd.DataFrame, dict[str, str]]:
     start = pd.Timestamp(start_date).strftime("%Y%m%d")
     end = pd.Timestamp(end_date or pd.Timestamp.today()).strftime("%Y%m%d")
-    stooq_symbol = f"{ticker.lower()}.us"
+    stooq_symbol = to_stooq_symbol(ticker)
     url = "https://stooq.com/q/d/l/"
     params = {"s": stooq_symbol, "i": "d", "d1": start, "d2": end}
     if api_key:
         params["apikey"] = api_key
-    response = requests.get(url, params=params, timeout=30)
+    response = session.get(url, params=params, timeout=30)
     response.raise_for_status()
+    diagnostic = _stooq_response_diagnostic(response, ticker=ticker, symbol=stooq_symbol)
     text = response.text.strip()
-    if not text or text.startswith("No data") or not text.splitlines()[0].startswith("Date"):
-        return pd.DataFrame(columns=["ticker", "date", "close"])
+    if not _looks_like_stooq_csv(text):
+        return pd.DataFrame(columns=["ticker", "date", "close"]), diagnostic
     from io import StringIO
 
     try:
         frame = pd.read_csv(StringIO(text))
     except pd.errors.ParserError:
-        return pd.DataFrame(columns=["ticker", "date", "close"])
-    if frame.empty or "Close" not in frame.columns:
-        return pd.DataFrame(columns=["ticker", "date", "close"])
-    return pd.DataFrame(
-        {
-            "ticker": ticker,
-            "date": frame["Date"],
-            "close": frame["Close"],
-        }
+        diagnostic["classification"] = "csv_parse_error"
+        return pd.DataFrame(columns=["ticker", "date", "close"]), diagnostic
+    if frame.empty or "Close" not in frame.columns or "Date" not in frame.columns:
+        diagnostic["classification"] = "missing_csv_columns"
+        return pd.DataFrame(columns=["ticker", "date", "close"]), diagnostic
+    return (
+        pd.DataFrame(
+            {
+                "ticker": ticker,
+                "date": frame["Date"],
+                "close": frame["Close"],
+            }
+        ),
+        diagnostic,
     )
+
+
+def _looks_like_stooq_csv(text: str) -> bool:
+    if not text:
+        return False
+    first_line = text.splitlines()[0].strip().lower()
+    return first_line.startswith("date,") and "close" in first_line
+
+
+def _stooq_response_diagnostic(
+    response: requests.Response,
+    *,
+    ticker: str,
+    symbol: str,
+) -> dict[str, str]:
+    preview = response.text[:200].replace("\n", " ").replace("\r", " ")
+    text_lower = response.text[:500].lower()
+    if _looks_like_stooq_csv(response.text.strip()):
+        classification = "csv"
+    elif "get your apikey" in text_lower:
+        classification = "apikey_instruction"
+    elif "<html" in text_lower or "<!doctype" in text_lower:
+        classification = "html"
+    elif not response.text.strip():
+        classification = "empty"
+    else:
+        classification = "non_csv"
+    return {
+        "ticker": ticker,
+        "stooq_symbol": symbol,
+        "url": response.url,
+        "status_code": str(response.status_code),
+        "content_type": response.headers.get("content-type", ""),
+        "classification": classification,
+        "preview": preview,
+    }
 
 
 def ingest_sector_proxy_prices(
