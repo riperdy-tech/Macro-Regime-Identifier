@@ -3,14 +3,14 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.1 release candidate. It is not investment
+This project is an experimental v0.2 release candidate. It is not investment
 advice, trading guidance, allocation guidance, or portfolio sizing guidance.
 Historical outputs use revised FRED data and are not ALFRED/vintage
 point-in-time backtests.
 
-v0.2 adds a sector macro mapper that translates stored macro regime
-probabilities and dimension scores into sector tailwind/headwind diagnostics.
-Sector scores are not investment recommendations.
+v0.2 adds an experimental sector macro mapper that translates stored macro
+regime probabilities and dimension scores into sector tailwind/headwind
+diagnostics. Sector scores are not investment recommendations.
 
 ## What It Does
 
@@ -145,6 +145,30 @@ python -m macro_engine.cli ingest-sector-proxy-prices --config config/sector_val
 python -m macro_engine.cli run-sector-validation --config config/sector_validation.yaml
 python -m macro_engine.cli sector-validation-summary
 python -m macro_engine.cli write-sector-validation-report --config config/sector_validation.yaml
+```
+
+The default local CSV validation path is:
+
+```text
+data/sector_proxy_prices.csv
+```
+
+Expected schema:
+
+```csv
+ticker,date,close
+```
+
+Required tickers:
+
+```text
+SPY, XLC, XLY, XLP, XLE, XLF, XLV, XLI, XLK, XLB, XLRE, XLU
+```
+
+Run sector calibration experiments without mutating production sector configs:
+
+```powershell
+python -m macro_engine.cli run-sector-calibration-experiments --experiment-config config/experiments/sector_calibration_v02_m1.yaml
 ```
 
 ## Production Source Set
@@ -317,6 +341,10 @@ stored sector scores with future sector ETF proxy returns relative to SPY. It is
 not a trading backtest and does not model transaction costs, slippage, execution
 constraints, or allocation sizing.
 
+The current v0.2 sector calibration result is weak/mixed. The sector mapper is
+release-ready only as an experimental diagnostic layer, not as an empirically
+validated ranking or decision system.
+
 ## Experiments
 
 Experiment configs live under:
@@ -387,3 +415,5 @@ Key limitations:
 ## Release Checklist
 
 See `docs/release_checklist_v0_1.md`.
+
+For v0.2 sector mapper release checks, see `docs/release_checklist_v0_2.md`.

@@ -1,7 +1,7 @@
 # Model Limitations
 
-This project is an experimental v0.1 macro regime diagnostic. It is designed to
-be transparent and inspectable, not authoritative.
+This project is an experimental v0.2 macro and sector diagnostic. It is designed
+to be transparent and inspectable, not authoritative.
 
 ## Not Investment Advice
 
@@ -66,6 +66,10 @@ compares stored sector scores with later sector ETF proxy returns relative to
 SPY. It does not model transaction costs, slippage, execution constraints,
 allocation sizing, or any implementable strategy.
 
+The current v0.2 sector validation result is weak/mixed and should not be read
+as empirical proof that the sector mapper is predictive. v0.2-M1 kept production
+sector assumptions unchanged and treats the sector layer as experimental.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
@@ -111,6 +115,7 @@ claims.
 
 ## Current Release Intent
 
-v0.1 is a release-candidate model core for local research and inspection. The
-next appropriate work is release hardening, documentation review, and careful
-operator testing before any further model expansion.
+v0.2 is intended as a release-candidate sector macro mapper for local research
+and inspection. The macro v0.1 core remains the production macro engine, while
+the v0.2 sector layer is an experimental diagnostic layer built on top of stored
+macro outputs.
