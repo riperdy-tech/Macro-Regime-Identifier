@@ -1,0 +1,123 @@
+experiment:
+  name: v02_m1_sector_calibration
+  macro_config: config/phase_b_sources.yaml
+  sector_config: config/sectors.yaml
+  exposure_config: config/sector_exposures.yaml
+  prior_config: config/sector_regime_priors.yaml
+  validation_config: config/sector_validation.yaml
+  output_dir: outputs/experiments/v02_m1_sector_calibration
+  primary_horizon: 3m
+  secondary_horizon: 1m
+
+variants:
+  - variant_id: baseline_current_assumptions
+    description: Current production sector priors and dimension exposures.
+
+  - variant_id: dimension_only_no_regime_prior
+    description: Remove regime-sector priors and score only dimension exposures.
+    regime_prior_weight: 0.0
+
+  - variant_id: lower_regime_prior_weight
+    description: Reduce regime-sector prior influence by half.
+    regime_prior_weight: 0.5
+
+  - variant_id: higher_dimension_exposure_weight
+    description: Increase dimension exposure influence while leaving priors unchanged.
+    dimension_exposure_weight: 1.25
+
+  - variant_id: inflation_exposure_reduced
+    description: Reduce inflation exposure magnitudes for sectors flagged in v0.2-H.
+    exposure_multipliers:
+      energy:
+        inflation_pressure: 0.55
+      materials:
+        inflation_pressure: 0.70
+      consumer_staples:
+        inflation_pressure: 0.50
+      information_technology:
+        inflation_pressure: 0.50
+      consumer_discretionary:
+        inflation_pressure: 0.65
+
+  - variant_id: defensive_sector_rebalance
+    description: Make defensive sectors less broadly rate/inflation dominated.
+    exposure_overrides:
+      consumer_staples:
+        growth_momentum: -0.15
+        inflation_pressure: 0.00
+        policy_stance: -0.05
+        yield_curve: -0.05
+      health_care:
+        growth_momentum: -0.05
+        policy_stance: -0.10
+        yield_curve: -0.05
+      utilities:
+        growth_momentum: -0.20
+        inflation_pressure: -0.10
+        policy_stance: -0.45
+        yield_curve: -0.25
+
+  - variant_id: real_estate_rate_credit_rebalance
+    description: Reduce extreme real-estate policy and credit penalties.
+    exposure_overrides:
+      real_estate:
+        policy_stance: -0.55
+        credit_liquidity: -0.35
+        yield_curve: -0.20
+
+  - variant_id: technology_rate_inflation_rebalance
+    description: Let growth offset some policy and inflation pressure for technology.
+    exposure_overrides:
+      information_technology:
+        growth_momentum: 0.75
+        inflation_pressure: -0.15
+        policy_stance: -0.45
+        credit_liquidity: -0.20
+
+  - variant_id: energy_inflation_cap
+    description: Reduce energy dependence on standalone inflation pressure.
+    exposure_overrides:
+      energy:
+        inflation_pressure: 0.40
+
+  - variant_id: combined_candidate_1
+    description: Combine lower regime-prior weight with softer inflation and technology rate assumptions.
+    regime_prior_weight: 0.5
+    exposure_multipliers:
+      energy:
+        inflation_pressure: 0.55
+      materials:
+        inflation_pressure: 0.70
+      consumer_staples:
+        inflation_pressure: 0.50
+      consumer_discretionary:
+        inflation_pressure: 0.65
+    exposure_overrides:
+      information_technology:
+        growth_momentum: 0.75
+        inflation_pressure: -0.15
+        policy_stance: -0.45
+        credit_liquidity: -0.20
+
+  - variant_id: combined_candidate_2
+    description: Dimension-only version of the softer inflation and rate assumptions.
+    regime_prior_weight: 0.0
+    exposure_multipliers:
+      energy:
+        inflation_pressure: 0.55
+      materials:
+        inflation_pressure: 0.70
+      consumer_staples:
+        inflation_pressure: 0.50
+      consumer_discretionary:
+        inflation_pressure: 0.65
+    exposure_overrides:
+      information_technology:
+        growth_momentum: 0.75
+        inflation_pressure: -0.15
+        policy_stance: -0.45
+        credit_liquidity: -0.20
+      real_estate:
+        policy_stance: -0.55
+        credit_liquidity: -0.35
+        yield_curve: -0.20

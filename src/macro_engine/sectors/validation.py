@@ -256,7 +256,7 @@ def calculate_validation_returns(
 ) -> pd.DataFrame:
     if sector_scores.empty:
         return pd.DataFrame(columns=_return_columns())
-    price_frame = _prepared_prices(prices)
+    price_lookup = _prepared_price_lookup(prices)
     scores = sector_scores.copy()
     scores["date"] = pd.to_datetime(scores["date"], errors="coerce")
     scores = scores[scores["valid"]].sort_values(["date", "rank"])
@@ -286,13 +286,13 @@ def calculate_validation_returns(
             continue
         for horizon in config.horizons_months:
             sector_return = _forward_return(
-                price_frame,
+                price_lookup,
                 proxy_ticker,
                 pd.Timestamp(score["date"]),
                 horizon,
             )
             benchmark_return = _forward_return(
-                price_frame,
+                price_lookup,
                 config.benchmark_ticker,
                 pd.Timestamp(score["date"]),
                 horizon,
@@ -372,13 +372,23 @@ def _prepared_prices(prices: pd.DataFrame) -> pd.DataFrame:
     return frame.dropna(subset=["ticker", "date", "close"]).sort_values(["ticker", "date"])
 
 
+def _prepared_price_lookup(prices: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    frame = _prepared_prices(prices)
+    return {
+        ticker: group.sort_values("date").reset_index(drop=True)
+        for ticker, group in frame.groupby("ticker")
+    }
+
+
 def _forward_return(
-    prices: pd.DataFrame,
+    prices: dict[str, pd.DataFrame],
     ticker: str,
     score_date: pd.Timestamp,
     horizon_months: int,
 ) -> float | None:
-    ticker_prices = prices[prices["ticker"] == ticker].sort_values("date")
+    ticker_prices = prices.get(ticker)
+    if ticker_prices is None:
+        return None
     if ticker_prices.empty:
         return None
     start = _price_on_or_after(ticker_prices, score_date)
@@ -391,10 +401,10 @@ def _forward_return(
 
 
 def _price_on_or_after(prices: pd.DataFrame, date: pd.Timestamp) -> float | None:
-    eligible = prices[prices["date"] >= date].sort_values("date")
-    if eligible.empty:
+    index = prices["date"].searchsorted(date, side="left")
+    if index >= len(prices):
         return None
-    first = eligible.iloc[0]
+    first = prices.iloc[int(index)]
     lag_days = (pd.Timestamp(first["date"]) - date).days
     if lag_days > MAX_PRICE_LOOKAHEAD_DAYS:
         return None

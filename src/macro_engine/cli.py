@@ -30,6 +30,7 @@ from macro_engine.reports.service import (
     write_historical_diagnostic_report as write_historical_diagnostic_report_service,
 )
 from macro_engine.sectors.report import write_current_sector_report
+from macro_engine.sectors.calibration import run_sector_calibration_experiments
 from macro_engine.sectors.service import build_stored_sector_scores
 from macro_engine.sectors.validation import (
     ingest_sector_proxy_prices,
@@ -725,6 +726,29 @@ def write_sector_validation_report_cli(
         db_path=db_path,
     )
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("run-sector-calibration-experiments")
+def run_sector_calibration_experiments_cli(
+    experiment_config: Annotated[
+        str,
+        typer.Option("--experiment-config"),
+    ] = "config/experiments/sector_calibration_v02_m1.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2-M1: run sector calibration experiments without mutating production configs."""
+    result = run_sector_calibration_experiments(
+        experiment_config_path=experiment_config,
+        db_path=db_path,
+    )
+    console.print_json(
+        data={
+            "output_dir": str(result.output_dir),
+            "variant_count": len(result.variant_results),
+            "comparison_path": str(result.output_dir / "comparison.json"),
+            "markdown_path": str(result.markdown_path),
+        }
+    )
 
 
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:
