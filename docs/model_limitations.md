@@ -1,6 +1,6 @@
 # Model Limitations
 
-This project is an experimental v0.2 macro and sector diagnostic. It is designed
+This project is an experimental v0.3 macro, sector, and news diagnostic. It is designed
 to be transparent and inspectable, not authoritative.
 
 ## Not Investment Advice
@@ -70,22 +70,56 @@ The current v0.2 sector validation result is weak/mixed and should not be read
 as empirical proof that the sector mapper is predictive. v0.2-M1 kept production
 sector assumptions unchanged and treats the sector layer as experimental.
 
-## AI News/Event Classification
+## AI News/Event Classification And Scoring
 
 The v0.3 news layer uses AI-assisted classification for unstructured text. AI
 outputs are probabilistic and interpretive. They may be wrong, incomplete,
 overconfident, stale, or sensitive to prompt wording and source quality.
 
-The news layer is diagnostic only. v0.3-M1 stores structured macro themes,
-sector impacts, entities, severity, and confidence, but it does not merge those
-signals into macro regime scoring or sector ranking.
+Provider behavior and model versions can change over time. A classification
+from DeepSeek, OpenAI-compatible providers, or a future model may differ even
+when the input text and prompt are similar.
+
+The news layer is diagnostic only. It stores structured macro themes, sector
+impacts, entities, severity, and confidence. News score aggregation is
+deterministic after classification, but the inputs remain interpretive AI
+outputs.
 
 News classifications should be reviewed before relying on them. Source quality,
 publication timing, duplicated headlines, missing context, and ambiguous wording
 can materially affect classifications.
 
+Known AI/news risks include:
+
+- hallucinated or overly broad rationales
+- malformed JSON or partially parsed responses
+- prompt sensitivity
+- model/provider variability
+- source bias and incomplete news coverage
+- duplicated or stale articles
+- synthetic sample news that is useful for plumbing but not empirical validation
+
 The AI layer must not provide investment advice, market action guidance,
 execution guidance, portfolio instructions, or security instructions.
+
+## Combined Macro-Sector-News Diagnostic
+
+The v0.3 combined diagnostic is an experimental overlay. It combines the v0.2
+sector macro score with bounded sector news scores while preserving the original
+macro-only sector score.
+
+The combined layer does not:
+
+- alter v0.1 macro regime scoring
+- alter v0.2 sector macro scoring
+- replace raw macro probabilities
+- create portfolio weights
+- create security selections
+- model execution or implementation constraints
+
+Combined diagnostic validation is limited until enough real classified news
+history exists. Synthetic sample news can verify software behavior but cannot
+validate empirical usefulness.
 
 ## Data Freshness And Revisions
 
@@ -132,7 +166,7 @@ claims.
 
 ## Current Release Intent
 
-v0.2 is intended as a release-candidate sector macro mapper for local research
-and inspection. The macro v0.1 core remains the production macro engine, while
-the v0.2 sector layer is an experimental diagnostic layer built on top of stored
-macro outputs.
+v0.3 is intended as a release-candidate AI-assisted news diagnostic overlay for
+local research and inspection. The macro v0.1 core remains the production macro
+engine, the v0.2 sector layer remains an experimental deterministic sector
+mapper, and the v0.3 news layer remains an experimental interpretive overlay.

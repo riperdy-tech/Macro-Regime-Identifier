@@ -3,7 +3,7 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.2 release candidate. It is not investment
+This project is an experimental v0.3 release candidate. It is not investment
 advice, trading guidance, allocation guidance, or portfolio sizing guidance.
 Historical outputs use revised FRED data and are not ALFRED/vintage
 point-in-time backtests.
@@ -12,10 +12,12 @@ v0.2 adds an experimental sector macro mapper that translates stored macro
 regime probabilities and dimension scores into sector tailwind/headwind
 diagnostics. Sector scores are not investment recommendations.
 
-v0.3 adds an AI-assisted news/event ingestion foundation. It ingests local or
+v0.3 adds an AI-assisted news/event diagnostic overlay. It ingests local or
 manual text items, classifies them into structured macro themes and sector
-impacts, and stores auditable classification rows. v0.3-M1 does not merge news
-into macro regime scoring or sector ranking.
+impacts, aggregates those classifications into deterministic news scores, and
+optionally combines bounded sector news scores with v0.2 sector macro scores.
+The combined output is separate from v0.1 macro scoring and v0.2 sector macro
+scoring.
 
 ## What It Does
 
@@ -48,14 +50,20 @@ stored macro outputs
 -> sector ranking report
 ```
 
-The optional v0.3 news layer is separate from macro and sector scoring:
+The optional v0.3 news layer is an additive overlay:
 
 ```text
 local news/event text
 -> AI or mock classification
 -> macro themes and sector impacts
--> auditable news reports
+-> deterministic news theme and sector scores
+-> experimental combined macro-sector-news diagnostics
 ```
+
+Structured macro data remains scored by deterministic Python/config logic.
+Sector macro mapping remains deterministic. AI is used only to interpret
+unstructured text into structured, auditable signals; aggregation and combined
+diagnostics remain transparent and component-based.
 
 The model preserves two separate regime views:
 
@@ -201,6 +209,25 @@ Normal tests do not require a live AI key. To use DeepSeek manually, set
 `DEEPSEEK_API_KEY` in `.env`, set `mock_mode: false`, and set
 `enable_live_ai: true` in a local, intentionally managed config.
 
+Aggregate classified news into deterministic diagnostic scores:
+
+```powershell
+python -m macro_engine.cli build-news-scores --config config/news_scoring.yaml
+python -m macro_engine.cli current-news-summary
+python -m macro_engine.cli inspect-news-score --sector energy
+python -m macro_engine.cli inspect-news-score --theme monetary_tightening
+python -m macro_engine.cli write-news-score-report --config config/news_scoring.yaml
+```
+
+Build the experimental combined macro-sector-news diagnostic:
+
+```powershell
+python -m macro_engine.cli build-combined-sector-diagnostics --config config/sector_news_integration.yaml
+python -m macro_engine.cli current-combined-sector-ranking
+python -m macro_engine.cli inspect-combined-sector energy
+python -m macro_engine.cli write-combined-sector-report --config config/sector_news_integration.yaml
+```
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`
@@ -295,6 +322,8 @@ News-layer configs live in:
 config/news_sources.yaml
 config/news_themes.yaml
 config/news_ai.yaml
+config/news_scoring.yaml
+config/sector_news_integration.yaml
 ```
 
 Synthetic news examples live in:
@@ -333,6 +362,10 @@ outputs/sector_validation.json
 outputs/sector_validation.md
 outputs/news_classification_report.json
 outputs/news_classification_report.md
+outputs/news_score_report.json
+outputs/news_score_report.md
+outputs/combined_sector_diagnostic.json
+outputs/combined_sector_diagnostic.md
 ```
 
 Local storage:
@@ -394,6 +427,16 @@ validated ranking or decision system.
 The news classification report is also diagnostic only. AI classifications are
 interpretive and can be wrong, incomplete, or overly confident. They should be
 reviewed before being used in any research workflow.
+
+The news score report aggregates stored classifications into daily and weekly
+macro theme and sector news scores. Each aggregate can be traced to
+`news_score_components`.
+
+The combined sector diagnostic report is an experimental overlay. It combines
+cross-sectionally normalized sector macro scores with bounded sector news
+scores. Missing or thin news coverage falls back to macro-only behavior for the
+affected sector. Combined validation remains limited until there is enough real
+classified news history.
 
 ## Experiments
 
@@ -459,6 +502,10 @@ Key limitations:
 - Sector scores are macro diagnostics, not sector recommendations.
 - Sector ETF proxy validation is not a trading backtest.
 - AI news classification is diagnostic only and can be wrong.
+- News score aggregation is deterministic, but depends on AI classification
+  quality and source coverage.
+- Combined macro-sector-news diagnostics are experimental and not empirically
+  validated with real news history yet.
 - Simple transparent formulas, not ML.
 - U.S.-focused source universe.
 - FRED availability and revision behavior can affect outputs.
@@ -468,3 +515,6 @@ Key limitations:
 See `docs/release_checklist_v0_1.md`.
 
 For v0.2 sector mapper release checks, see `docs/release_checklist_v0_2.md`.
+
+For v0.3 news and combined diagnostic release checks, see
+`docs/release_checklist_v0_3.md`.
