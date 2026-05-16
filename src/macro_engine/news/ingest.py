@@ -51,15 +51,36 @@ def validate_news_input_config(
         all_items.extend(source_items)
         dates = [item.published_at for item in source_items if item.published_at is not None]
         short_body_count = sum(1 for item in source_items if len(item.body.split()) < 25)
+        missing_source_url_count = sum(1 for item in source_items if not item.source_url)
         future_count = sum(
             1
             for item in source_items
             if item.published_at is not None and item.published_at > datetime.now(UTC)
         )
+        very_old_count = sum(
+            1
+            for item in source_items
+            if item.published_at is not None and (datetime.now(UTC) - item.published_at).days > 365
+        )
+        duplicate_title_count = _duplicate_count([item.title.strip().lower() for item in source_items])
+        likely_non_news_count = sum(1 for item in source_items if _likely_non_news(item))
         if short_body_count:
             warnings.append(f"{source.source_id}: {short_body_count} items have very short body text")
+        if missing_source_url_count:
+            warnings.append(f"{source.source_id}: {missing_source_url_count} items missing source_url")
         if future_count:
             warnings.append(f"{source.source_id}: {future_count} items have future published_at values")
+        if very_old_count:
+            warnings.append(f"{source.source_id}: {very_old_count} items are older than one year")
+        if duplicate_title_count:
+            warnings.append(f"{source.source_id}: {duplicate_title_count} duplicate titles detected")
+        if likely_non_news_count:
+            warnings.append(f"{source.source_id}: {likely_non_news_count} likely non-news pages detected")
+        quality = "ok"
+        if future_count or likely_non_news_count or missing_source_url_count > max(2, len(source_items) // 2):
+            quality = "poor_input"
+        elif short_body_count or missing_source_url_count or very_old_count or duplicate_title_count:
+            quality = "warning"
         source_summaries.append(
             {
                 "source_id": source.source_id,
@@ -69,7 +90,12 @@ def validate_news_input_config(
                 "date_start": None if not dates else min(dates).isoformat(),
                 "date_end": None if not dates else max(dates).isoformat(),
                 "short_body_count": short_body_count,
+                "missing_source_url_count": missing_source_url_count,
                 "future_published_at_count": future_count,
+                "very_old_count": very_old_count,
+                "duplicate_title_count": duplicate_title_count,
+                "likely_non_news_count": likely_non_news_count,
+                "quality": quality,
             }
         )
     hashes = [item.content_hash for item in all_items]
@@ -237,3 +263,13 @@ def _load_source_for_validation(source: NewsSourceDefinition) -> list[NewsItem]:
     if source.provider == "manual_text":
         return load_manual_text_source(source)
     raise ValueError(f"unsupported news provider {source.provider}")
+
+
+def _duplicate_count(values: list[str]) -> int:
+    return len(values) - len(set(values))
+
+
+def _likely_non_news(item: NewsItem) -> bool:
+    text = f"{item.title} {item.body}".lower()
+    markers = ["stock price", "quote", "historical data", "login", "subscribe to continue"]
+    return any(marker in text for marker in markers)

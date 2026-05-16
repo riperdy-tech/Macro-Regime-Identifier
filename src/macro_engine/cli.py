@@ -766,11 +766,15 @@ def ingest_news(
 ) -> None:
     """v0.3-M1: ingest local/manual news items into storage."""
     frame = ingest_stored_news(config_path=config, db_path=db_path, profile=profile)
-    console.print_json(
-        data={
+    typer.echo(
+        json.dumps(
+            {
             "news_rows": int(len(frame)),
             "sources": sorted(frame["source"].unique().tolist()) if not frame.empty else [],
-        }
+            },
+            ensure_ascii=True,
+            indent=2,
+        )
     )
 
 
@@ -784,7 +788,7 @@ def validate_news_input(
         summary = validate_news_input_config(config_path=config, profile=profile)
     except (FileNotFoundError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
-    console.print_json(data=summary)
+    typer.echo(json.dumps(summary, ensure_ascii=True, indent=2))
 
 
 @app.command("classify-news")

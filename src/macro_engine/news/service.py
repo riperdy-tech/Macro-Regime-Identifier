@@ -51,7 +51,15 @@ def classify_stored_news(
     records = []
     for row in news_items.to_dict(orient="records"):
         item = _news_item_from_stored_row(row)
-        records.append(classify_news_item(item, classifier=classifier, themes=themes))
+        records.append(
+            classify_news_item(
+                item,
+                classifier=classifier,
+                themes=themes,
+                enable_schema_repair=ai_config.enable_schema_repair,
+                max_retries=ai_config.max_retries,
+            )
+        )
     classifications = pd.DataFrame([record.model_dump() for record in records])
     theme_scores = _theme_scores_from_classifications(records)
     sector_impacts = _sector_impacts_from_classifications(records)

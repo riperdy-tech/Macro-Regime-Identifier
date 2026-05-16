@@ -86,6 +86,8 @@ class NewsAIConfig(BaseModel):
     mock_mode: bool = True
     request_timeout_seconds: int = Field(default=60, gt=0)
     output_dir: str = "outputs"
+    enable_schema_repair: bool = True
+    max_retries: int = Field(default=0, ge=0, le=2)
 
 
 class FreshnessDecayConfig(BaseModel):

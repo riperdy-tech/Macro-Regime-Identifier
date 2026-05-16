@@ -14,6 +14,14 @@ news_sources:
       - real_news_pilot
     path: data/news_pilot/news_items.csv
 
+  - source_id: pilot_expanded_local_csv
+    provider: local_csv
+    enabled: false
+    profiles:
+      - pilot_expanded_local_csv
+      - expanded_real_news_pilot
+    path: data/news_pilot/news_items_expanded.csv
+
   - source_id: manual_text_example
     provider: manual_text
     enabled: false

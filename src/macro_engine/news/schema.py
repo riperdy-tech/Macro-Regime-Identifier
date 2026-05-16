@@ -9,7 +9,16 @@ from pydantic import BaseModel, Field, field_validator
 ALLOWED_IMPACT_DIRECTIONS = {"tailwind", "headwind", "mixed", "neutral", "unclear"}
 ALLOWED_THEME_DIRECTIONS = {"positive", "negative", "mixed", "neutral", "unclear"}
 ALLOWED_TIME_HORIZONS = {"immediate", "short_term", "medium_term", "long_term", "unclear"}
-ALLOWED_ENTITY_TYPES = {"company", "country", "central_bank", "commodity", "sector", "other"}
+ALLOWED_ENTITY_TYPES = {
+    "company",
+    "country",
+    "central_bank",
+    "commodity",
+    "sector",
+    "region",
+    "person",
+    "other",
+}
 
 
 class NewsItem(BaseModel):
@@ -44,7 +53,16 @@ class SectorImpactSignal(BaseModel):
 
 class NewsEntity(BaseModel):
     name: str
-    entity_type: Literal["company", "country", "central_bank", "commodity", "sector", "other"]
+    entity_type: Literal[
+        "company",
+        "country",
+        "central_bank",
+        "commodity",
+        "sector",
+        "region",
+        "person",
+        "other",
+    ]
     relevance: float = Field(ge=0.0, le=1.0)
 
 

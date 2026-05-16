@@ -8,7 +8,12 @@ import pytest
 from typer.testing import CliRunner
 
 from macro_engine.cli import app
-from macro_engine.news.classify import classify_news_item, validate_classification_payload
+from macro_engine.news.classify import (
+    classify_news_item,
+    repair_classification_payload,
+    retry_user_prompt,
+    validate_classification_payload,
+)
 from macro_engine.news.config import (
     load_news_ai_config,
     load_news_sources_config,
@@ -96,6 +101,8 @@ news_sources:
     assert summary["raw_item_count"] == 2
     assert summary["unique_item_count"] == 1
     assert summary["duplicate_count"] == 1
+    assert summary["sources"][0]["duplicate_title_count"] == 1
+    assert summary["sources"][0]["quality"] == "warning"
 
     cli_result = runner.invoke(
         app,
@@ -159,6 +166,143 @@ def test_ai_schema_validation_rejects_unknown_ids_and_bad_bounds():
     }
     with pytest.raises(ValueError):
         validate_classification_payload(bad_score, themes)
+
+
+def test_schema_repair_normalizes_aliases_and_clamps_scores():
+    themes = load_news_themes_config("config/news_themes.yaml")
+    payload = {
+        "summary": "Diagnostic summary.",
+        "macro_themes": [
+            {
+                "theme_id": "inflation_pressure",
+                "direction": "uncertain",
+                "severity": 1.02,
+                "confidence": 3,
+                "time_horizon": "short-term",
+                "rationale": "Inflation pressure mentioned.",
+            }
+        ],
+        "sector_impacts": [
+            {
+                "sector_id": "energy",
+                "impact_direction": "positive_for_sector",
+                "impact_score": 1.03,
+                "confidence": 2,
+                "rationale": "Energy mentioned.",
+            }
+        ],
+        "entities": [
+            {
+                "name": "Midwest",
+                "entity_type": "geography",
+                "relevance": 9,
+            }
+        ],
+        "overall_severity": 5,
+        "overall_confidence": 3,
+        "time_horizon": "unknown",
+    }
+
+    repaired, notes = repair_classification_payload(payload)
+    parsed = validate_classification_payload(repaired, themes)
+
+    assert parsed.macro_themes[0].direction == "unclear"
+    assert parsed.sector_impacts[0].impact_direction == "tailwind"
+    assert parsed.entities[0].entity_type == "region"
+    assert parsed.overall_severity == 1.0
+    assert notes
+
+
+def test_invalid_structure_still_fails_after_repair():
+    themes = load_news_themes_config("config/news_themes.yaml")
+    payload = {
+        "summary": "Diagnostic summary.",
+        "macro_themes": [{"theme_id": "not_a_theme", "direction": "uncertain"}],
+        "sector_impacts": [],
+        "entities": [],
+        "overall_severity": 0.1,
+        "overall_confidence": 0.1,
+        "time_horizon": "unclear",
+    }
+
+    repaired, _ = repair_classification_payload(payload)
+
+    with pytest.raises(ValueError):
+        validate_classification_payload(repaired, themes)
+
+
+def test_retry_prompt_and_retry_flow_records_metadata():
+    item = load_news_items_from_config("config/news_sources.yaml")[0]
+    themes = load_news_themes_config("config/news_themes.yaml")
+
+    class RetryClassifier:
+        provider_name = "retry"
+        model_name = "retry-model"
+
+        def __init__(self):
+            self.calls = 0
+
+        def classify(self, item, themes):
+            self.calls += 1
+            return {"not": "valid"}
+
+        def classify_with_feedback(self, item, themes, *, validation_error, previous_response):
+            self.calls += 1
+            return {
+                "summary": "Corrected diagnostic summary.",
+                "macro_themes": [
+                    {
+                        "theme_id": "inflation_pressure",
+                        "direction": "positive",
+                        "severity": 0.4,
+                        "confidence": 0.7,
+                        "time_horizon": "short_term",
+                        "rationale": "Corrected.",
+                    }
+                ],
+                "sector_impacts": [],
+                "entities": [],
+                "overall_severity": 0.4,
+                "overall_confidence": 0.7,
+                "time_horizon": "short_term",
+            }
+
+    classifier = RetryClassifier()
+    prompt = retry_user_prompt(item, validation_error="bad enum", previous_response={"x": "y"})
+    record = classify_news_item(item, classifier=classifier, themes=themes, max_retries=1)
+
+    assert "bad enum" in prompt
+    assert record.classification_status == "success"
+    assert classifier.calls == 2
+    assert record.raw_ai_response["retry_count"] == 1
+    assert record.raw_ai_response["validation_errors"]
+
+
+def test_retry_stops_after_max_attempts():
+    item = load_news_items_from_config("config/news_sources.yaml")[0]
+    themes = load_news_themes_config("config/news_themes.yaml")
+
+    class AlwaysBadClassifier:
+        provider_name = "bad"
+        model_name = "bad-model"
+
+        def __init__(self):
+            self.calls = 0
+
+        def classify(self, item, themes):
+            self.calls += 1
+            return {"not": "valid"}
+
+        def classify_with_feedback(self, item, themes, *, validation_error, previous_response):
+            self.calls += 1
+            return {"still": "bad"}
+
+    classifier = AlwaysBadClassifier()
+    record = classify_news_item(item, classifier=classifier, themes=themes, max_retries=1)
+
+    assert record.classification_status == "error"
+    assert classifier.calls == 2
+    assert record.raw_ai_response["retry_count"] == 1
 
 
 def test_mock_classification_flow_stores_outputs(tmp_path: Path):
