@@ -1,0 +1,21 @@
+news_scoring:
+  aggregation_frequency:
+    - daily
+    - weekly
+  freshness_decay:
+    enabled: true
+    half_life_days: 7
+    max_age_days: 21
+  source_weights:
+    default: 1.0
+    sources: {}
+  confidence_weighting: true
+  severity_weighting: true
+  max_single_item_contribution: 0.35
+  max_single_source_daily_contribution: 0.75
+  min_confidence: 0.10
+  min_severity: 0.05
+  neutral_score_threshold: 0.03
+  output_start_date: null
+  output_end_date: null
+  output_dir: outputs

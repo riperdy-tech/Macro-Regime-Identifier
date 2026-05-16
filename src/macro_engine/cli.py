@@ -21,6 +21,10 @@ from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
 from macro_engine.news.report import write_news_report as write_news_report_service
+from macro_engine.news.combined import build_stored_combined_sector_diagnostics
+from macro_engine.news.combined_report import write_combined_sector_report
+from macro_engine.news.score_report import write_news_score_report as write_news_score_report_service
+from macro_engine.news.scoring import build_stored_news_scores
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
@@ -856,6 +860,246 @@ def write_news_report(
     """v0.3-M1: write news classification JSON and Markdown reports."""
     json_path, markdown_path = write_news_report_service(ai_config_path=config, db_path=db_path)
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("build-news-scores")
+def build_news_scores_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_scoring.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M2: aggregate stored news classifications into theme and sector scores."""
+    result = build_stored_news_scores(config_path=config, db_path=db_path)
+    console.print_json(
+        data={
+            "daily_theme_rows": int(len(result.daily_theme_scores)),
+            "daily_sector_rows": int(len(result.daily_sector_scores)),
+            "weekly_theme_rows": int(len(result.weekly_theme_scores)),
+            "weekly_sector_rows": int(len(result.weekly_sector_scores)),
+            "component_rows": int(len(result.components)),
+            "status": result.runs.iloc[-1]["status"] if not result.runs.empty else "unknown",
+        }
+    )
+
+
+@app.command("current-news-summary")
+def current_news_summary(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Print latest aggregated news score summary as JSON."""
+    store = DuckDBStore(db_path)
+    themes = store.read_table("news_daily_theme_scores")
+    sectors = store.read_table("news_daily_sector_scores")
+    if themes.empty and sectors.empty:
+        console.print_json(data={"valid": False, "reason": "no_news_scores"})
+        raise typer.Exit(code=1)
+    latest_date = _latest_news_score_date(themes, sectors)
+    latest_themes = _rows_for_date(themes, "score_date", latest_date)
+    latest_sectors = _rows_for_date(sectors, "score_date", latest_date)
+    console.print_json(
+        data={
+            "valid": True,
+            "date": str(latest_date.date()),
+            "top_positive_themes": _rank_news_rows(
+                _filter_score_sign(latest_themes, "adjusted_score", positive=True),
+                id_column="theme_id",
+                score_column="adjusted_score",
+                ascending=False,
+            ),
+            "top_sector_tailwinds": _rank_news_rows(
+                _filter_score_sign(latest_sectors, "adjusted_news_score", positive=True),
+                id_column="sector_id",
+                score_column="adjusted_news_score",
+                ascending=False,
+            ),
+            "top_sector_headwinds": _rank_news_rows(
+                _filter_score_sign(latest_sectors, "adjusted_news_score", positive=False),
+                id_column="sector_id",
+                score_column="adjusted_news_score",
+                ascending=True,
+            ),
+        }
+    )
+
+
+@app.command("inspect-news-score")
+def inspect_news_score(
+    date: Annotated[str | None, typer.Option("--date")] = None,
+    sector: Annotated[str | None, typer.Option("--sector")] = None,
+    theme: Annotated[str | None, typer.Option("--theme")] = None,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Inspect aggregated news scores and components by date, sector, or theme."""
+    store = DuckDBStore(db_path)
+    components = store.read_table("news_score_components")
+    if components.empty:
+        console.print("[yellow]No news score components found[/yellow]")
+        raise typer.Exit(code=1)
+    frame = components.copy()
+    frame["score_date"] = pd.to_datetime(frame["score_date"], errors="coerce")
+    if date:
+        frame = frame[frame["score_date"] == pd.Timestamp(date)]
+    if sector:
+        frame = frame[frame["sector_id"] == sector]
+    if theme:
+        frame = frame[frame["theme_id"] == theme]
+    if frame.empty:
+        console.print("[yellow]No matching news score rows found[/yellow]")
+        raise typer.Exit(code=1)
+    console.print(frame.sort_values(["score_date", "component_type", "news_id"]).to_string(index=False))
+
+
+@app.command("write-news-score-report")
+def write_news_score_report(
+    config: Annotated[str, typer.Option("--config")] = "config/news_scoring.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M2: write aggregated news score JSON and Markdown reports."""
+    json_path, markdown_path = write_news_score_report_service(config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("build-combined-sector-diagnostics")
+def build_combined_sector_diagnostics_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_news_integration.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M3: build experimental combined macro-sector plus news diagnostics."""
+    result = build_stored_combined_sector_diagnostics(config_path=config, db_path=db_path)
+    console.print_json(
+        data={
+            "combined_rows": int(len(result.diagnostics)),
+            "component_rows": int(len(result.components)),
+        }
+    )
+
+
+@app.command("current-combined-sector-ranking")
+def current_combined_sector_ranking(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Print latest experimental combined sector diagnostic ranking as JSON."""
+    store = DuckDBStore(db_path)
+    diagnostics = store.read_table("combined_sector_diagnostics")
+    if diagnostics.empty:
+        console.print_json(data={"valid": False, "reason": "no_combined_sector_diagnostics"})
+        raise typer.Exit(code=1)
+    frame = diagnostics.copy()
+    frame["diagnostic_date"] = pd.to_datetime(frame["diagnostic_date"], errors="coerce")
+    latest_date = frame["diagnostic_date"].max()
+    latest = frame[frame["diagnostic_date"] == latest_date].sort_values("rank")
+    console.print_json(
+        data={
+            "valid": True,
+            "date": str(latest_date.date()),
+            "ranking": [
+                {
+                    "rank": int(row["rank"]),
+                    "sector_id": row["sector_id"],
+                    "combined_score": float(row["combined_score"]),
+                    "sector_macro_score": float(row["sector_macro_score"]),
+                    "sector_news_score": float(row["sector_news_score"]),
+                    "news_item_count": int(row["news_item_count"]),
+                }
+                for row in latest.to_dict(orient="records")
+            ],
+        }
+    )
+
+
+@app.command("inspect-combined-sector")
+def inspect_combined_sector(
+    sector_id: str,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Inspect latest combined sector diagnostic row and components for one sector."""
+    store = DuckDBStore(db_path)
+    diagnostics = store.read_table("combined_sector_diagnostics")
+    if diagnostics.empty:
+        console.print("[yellow]No combined sector diagnostics found[/yellow]")
+        raise typer.Exit(code=1)
+    frame = diagnostics[diagnostics["sector_id"] == sector_id].copy()
+    if frame.empty:
+        console.print("[yellow]No combined diagnostic found for sector[/yellow]")
+        raise typer.Exit(code=1)
+    frame["diagnostic_date"] = pd.to_datetime(frame["diagnostic_date"], errors="coerce")
+    latest = frame.sort_values("diagnostic_date").tail(1)
+    latest_date = latest.iloc[-1]["diagnostic_date"]
+    components = store.read_table("combined_sector_diagnostic_components")
+    components["diagnostic_date"] = pd.to_datetime(components["diagnostic_date"], errors="coerce")
+    latest_components = components[
+        (components["sector_id"] == sector_id)
+        & (components["diagnostic_date"] == latest_date)
+    ]
+    console.print(f"[bold]{sector_id} latest combined diagnostic[/bold]")
+    console.print(latest.to_string(index=False))
+    console.print(f"[bold]{sector_id} components[/bold]")
+    console.print(latest_components.to_string(index=False))
+
+
+@app.command("write-combined-sector-report")
+def write_combined_sector_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_news_integration.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M3: write experimental combined sector diagnostic reports."""
+    json_path, markdown_path = write_combined_sector_report(config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
+    dates = []
+    if not themes.empty:
+        dates.append(pd.to_datetime(themes["score_date"], errors="coerce").max())
+    if not sectors.empty:
+        dates.append(pd.to_datetime(sectors["score_date"], errors="coerce").max())
+    return max(date for date in dates if pd.notna(date))
+
+
+def _rows_for_date(frame: pd.DataFrame, column: str, date: pd.Timestamp) -> pd.DataFrame:
+    if frame.empty:
+        return frame.copy()
+    result = frame.copy()
+    result[column] = pd.to_datetime(result[column], errors="coerce")
+    return result[result[column] == date]
+
+
+def _rank_news_rows(
+    frame: pd.DataFrame,
+    *,
+    id_column: str,
+    score_column: str,
+    ascending: bool,
+) -> list[dict]:
+    if frame.empty:
+        return []
+    ranked = frame.sort_values([score_column, id_column], ascending=[ascending, True]).head(5)
+    return [
+        {
+            "id": row[id_column],
+            "score": float(row[score_column]),
+            "item_count": _news_row_item_count(row),
+            "avg_confidence": None
+            if pd.isna(row.get("avg_confidence"))
+            else float(row.get("avg_confidence")),
+        }
+        for row in ranked.to_dict(orient="records")
+    ]
+
+
+def _filter_score_sign(frame: pd.DataFrame, column: str, *, positive: bool) -> pd.DataFrame:
+    if frame.empty:
+        return frame
+    return frame[frame[column] > 0].copy() if positive else frame[frame[column] < 0].copy()
+
+
+def _news_row_item_count(row: dict) -> int:
+    if "item_count" in row and not pd.isna(row.get("item_count")):
+        return int(row["item_count"])
+    return int(
+        (row.get("positive_item_count") or 0)
+        + (row.get("negative_item_count") or 0)
+        + (row.get("neutral_item_count") or 0)
+    )
 
 
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:

@@ -1,0 +1,12 @@
+sector_news_integration:
+  enabled: true
+  macro_sector_weight: 0.75
+  news_sector_weight: 0.25
+  news_score_frequency: daily
+  news_score_decay_days: 14
+  news_confidence_penalty: 0.05
+  max_news_adjustment: 0.50
+  min_news_item_count: 1
+  require_recent_news: false
+  output_label: experimental_combined_sector_diagnostic
+  output_dir: outputs

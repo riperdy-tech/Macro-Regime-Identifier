@@ -468,6 +468,134 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_daily_theme_scores (
+                    score_date DATE,
+                    theme_id TEXT,
+                    raw_score DOUBLE,
+                    adjusted_score DOUBLE,
+                    item_count INTEGER,
+                    avg_confidence DOUBLE,
+                    avg_severity DOUBLE,
+                    top_news_ids_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_daily_sector_scores (
+                    score_date DATE,
+                    sector_id TEXT,
+                    raw_news_score DOUBLE,
+                    adjusted_news_score DOUBLE,
+                    positive_item_count INTEGER,
+                    negative_item_count INTEGER,
+                    neutral_item_count INTEGER,
+                    avg_confidence DOUBLE,
+                    avg_severity DOUBLE,
+                    top_news_ids_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_weekly_theme_scores (
+                    week_start_date DATE,
+                    theme_id TEXT,
+                    raw_score DOUBLE,
+                    adjusted_score DOUBLE,
+                    item_count INTEGER,
+                    avg_confidence DOUBLE,
+                    avg_severity DOUBLE,
+                    top_news_ids_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_weekly_sector_scores (
+                    week_start_date DATE,
+                    sector_id TEXT,
+                    raw_news_score DOUBLE,
+                    adjusted_news_score DOUBLE,
+                    positive_item_count INTEGER,
+                    negative_item_count INTEGER,
+                    neutral_item_count INTEGER,
+                    avg_confidence DOUBLE,
+                    avg_severity DOUBLE,
+                    top_news_ids_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_score_components (
+                    score_date DATE,
+                    frequency TEXT,
+                    news_id TEXT,
+                    theme_id TEXT,
+                    sector_id TEXT,
+                    component_type TEXT,
+                    direction TEXT,
+                    raw_component DOUBLE,
+                    adjusted_component DOUBLE,
+                    severity DOUBLE,
+                    confidence DOUBLE,
+                    source_weight DOUBLE,
+                    freshness_weight DOUBLE,
+                    rationale TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_scoring_runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    status TEXT,
+                    frequency TEXT,
+                    item_count INTEGER,
+                    scored_item_count INTEGER,
+                    error_message TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS combined_sector_diagnostics (
+                    diagnostic_date DATE,
+                    sector_id TEXT,
+                    sector_macro_score DOUBLE,
+                    sector_news_score DOUBLE,
+                    combined_score DOUBLE,
+                    macro_component_weight DOUBLE,
+                    news_component_weight DOUBLE,
+                    news_item_count INTEGER,
+                    news_confidence DOUBLE,
+                    diagnostic_confidence DOUBLE,
+                    rank INTEGER,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS combined_sector_diagnostic_components (
+                    diagnostic_date DATE,
+                    sector_id TEXT,
+                    component_name TEXT,
+                    component_value DOUBLE,
+                    component_weight DOUBLE,
+                    rationale TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -930,6 +1058,133 @@ class DuckDBStore:
                     """
                 )
 
+    def replace_news_score_outputs(
+        self,
+        daily_theme_scores: pd.DataFrame,
+        daily_sector_scores: pd.DataFrame,
+        weekly_theme_scores: pd.DataFrame,
+        weekly_sector_scores: pd.DataFrame,
+        components: pd.DataFrame,
+        runs: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM news_daily_theme_scores")
+            con.execute("DELETE FROM news_daily_sector_scores")
+            con.execute("DELETE FROM news_weekly_theme_scores")
+            con.execute("DELETE FROM news_weekly_sector_scores")
+            con.execute("DELETE FROM news_score_components")
+            con.execute("DELETE FROM news_scoring_runs")
+            if not daily_theme_scores.empty:
+                frame = daily_theme_scores.copy()
+                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+                con.register("news_daily_theme_frame", frame)
+                con.execute(
+                    """
+                    INSERT INTO news_daily_theme_scores
+                    SELECT score_date, theme_id, raw_score, adjusted_score,
+                           item_count, avg_confidence, avg_severity,
+                           top_news_ids_json, created_at
+                    FROM news_daily_theme_frame
+                    """
+                )
+            if not daily_sector_scores.empty:
+                frame = daily_sector_scores.copy()
+                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+                con.register("news_daily_sector_frame", frame)
+                con.execute(
+                    """
+                    INSERT INTO news_daily_sector_scores
+                    SELECT score_date, sector_id, raw_news_score,
+                           adjusted_news_score, positive_item_count,
+                           negative_item_count, neutral_item_count,
+                           avg_confidence, avg_severity, top_news_ids_json,
+                           created_at
+                    FROM news_daily_sector_frame
+                    """
+                )
+            if not weekly_theme_scores.empty:
+                frame = weekly_theme_scores.copy()
+                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+                con.register("news_weekly_theme_frame", frame)
+                con.execute(
+                    """
+                    INSERT INTO news_weekly_theme_scores
+                    SELECT week_start_date, theme_id, raw_score, adjusted_score,
+                           item_count, avg_confidence, avg_severity,
+                           top_news_ids_json, created_at
+                    FROM news_weekly_theme_frame
+                    """
+                )
+            if not weekly_sector_scores.empty:
+                frame = weekly_sector_scores.copy()
+                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+                con.register("news_weekly_sector_frame", frame)
+                con.execute(
+                    """
+                    INSERT INTO news_weekly_sector_scores
+                    SELECT week_start_date, sector_id, raw_news_score,
+                           adjusted_news_score, positive_item_count,
+                           negative_item_count, neutral_item_count,
+                           avg_confidence, avg_severity, top_news_ids_json,
+                           created_at
+                    FROM news_weekly_sector_frame
+                    """
+                )
+            if not components.empty:
+                con.register("news_score_component_frame", components)
+                con.execute(
+                    """
+                    INSERT INTO news_score_components
+                    SELECT score_date, frequency, news_id, theme_id, sector_id,
+                           component_type, direction, raw_component,
+                           adjusted_component, severity, confidence, source_weight,
+                           freshness_weight, rationale
+                    FROM news_score_component_frame
+                    """
+                )
+            if not runs.empty:
+                con.register("news_scoring_run_frame", runs)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_scoring_runs
+                    SELECT run_id, started_at, completed_at, status, frequency,
+                           item_count, scored_item_count, error_message
+                    FROM news_scoring_run_frame
+                    """
+                )
+
+    def replace_combined_sector_outputs(
+        self,
+        diagnostics: pd.DataFrame,
+        components: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM combined_sector_diagnostics")
+            con.execute("DELETE FROM combined_sector_diagnostic_components")
+            if not diagnostics.empty:
+                con.register("combined_sector_frame", diagnostics)
+                con.execute(
+                    """
+                    INSERT INTO combined_sector_diagnostics
+                    SELECT diagnostic_date, sector_id, sector_macro_score,
+                           sector_news_score, combined_score,
+                           macro_component_weight, news_component_weight,
+                           news_item_count, news_confidence,
+                           diagnostic_confidence, rank, created_at
+                    FROM combined_sector_frame
+                    """
+                )
+            if not components.empty:
+                con.register("combined_sector_component_frame", components)
+                con.execute(
+                    """
+                    INSERT INTO combined_sector_diagnostic_components
+                    SELECT diagnostic_date, sector_id, component_name,
+                           component_value, component_weight, rationale
+                    FROM combined_sector_component_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -1063,6 +1318,14 @@ class DuckDBStore:
                 "news_classifications",
                 "news_theme_scores",
                 "news_sector_impacts",
+                "news_daily_theme_scores",
+                "news_daily_sector_scores",
+                "news_weekly_theme_scores",
+                "news_weekly_sector_scores",
+                "news_score_components",
+                "news_scoring_runs",
+                "combined_sector_diagnostics",
+                "combined_sector_diagnostic_components",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",
