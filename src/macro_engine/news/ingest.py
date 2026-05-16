@@ -17,11 +17,12 @@ REQUIRED_NEWS_COLUMNS = {"title", "body", "source", "source_url", "published_at"
 
 def load_news_items_from_config(
     config_path: str | Path = "config/news_sources.yaml",
+    profile: str | None = None,
 ) -> list[NewsItem]:
     config = load_news_sources_config(config_path)
     items: list[NewsItem] = []
     for source in config.news_sources:
-        if not source.enabled:
+        if not _source_selected(source, profile):
             continue
         if source.provider == "local_csv":
             items.extend(load_local_csv_source(source))
@@ -32,6 +33,72 @@ def load_news_items_from_config(
         else:
             raise ValueError(f"unsupported news provider {source.provider}")
     return dedupe_news_items(items)
+
+
+def validate_news_input_config(
+    config_path: str | Path = "config/news_sources.yaml",
+    profile: str | None = None,
+) -> dict[str, Any]:
+    config = load_news_sources_config(config_path)
+    selected_sources = [source for source in config.news_sources if _source_selected(source, profile)]
+    if not selected_sources:
+        raise ValueError(f"no news sources selected for profile {profile or 'default'}")
+    source_summaries: list[dict[str, Any]] = []
+    all_items: list[NewsItem] = []
+    warnings: list[str] = []
+    for source in selected_sources:
+        source_items = _load_source_for_validation(source)
+        all_items.extend(source_items)
+        dates = [item.published_at for item in source_items if item.published_at is not None]
+        short_body_count = sum(1 for item in source_items if len(item.body.split()) < 25)
+        future_count = sum(
+            1
+            for item in source_items
+            if item.published_at is not None and item.published_at > datetime.now(UTC)
+        )
+        if short_body_count:
+            warnings.append(f"{source.source_id}: {short_body_count} items have very short body text")
+        if future_count:
+            warnings.append(f"{source.source_id}: {future_count} items have future published_at values")
+        source_summaries.append(
+            {
+                "source_id": source.source_id,
+                "provider": source.provider,
+                "path": source.path,
+                "item_count": len(source_items),
+                "date_start": None if not dates else min(dates).isoformat(),
+                "date_end": None if not dates else max(dates).isoformat(),
+                "short_body_count": short_body_count,
+                "future_published_at_count": future_count,
+            }
+        )
+    hashes = [item.content_hash for item in all_items]
+    duplicate_count = len(hashes) - len(set(hashes))
+    deduped = dedupe_news_items(all_items)
+    if duplicate_count:
+        warnings.append(f"{duplicate_count} duplicate items detected by content_hash")
+    dates = [item.published_at for item in all_items if item.published_at is not None]
+    by_source: dict[str, int] = {}
+    by_day: dict[str, int] = {}
+    for item in all_items:
+        by_source[item.source] = by_source.get(item.source, 0) + 1
+        if item.published_at is not None:
+            day = item.published_at.date().isoformat()
+            by_day[day] = by_day.get(day, 0) + 1
+    return {
+        "valid": True,
+        "profile": profile or "default",
+        "selected_source_count": len(selected_sources),
+        "raw_item_count": len(all_items),
+        "unique_item_count": len(deduped),
+        "duplicate_count": duplicate_count,
+        "date_start": None if not dates else min(dates).isoformat(),
+        "date_end": None if not dates else max(dates).isoformat(),
+        "item_count_by_source": dict(sorted(by_source.items())),
+        "item_count_by_day": dict(sorted(by_day.items())),
+        "sources": source_summaries,
+        "warnings": warnings,
+    }
 
 
 def load_local_csv_source(source: NewsSourceDefinition) -> list[NewsItem]:
@@ -154,3 +221,19 @@ def _json_safe(value: Any) -> Any:
     if hasattr(value, "isoformat"):
         return value.isoformat()
     return value
+
+
+def _source_selected(source: NewsSourceDefinition, profile: str | None) -> bool:
+    if profile is None:
+        return source.enabled
+    return source.source_id == profile or profile in source.profiles
+
+
+def _load_source_for_validation(source: NewsSourceDefinition) -> list[NewsItem]:
+    if source.provider == "local_csv":
+        return load_local_csv_source(source)
+    if source.provider == "local_json":
+        return load_local_json_source(source)
+    if source.provider == "manual_text":
+        return load_manual_text_source(source)
+    raise ValueError(f"unsupported news provider {source.provider}")

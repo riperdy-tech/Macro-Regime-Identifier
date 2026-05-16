@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 import pandas as pd
@@ -245,7 +246,12 @@ def _markdown_item_lines(items: list[dict[str, Any]], metric: str) -> str:
     if not items:
         return "- None"
     return "\n".join(
-        f"- {item['title']}: {metric} {item[metric]:.2f}" for item in items
+        "- {title}: {metric} {value}".format(
+            title=_safe_report_text(item["title"]),
+            metric=metric,
+            value=_format_optional_score(item[metric]),
+        )
+        for item in items
     )
 
 
@@ -269,6 +275,18 @@ def _ids_from_value(value: Any) -> list[str]:
             return []
         return parsed if isinstance(parsed, list) else []
     return []
+
+
+def _safe_report_text(value: Any) -> str:
+    text = "" if value is None or pd.isna(value) else str(value)
+    for term in sorted(FORBIDDEN_REPORT_TERMS, key=len, reverse=True):
+        text = re.sub(re.escape(term), "market-action term", text, flags=re.IGNORECASE)
+    return text
+
+
+def _format_optional_score(value: Any) -> str:
+    number = _to_float(value)
+    return "n/a" if number is None else f"{number:.2f}"
 
 
 def _item_count(row: dict[str, Any]) -> int:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 import pandas as pd
@@ -89,7 +90,11 @@ def news_report_markdown(payload: dict[str, Any]) -> str:
     if not payload.get("valid"):
         return f"# News Classification Report\n\nNo valid news classifications.\n\n{payload['disclaimer']}\n"
     latest = "\n".join(
-        f"- {item['published_at'] or 'unknown date'}: {item['title']} ({item['summary']})"
+        "- {date}: {title} ({summary})".format(
+            date=item["published_at"] or "unknown date",
+            title=_safe_report_text(item["title"]),
+            summary=_safe_report_text(item["summary"]),
+        )
         for item in payload["latest_classified_items"]
     )
     themes = "\n".join(
@@ -101,11 +106,18 @@ def news_report_markdown(payload: dict[str, Any]) -> str:
         for item in payload["top_sector_impacts"]
     ) or "- none"
     high = "\n".join(
-        f"- {item['title']}: severity {item['severity']:.2f}, confidence {item['confidence']:.2f}"
+        "- {title}: severity {severity}, confidence {confidence}".format(
+            title=_safe_report_text(item["title"]),
+            severity=_format_optional_score(item["severity"]),
+            confidence=_format_optional_score(item["confidence"]),
+        )
         for item in payload["high_severity_events"]
     ) or "- none"
     low = "\n".join(
-        f"- {item['title']}: confidence {item['confidence']:.2f}"
+        "- {title}: confidence {confidence}".format(
+            title=_safe_report_text(item["title"]),
+            confidence=_format_optional_score(item["confidence"]),
+        )
         for item in payload["low_confidence_events"]
     ) or "- none"
     return f"""# News Classification Report
@@ -222,6 +234,19 @@ def _assert_no_forbidden_language(markdown: str) -> None:
     violations = [term for term in FORBIDDEN_REPORT_TERMS if term in lower]
     if violations:
         raise ValueError(f"news report contains forbidden language: {violations}")
+
+
+def _format_optional_score(value: Any) -> str:
+    if value is None or pd.isna(value):
+        return "n/a"
+    return f"{float(value):.2f}"
+
+
+def _safe_report_text(value: Any) -> str:
+    text = "" if value is None or pd.isna(value) else str(value)
+    for term in sorted(FORBIDDEN_REPORT_TERMS, key=len, reverse=True):
+        text = re.sub(re.escape(term), "market-action term", text, flags=re.IGNORECASE)
+    return text
 
 
 def _json_safe(value: Any) -> Any:

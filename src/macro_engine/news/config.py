@@ -17,6 +17,7 @@ class NewsSourceDefinition(BaseModel):
     source_id: str
     provider: Literal["local_csv", "local_json", "manual_text"]
     enabled: bool = True
+    profiles: list[str] = Field(default_factory=list)
     path: str | None = None
     items: list[dict[str, Any]] = Field(default_factory=list)
 

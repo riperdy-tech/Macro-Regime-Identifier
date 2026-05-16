@@ -25,6 +25,7 @@ from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
 from macro_engine.news.score_report import write_news_score_report as write_news_score_report_service
 from macro_engine.news.scoring import build_stored_news_scores
+from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
@@ -760,16 +761,30 @@ def run_sector_calibration_experiments_cli(
 @app.command("ingest-news")
 def ingest_news(
     config: Annotated[str, typer.Option("--config")] = "config/news_sources.yaml",
+    profile: Annotated[str | None, typer.Option("--profile")] = None,
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
 ) -> None:
     """v0.3-M1: ingest local/manual news items into storage."""
-    frame = ingest_stored_news(config_path=config, db_path=db_path)
+    frame = ingest_stored_news(config_path=config, db_path=db_path, profile=profile)
     console.print_json(
         data={
             "news_rows": int(len(frame)),
             "sources": sorted(frame["source"].unique().tolist()) if not frame.empty else [],
         }
     )
+
+
+@app.command("validate-news-input")
+def validate_news_input(
+    config: Annotated[str, typer.Option("--config")] = "config/news_sources.yaml",
+    profile: Annotated[str | None, typer.Option("--profile")] = None,
+) -> None:
+    """v0.4-M1: validate local news input files before ingestion."""
+    try:
+        summary = validate_news_input_config(config_path=config, profile=profile)
+    except (FileNotFoundError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    console.print_json(data=summary)
 
 
 @app.command("classify-news")

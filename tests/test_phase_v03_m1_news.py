@@ -15,6 +15,7 @@ from macro_engine.news.config import (
     load_news_themes_config,
 )
 from macro_engine.news.ingest import content_hash_for_news, load_news_items_from_config
+from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.news.report import build_news_report, news_report_markdown
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 
@@ -54,6 +55,60 @@ def test_local_csv_ingestion_and_deduplication(tmp_path: Path):
         source="unit",
         published_at=items[0].published_at.isoformat(),
     )
+
+
+def test_news_input_validation_and_profile_loading(tmp_path: Path):
+    csv_path = tmp_path / "pilot.csv"
+    csv_path.write_text(
+        "title,body,source,source_url,published_at\n"
+        "Oil event,Oil prices rose sharply after a supply disruption affected crude markets and shipping routes,unit,https://example.invalid/1,2026-01-01T00:00:00Z\n"
+        "Oil event,Oil prices rose sharply after a supply disruption affected crude markets and shipping routes,unit,https://example.invalid/1,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "news_sources.yaml"
+    config_path.write_text(
+        f"""
+news_sources:
+  - source_id: default_sample
+    provider: manual_text
+    enabled: true
+    items:
+      - title: Default item
+        body: Default body with enough words for a small diagnostic event example.
+        source: default
+        source_url: https://example.invalid/default
+        published_at: "2026-01-02T00:00:00Z"
+  - source_id: pilot_local_csv
+    provider: local_csv
+    enabled: false
+    profiles: [pilot_local_csv]
+    path: {csv_path.as_posix()}
+""",
+        encoding="utf-8",
+    )
+
+    default_items = load_news_items_from_config(config_path)
+    pilot_items = load_news_items_from_config(config_path, profile="pilot_local_csv")
+    summary = validate_news_input_config(config_path, profile="pilot_local_csv")
+
+    assert len(default_items) == 1
+    assert len(pilot_items) == 1
+    assert summary["raw_item_count"] == 2
+    assert summary["unique_item_count"] == 1
+    assert summary["duplicate_count"] == 1
+
+    cli_result = runner.invoke(
+        app,
+        [
+            "validate-news-input",
+            "--config",
+            str(config_path),
+            "--profile",
+            "pilot_local_csv",
+        ],
+    )
+    assert cli_result.exit_code == 0, cli_result.output
+    assert json.loads(cli_result.output)["duplicate_count"] == 1
 
 
 def test_ai_schema_validation_rejects_unknown_ids_and_bad_bounds():
@@ -170,6 +225,15 @@ def test_news_report_generation_and_language_guardrails():
                 "severity": 0.7,
                 "confidence": 0.8,
                 "summary": "Diagnostic macro classification.",
+            },
+            {
+                "classification_id": "classification_2",
+                "news_id": "news_1",
+                "classified_at": "2026-01-02",
+                "classification_status": "error",
+                "severity": None,
+                "confidence": None,
+                "summary": "Classification failed.",
             }
         ]
     )

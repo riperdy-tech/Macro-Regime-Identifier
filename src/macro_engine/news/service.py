@@ -23,8 +23,9 @@ def ingest_stored_news(
     *,
     config_path: str | Path = "config/news_sources.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
+    profile: str | None = None,
 ) -> pd.DataFrame:
-    items = load_news_items_from_config(config_path)
+    items = load_news_items_from_config(config_path, profile=profile)
     store = DuckDBStore(db_path)
     store.initialize()
     frame = pd.DataFrame([item.model_dump() for item in items])
