@@ -70,6 +70,23 @@ The current v0.2 sector validation result is weak/mixed and should not be read
 as empirical proof that the sector mapper is predictive. v0.2-M1 kept production
 sector assumptions unchanged and treats the sector layer as experimental.
 
+## AI News/Event Classification
+
+The v0.3 news layer uses AI-assisted classification for unstructured text. AI
+outputs are probabilistic and interpretive. They may be wrong, incomplete,
+overconfident, stale, or sensitive to prompt wording and source quality.
+
+The news layer is diagnostic only. v0.3-M1 stores structured macro themes,
+sector impacts, entities, severity, and confidence, but it does not merge those
+signals into macro regime scoring or sector ranking.
+
+News classifications should be reviewed before relying on them. Source quality,
+publication timing, duplicated headlines, missing context, and ambiguous wording
+can materially affect classifications.
+
+The AI layer must not provide investment advice, market action guidance,
+execution guidance, portfolio instructions, or security instructions.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and

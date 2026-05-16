@@ -20,6 +20,8 @@ from macro_engine.experiments.runner import run_calibration_experiments
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
+from macro_engine.news.report import write_news_report as write_news_report_service
+from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
 from macro_engine.pipeline import classify_observations
@@ -749,6 +751,111 @@ def run_sector_calibration_experiments_cli(
             "markdown_path": str(result.markdown_path),
         }
     )
+
+
+@app.command("ingest-news")
+def ingest_news(
+    config: Annotated[str, typer.Option("--config")] = "config/news_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M1: ingest local/manual news items into storage."""
+    frame = ingest_stored_news(config_path=config, db_path=db_path)
+    console.print_json(
+        data={
+            "news_rows": int(len(frame)),
+            "sources": sorted(frame["source"].unique().tolist()) if not frame.empty else [],
+        }
+    )
+
+
+@app.command("classify-news")
+def classify_news(
+    config: Annotated[str, typer.Option("--config")] = "config/news_ai.yaml",
+    themes_config: Annotated[str, typer.Option("--themes-config")] = "config/news_themes.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    limit: Annotated[int | None, typer.Option("--limit")] = None,
+) -> None:
+    """v0.3-M1: classify stored news using mock or configured AI provider."""
+    result = classify_stored_news(
+        ai_config_path=config,
+        themes_config_path=themes_config,
+        db_path=db_path,
+        limit=limit,
+    )
+    classifications = result["classifications"]
+    console.print_json(
+        data={
+            "classification_rows": int(len(classifications)),
+            "successful_classifications": int(
+                (classifications["classification_status"] == "success").sum()
+            )
+            if not classifications.empty
+            else 0,
+            "theme_score_rows": int(len(result["theme_scores"])),
+            "sector_impact_rows": int(len(result["sector_impacts"])),
+        }
+    )
+
+
+@app.command("inspect-news-item")
+def inspect_news_item(
+    news_id: str,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Inspect one stored news item and any classification rows."""
+    store = DuckDBStore(db_path)
+    items = store.read_news_items(news_id)
+    if items.empty:
+        console.print("[yellow]No news item found[/yellow]")
+        raise typer.Exit(code=1)
+    classifications = store.read_table("news_classifications")
+    classifications = classifications[classifications["news_id"] == news_id]
+    console.print("[bold]News item[/bold]")
+    console.print(items.to_string(index=False))
+    console.print("[bold]Classifications[/bold]")
+    if classifications.empty:
+        console.print("[yellow]No classification rows found[/yellow]")
+    else:
+        console.print(classifications.to_string(index=False))
+
+
+@app.command("news-classification-summary")
+def news_classification_summary(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Show stored news classification summary as JSON."""
+    store = DuckDBStore(db_path)
+    classifications = store.read_table("news_classifications")
+    theme_scores = store.read_table("news_theme_scores")
+    sector_impacts = store.read_table("news_sector_impacts")
+    if classifications.empty:
+        console.print_json(data={"valid": False, "reason": "no_news_classifications"})
+        raise typer.Exit(code=1)
+    console.print_json(
+        data={
+            "valid": True,
+            "classification_count": int(len(classifications)),
+            "successful_classification_count": int(
+                (classifications["classification_status"] == "success").sum()
+            ),
+            "top_themes": theme_scores["theme_id"].value_counts().head(10).to_dict()
+            if not theme_scores.empty
+            else {},
+            "top_sectors": sector_impacts["sector_id"].value_counts().head(10).to_dict()
+            if not sector_impacts.empty
+            else {},
+        }
+    )
+
+
+@app.command("write-news-report")
+def write_news_report(
+    config: Annotated[str, typer.Option("--config")] = "config/news_ai.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.3-M1: write news classification JSON and Markdown reports."""
+    json_path, markdown_path = write_news_report_service(ai_config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:

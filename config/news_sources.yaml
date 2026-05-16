@@ -1,0 +1,15 @@
+news_sources:
+  - source_id: synthetic_sample_news
+    provider: local_csv
+    enabled: true
+    path: data/examples/sample_news_items.csv
+
+  - source_id: manual_text_example
+    provider: manual_text
+    enabled: false
+    items:
+      - title: Synthetic manual policy event
+        body: A central bank official said policy may stay restrictive until inflation cools.
+        source: synthetic_manual
+        source_url:
+        published_at: "2026-05-01T12:00:00Z"

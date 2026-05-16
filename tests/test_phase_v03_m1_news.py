@@ -1,0 +1,284 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
+import pytest
+from typer.testing import CliRunner
+
+from macro_engine.cli import app
+from macro_engine.news.classify import classify_news_item, validate_classification_payload
+from macro_engine.news.config import (
+    load_news_ai_config,
+    load_news_sources_config,
+    load_news_themes_config,
+)
+from macro_engine.news.ingest import content_hash_for_news, load_news_items_from_config
+from macro_engine.news.report import build_news_report, news_report_markdown
+from macro_engine.news.service import classify_stored_news, ingest_stored_news
+
+runner = CliRunner()
+
+
+def test_news_configs_load():
+    sources = load_news_sources_config("config/news_sources.yaml")
+    themes = load_news_themes_config("config/news_themes.yaml")
+    ai = load_news_ai_config("config/news_ai.yaml")
+
+    assert sources.news_sources[0].provider == "local_csv"
+    assert "inflation_pressure" in themes.active_theme_ids
+    assert "energy" in themes.sector_ids
+    assert ai.provider == "deepseek"
+    assert ai.model == "deepseek-v4-flash"
+    assert ai.mock_mode is True
+
+
+def test_local_csv_ingestion_and_deduplication(tmp_path: Path):
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "title,body,source,source_url,published_at\n"
+        "Oil event,Oil prices rose sharply,unit,https://example.invalid,2026-01-01T00:00:00Z\n"
+        "Oil event,Oil prices rose sharply,unit,https://example.invalid,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+    config_path = _news_source_config(tmp_path, csv_path)
+
+    items = load_news_items_from_config(config_path)
+
+    assert len(items) == 1
+    assert items[0].news_id.startswith("news_")
+    assert items[0].content_hash == content_hash_for_news(
+        title="Oil event",
+        body="Oil prices rose sharply",
+        source="unit",
+        published_at=items[0].published_at.isoformat(),
+    )
+
+
+def test_ai_schema_validation_rejects_unknown_ids_and_bad_bounds():
+    themes = load_news_themes_config("config/news_themes.yaml")
+    valid_payload = {
+        "summary": "Diagnostic summary.",
+        "macro_themes": [
+            {
+                "theme_id": "inflation_pressure",
+                "direction": "positive",
+                "severity": 0.5,
+                "confidence": 0.8,
+                "time_horizon": "short_term",
+                "rationale": "Inflation pressure mentioned.",
+            }
+        ],
+        "sector_impacts": [
+            {
+                "sector_id": "energy",
+                "impact_direction": "tailwind",
+                "impact_score": 0.4,
+                "confidence": 0.7,
+                "rationale": "Energy mentioned.",
+            }
+        ],
+        "entities": [],
+        "overall_severity": 0.5,
+        "overall_confidence": 0.8,
+        "time_horizon": "short_term",
+    }
+
+    assert validate_classification_payload(valid_payload, themes).overall_severity == 0.5
+
+    bad_theme = valid_payload | {
+        "macro_themes": [valid_payload["macro_themes"][0] | {"theme_id": "not_a_theme"}]
+    }
+    with pytest.raises(ValueError, match="unknown news theme"):
+        validate_classification_payload(bad_theme, themes)
+
+    bad_sector = valid_payload | {
+        "sector_impacts": [valid_payload["sector_impacts"][0] | {"sector_id": "not_a_sector"}]
+    }
+    with pytest.raises(ValueError, match="unknown sector"):
+        validate_classification_payload(bad_sector, themes)
+
+    bad_score = valid_payload | {
+        "sector_impacts": [valid_payload["sector_impacts"][0] | {"impact_score": 2.0}]
+    }
+    with pytest.raises(ValueError):
+        validate_classification_payload(bad_score, themes)
+
+
+def test_mock_classification_flow_stores_outputs(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "title,body,source,source_url,published_at\n"
+        "Oil event,Oil supply disruption lifted prices,unit,https://example.invalid,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+    source_config = _news_source_config(tmp_path, csv_path)
+
+    ingested = ingest_stored_news(config_path=source_config, db_path=db_path)
+    result = classify_stored_news(db_path=db_path)
+
+    assert len(ingested) == 1
+    assert len(result["classifications"]) == 1
+    assert len(result["theme_scores"]) == 1
+    assert result["sector_impacts"].iloc[0]["sector_id"] == "energy"
+
+
+def test_classification_error_record_for_invalid_ai_response():
+    item = load_news_items_from_config("config/news_sources.yaml")[0]
+    themes = load_news_themes_config("config/news_themes.yaml")
+
+    class BadClassifier:
+        provider_name = "bad"
+        model_name = "bad-model"
+
+        def classify(self, item, themes):
+            return {
+                "summary": "",
+                "macro_themes": [],
+                "sector_impacts": [],
+                "entities": [],
+                "overall_severity": 0.0,
+                "overall_confidence": 0.0,
+                "time_horizon": "unclear",
+            }
+
+    record = classify_news_item(item, classifier=BadClassifier(), themes=themes)
+
+    assert record.classification_status == "error"
+    assert record.error_message
+
+
+def test_news_report_generation_and_language_guardrails():
+    news_items = pd.DataFrame(
+        [
+            {
+                "news_id": "news_1",
+                "title": "Oil event",
+                "published_at": "2026-01-01",
+            }
+        ]
+    )
+    classifications = pd.DataFrame(
+        [
+            {
+                "classification_id": "classification_1",
+                "news_id": "news_1",
+                "classified_at": "2026-01-01",
+                "classification_status": "success",
+                "severity": 0.7,
+                "confidence": 0.8,
+                "summary": "Diagnostic macro classification.",
+            }
+        ]
+    )
+    theme_scores = pd.DataFrame(
+        [
+            {
+                "news_id": "news_1",
+                "theme_id": "commodity_pressure",
+                "severity": 0.7,
+                "confidence": 0.8,
+            }
+        ]
+    )
+    sector_impacts = pd.DataFrame(
+        [
+            {
+                "news_id": "news_1",
+                "sector_id": "energy",
+                "impact_score": 0.5,
+                "confidence": 0.8,
+            }
+        ]
+    )
+
+    payload = build_news_report(
+        news_items=news_items,
+        classifications=classifications,
+        theme_scores=theme_scores,
+        sector_impacts=sector_impacts,
+    )
+    markdown = news_report_markdown(payload)
+
+    forbidden = [
+        "buy",
+        "sell",
+        "overweight",
+        "underweight",
+        "avoid",
+        "recommendation",
+        "trade",
+        "position sizing",
+        "portfolio allocation",
+    ]
+    assert payload["valid"] is True
+    assert "not investment advice" in markdown
+    assert not any(term in markdown.lower() for term in forbidden)
+
+
+def test_news_cli_commands_work(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "title,body,source,source_url,published_at\n"
+        "Rate event,Fed officials discussed restrictive policy,unit,https://example.invalid,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+    source_config = _news_source_config(tmp_path, csv_path)
+    ai_config = _news_ai_config(tmp_path)
+
+    ingest = runner.invoke(
+        app,
+        ["ingest-news", "--config", str(source_config), "--db-path", str(db_path)],
+    )
+    assert ingest.exit_code == 0, ingest.output
+
+    classify = runner.invoke(
+        app,
+        ["classify-news", "--config", str(ai_config), "--db-path", str(db_path)],
+    )
+    assert classify.exit_code == 0, classify.output
+
+    summary = runner.invoke(app, ["news-classification-summary", "--db-path", str(db_path)])
+    assert summary.exit_code == 0, summary.output
+    assert json.loads(summary.output)["valid"] is True
+
+    report = runner.invoke(
+        app,
+        ["write-news-report", "--config", str(ai_config), "--db-path", str(db_path)],
+    )
+    assert report.exit_code == 0, report.output
+    assert (tmp_path / "outputs" / "news_classification_report.md").exists()
+
+
+def _news_source_config(tmp_path: Path, csv_path: Path) -> Path:
+    path = tmp_path / "news_sources.yaml"
+    path.write_text(
+        f"""
+news_sources:
+  - source_id: test_csv
+    provider: local_csv
+    enabled: true
+    path: {csv_path.as_posix()}
+""",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _news_ai_config(tmp_path: Path) -> Path:
+    path = tmp_path / "news_ai.yaml"
+    path.write_text(
+        f"""
+ai:
+  provider: deepseek
+  model: deepseek-v4-flash
+  enable_live_ai: false
+  mock_mode: true
+  output_dir: {(tmp_path / "outputs").as_posix()}
+""",
+        encoding="utf-8",
+    )
+    return path

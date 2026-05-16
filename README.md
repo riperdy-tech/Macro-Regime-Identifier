@@ -12,6 +12,11 @@ v0.2 adds an experimental sector macro mapper that translates stored macro
 regime probabilities and dimension scores into sector tailwind/headwind
 diagnostics. Sector scores are not investment recommendations.
 
+v0.3 adds an AI-assisted news/event ingestion foundation. It ingests local or
+manual text items, classifies them into structured macro themes and sector
+impacts, and stores auditable classification rows. v0.3-M1 does not merge news
+into macro regime scoring or sector ranking.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
@@ -43,6 +48,15 @@ stored macro outputs
 -> sector ranking report
 ```
 
+The optional v0.3 news layer is separate from macro and sector scoring:
+
+```text
+local news/event text
+-> AI or mock classification
+-> macro themes and sector impacts
+-> auditable news reports
+```
+
 The model preserves two separate regime views:
 
 - Raw monthly signal: unsmoothed monthly regime probabilities and raw dominant
@@ -72,6 +86,8 @@ Then set:
 
 ```text
 FRED_API_KEY=your_key_here
+DEEPSEEK_API_KEY=your_key_here
+DEEPSEEK_MODEL=deepseek-v4-flash
 ```
 
 Never commit `.env`.
@@ -171,6 +187,20 @@ Run sector calibration experiments without mutating production sector configs:
 python -m macro_engine.cli run-sector-calibration-experiments --experiment-config config/experiments/sector_calibration_v02_m1.yaml
 ```
 
+Run v0.3 local news/event ingestion and mock classification:
+
+```powershell
+python -m macro_engine.cli ingest-news --config config/news_sources.yaml
+python -m macro_engine.cli classify-news --config config/news_ai.yaml
+python -m macro_engine.cli news-classification-summary
+python -m macro_engine.cli write-news-report --config config/news_ai.yaml
+```
+
+`config/news_ai.yaml` defaults to `mock_mode: true` and `enable_live_ai: false`.
+Normal tests do not require a live AI key. To use DeepSeek manually, set
+`DEEPSEEK_API_KEY` in `.env`, set `mock_mode: false`, and set
+`enable_live_ai: true` in a local, intentionally managed config.
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`
@@ -259,6 +289,20 @@ config/sector_regime_priors.yaml
 config/sector_validation.yaml
 ```
 
+News-layer configs live in:
+
+```text
+config/news_sources.yaml
+config/news_themes.yaml
+config/news_ai.yaml
+```
+
+Synthetic news examples live in:
+
+```text
+data/examples/sample_news_items.csv
+```
+
 ## Pipeline Stages
 
 You can run stages independently when debugging:
@@ -287,6 +331,8 @@ outputs/current_sector_ranking.json
 outputs/current_sector_ranking.md
 outputs/sector_validation.json
 outputs/sector_validation.md
+outputs/news_classification_report.json
+outputs/news_classification_report.md
 ```
 
 Local storage:
@@ -344,6 +390,10 @@ constraints, or allocation sizing.
 The current v0.2 sector calibration result is weak/mixed. The sector mapper is
 release-ready only as an experimental diagnostic layer, not as an empirically
 validated ranking or decision system.
+
+The news classification report is also diagnostic only. AI classifications are
+interpretive and can be wrong, incomplete, or overly confident. They should be
+reviewed before being used in any research workflow.
 
 ## Experiments
 
@@ -408,6 +458,7 @@ Key limitations:
 - No trading, allocation, or portfolio logic.
 - Sector scores are macro diagnostics, not sector recommendations.
 - Sector ETF proxy validation is not a trading backtest.
+- AI news classification is diagnostic only and can be wrong.
 - Simple transparent formulas, not ML.
 - U.S.-focused source universe.
 - FRED availability and revision behavior can affect outputs.

@@ -407,6 +407,67 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_items (
+                    news_id TEXT PRIMARY KEY,
+                    source TEXT,
+                    source_url TEXT,
+                    title TEXT,
+                    body TEXT,
+                    published_at TIMESTAMP,
+                    ingested_at TIMESTAMP,
+                    provider TEXT,
+                    raw_metadata_json TEXT,
+                    content_hash TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_classifications (
+                    classification_id TEXT PRIMARY KEY,
+                    news_id TEXT,
+                    classified_at TIMESTAMP,
+                    ai_provider TEXT,
+                    ai_model TEXT,
+                    macro_themes_json TEXT,
+                    sector_impacts_json TEXT,
+                    entities_json TEXT,
+                    time_horizon TEXT,
+                    severity DOUBLE,
+                    confidence DOUBLE,
+                    summary TEXT,
+                    raw_ai_response_json TEXT,
+                    classification_status TEXT,
+                    error_message TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_theme_scores (
+                    news_id TEXT,
+                    theme_id TEXT,
+                    direction TEXT,
+                    severity DOUBLE,
+                    confidence DOUBLE,
+                    time_horizon TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_sector_impacts (
+                    news_id TEXT,
+                    sector_id TEXT,
+                    impact_direction TEXT,
+                    impact_score DOUBLE,
+                    confidence DOUBLE,
+                    rationale TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -795,6 +856,80 @@ class DuckDBStore:
                     """
                 )
 
+    def upsert_news_items(self, items: pd.DataFrame) -> None:
+        if items.empty:
+            return
+        frame = items.copy()
+        if "raw_metadata" in frame.columns:
+            frame["raw_metadata_json"] = frame["raw_metadata"].map(json.dumps)
+        elif "raw_metadata_json" not in frame.columns:
+            frame["raw_metadata_json"] = "{}"
+        with self._connect() as con:
+            con.register("news_item_frame", frame)
+            con.execute(
+                """
+                DELETE FROM news_items
+                USING news_item_frame
+                WHERE news_items.news_id = news_item_frame.news_id
+                   OR news_items.content_hash = news_item_frame.content_hash
+                """
+            )
+            con.execute(
+                """
+                INSERT INTO news_items
+                SELECT news_id, source, source_url, title, body, published_at,
+                       ingested_at, provider, raw_metadata_json, content_hash
+                FROM news_item_frame
+                """
+            )
+
+    def replace_news_classifications(
+        self,
+        classifications: pd.DataFrame,
+        theme_scores: pd.DataFrame,
+        sector_impacts: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            con.execute("DELETE FROM news_classifications")
+            con.execute("DELETE FROM news_theme_scores")
+            con.execute("DELETE FROM news_sector_impacts")
+            if not classifications.empty:
+                frame = classifications.copy()
+                frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
+                frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
+                frame["entities_json"] = frame["entities"].map(json.dumps)
+                frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
+                con.register("news_classification_frame", frame)
+                con.execute(
+                    """
+                    INSERT INTO news_classifications
+                    SELECT classification_id, news_id, classified_at, ai_provider,
+                           ai_model, macro_themes_json, sector_impacts_json,
+                           entities_json, time_horizon, severity, confidence, summary,
+                           raw_ai_response_json, classification_status, error_message
+                    FROM news_classification_frame
+                    """
+                )
+            if not theme_scores.empty:
+                con.register("news_theme_score_frame", theme_scores)
+                con.execute(
+                    """
+                    INSERT INTO news_theme_scores
+                    SELECT news_id, theme_id, direction, severity, confidence, time_horizon
+                    FROM news_theme_score_frame
+                    """
+                )
+            if not sector_impacts.empty:
+                con.register("news_sector_impact_frame", sector_impacts)
+                con.execute(
+                    """
+                    INSERT INTO news_sector_impacts
+                    SELECT news_id, sector_id, impact_direction, impact_score,
+                           confidence, rationale
+                    FROM news_sector_impact_frame
+                    """
+                )
+
     def read_table(self, table_name: str) -> pd.DataFrame:
         with self._connect() as con:
             return con.execute(f"SELECT * FROM {table_name}").fetchdf()
@@ -886,6 +1021,15 @@ class DuckDBStore:
                 ).fetchdf()
             return con.execute("SELECT * FROM sector_proxy_prices ORDER BY ticker, date").fetchdf()
 
+    def read_news_items(self, news_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if news_id:
+                return con.execute(
+                    "SELECT * FROM news_items WHERE news_id = ? ORDER BY published_at",
+                    [news_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM news_items ORDER BY published_at").fetchdf()
+
     def export_parquet(self, output_dir: str | Path = "data/raw/fred") -> None:
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -915,6 +1059,10 @@ class DuckDBStore:
                 "sector_proxy_prices",
                 "sector_validation_returns",
                 "sector_validation_summary",
+                "news_items",
+                "news_classifications",
+                "news_theme_scores",
+                "news_sector_impacts",
             ]:
                 con.execute(
                     f"COPY {table} TO ? (FORMAT PARQUET)",
