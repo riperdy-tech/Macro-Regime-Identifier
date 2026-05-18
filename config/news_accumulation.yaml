@@ -1,0 +1,18 @@
+news_accumulation:
+  enabled: true
+  source_profile: synthetic_sample
+  min_items_per_run: 1
+  target_items_per_day: 25
+  max_items_per_day: 300
+  min_source_count: 1
+  min_source_groups: 1
+  dedupe_across_runs: true
+  retain_raw_items: true
+  retain_classifications: true
+  output_history_report: true
+  output_dir: outputs
+  quality_status_thresholds:
+    min_success_rate: 0.90
+    max_retry_rate: 0.20
+    max_repair_rate: 0.20
+    max_failure_rate: 0.10

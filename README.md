@@ -24,6 +24,11 @@ classification success/retry/repair rates, and whether the bounded news overlay
 changes sector diagnostics too aggressively. It does not tune news scoring
 formulas.
 
+v0.5 adds daily operating workflow and accumulation tracking. It can run the
+macro, sector, news, combined, and monitoring steps from one command, archive
+daily reports, and summarize whether enough real-news history exists for later
+validation work.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
@@ -252,6 +257,30 @@ python -m macro_engine.cli news-monitoring-summary
 python -m macro_engine.cli write-news-monitoring-report --config config/news_monitoring.yaml
 ```
 
+Run the v0.5 daily operating workflow:
+
+```powershell
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml
+```
+
+Useful options:
+
+```powershell
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --run-date 2026-05-18 --mock-ai --archive
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --source-profile pilot_balanced_local_csv --live-ai
+```
+
+The default config remains mock-safe for news classification. Live AI must be
+enabled intentionally through local configuration and command flags.
+
+Track accumulated news history:
+
+```powershell
+python -m macro_engine.cli run-news-accumulation --config config/news_accumulation.yaml
+python -m macro_engine.cli news-accumulation-summary
+python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml
+```
+
 For a balanced real-news pilot, place a local file at:
 
 ```text
@@ -365,6 +394,8 @@ config/news_ai.yaml
 config/news_scoring.yaml
 config/sector_news_integration.yaml
 config/news_monitoring.yaml
+config/daily_pipeline.yaml
+config/news_accumulation.yaml
 ```
 
 Synthetic news examples live in:
@@ -409,6 +440,11 @@ outputs/combined_sector_diagnostic.json
 outputs/combined_sector_diagnostic.md
 outputs/news_monitoring_report.json
 outputs/news_monitoring_report.md
+outputs/daily_diagnostic_summary.json
+outputs/daily_diagnostic_summary.md
+outputs/news_accumulation_report.json
+outputs/news_accumulation_report.md
+outputs/archive/YYYY-MM-DD/<run_id>/
 ```
 
 Local storage:

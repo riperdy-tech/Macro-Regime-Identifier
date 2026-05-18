@@ -9,7 +9,12 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from macro_engine.accumulation import (
+    run_news_accumulation,
+    write_news_accumulation_report,
+)
 from macro_engine.config.loader import load_all_configs
+from macro_engine.daily import run_daily_diagnostic
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.evaluation.service import (
@@ -1151,6 +1156,85 @@ def write_news_monitoring_report_cli(
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
+@app.command("run-daily-diagnostic")
+def run_daily_diagnostic_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/daily_pipeline.yaml",
+    run_date: Annotated[str | None, typer.Option("--run-date")] = None,
+    source_profile: Annotated[str | None, typer.Option("--source-profile")] = None,
+    live_ai: Annotated[bool, typer.Option("--live-ai")] = False,
+    mock_ai: Annotated[bool, typer.Option("--mock-ai")] = False,
+    archive: Annotated[bool | None, typer.Option("--archive/--no-archive")] = None,
+    continue_on_warning: Annotated[bool, typer.Option("--continue-on-warning")] = False,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.5-M1: run the full daily diagnostic workflow."""
+    result = run_daily_diagnostic(
+        config_path=config,
+        db_path=db_path,
+        run_date=run_date,
+        source_profile=source_profile,
+        live_ai=live_ai,
+        mock_ai=mock_ai,
+        archive=archive,
+        continue_on_warning=continue_on_warning,
+    )
+    console.print_json(
+        data={
+            "run_id": result.run_id,
+            "run_date": result.run_date.isoformat(),
+            "status": result.status,
+            "archive_path": result.archive_path,
+            "summary_json_path": str(result.summary_json_path),
+            "summary_markdown_path": str(result.summary_markdown_path),
+            "warning_count": len(result.warnings),
+            "error_count": len(result.errors),
+        }
+    )
+
+
+@app.command("run-news-accumulation")
+def run_news_accumulation_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_accumulation.yaml",
+    run_date: Annotated[str | None, typer.Option("--run-date")] = None,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.5-M2: summarize accumulated news classifications and diagnostics."""
+    result = run_news_accumulation(config_path=config, db_path=db_path, run_date=run_date)
+    console.print_json(
+        data={
+            "run_rows": int(len(result.runs)),
+            "news_history_rows": int(len(result.news_history)),
+            "combined_history_rows": int(len(result.combined_history)),
+            "readiness_label": result.readiness_label,
+        }
+    )
+
+
+@app.command("news-accumulation-summary")
+def news_accumulation_summary(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Print latest news accumulation readiness summary as JSON."""
+    store = DuckDBStore(db_path)
+    store.initialize()
+    runs = store.read_table("news_accumulation_runs")
+    if runs.empty:
+        console.print_json(data={"valid": False, "reason": "no_news_accumulation_runs"})
+        raise typer.Exit(code=1)
+    latest = _latest_row_by_date(runs, "created_at") or {}
+    console.print_json(data={"valid": True, "latest_run": latest})
+
+
+@app.command("write-news-accumulation-report")
+def write_news_accumulation_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_accumulation.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.5-M2: write accumulated news history report."""
+    json_path, markdown_path = write_news_accumulation_report(config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:
@@ -1213,6 +1297,15 @@ def _latest_monitoring_row(frame: pd.DataFrame) -> dict | None:
     result = frame.copy()
     result["run_at"] = pd.to_datetime(result["run_at"], errors="coerce")
     row = result.sort_values("run_at").tail(1).iloc[-1].to_dict()
+    return _json_ready(row)
+
+
+def _latest_row_by_date(frame: pd.DataFrame, date_column: str) -> dict | None:
+    if frame.empty:
+        return None
+    result = frame.copy()
+    result[date_column] = pd.to_datetime(result[date_column], errors="coerce")
+    row = result.sort_values(date_column).tail(1).iloc[-1].to_dict()
     return _json_ready(row)
 
 

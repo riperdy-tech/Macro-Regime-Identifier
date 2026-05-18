@@ -127,6 +127,22 @@ provider, or source-quality deterioration.
 Balanced, time-consistent real-news history is still needed before tuning news
 score weights or judging whether the overlay adds durable diagnostic value.
 
+## Daily Operations And Accumulation
+
+The v0.5 daily pipeline is an operating workflow, not a model upgrade. It runs
+existing macro, sector, news, combined, and monitoring steps, archives generated
+diagnostic artifacts, and records run status.
+
+The accumulation tracker helps determine whether enough classified news history
+exists for later validation. Readiness labels such as `insufficient_history`,
+`early_history`, `monitor_ready`, and `validation_candidate` are operational
+coverage labels. They are not claims that the news overlay is predictive.
+
+Daily archives and accumulation summaries can still reflect source imbalance,
+thin news, mock-mode examples, old RSS items, duplicated headlines, or provider
+classification drift. These operational records should be reviewed before using
+them to make calibration decisions.
+
 ## Combined Macro-Sector-News Diagnostic
 
 The v0.3 combined diagnostic is an experimental overlay. It combines the v0.2
@@ -191,7 +207,7 @@ claims.
 
 ## Current Release Intent
 
-v0.4 is intended as a release-candidate real-news monitoring overlay for local
+v0.5 is intended as an operating and accumulation layer for local
 research and inspection. The macro v0.1 core remains the production macro
 engine, the v0.2 sector layer remains an experimental deterministic sector
 mapper, and the v0.3/v0.4 news layer remains an experimental interpretive

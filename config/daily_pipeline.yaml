@@ -1,0 +1,44 @@
+daily_pipeline:
+  macro:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    mode: live
+
+  sector:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    sector_config_path: config/sectors.yaml
+    exposure_config_path: config/sector_exposures.yaml
+    prior_config_path: config/sector_regime_priors.yaml
+
+  news:
+    enabled: true
+    source_profile: synthetic_sample
+    news_sources_config: config/news_sources.yaml
+    news_ai_config: config/news_ai.yaml
+    news_themes_config: config/news_themes.yaml
+    news_scoring_config: config/news_scoring.yaml
+    allow_live_ai: false
+    mock_mode_default: true
+
+  combined:
+    enabled: true
+    config_path: config/sector_news_integration.yaml
+
+  monitoring:
+    enabled: true
+    config_path: config/news_monitoring.yaml
+    source_profile: synthetic_sample
+
+  outputs:
+    archive_enabled: true
+    archive_root: outputs/archive
+    include_json: true
+    include_markdown: true
+    include_run_summary: true
+
+  safety:
+    fail_on_guardrail_violation: true
+    fail_on_missing_api_key_if_live_ai_enabled: true
+    fail_on_macro_pipeline_failure: true
+    allow_success_with_warnings: true

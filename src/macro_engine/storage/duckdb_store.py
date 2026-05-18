@@ -658,6 +658,81 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS daily_diagnostic_runs (
+                    run_id TEXT PRIMARY KEY,
+                    started_at TIMESTAMP,
+                    completed_at TIMESTAMP,
+                    status TEXT,
+                    run_date DATE,
+                    macro_status TEXT,
+                    sector_status TEXT,
+                    news_ingestion_status TEXT,
+                    news_classification_status TEXT,
+                    news_scoring_status TEXT,
+                    combined_status TEXT,
+                    monitoring_status TEXT,
+                    guardrail_status TEXT,
+                    archive_path TEXT,
+                    warnings_json TEXT,
+                    errors_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_accumulation_runs (
+                    run_id TEXT PRIMARY KEY,
+                    run_date DATE,
+                    raw_item_count INTEGER,
+                    new_unique_items INTEGER,
+                    duplicate_items INTEGER,
+                    classified_items INTEGER,
+                    failed_items INTEGER,
+                    success_rate DOUBLE,
+                    source_count INTEGER,
+                    source_group_count INTEGER,
+                    date_min TIMESTAMP,
+                    date_max TIMESTAMP,
+                    quality_status TEXT,
+                    warning_json TEXT,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_score_history_summary (
+                    score_date DATE PRIMARY KEY,
+                    theme_count INTEGER,
+                    sector_count INTEGER,
+                    top_themes_json TEXT,
+                    top_sector_tailwinds_json TEXT,
+                    top_sector_headwinds_json TEXT,
+                    classification_count INTEGER,
+                    avg_confidence DOUBLE,
+                    avg_severity DOUBLE,
+                    created_at TIMESTAMP
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS combined_diagnostic_history_summary (
+                    diagnostic_date DATE PRIMARY KEY,
+                    top_combined_sectors_json TEXT,
+                    top_macro_only_sectors_json TEXT,
+                    top_news_only_sectors_json TEXT,
+                    max_rank_change INTEGER,
+                    avg_abs_rank_change DOUBLE,
+                    news_item_count INTEGER,
+                    thin_news_warning BOOLEAN,
+                    created_at TIMESTAMP
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -1290,6 +1365,67 @@ class DuckDBStore:
                            avg_abs_rank_change, news_item_count, thin_news_warning,
                            overlay_status
                     FROM news_overlay_monitoring_frame
+                    """
+                )
+
+    def upsert_daily_diagnostic_run(self, record: dict[str, Any]) -> None:
+        frame = pd.DataFrame([record])
+        with self._connect() as con:
+            con.register("daily_diagnostic_run_frame", frame)
+            con.execute(
+                """
+                INSERT OR REPLACE INTO daily_diagnostic_runs
+                SELECT run_id, started_at, completed_at, status, run_date,
+                       macro_status, sector_status, news_ingestion_status,
+                       news_classification_status, news_scoring_status,
+                       combined_status, monitoring_status, guardrail_status,
+                       archive_path, warnings_json, errors_json, created_at
+                FROM daily_diagnostic_run_frame
+                """
+            )
+
+    def upsert_news_accumulation_outputs(
+        self,
+        runs: pd.DataFrame,
+        news_history: pd.DataFrame,
+        combined_history: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            if not runs.empty:
+                con.register("news_accumulation_run_frame", runs)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_accumulation_runs
+                    SELECT run_id, run_date, raw_item_count, new_unique_items,
+                           duplicate_items, classified_items, failed_items,
+                           success_rate, source_count, source_group_count,
+                           date_min, date_max, quality_status, warning_json,
+                           created_at
+                    FROM news_accumulation_run_frame
+                    """
+                )
+            if not news_history.empty:
+                con.register("news_score_history_frame", news_history)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_score_history_summary
+                    SELECT score_date, theme_count, sector_count, top_themes_json,
+                           top_sector_tailwinds_json, top_sector_headwinds_json,
+                           classification_count, avg_confidence, avg_severity,
+                           created_at
+                    FROM news_score_history_frame
+                    """
+                )
+            if not combined_history.empty:
+                con.register("combined_diagnostic_history_frame", combined_history)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO combined_diagnostic_history_summary
+                    SELECT diagnostic_date, top_combined_sectors_json,
+                           top_macro_only_sectors_json, top_news_only_sectors_json,
+                           max_rank_change, avg_abs_rank_change, news_item_count,
+                           thin_news_warning, created_at
+                    FROM combined_diagnostic_history_frame
                     """
                 )
 
