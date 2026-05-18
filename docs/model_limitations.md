@@ -1,6 +1,6 @@
 # Model Limitations
 
-This project is an experimental v0.3 macro, sector, and news diagnostic. It is designed
+This project is an experimental v0.4 macro, sector, and news diagnostic. It is designed
 to be transparent and inspectable, not authoritative.
 
 ## Not Investment Advice
@@ -102,6 +102,31 @@ Known AI/news risks include:
 The AI layer must not provide investment advice, market action guidance,
 execution guidance, portfolio instructions, or security instructions.
 
+## Real-News Monitoring
+
+The v0.4 monitoring layer checks input quality, classification quality, and
+combined overlay stability. These checks help surface operational issues, but
+they are not empirical validation that news scores have predictive value.
+
+Known real-news pilot limitations include:
+
+- RSS and search-query source bias
+- uneven source coverage across macro and sector themes
+- old RSS results contaminating current pilot files
+- duplicated or near-duplicated stories
+- short article snippets with limited context
+- missing source URLs or incomplete metadata
+- source groups that are manually assigned or absent
+
+Classification repair and retry logic is intentionally conservative. It can
+normalize obvious enum aliases and clamp small numeric drift, but it does not
+invent missing required fields or hide severe schema failures. Repair and retry
+rates should be monitored over time because high rates can indicate prompt,
+provider, or source-quality deterioration.
+
+Balanced, time-consistent real-news history is still needed before tuning news
+score weights or judging whether the overlay adds durable diagnostic value.
+
 ## Combined Macro-Sector-News Diagnostic
 
 The v0.3 combined diagnostic is an experimental overlay. It combines the v0.2
@@ -166,7 +191,8 @@ claims.
 
 ## Current Release Intent
 
-v0.3 is intended as a release-candidate AI-assisted news diagnostic overlay for
-local research and inspection. The macro v0.1 core remains the production macro
+v0.4 is intended as a release-candidate real-news monitoring overlay for local
+research and inspection. The macro v0.1 core remains the production macro
 engine, the v0.2 sector layer remains an experimental deterministic sector
-mapper, and the v0.3 news layer remains an experimental interpretive overlay.
+mapper, and the v0.3/v0.4 news layer remains an experimental interpretive
+overlay.

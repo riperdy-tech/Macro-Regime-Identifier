@@ -10,10 +10,10 @@ from macro_engine.sectors.validation import load_sector_validation_config
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 VALIDATION_DISCLAIMER = (
-    "This is a diagnostic validation using sector ETF proxies. It is not a trading "
-    "backtest, investment advice, allocation guidance, portfolio sizing guidance, "
-    "or a security recommendation. Proxy tickers are validation references only. "
-    "No transaction costs, slippage, execution constraints, or allocation sizing are modeled."
+    "This is a diagnostic validation using sector ETF proxies. It is not investment "
+    "advice, market action guidance, execution guidance, or instructions for changing "
+    "holdings. Proxy tickers are validation references only. Cost, slippage, and "
+    "execution constraints are not modeled."
 )
 
 
@@ -86,7 +86,7 @@ def sector_validation_markdown(payload: dict[str, Any]) -> str:
     )
     return f"""# Sector ETF Proxy Validation
 
-Mode: diagnostic validation, not a trading backtest
+Mode: diagnostic validation, not an implementable performance test
 Price date range: {payload["price_start_date"]} to {payload["price_end_date"]}
 Score date range: {payload["score_start_date"]} to {payload["score_end_date"]}
 Valid observations: {payload["observation_count"]}

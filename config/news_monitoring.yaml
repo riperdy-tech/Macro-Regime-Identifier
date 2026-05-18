@@ -1,0 +1,60 @@
+news_monitoring:
+  output_dir: outputs
+  news_sources_config: config/news_sources.yaml
+  news_ai_config: config/news_ai.yaml
+  news_themes_config: config/news_themes.yaml
+  news_scoring_config: config/news_scoring.yaml
+  sector_news_integration_config: config/sector_news_integration.yaml
+  source_profile: synthetic_sample
+
+  source_groups:
+    - group_id: macro_general
+      target_item_count: 12
+    - group_id: inflation_rates
+      target_item_count: 10
+    - group_id: labor
+      target_item_count: 8
+    - group_id: energy_commodities
+      target_item_count: 8
+    - group_id: credit_financial_conditions
+      target_item_count: 8
+    - group_id: real_estate
+      target_item_count: 6
+    - group_id: consumer
+      target_item_count: 6
+    - group_id: manufacturing_industrials
+      target_item_count: 6
+    - group_id: geopolitical
+      target_item_count: 6
+    - group_id: technology_ai
+      target_item_count: 6
+    - group_id: healthcare
+      target_item_count: 6
+    - group_id: defensive_sectors
+      target_item_count: 6
+
+  freshness_rules:
+    max_age_days: 30
+    reject_future_dates: true
+    warn_old_items: true
+    warn_short_body: true
+
+  duplicate_handling:
+    content_hash_dedupe: true
+    title_dedupe: true
+    source_url_dedupe: true
+
+  quality_thresholds:
+    min_body_length: 25
+    max_failed_classification_rate: 0.10
+    max_retry_rate: 0.20
+    max_repair_rate: 0.20
+    min_source_count: 3
+    min_date_coverage_days: 3
+    max_source_share: 0.35
+    max_theme_share: 0.45
+    max_sector_share: 0.45
+    max_date_share: 0.50
+    max_old_item_share: 0.20
+    max_rank_change: 3
+    max_avg_abs_rank_change: 1.50

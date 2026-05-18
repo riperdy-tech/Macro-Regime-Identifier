@@ -145,6 +145,70 @@ class SectorNewsIntegrationConfig(BaseModel):
         return self
 
 
+class NewsMonitoringSourceGroup(BaseModel):
+    group_id: str
+    target_item_count: int = Field(default=0, ge=0)
+
+
+class NewsMonitoringFreshnessRules(BaseModel):
+    max_age_days: int = Field(default=30, ge=0)
+    reject_future_dates: bool = True
+    warn_old_items: bool = True
+    warn_short_body: bool = True
+
+
+class NewsMonitoringDuplicateHandling(BaseModel):
+    content_hash_dedupe: bool = True
+    title_dedupe: bool = True
+    source_url_dedupe: bool = True
+
+
+class NewsMonitoringQualityThresholds(BaseModel):
+    min_body_length: int = Field(default=25, ge=0)
+    max_failed_classification_rate: float = Field(default=0.10, ge=0.0, le=1.0)
+    max_retry_rate: float = Field(default=0.20, ge=0.0, le=1.0)
+    max_repair_rate: float = Field(default=0.20, ge=0.0, le=1.0)
+    min_source_count: int = Field(default=3, ge=0)
+    min_date_coverage_days: int = Field(default=3, ge=0)
+    max_source_share: float = Field(default=0.35, ge=0.0, le=1.0)
+    max_theme_share: float = Field(default=0.45, ge=0.0, le=1.0)
+    max_sector_share: float = Field(default=0.45, ge=0.0, le=1.0)
+    max_date_share: float = Field(default=0.50, ge=0.0, le=1.0)
+    max_old_item_share: float = Field(default=0.20, ge=0.0, le=1.0)
+    max_rank_change: int = Field(default=3, ge=0)
+    max_avg_abs_rank_change: float = Field(default=1.5, ge=0.0)
+
+
+class NewsMonitoringConfig(BaseModel):
+    output_dir: str = "outputs"
+    news_sources_config: str = "config/news_sources.yaml"
+    news_ai_config: str = "config/news_ai.yaml"
+    news_themes_config: str = "config/news_themes.yaml"
+    news_scoring_config: str = "config/news_scoring.yaml"
+    sector_news_integration_config: str = "config/sector_news_integration.yaml"
+    source_profile: str = "synthetic_sample"
+    source_groups: list[NewsMonitoringSourceGroup]
+    freshness_rules: NewsMonitoringFreshnessRules = Field(
+        default_factory=NewsMonitoringFreshnessRules
+    )
+    duplicate_handling: NewsMonitoringDuplicateHandling = Field(
+        default_factory=NewsMonitoringDuplicateHandling
+    )
+    quality_thresholds: NewsMonitoringQualityThresholds = Field(
+        default_factory=NewsMonitoringQualityThresholds
+    )
+
+    @model_validator(mode="after")
+    def validate_source_groups(self):
+        group_ids = [group.group_id for group in self.source_groups]
+        duplicates = {group_id for group_id in group_ids if group_ids.count(group_id) > 1}
+        if duplicates:
+            raise ValueError(f"duplicate news monitoring source groups: {sorted(duplicates)}")
+        if not group_ids:
+            raise ValueError("at least one news monitoring source group is required")
+        return self
+
+
 def load_news_sources_config(path: str | Path = "config/news_sources.yaml") -> NewsSourcesConfig:
     return NewsSourcesConfig.model_validate(_load_yaml(path))
 
@@ -173,6 +237,14 @@ def load_sector_news_integration_config(
     data = _load_yaml(path)
     payload = data.get("sector_news_integration", data)
     return SectorNewsIntegrationConfig.model_validate(payload)
+
+
+def load_news_monitoring_config(
+    path: str | Path = "config/news_monitoring.yaml",
+) -> NewsMonitoringConfig:
+    data = _load_yaml(path)
+    payload = data.get("news_monitoring", data)
+    return NewsMonitoringConfig.model_validate(payload)
 
 
 def _load_yaml(path: str | Path) -> dict[str, Any]:

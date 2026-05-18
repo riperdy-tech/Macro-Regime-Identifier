@@ -596,6 +596,68 @@ class DuckDBStore:
                 )
                 """
             )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_input_quality_runs (
+                    run_id TEXT PRIMARY KEY,
+                    run_at TIMESTAMP,
+                    profile TEXT,
+                    raw_item_count INTEGER,
+                    unique_item_count INTEGER,
+                    duplicate_count INTEGER,
+                    source_count INTEGER,
+                    date_min TIMESTAMP,
+                    date_max TIMESTAMP,
+                    short_body_count INTEGER,
+                    old_item_count INTEGER,
+                    future_item_count INTEGER,
+                    warning_count INTEGER,
+                    quality_status TEXT,
+                    details_json TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_classification_quality_runs (
+                    run_id TEXT PRIMARY KEY,
+                    run_at TIMESTAMP,
+                    total_items INTEGER,
+                    success_count INTEGER,
+                    failure_count INTEGER,
+                    success_rate DOUBLE,
+                    retry_count INTEGER,
+                    retry_rate DOUBLE,
+                    repaired_count INTEGER,
+                    repair_rate DOUBLE,
+                    provider TEXT,
+                    model TEXT,
+                    top_failure_modes_json TEXT,
+                    quality_status TEXT,
+                    details_json TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_overlay_monitoring (
+                    run_id TEXT PRIMARY KEY,
+                    run_at TIMESTAMP,
+                    diagnostic_date DATE,
+                    top_news_themes_json TEXT,
+                    top_sector_tailwinds_json TEXT,
+                    top_sector_headwinds_json TEXT,
+                    combined_top_sectors_json TEXT,
+                    macro_only_top_sectors_json TEXT,
+                    sectors_changed_by_news_json TEXT,
+                    max_rank_change INTEGER,
+                    avg_abs_rank_change DOUBLE,
+                    news_item_count INTEGER,
+                    thin_news_warning BOOLEAN,
+                    overlay_status TEXT
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -1182,6 +1244,52 @@ class DuckDBStore:
                     SELECT diagnostic_date, sector_id, component_name,
                            component_value, component_weight, rationale
                     FROM combined_sector_component_frame
+                    """
+                )
+
+    def upsert_news_monitoring_outputs(
+        self,
+        input_quality_runs: pd.DataFrame,
+        classification_quality_runs: pd.DataFrame,
+        overlay_monitoring: pd.DataFrame,
+    ) -> None:
+        with self._connect() as con:
+            if not input_quality_runs.empty:
+                con.register("news_input_quality_frame", input_quality_runs)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_input_quality_runs
+                    SELECT run_id, run_at, profile, raw_item_count, unique_item_count,
+                           duplicate_count, source_count, date_min, date_max,
+                           short_body_count, old_item_count, future_item_count,
+                           warning_count, quality_status, details_json
+                    FROM news_input_quality_frame
+                    """
+                )
+            if not classification_quality_runs.empty:
+                con.register("news_classification_quality_frame", classification_quality_runs)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_classification_quality_runs
+                    SELECT run_id, run_at, total_items, success_count, failure_count,
+                           success_rate, retry_count, retry_rate, repaired_count,
+                           repair_rate, provider, model, top_failure_modes_json,
+                           quality_status, details_json
+                    FROM news_classification_quality_frame
+                    """
+                )
+            if not overlay_monitoring.empty:
+                con.register("news_overlay_monitoring_frame", overlay_monitoring)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_overlay_monitoring
+                    SELECT run_id, run_at, diagnostic_date, top_news_themes_json,
+                           top_sector_tailwinds_json, top_sector_headwinds_json,
+                           combined_top_sectors_json, macro_only_top_sectors_json,
+                           sectors_changed_by_news_json, max_rank_change,
+                           avg_abs_rank_change, news_item_count, thin_news_warning,
+                           overlay_status
+                    FROM news_overlay_monitoring_frame
                     """
                 )
 

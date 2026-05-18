@@ -26,6 +26,12 @@ from macro_engine.news.combined_report import write_combined_sector_report
 from macro_engine.news.score_report import write_news_score_report as write_news_score_report_service
 from macro_engine.news.scoring import build_stored_news_scores
 from macro_engine.news.ingest import validate_news_input_config
+from macro_engine.news.monitoring import (
+    refresh_news_monitoring_from_stored_outputs,
+    run_news_monitoring,
+    validate_news_monitoring_config,
+    write_news_monitoring_report,
+)
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
@@ -1065,6 +1071,86 @@ def write_combined_sector_report_cli(
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
+@app.command("validate-news-monitoring")
+def validate_news_monitoring(
+    config: Annotated[str, typer.Option("--config")] = "config/news_monitoring.yaml",
+) -> None:
+    """v0.4-M4: validate real-news monitoring configuration."""
+    monitoring_config = validate_news_monitoring_config(config)
+    console.print_json(
+        data={
+            "valid": True,
+            "source_group_count": len(monitoring_config.source_groups),
+            "source_profile": monitoring_config.source_profile,
+            "output_dir": monitoring_config.output_dir,
+        }
+    )
+
+
+@app.command("run-news-monitoring")
+def run_news_monitoring_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_monitoring.yaml",
+    source_profile: Annotated[str | None, typer.Option("--source-profile")] = None,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.4-M4: run news input, classification, scoring, and overlay monitoring."""
+    result = run_news_monitoring(
+        config_path=config,
+        source_profile=source_profile,
+        db_path=db_path,
+    )
+    input_row = result.input_quality_runs.iloc[-1].to_dict() if not result.input_quality_runs.empty else {}
+    classification_row = (
+        result.classification_quality_runs.iloc[-1].to_dict()
+        if not result.classification_quality_runs.empty
+        else {}
+    )
+    overlay_row = result.overlay_monitoring.iloc[-1].to_dict() if not result.overlay_monitoring.empty else {}
+    console.print_json(
+        data={
+            "input_quality_status": input_row.get("quality_status"),
+            "classification_quality_status": classification_row.get("quality_status"),
+            "overlay_status": overlay_row.get("overlay_status"),
+            "success_rate": classification_row.get("success_rate"),
+            "max_rank_change": overlay_row.get("max_rank_change"),
+        }
+    )
+
+
+@app.command("news-monitoring-summary")
+def news_monitoring_summary(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Print latest news monitoring status as JSON."""
+    store = DuckDBStore(db_path)
+    store.initialize()
+    input_runs = store.read_table("news_input_quality_runs")
+    classification_runs = store.read_table("news_classification_quality_runs")
+    overlay_runs = store.read_table("news_overlay_monitoring")
+    if input_runs.empty and classification_runs.empty and overlay_runs.empty:
+        console.print_json(data={"valid": False, "reason": "no_news_monitoring_rows"})
+        raise typer.Exit(code=1)
+    console.print_json(
+        data={
+            "valid": True,
+            "input_quality": _latest_monitoring_row(input_runs),
+            "classification_quality": _latest_monitoring_row(classification_runs),
+            "overlay": _latest_monitoring_row(overlay_runs),
+        }
+    )
+
+
+@app.command("write-news-monitoring-report")
+def write_news_monitoring_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_monitoring.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.4-M4: write news monitoring JSON and Markdown reports from stored outputs."""
+    refresh_news_monitoring_from_stored_outputs(config_path=config, db_path=db_path)
+    json_path, markdown_path = write_news_monitoring_report(config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:
@@ -1119,6 +1205,15 @@ def _news_row_item_count(row: dict) -> int:
         + (row.get("negative_item_count") or 0)
         + (row.get("neutral_item_count") or 0)
     )
+
+
+def _latest_monitoring_row(frame: pd.DataFrame) -> dict | None:
+    if frame.empty:
+        return None
+    result = frame.copy()
+    result["run_at"] = pd.to_datetime(result["run_at"], errors="coerce")
+    row = result.sort_values("run_at").tail(1).iloc[-1].to_dict()
+    return _json_ready(row)
 
 
 def _latest_reported_regime(store: DuckDBStore, latest_raw) -> dict:
@@ -1178,6 +1273,10 @@ def _json_ready(value):
         return [_json_ready(item) for item in value]
     if value is None or pd.isna(value):
         return None
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    if hasattr(value, "item"):
+        return value.item()
     return value
 
 

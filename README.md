@@ -3,7 +3,7 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.3 release candidate. It is not investment
+This project is an experimental v0.4 release candidate. It is not investment
 advice, trading guidance, allocation guidance, or portfolio sizing guidance.
 Historical outputs use revised FRED data and are not ALFRED/vintage
 point-in-time backtests.
@@ -18,6 +18,11 @@ impacts, aggregates those classifications into deterministic news scores, and
 optionally combines bounded sector news scores with v0.2 sector macro scores.
 The combined output is separate from v0.1 macro scoring and v0.2 sector macro
 scoring.
+
+v0.4 adds real-news pilot monitoring. It tracks input quality, source balance,
+classification success/retry/repair rates, and whether the bounded news overlay
+changes sector diagnostics too aggressively. It does not tune news scoring
+formulas.
 
 ## What It Does
 
@@ -64,6 +69,16 @@ Structured macro data remains scored by deterministic Python/config logic.
 Sector macro mapping remains deterministic. AI is used only to interpret
 unstructured text into structured, auditable signals; aggregation and combined
 diagnostics remain transparent and component-based.
+
+The v0.4 monitoring layer wraps the news workflow with operating-quality checks:
+
+```text
+local real-news file or sample
+-> input quality and balance checks
+-> AI/mock classification quality checks
+-> news score and combined overlay checks
+-> monitoring report
+```
 
 The model preserves two separate regime views:
 
@@ -228,6 +243,31 @@ python -m macro_engine.cli inspect-combined-sector energy
 python -m macro_engine.cli write-combined-sector-report --config config/sector_news_integration.yaml
 ```
 
+Validate and run v0.4 real-news monitoring:
+
+```powershell
+python -m macro_engine.cli validate-news-monitoring --config config/news_monitoring.yaml
+python -m macro_engine.cli run-news-monitoring --config config/news_monitoring.yaml
+python -m macro_engine.cli news-monitoring-summary
+python -m macro_engine.cli write-news-monitoring-report --config config/news_monitoring.yaml
+```
+
+For a balanced real-news pilot, place a local file at:
+
+```text
+data/news_pilot/news_items_balanced.csv
+```
+
+Expected schema:
+
+```csv
+title,body,source,source_url,published_at
+```
+
+Optional columns include `source_group`, `query_group`, `region`,
+`sectors_hint`, and `raw_metadata_json`. Local pilot data stays ignored by git
+unless a tiny public example is intentionally added.
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`
@@ -324,6 +364,7 @@ config/news_themes.yaml
 config/news_ai.yaml
 config/news_scoring.yaml
 config/sector_news_integration.yaml
+config/news_monitoring.yaml
 ```
 
 Synthetic news examples live in:
@@ -366,6 +407,8 @@ outputs/news_score_report.json
 outputs/news_score_report.md
 outputs/combined_sector_diagnostic.json
 outputs/combined_sector_diagnostic.md
+outputs/news_monitoring_report.json
+outputs/news_monitoring_report.md
 ```
 
 Local storage:

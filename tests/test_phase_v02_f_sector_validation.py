@@ -200,9 +200,18 @@ def test_sector_validation_report_generation_is_diagnostic():
     markdown = sector_validation_markdown(payload)
 
     assert payload["valid"] is True
-    assert "not a trading backtest" in markdown
+    assert "not an implementable performance test" in markdown
     assert "Proxy tickers are validation references only" in markdown
-    forbidden = ["Buy ", "Sell ", "Overweight", "Underweight", "Avoid "]
+    forbidden = [
+        "Buy ",
+        "Sell ",
+        "Overweight",
+        "Underweight",
+        "Avoid ",
+        "recommendation",
+        "trade",
+        "portfolio allocation",
+    ]
     assert not any(term in markdown for term in forbidden)
 
 
