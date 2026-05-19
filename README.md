@@ -29,6 +29,10 @@ macro, sector, news, combined, and monitoring steps from one command, archive
 daily reports, and summarize whether enough real-news history exists for later
 validation work.
 
+v0.6 adds source coverage and scheduled-run support. It helps track whether
+real-news collection is balanced across source groups and provides scripts and a
+runbook for repeatable daily operation.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
@@ -294,6 +298,28 @@ validation_candidate 60+ run dates with stable source coverage
 Mock daily runs are useful for release checks and plumbing, but they do not
 validate signal quality. Real validation requires repeated balanced real-news
 runs, stable source coverage, and enough accumulated history for later review.
+
+Validate source coverage and daily operating prerequisites:
+
+```powershell
+python -m macro_engine.cli validate-news-sources --config config/news_source_watchlist.yaml
+python -m macro_engine.cli news-source-coverage --config config/news_source_watchlist.yaml
+python -m macro_engine.cli write-news-source-coverage-report --config config/news_source_watchlist.yaml
+python -m macro_engine.cli daily-health-check --config config/daily_pipeline.yaml
+```
+
+Scheduled/manual script entrypoints:
+
+```powershell
+.\scripts\run_daily_diagnostic.ps1
+```
+
+```bash
+./scripts/run_daily_diagnostic.sh
+```
+
+Set `MACRO_ENGINE_LIVE_AI=1` only for intentional live AI runs. Logs are written
+under `logs/daily/` and remain ignored by git.
 
 For a balanced real-news pilot, place a local file at:
 

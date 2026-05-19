@@ -13,12 +13,33 @@ from macro_engine.news.schema import (
 )
 
 
+REQUIRED_NEWS_SOURCE_GROUPS = {
+    "macro_general",
+    "inflation_rates",
+    "labor",
+    "energy_commodities",
+    "credit_financial_conditions",
+    "real_estate",
+    "consumer",
+    "manufacturing_industrials",
+    "geopolitical",
+    "technology_ai",
+    "healthcare",
+    "defensive_sectors",
+}
+
+
 class NewsSourceDefinition(BaseModel):
     source_id: str
-    provider: Literal["local_csv", "local_json", "manual_text"]
+    provider: Literal["local_csv", "local_json", "manual_text", "rss"]
     enabled: bool = True
     profiles: list[str] = Field(default_factory=list)
     path: str | None = None
+    feed_url: str | None = None
+    source: str | None = None
+    source_group: str | None = None
+    max_items: int = Field(default=50, ge=1)
+    lookback_days: int = Field(default=7, ge=0)
     items: list[dict[str, Any]] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -27,11 +48,70 @@ class NewsSourceDefinition(BaseModel):
             raise ValueError(f"{self.provider} source {self.source_id} requires path")
         if self.provider == "manual_text" and not self.items:
             raise ValueError(f"manual_text source {self.source_id} requires items")
+        if self.provider == "rss" and not self.feed_url:
+            raise ValueError(f"rss source {self.source_id} requires feed_url")
+        if self.source_group and self.source_group not in REQUIRED_NEWS_SOURCE_GROUPS:
+            raise ValueError(f"unknown source_group {self.source_group}")
         return self
 
 
 class NewsSourcesConfig(BaseModel):
     news_sources: list[NewsSourceDefinition]
+
+
+class NewsSourceWatchlistEntry(BaseModel):
+    source_id: str
+    source_name: str
+    source_group: str
+    provider_type: Literal["local_csv", "local_json", "rss"]
+    enabled: bool = True
+    feed_url: str | None = None
+    path: str | None = None
+    max_items_per_run: int = Field(default=25, ge=1)
+    lookback_days: int = Field(default=7, ge=0)
+    region: str | None = None
+    notes: str | None = None
+
+    @model_validator(mode="after")
+    def validate_entry(self):
+        if self.source_group not in REQUIRED_NEWS_SOURCE_GROUPS:
+            raise ValueError(f"unknown source_group {self.source_group}")
+        if self.provider_type in {"local_csv", "local_json"} and not self.path:
+            raise ValueError(f"{self.provider_type} watchlist entry {self.source_id} requires path")
+        if self.provider_type == "rss" and not self.feed_url:
+            raise ValueError(f"rss watchlist entry {self.source_id} requires feed_url")
+        return self
+
+
+class NewsSourceCoverageConfig(BaseModel):
+    output_dir: str = "outputs"
+    required_source_groups: list[str] = Field(
+        default_factory=lambda: sorted(REQUIRED_NEWS_SOURCE_GROUPS)
+    )
+    max_group_share: float = Field(default=0.35, ge=0.0, le=1.0)
+    stale_after_days: int = Field(default=3, ge=0)
+
+    @model_validator(mode="after")
+    def validate_groups(self):
+        unknown = set(self.required_source_groups) - REQUIRED_NEWS_SOURCE_GROUPS
+        if unknown:
+            raise ValueError(f"unknown required source groups: {sorted(unknown)}")
+        return self
+
+
+class NewsSourceWatchlistConfig(BaseModel):
+    news_source_watchlist: list[NewsSourceWatchlistEntry]
+    coverage: NewsSourceCoverageConfig = Field(default_factory=NewsSourceCoverageConfig)
+
+    @model_validator(mode="after")
+    def validate_watchlist(self):
+        ids = [source.source_id for source in self.news_source_watchlist]
+        duplicates = {source_id for source_id in ids if ids.count(source_id) > 1}
+        if duplicates:
+            raise ValueError(f"duplicate news source ids: {sorted(duplicates)}")
+        if not self.news_source_watchlist:
+            raise ValueError("at least one news source watchlist entry is required")
+        return self
 
 
 class NewsThemeDefinition(BaseModel):
@@ -245,6 +325,13 @@ def load_news_monitoring_config(
     data = _load_yaml(path)
     payload = data.get("news_monitoring", data)
     return NewsMonitoringConfig.model_validate(payload)
+
+
+def load_news_source_watchlist_config(
+    path: str | Path = "config/news_source_watchlist.yaml",
+) -> NewsSourceWatchlistConfig:
+    data = _load_yaml(path)
+    return NewsSourceWatchlistConfig.model_validate(data)
 
 
 def _load_yaml(path: str | Path) -> dict[str, Any]:

@@ -38,6 +38,33 @@ news_sources:
       - balanced_real_news_pilot_json
     path: data/news_pilot/news_items_balanced.json
 
+  - source_id: daily_local_csv
+    provider: local_csv
+    enabled: false
+    profiles:
+      - daily_local_csv
+      - daily_real_news
+    path: data/news_pilot/daily_news_items.csv
+
+  - source_id: daily_local_json
+    provider: local_json
+    enabled: false
+    profiles:
+      - daily_local_json
+      - daily_real_news_json
+    path: data/news_pilot/daily_news_items.json
+
+  - source_id: rss_watchlist_example
+    provider: rss
+    enabled: false
+    profiles:
+      - rss_watchlist
+    feed_url: https://example.invalid/rss.xml
+    source: example_rss
+    source_group: macro_general
+    max_items: 25
+    lookback_days: 2
+
   - source_id: manual_text_example
     provider: manual_text
     enabled: false

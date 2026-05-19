@@ -15,6 +15,7 @@ from macro_engine.accumulation import (
 )
 from macro_engine.config.loader import load_all_configs
 from macro_engine.daily import run_daily_diagnostic
+from macro_engine.daily_health import daily_health_check as daily_health_check_service
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.evaluation.service import (
@@ -36,6 +37,11 @@ from macro_engine.news.monitoring import (
     run_news_monitoring,
     validate_news_monitoring_config,
     write_news_monitoring_report,
+)
+from macro_engine.news.source_coverage import (
+    build_news_source_coverage_report,
+    validate_news_sources_config,
+    write_news_source_coverage_report,
 )
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
@@ -1156,6 +1162,47 @@ def write_news_monitoring_report_cli(
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
+@app.command("validate-news-sources")
+def validate_news_sources(
+    config: Annotated[str, typer.Option("--config")] = "config/news_source_watchlist.yaml",
+) -> None:
+    """v0.6-M1: validate news source watchlist configuration."""
+    watchlist = validate_news_sources_config(config)
+    enabled = [source for source in watchlist.news_source_watchlist if source.enabled]
+    console.print_json(
+        data={
+            "valid": True,
+            "configured_source_count": len(watchlist.news_source_watchlist),
+            "enabled_source_count": len(enabled),
+            "source_groups": sorted({source.source_group for source in enabled}),
+            "output_dir": watchlist.coverage.output_dir,
+        }
+    )
+
+
+@app.command("news-source-coverage")
+def news_source_coverage(
+    config: Annotated[str, typer.Option("--config")] = "config/news_source_watchlist.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.6-M1: print latest news source coverage summary as JSON."""
+    payload = build_news_source_coverage_report(config_path=config, db_path=db_path)
+    console.print_json(data=payload)
+
+
+@app.command("write-news-source-coverage-report")
+def write_news_source_coverage_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/news_source_watchlist.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.6-M1: write source coverage JSON and Markdown reports."""
+    json_path, markdown_path = write_news_source_coverage_report(
+        config_path=config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
 @app.command("run-daily-diagnostic")
 def run_daily_diagnostic_cli(
     config: Annotated[str, typer.Option("--config")] = "config/daily_pipeline.yaml",
@@ -1190,6 +1237,18 @@ def run_daily_diagnostic_cli(
             "error_count": len(result.errors),
         }
     )
+
+
+@app.command("daily-health-check")
+def daily_health_check(
+    config: Annotated[str, typer.Option("--config")] = "config/daily_pipeline.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.6-M2: check daily operating pipeline prerequisites."""
+    payload = daily_health_check_service(config_path=config, db_path=db_path)
+    console.print_json(data=payload)
+    if not payload["valid"]:
+        raise typer.Exit(code=1)
 
 
 @app.command("run-news-accumulation")

@@ -151,6 +151,15 @@ Repeated real-news collection is required before the accumulation layer can
 support validation or calibration decisions. A successful mock daily run only
 shows that the workflow, guardrail audit, archiving, and summaries are working.
 
+The v0.6 source coverage layer reports configured and observed news breadth by
+source group. It can identify missing, stale, thin, or concentrated groups, but
+it does not solve source bias by itself. A balanced watchlist still depends on
+the user's local files, RSS feeds, and operating discipline.
+
+Scheduled-run scripts make repeated operation easier, but they do not make the
+system autonomous. Local environment setup, API key handling, Windows Task
+Scheduler or cron configuration, and log review remain user-operated.
+
 ## Combined Macro-Sector-News Diagnostic
 
 The v0.3 combined diagnostic is an experimental overlay. It combines the v0.2

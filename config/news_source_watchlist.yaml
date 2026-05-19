@@ -1,0 +1,172 @@
+coverage:
+  output_dir: outputs
+  required_source_groups:
+    - macro_general
+    - inflation_rates
+    - labor
+    - energy_commodities
+    - credit_financial_conditions
+    - real_estate
+    - consumer
+    - manufacturing_industrials
+    - geopolitical
+    - technology_ai
+    - healthcare
+    - defensive_sectors
+  max_group_share: 0.35
+  stale_after_days: 3
+
+news_source_watchlist:
+  - source_id: synthetic_sample_news
+    source_name: synthetic_example
+    source_group: macro_general
+    provider_type: local_csv
+    path: data/examples/sample_news_items.csv
+    enabled: true
+    max_items_per_run: 10
+    lookback_days: 30
+    region: US
+    notes: Synthetic sample used for tests and mock-safe daily runs.
+
+  - source_id: daily_macro_general_csv
+    source_name: daily_macro_general
+    source_group: macro_general
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 25
+    lookback_days: 2
+    region: US
+    notes: Local daily macro-general news file.
+
+  - source_id: daily_inflation_rates_csv
+    source_name: daily_inflation_rates
+    source_group: inflation_rates
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 20
+    lookback_days: 2
+    region: US
+    notes: Local daily inflation and rates coverage.
+
+  - source_id: daily_labor_csv
+    source_name: daily_labor
+    source_group: labor
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 15
+    lookback_days: 2
+    region: US
+    notes: Local daily labor-market coverage.
+
+  - source_id: daily_energy_commodities_csv
+    source_name: daily_energy_commodities
+    source_group: energy_commodities
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 15
+    lookback_days: 2
+    region: US
+    notes: Local daily energy and commodity coverage.
+
+  - source_id: daily_credit_financial_conditions_csv
+    source_name: daily_credit_financial_conditions
+    source_group: credit_financial_conditions
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 15
+    lookback_days: 2
+    region: US
+    notes: Local daily credit and financial conditions coverage.
+
+  - source_id: daily_real_estate_csv
+    source_name: daily_real_estate
+    source_group: real_estate
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily real estate coverage.
+
+  - source_id: daily_consumer_csv
+    source_name: daily_consumer
+    source_group: consumer
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily consumer coverage.
+
+  - source_id: daily_manufacturing_industrials_csv
+    source_name: daily_manufacturing_industrials
+    source_group: manufacturing_industrials
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily manufacturing and industrials coverage.
+
+  - source_id: daily_geopolitical_csv
+    source_name: daily_geopolitical
+    source_group: geopolitical
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: Global
+    notes: Local daily geopolitical coverage.
+
+  - source_id: daily_technology_ai_csv
+    source_name: daily_technology_ai
+    source_group: technology_ai
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily technology and AI coverage.
+
+  - source_id: daily_healthcare_csv
+    source_name: daily_healthcare
+    source_group: healthcare
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily healthcare coverage.
+
+  - source_id: daily_defensive_sectors_csv
+    source_name: daily_defensive_sectors
+    source_group: defensive_sectors
+    provider_type: local_csv
+    path: data/news_pilot/daily_news_items.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Local daily defensive-sector coverage.
+
+  - source_id: rss_watchlist_macro_general
+    source_name: rss_macro_general
+    source_group: macro_general
+    provider_type: rss
+    feed_url: https://example.invalid/rss.xml
+    enabled: false
+    max_items_per_run: 25
+    lookback_days: 2
+    region: US
+    notes: Disabled placeholder showing RSS watchlist shape.

@@ -5,6 +5,9 @@ import hashlib
 import json
 from pathlib import Path
 from typing import Any
+from urllib.error import URLError
+from urllib.request import Request, urlopen
+import xml.etree.ElementTree as ET
 
 import pandas as pd
 
@@ -30,6 +33,8 @@ def load_news_items_from_config(
             items.extend(load_local_json_source(source))
         elif source.provider == "manual_text":
             items.extend(load_manual_text_source(source))
+        elif source.provider == "rss":
+            items.extend(load_rss_source(source))
         else:
             raise ValueError(f"unsupported news provider {source.provider}")
     return dedupe_news_items(items)
@@ -138,7 +143,11 @@ def load_local_csv_source(source: NewsSourceDefinition) -> list[NewsItem]:
     if missing:
         raise ValueError(f"news CSV missing required columns: {sorted(missing)}")
     return [
-        _news_item_from_mapping(row, provider="local_csv", fallback_source_id=source.source_id)
+        _news_item_from_mapping(
+            _with_source_defaults(row, source),
+            provider="local_csv",
+            fallback_source_id=source.source_id,
+        )
         for row in frame.to_dict(orient="records")
     ]
 
@@ -154,16 +163,59 @@ def load_local_json_source(source: NewsSourceDefinition) -> list[NewsItem]:
     if not isinstance(records, list):
         raise ValueError("local_json news payload must be a list or an object with items")
     return [
-        _news_item_from_mapping(record, provider="local_json", fallback_source_id=source.source_id)
+        _news_item_from_mapping(
+            _with_source_defaults(record, source),
+            provider="local_json",
+            fallback_source_id=source.source_id,
+        )
         for record in records
     ]
 
 
 def load_manual_text_source(source: NewsSourceDefinition) -> list[NewsItem]:
     return [
-        _news_item_from_mapping(item, provider="manual_text", fallback_source_id=source.source_id)
+        _news_item_from_mapping(
+            _with_source_defaults(item, source),
+            provider="manual_text",
+            fallback_source_id=source.source_id,
+        )
         for item in source.items
     ]
+
+
+def load_rss_source(source: NewsSourceDefinition) -> list[NewsItem]:
+    if source.feed_url is None:
+        raise ValueError(f"rss source {source.source_id} requires feed_url")
+    request = Request(
+        source.feed_url,
+        headers={
+            "User-Agent": "macro-engine-news-pilot/0.6 (+local diagnostics)",
+            "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml",
+        },
+    )
+    try:
+        with urlopen(request, timeout=20) as response:
+            body = response.read()
+    except URLError as exc:
+        raise ValueError(f"rss source {source.source_id} failed: {exc}") from exc
+    try:
+        root = ET.fromstring(body)
+    except ET.ParseError as exc:
+        raise ValueError(f"rss source {source.source_id} returned non-XML content") from exc
+    records = _rss_records(root, source)
+    items = [
+        _news_item_from_mapping(record, provider="rss", fallback_source_id=source.source_id)
+        for record in records
+    ]
+    cutoff = None
+    if source.lookback_days:
+        cutoff = datetime.now(UTC) - pd.Timedelta(days=source.lookback_days).to_pytimedelta()
+    filtered = [
+        item
+        for item in items
+        if cutoff is None or item.published_at is None or item.published_at >= cutoff
+    ]
+    return filtered[: source.max_items]
 
 
 def dedupe_news_items(items: list[NewsItem]) -> list[NewsItem]:
@@ -263,6 +315,76 @@ def _load_source_for_validation(source: NewsSourceDefinition) -> list[NewsItem]:
     if source.provider == "manual_text":
         return load_manual_text_source(source)
     raise ValueError(f"unsupported news provider {source.provider}")
+
+
+def _with_source_defaults(record: dict[str, Any], source: NewsSourceDefinition) -> dict[str, Any]:
+    result = dict(record)
+    if source.source_group and not result.get("source_group"):
+        result["source_group"] = source.source_group
+    if source.source and not result.get("source"):
+        result["source"] = source.source
+    return result
+
+
+def _rss_records(root: ET.Element, source: NewsSourceDefinition) -> list[dict[str, Any]]:
+    channel_items = root.findall(".//item")
+    atom_items = root.findall(".//{http://www.w3.org/2005/Atom}entry")
+    entries = channel_items or atom_items
+    records = []
+    for entry in entries:
+        title = _entry_text(entry, "title")
+        body = (
+            _entry_text(entry, "description")
+            or _entry_text(entry, "{http://www.w3.org/2005/Atom}summary")
+            or _entry_text(entry, "{http://www.w3.org/2005/Atom}content")
+        )
+        link = _entry_text(entry, "link") or _atom_link(entry)
+        published_at = (
+            _entry_text(entry, "pubDate")
+            or _entry_text(entry, "published")
+            or _entry_text(entry, "{http://www.w3.org/2005/Atom}published")
+            or _entry_text(entry, "updated")
+            or _entry_text(entry, "{http://www.w3.org/2005/Atom}updated")
+        )
+        if not title or not body:
+            continue
+        records.append(
+            {
+                "title": title,
+                "body": _strip_html(body),
+                "source": source.source or source.source_id,
+                "source_url": link,
+                "published_at": published_at,
+                "source_group": source.source_group,
+                "feed_url": source.feed_url,
+            }
+        )
+    return records
+
+
+def _entry_text(entry: ET.Element, tag: str) -> str | None:
+    child = entry.find(tag)
+    if child is None or child.text is None:
+        return None
+    return child.text.strip()
+
+
+def _atom_link(entry: ET.Element) -> str | None:
+    for child in entry.findall("{http://www.w3.org/2005/Atom}link"):
+        href = child.attrib.get("href")
+        if href:
+            return href
+    return None
+
+
+def _strip_html(value: str) -> str:
+    if "<" not in value or ">" not in value:
+        return value
+    try:
+        text = ET.fromstring(f"<root>{value}</root>").itertext()
+        return " ".join(part.strip() for part in text if part.strip())
+    except ET.ParseError:
+        return value
 
 
 def _duplicate_count(values: list[str]) -> int:
