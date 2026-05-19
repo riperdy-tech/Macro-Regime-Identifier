@@ -14,6 +14,7 @@ from macro_engine.news.source_coverage import (
     build_news_source_coverage_report,
     write_news_source_coverage_report,
 )
+from macro_engine.news.service import classify_stored_news
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -128,6 +129,54 @@ def test_daily_health_check_and_cli(tmp_path: Path):
     cli = runner.invoke(app, ["daily-health-check", "--db-path", str(db_path)])
     assert cli.exit_code == 0, cli.output
     assert '"valid": true' in cli.output
+
+
+def test_classify_news_limit_only_unclassified_and_incremental_storage(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.upsert_news_items(_news_items())
+
+    result = classify_stored_news(
+        ai_config_path="config/news_ai.yaml",
+        themes_config_path="config/news_themes.yaml",
+        db_path=db_path,
+        limit=1,
+        only_unclassified=True,
+        progress=True,
+    )
+    stored = store.read_table("news_classifications")
+    assert len(result["classifications"]) == 1
+    assert len(stored) == 1
+
+    second = classify_stored_news(
+        ai_config_path="config/news_ai.yaml",
+        themes_config_path="config/news_themes.yaml",
+        db_path=db_path,
+        limit=5,
+        only_unclassified=True,
+        progress=False,
+    )
+    stored_second = store.read_table("news_classifications")
+    assert len(stored_second) == 2
+    assert len(second["classifications"]) == 2
+
+    cli = runner.invoke(
+        app,
+        [
+            "classify-news",
+            "--config",
+            "config/news_ai.yaml",
+            "--db-path",
+            str(db_path),
+            "--max-items",
+            "1",
+            "--only-unclassified",
+            "--no-progress",
+        ],
+    )
+    assert cli.exit_code == 0, cli.output
+    assert '"classification_rows": 2' in cli.output
 
 
 def test_scheduled_run_artifacts_exist():

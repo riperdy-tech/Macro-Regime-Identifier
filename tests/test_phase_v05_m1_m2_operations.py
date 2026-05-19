@@ -80,6 +80,31 @@ def test_run_daily_diagnostic_records_guardrail_failure(tmp_path: Path):
     assert any("guardrail" in error.lower() or "buy" in error.lower() for error in result.errors)
 
 
+def test_run_daily_diagnostic_live_ai_uses_bounded_classification(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    config_path = _daily_config(tmp_path, allow_live_ai=True)
+    services = _daily_services(tmp_path)
+    captured: dict = {}
+
+    def classify_news(**kwargs):
+        captured.update(kwargs)
+        return {}
+
+    services["classify_news"] = classify_news
+    result = run_daily_diagnostic(
+        config_path=config_path,
+        db_path=db_path,
+        run_date="2026-05-19",
+        live_ai=True,
+        services=services,
+    )
+
+    assert result.status == "success"
+    assert captured["limit"] == 25
+    assert captured["only_unclassified"] is True
+    assert captured["progress"] is True
+
+
 def test_news_accumulation_outputs_and_report(tmp_path: Path):
     config = load_news_accumulation_config("config/news_accumulation.yaml")
     result = build_news_accumulation_outputs(
@@ -145,7 +170,7 @@ def test_accumulation_cli_summary(tmp_path: Path):
     assert '"valid": true' in cli.output
 
 
-def _daily_config(tmp_path: Path) -> Path:
+def _daily_config(tmp_path: Path, *, allow_live_ai: bool = False) -> Path:
     path = tmp_path / "daily_pipeline.yaml"
     path.write_text(
         f"""
@@ -164,8 +189,15 @@ daily_pipeline:
     news_ai_config: config/news_ai.yaml
     news_themes_config: config/news_themes.yaml
     news_scoring_config: config/news_scoring.yaml
-    allow_live_ai: false
-    mock_mode_default: true
+    allow_live_ai: {str(allow_live_ai).lower()}
+    mock_mode_default: {str(not allow_live_ai).lower()}
+  live_ai_safety:
+    max_items_per_run: 25
+    batch_size: 5
+    classify_only_unclassified: true
+    continue_on_individual_failure: true
+    stop_on_failure_rate_above: 0.20
+    stop_on_timeout_count_above: 3
   combined:
     enabled: true
     config_path: config/sector_news_integration.yaml

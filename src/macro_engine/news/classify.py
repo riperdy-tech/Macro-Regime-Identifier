@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 from copy import deepcopy
+import time
 from typing import Any, Protocol
 
 from macro_engine.news.config import NewsAIConfig, NewsThemesConfig
@@ -168,6 +169,7 @@ def classify_news_item(
     themes: NewsThemesConfig,
     enable_schema_repair: bool = True,
     max_retries: int = 0,
+    retry_backoff_seconds: float = 0.0,
 ) -> NewsClassificationRecord:
     raw: dict[str, Any]
     raw_attempts: list[dict[str, Any]] = []
@@ -191,6 +193,8 @@ def classify_news_item(
         while retry_count < max_retries and _classifier_can_retry(classifier):
             retry_count += 1
             try:
+                if retry_backoff_seconds:
+                    time.sleep(retry_backoff_seconds)
                 raw_retry = classifier.classify_with_feedback(  # type: ignore[attr-defined]
                     item,
                     themes,

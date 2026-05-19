@@ -224,6 +224,7 @@ Run v0.3 local news/event ingestion and mock classification:
 ```powershell
 python -m macro_engine.cli ingest-news --config config/news_sources.yaml
 python -m macro_engine.cli classify-news --config config/news_ai.yaml
+python -m macro_engine.cli classify-news --config config/news_ai.yaml --max-items 25 --only-unclassified
 python -m macro_engine.cli news-classification-summary
 python -m macro_engine.cli write-news-report --config config/news_ai.yaml
 ```
@@ -276,6 +277,9 @@ python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.y
 
 The default config remains mock-safe for news classification. Live AI must be
 enabled intentionally through local configuration and command flags.
+Live classification is bounded by `live_ai_safety.max_items_per_run` and uses
+`classify_only_unclassified` by default so interrupted runs can resume without
+reprocessing completed items.
 
 Track accumulated news history:
 

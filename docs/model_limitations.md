@@ -160,6 +160,12 @@ Scheduled-run scripts make repeated operation easier, but they do not make the
 system autonomous. Local environment setup, API key handling, Windows Task
 Scheduler or cron configuration, and log review remain user-operated.
 
+Live AI classification is now intentionally bounded for daily operation. The
+daily pipeline classifies a configured maximum number of unclassified items per
+run and writes completed item classifications incrementally. This improves
+observability and resumability, but it also means large backlogs require
+multiple runs.
+
 ## Combined Macro-Sector-News Diagnostic
 
 The v0.3 combined diagnostic is an experimental overlay. It combines the v0.2

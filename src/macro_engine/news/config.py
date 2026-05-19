@@ -168,6 +168,7 @@ class NewsAIConfig(BaseModel):
     output_dir: str = "outputs"
     enable_schema_repair: bool = True
     max_retries: int = Field(default=0, ge=0, le=2)
+    retry_backoff_seconds: float = Field(default=0.0, ge=0.0)
 
 
 class FreshnessDecayConfig(BaseModel):

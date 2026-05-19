@@ -1195,6 +1195,77 @@ class DuckDBStore:
                     """
                 )
 
+    def upsert_news_classification_outputs(
+        self,
+        classifications: pd.DataFrame,
+        theme_scores: pd.DataFrame,
+        sector_impacts: pd.DataFrame,
+    ) -> None:
+        if classifications.empty:
+            return
+        frame = classifications.copy()
+        news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
+        if not news_ids:
+            return
+        frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
+        frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
+        frame["entities_json"] = frame["entities"].map(json.dumps)
+        frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
+        with self._connect() as con:
+            news_id_frame = pd.DataFrame({"news_id": news_ids})
+            con.register("news_id_frame", news_id_frame)
+            con.execute(
+                """
+                DELETE FROM news_classifications
+                USING news_id_frame
+                WHERE news_classifications.news_id = news_id_frame.news_id
+                """
+            )
+            con.execute(
+                """
+                DELETE FROM news_theme_scores
+                USING news_id_frame
+                WHERE news_theme_scores.news_id = news_id_frame.news_id
+                """
+            )
+            con.execute(
+                """
+                DELETE FROM news_sector_impacts
+                USING news_id_frame
+                WHERE news_sector_impacts.news_id = news_id_frame.news_id
+                """
+            )
+            con.register("news_classification_frame", frame)
+            con.execute(
+                """
+                INSERT INTO news_classifications
+                SELECT classification_id, news_id, classified_at, ai_provider,
+                       ai_model, macro_themes_json, sector_impacts_json,
+                       entities_json, time_horizon, severity, confidence, summary,
+                       raw_ai_response_json, classification_status, error_message
+                FROM news_classification_frame
+                """
+            )
+            if not theme_scores.empty:
+                con.register("news_theme_score_frame", theme_scores)
+                con.execute(
+                    """
+                    INSERT INTO news_theme_scores
+                    SELECT news_id, theme_id, direction, severity, confidence, time_horizon
+                    FROM news_theme_score_frame
+                    """
+                )
+            if not sector_impacts.empty:
+                con.register("news_sector_impact_frame", sector_impacts)
+                con.execute(
+                    """
+                    INSERT INTO news_sector_impacts
+                    SELECT news_id, sector_id, impact_direction, impact_score,
+                           confidence, rationale
+                    FROM news_sector_impact_frame
+                    """
+                )
+
     def replace_news_score_outputs(
         self,
         daily_theme_scores: pd.DataFrame,

@@ -21,6 +21,14 @@ daily_pipeline:
     allow_live_ai: false
     mock_mode_default: true
 
+  live_ai_safety:
+    max_items_per_run: 25
+    batch_size: 5
+    classify_only_unclassified: true
+    continue_on_individual_failure: true
+    stop_on_failure_rate_above: 0.20
+    stop_on_timeout_count_above: 3
+
   combined:
     enabled: true
     config_path: config/sector_news_integration.yaml
@@ -38,6 +46,8 @@ daily_pipeline:
     include_run_summary: true
 
   safety:
+    overall_run_timeout_minutes: 60
+    step_timeout_minutes: 20
     fail_on_guardrail_violation: true
     fail_on_missing_api_key_if_live_ai_enabled: true
     fail_on_macro_pipeline_failure: true

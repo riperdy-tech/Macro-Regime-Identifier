@@ -118,6 +118,19 @@ def run_daily_diagnostic(
                     ai_config_path=config.news.news_ai_config,
                     themes_config_path=config.news.news_themes_config,
                     db_path=db_path,
+                    limit=_classification_limit(config, live_ai=live_ai, mock_ai=mock_ai),
+                    only_unclassified=_classification_only_unclassified(
+                        config,
+                        live_ai=live_ai,
+                        mock_ai=mock_ai,
+                    ),
+                    progress=True,
+                    continue_on_individual_failure=(
+                        config.live_ai_safety.continue_on_individual_failure
+                    ),
+                    stop_on_failure_rate_above=(
+                        config.live_ai_safety.stop_on_failure_rate_above
+                    ),
                 ),
                 fail=True,
             )
@@ -443,6 +456,41 @@ def _run_step(
             raise
     else:
         statuses[status_key] = "success"
+
+
+def _classification_limit(
+    config: DailyPipelineConfig,
+    *,
+    live_ai: bool | None,
+    mock_ai: bool | None,
+) -> int | None:
+    if _daily_uses_live_ai(config, live_ai=live_ai, mock_ai=mock_ai):
+        return config.live_ai_safety.max_items_per_run
+    return None
+
+
+def _classification_only_unclassified(
+    config: DailyPipelineConfig,
+    *,
+    live_ai: bool | None,
+    mock_ai: bool | None,
+) -> bool:
+    if _daily_uses_live_ai(config, live_ai=live_ai, mock_ai=mock_ai):
+        return config.live_ai_safety.classify_only_unclassified
+    return False
+
+
+def _daily_uses_live_ai(
+    config: DailyPipelineConfig,
+    *,
+    live_ai: bool | None,
+    mock_ai: bool | None,
+) -> bool:
+    if mock_ai:
+        return False
+    if live_ai:
+        return True
+    return config.news.allow_live_ai and not config.news.mock_mode_default
 
 
 def _status_from_steps(

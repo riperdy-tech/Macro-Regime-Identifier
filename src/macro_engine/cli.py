@@ -814,13 +814,20 @@ def classify_news(
     themes_config: Annotated[str, typer.Option("--themes-config")] = "config/news_themes.yaml",
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     limit: Annotated[int | None, typer.Option("--limit")] = None,
+    max_items: Annotated[int | None, typer.Option("--max-items")] = None,
+    only_unclassified: Annotated[bool, typer.Option("--only-unclassified")] = False,
+    progress: Annotated[bool, typer.Option("--progress/--no-progress")] = True,
+    continue_on_failure: Annotated[bool, typer.Option("--continue-on-failure/--stop-on-failure")] = True,
 ) -> None:
     """v0.3-M1: classify stored news using mock or configured AI provider."""
     result = classify_stored_news(
         ai_config_path=config,
         themes_config_path=themes_config,
         db_path=db_path,
-        limit=limit,
+        limit=max_items if max_items is not None else limit,
+        only_unclassified=only_unclassified,
+        progress=progress,
+        continue_on_individual_failure=continue_on_failure,
     )
     classifications = result["classifications"]
     console.print_json(

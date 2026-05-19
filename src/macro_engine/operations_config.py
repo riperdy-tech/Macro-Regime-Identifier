@@ -32,6 +32,15 @@ class DailyNewsConfig(BaseModel):
     mock_mode_default: bool = True
 
 
+class DailyLiveAISafetyConfig(BaseModel):
+    max_items_per_run: int = Field(default=25, ge=1)
+    batch_size: int = Field(default=5, ge=1)
+    classify_only_unclassified: bool = True
+    continue_on_individual_failure: bool = True
+    stop_on_failure_rate_above: float = Field(default=0.20, ge=0.0, le=1.0)
+    stop_on_timeout_count_above: int = Field(default=3, ge=0)
+
+
 class DailyCombinedConfig(BaseModel):
     enabled: bool = True
     config_path: str = "config/sector_news_integration.yaml"
@@ -52,6 +61,8 @@ class DailyOutputsConfig(BaseModel):
 
 
 class DailySafetyConfig(BaseModel):
+    overall_run_timeout_minutes: int = Field(default=60, ge=1)
+    step_timeout_minutes: int = Field(default=20, ge=1)
     fail_on_guardrail_violation: bool = True
     fail_on_missing_api_key_if_live_ai_enabled: bool = True
     fail_on_macro_pipeline_failure: bool = True
@@ -62,6 +73,7 @@ class DailyPipelineConfig(BaseModel):
     macro: DailyMacroConfig = Field(default_factory=DailyMacroConfig)
     sector: DailySectorConfig = Field(default_factory=DailySectorConfig)
     news: DailyNewsConfig = Field(default_factory=DailyNewsConfig)
+    live_ai_safety: DailyLiveAISafetyConfig = Field(default_factory=DailyLiveAISafetyConfig)
     combined: DailyCombinedConfig = Field(default_factory=DailyCombinedConfig)
     monitoring: DailyMonitoringConfig = Field(default_factory=DailyMonitoringConfig)
     outputs: DailyOutputsConfig = Field(default_factory=DailyOutputsConfig)
