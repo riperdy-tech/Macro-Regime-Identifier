@@ -3,7 +3,7 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.4 release candidate. It is not investment
+This project is an experimental v0.5 release candidate. It is not investment
 advice, trading guidance, allocation guidance, or portfolio sizing guidance.
 Historical outputs use revised FRED data and are not ALFRED/vintage
 point-in-time backtests.
@@ -280,6 +280,20 @@ python -m macro_engine.cli run-news-accumulation --config config/news_accumulati
 python -m macro_engine.cli news-accumulation-summary
 python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml
 ```
+
+Accumulation readiness labels are operating coverage labels, not validation
+claims:
+
+```text
+insufficient_history  fewer than 5 run dates or fewer than 100 classified items
+early_history         5 to 20 run dates
+monitor_ready         20+ run dates with reasonable source coverage
+validation_candidate 60+ run dates with stable source coverage
+```
+
+Mock daily runs are useful for release checks and plumbing, but they do not
+validate signal quality. Real validation requires repeated balanced real-news
+runs, stable source coverage, and enough accumulated history for later review.
 
 For a balanced real-news pilot, place a local file at:
 

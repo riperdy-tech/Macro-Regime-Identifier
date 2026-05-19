@@ -1,6 +1,6 @@
 # Model Limitations
 
-This project is an experimental v0.4 macro, sector, and news diagnostic. It is designed
+This project is an experimental v0.5 macro, sector, news, and operations diagnostic. It is designed
 to be transparent and inspectable, not authoritative.
 
 ## Not Investment Advice
@@ -133,6 +133,10 @@ The v0.5 daily pipeline is an operating workflow, not a model upgrade. It runs
 existing macro, sector, news, combined, and monitoring steps, archives generated
 diagnostic artifacts, and records run status.
 
+Daily archives are local generated artifacts. They are intended for audit,
+inspection, and continuity between runs, but they are not immutable publication
+records and should not be treated as model validation evidence by themselves.
+
 The accumulation tracker helps determine whether enough classified news history
 exists for later validation. Readiness labels such as `insufficient_history`,
 `early_history`, `monitor_ready`, and `validation_candidate` are operational
@@ -142,6 +146,10 @@ Daily archives and accumulation summaries can still reflect source imbalance,
 thin news, mock-mode examples, old RSS items, duplicated headlines, or provider
 classification drift. These operational records should be reviewed before using
 them to make calibration decisions.
+
+Repeated real-news collection is required before the accumulation layer can
+support validation or calibration decisions. A successful mock daily run only
+shows that the workflow, guardrail audit, archiving, and summaries are working.
 
 ## Combined Macro-Sector-News Diagnostic
 
