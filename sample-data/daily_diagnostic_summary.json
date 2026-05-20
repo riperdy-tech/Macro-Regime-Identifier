@@ -1,0 +1,44 @@
+{
+  "run_id": "sample-run-001",
+  "run_date": "2026-05-20",
+  "status": "success",
+  "archive_path": "outputs/archive/sample",
+  "macro": {
+    "date": "2026-05-01",
+    "reported_regime": "reflation",
+    "raw_dominant_regime": "reflation",
+    "confidence": 0.14
+  },
+  "sector_macro_top": [
+    { "rank": 1, "sector_id": "energy", "confidence_adjusted_score": 0.59 },
+    { "rank": 2, "sector_id": "materials", "confidence_adjusted_score": 0.4 },
+    { "rank": 3, "sector_id": "industrials", "confidence_adjusted_score": 0.24 }
+  ],
+  "news": {
+    "top_themes": [
+      { "id": "inflation_pressure", "score": 5.05 },
+      { "id": "monetary_tightening", "score": 2.33 }
+    ],
+    "top_sector_tailwinds": [
+      { "id": "energy", "score": 1.59 }
+    ],
+    "top_sector_headwinds": [
+      { "id": "real_estate", "score": -1.87 }
+    ]
+  },
+  "combined_top": [
+    { "rank": 1, "sector_id": "energy", "combined_score": 1.57, "news_item_count": 13 },
+    { "rank": 2, "sector_id": "materials", "combined_score": 1.07, "news_item_count": 3 }
+  ],
+  "monitoring": {
+    "success_rate": 1.0,
+    "retry_rate": 0.01,
+    "repair_rate": 0.0,
+    "max_rank_change": 1,
+    "warning_count": 1
+  },
+  "step_statuses": {
+    "guardrail_status": "passed"
+  },
+  "warnings": []
+}
