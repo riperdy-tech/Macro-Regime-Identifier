@@ -394,6 +394,16 @@ cd dashboard
 npm run build
 ```
 
+GitHub Pages:
+
+```text
+https://riperdy-tech.github.io/Macro-Regime-Identifier/
+```
+
+The Pages workflow builds the dashboard from `dashboard/` and uses the project
+base path `/Macro-Regime-Identifier/`. It deploys committed sample fixtures, not
+local generated dashboard data.
+
 Typical local review flow:
 
 ```powershell

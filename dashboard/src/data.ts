@@ -11,12 +11,14 @@ const FILES = {
   history: "history_index.json",
 } as const;
 
+const BASE_URL = import.meta.env.BASE_URL;
+
 export async function loadDashboardData(): Promise<DashboardData> {
-  const exported = await loadFromBase("/data");
+  const exported = await loadFromBase("data");
   if (exported.manifest) {
     return { ...exported, source: "exported" };
   }
-  const sample = await loadFromBase("/sample-data");
+  const sample = await loadFromBase("sample-data");
   if (sample.manifest) {
     return { ...sample, source: "sample" };
   }
@@ -35,14 +37,14 @@ export async function loadDashboardData(): Promise<DashboardData> {
 }
 
 async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">> {
-  const manifest = await fetchJson<Manifest>(`${base}/manifest.json`);
+  const manifest = await fetchJson<Manifest>(dataPath(base, "manifest.json"));
   if (!manifest) {
     return emptyData();
   }
   const entries: [string, unknown][] = await Promise.all(
     Object.entries(FILES).map(async ([key, filename]) => [
       key,
-      await fetchJson(`${base}/${filename}`),
+      await fetchJson(dataPath(base, filename)),
     ]),
   );
   return {
@@ -56,6 +58,11 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     coverage: valueFor(entries, "coverage"),
     history: valueFor(entries, "history"),
   };
+}
+
+function dataPath(base: string, filename: string): string {
+  const normalizedBaseUrl = BASE_URL.endsWith("/") ? BASE_URL : `${BASE_URL}/`;
+  return `${normalizedBaseUrl}${base}/${filename}`;
 }
 
 async function fetchJson<T = Record<string, unknown>>(url: string): Promise<T | null> {
