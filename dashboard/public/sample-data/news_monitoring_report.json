@@ -1,0 +1,33 @@
+{
+  "classification_quality": {
+    "success_rate": 1.0,
+    "retry_rate": 0.01,
+    "repair_rate": 0.0,
+    "quality_status": "ok",
+    "total_items": 75
+  },
+  "input_quality": {
+    "quality_status": "warning",
+    "source_count": 73,
+    "details_json": {
+      "source_group_count": 7,
+      "unmapped_item_count": 0,
+      "unmapped_pct": 0
+    }
+  },
+  "overlay_monitoring": {
+    "diagnostic_date": "2026-05-16",
+    "max_rank_change": 1,
+    "avg_abs_rank_change": 1,
+    "news_item_count": 115,
+    "overlay_status": "ok",
+    "macro_only_top_sectors_json": [
+      { "rank": 1, "sector_id": "energy", "confidence_adjusted_score": 0.59 },
+      { "rank": 2, "sector_id": "materials", "confidence_adjusted_score": 0.4 }
+    ],
+    "sectors_changed_by_news_json": [
+      { "sector_id": "financials", "rank_change": 1 },
+      { "sector_id": "industrials", "rank_change": -1 }
+    ]
+  }
+}

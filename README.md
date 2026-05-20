@@ -358,6 +358,58 @@ single-group concentration
 These are operating-quality checks. They do not validate predictive usefulness
 and they do not justify scoring calibration by themselves.
 
+## Dashboard
+
+v0.7 adds a local read-only dashboard under `dashboard/`. It displays generated
+backend JSON snapshots and does not calculate macro, sector, news, or combined
+scores in the frontend.
+
+Refresh dashboard data:
+
+```powershell
+python -m macro_engine.cli export-dashboard-data
+```
+
+Run the dashboard locally:
+
+```powershell
+cd dashboard
+npm install
+npm run dev
+```
+
+Build the dashboard:
+
+```powershell
+cd dashboard
+npm run build
+```
+
+Typical local review flow:
+
+```powershell
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --mock-ai --archive
+python -m macro_engine.cli export-dashboard-data
+cd dashboard
+npm run dev
+```
+
+The dashboard first looks for exported files in:
+
+```text
+dashboard/public/data/
+```
+
+If exported data is missing, it falls back to safe synthetic fixtures in:
+
+```text
+dashboard/public/sample-data/
+```
+
+Real exported dashboard data is generated and ignored by git. The frontend is a
+display layer only: no API keys, AI calls, or scoring logic belong in the
+dashboard.
+
 ## Production Source Set
 
 Production config: `config/phase_b_sources.yaml`

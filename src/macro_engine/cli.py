@@ -16,6 +16,7 @@ from macro_engine.accumulation import (
 from macro_engine.config.loader import load_all_configs
 from macro_engine.daily import run_daily_diagnostic
 from macro_engine.daily_health import daily_health_check as daily_health_check_service
+from macro_engine.dashboard_export import export_dashboard_data as export_dashboard_data_service
 from macro_engine.diagnostics.service import run_stored_historical_diagnostic
 from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.evaluation.service import (
@@ -1256,6 +1257,22 @@ def daily_health_check(
     console.print_json(data=payload)
     if not payload["valid"]:
         raise typer.Exit(code=1)
+
+
+@app.command("export-dashboard-data")
+def export_dashboard_data(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    dashboard_data_dir: Annotated[
+        str,
+        typer.Option("--dashboard-data-dir"),
+    ] = "dashboard/public/data",
+) -> None:
+    """v0.7-M1: export generated backend JSON snapshots for the read-only dashboard."""
+    manifest = export_dashboard_data_service(
+        outputs_dir=outputs_dir,
+        dashboard_data_dir=dashboard_data_dir,
+    )
+    console.print_json(data=manifest)
 
 
 @app.command("run-news-accumulation")

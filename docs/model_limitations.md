@@ -196,6 +196,21 @@ Combined diagnostic validation is limited until enough real classified news
 history exists. Synthetic sample news can verify software behavior but cannot
 validate empirical usefulness.
 
+## Dashboard Limitations
+
+The v0.7 dashboard is a read-only display layer. It reads generated JSON files
+from the backend and renders them for local review. It does not run FRED
+ingestion, classify news, call AI providers, calculate scores, or write model
+state.
+
+Dashboard data can be stale. Users must run the backend workflow and
+`export-dashboard-data` before expecting the UI to reflect the latest generated
+outputs.
+
+The dashboard does not validate model performance. It can make operational
+state easier to inspect, but it does not change the evidence requirements for
+real validation, source balance, or accumulated-history review.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
