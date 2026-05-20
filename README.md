@@ -442,6 +442,10 @@ The history index is derived from archived daily summaries under
 If there are too few archived runs, the dashboard shows that there is not enough
 history yet.
 
+v0.8 release position: the dashboard operating loop is release-candidate ready
+for daily local use. It remains display-only and does not validate predictive
+performance.
+
 Safe to commit:
 
 ```text

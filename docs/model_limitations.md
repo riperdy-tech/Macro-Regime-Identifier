@@ -224,6 +224,10 @@ does not calculate new signals, does not prove predictive usefulness, and should
 not be interpreted as validation. Short history windows should be treated as
 operating context only.
 
+Archived daily summaries may be incomplete across versions because fields have
+been added over time. The dashboard should surface missing fields plainly rather
+than backfilling or inventing them.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
