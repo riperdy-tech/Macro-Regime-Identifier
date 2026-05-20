@@ -1,7 +1,7 @@
 # Model Limitations
 
-This project is an experimental v0.5 macro, sector, news, and operations diagnostic. It is designed
-to be transparent and inspectable, not authoritative.
+This project is an experimental macro, sector, news, operations, and dashboard
+diagnostic. It is designed to be transparent and inspectable, not authoritative.
 
 ## Not Investment Advice
 

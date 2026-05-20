@@ -3,10 +3,10 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.5 release candidate. It is not investment
-advice, trading guidance, allocation guidance, or portfolio sizing guidance.
-Historical outputs use revised FRED data and are not ALFRED/vintage
-point-in-time backtests.
+This project is an experimental v0.8 release candidate moving through v0.9
+daily operating trials. It is not investment advice, trading guidance,
+allocation guidance, or portfolio sizing guidance. Historical outputs use
+revised FRED data and are not ALFRED/vintage point-in-time backtests.
 
 v0.2 adds an experimental sector macro mapper that translates stored macro
 regime probabilities and dimension scores into sector tailwind/headwind
@@ -32,6 +32,10 @@ validation work.
 v0.6 adds source coverage and scheduled-run support. It helps track whether
 real-news collection is balanced across source groups and provides scripts and a
 runbook for repeatable daily operation.
+
+v0.7 and v0.8 add a read-only dashboard and lightweight operating history. The
+dashboard displays backend-generated JSON only; it does not score data, call AI
+providers, or make market-action decisions.
 
 ## What It Does
 

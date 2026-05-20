@@ -4,11 +4,25 @@ Use this checklist during routine local dashboard review.
 
 ## Run Backend Workflow
 
-- [ ] Run daily diagnostic:
+- [ ] Record operating mode before running:
+
+```text
+operating_mode:
+source_profile:
+live_ai_used:
+config_file:
+```
+
+- [ ] Run daily diagnostic. The default project config is mock-safe and does
+  not call a live AI provider:
 
 ```powershell
-python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --mock-ai --archive
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --archive
 ```
+
+- [ ] For a live AI or real-news run, use an explicit local/live config or
+  command flag and record the source profile. Confirm the run is bounded,
+  observable, and safe to resume before relying on it.
 
 - [ ] Export dashboard data:
 
@@ -36,6 +50,10 @@ npm run dev
 - [ ] Guardrail status is visible.
 - [ ] Source coverage warnings are visible.
 - [ ] History page shows recent archived runs or a short-history message.
+- [ ] If the run used mock/synthetic data, do not treat it as live operating
+  evidence.
+- [ ] If the run used live AI, confirm classification counts, retry/repair
+  rates, and failures are visible in reports.
 
 ## Record Issues
 

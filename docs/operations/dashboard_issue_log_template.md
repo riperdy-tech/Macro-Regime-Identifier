@@ -5,6 +5,9 @@ Copy this template for daily dashboard operating notes.
 ```text
 date:
 run_id:
+operating_mode:
+source_profile:
+live_ai_used:
 dashboard_page:
 issue_type:
 observed_behavior:
@@ -28,6 +31,8 @@ source_coverage
 history
 browser_console
 workflow
+live_run
+source_profile
 other
 ```
 
