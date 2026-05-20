@@ -55,8 +55,37 @@ class NewsSourceDefinition(BaseModel):
         return self
 
 
+class NewsSourceGroupRule(BaseModel):
+    rule_id: str
+    source_group: str
+    enabled: bool = True
+    source_ids: list[str] = Field(default_factory=list)
+    source_keywords: list[str] = Field(default_factory=list)
+    title_keywords: list[str] = Field(default_factory=list)
+    body_keywords: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_rule(self):
+        if self.source_group not in REQUIRED_NEWS_SOURCE_GROUPS:
+            raise ValueError(f"unknown source_group {self.source_group}")
+        if not any(
+            [self.source_ids, self.source_keywords, self.title_keywords, self.body_keywords]
+        ):
+            raise ValueError(f"source group rule {self.rule_id} needs at least one matcher")
+        return self
+
+
 class NewsSourcesConfig(BaseModel):
     news_sources: list[NewsSourceDefinition]
+    source_group_rules: list[NewsSourceGroupRule] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_source_group_rules(self):
+        rule_ids = [rule.rule_id for rule in self.source_group_rules]
+        duplicates = {rule_id for rule_id in rule_ids if rule_ids.count(rule_id) > 1}
+        if duplicates:
+            raise ValueError(f"duplicate source group rules: {sorted(duplicates)}")
+        return self
 
 
 class NewsSourceWatchlistEntry(BaseModel):
@@ -89,6 +118,10 @@ class NewsSourceCoverageConfig(BaseModel):
         default_factory=lambda: sorted(REQUIRED_NEWS_SOURCE_GROUPS)
     )
     max_group_share: float = Field(default=0.35, ge=0.0, le=1.0)
+    max_unmapped_pct: float = Field(default=0.20, ge=0.0, le=1.0)
+    min_source_groups: int = Field(default=3, ge=0)
+    max_single_group_pct: float = Field(default=0.50, ge=0.0, le=1.0)
+    max_old_item_pct: float = Field(default=0.20, ge=0.0, le=1.0)
     stale_after_days: int = Field(default=3, ge=0)
 
     @model_validator(mode="after")
@@ -256,6 +289,9 @@ class NewsMonitoringQualityThresholds(BaseModel):
     max_sector_share: float = Field(default=0.45, ge=0.0, le=1.0)
     max_date_share: float = Field(default=0.50, ge=0.0, le=1.0)
     max_old_item_share: float = Field(default=0.20, ge=0.0, le=1.0)
+    max_unmapped_pct: float = Field(default=0.20, ge=0.0, le=1.0)
+    min_source_groups: int = Field(default=3, ge=0)
+    max_single_group_pct: float = Field(default=0.50, ge=0.0, le=1.0)
     max_rank_change: int = Field(default=3, ge=0)
     max_avg_abs_rank_change: float = Field(default=1.5, ge=0.0)
 

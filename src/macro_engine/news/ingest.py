@@ -11,7 +11,12 @@ import xml.etree.ElementTree as ET
 
 import pandas as pd
 
-from macro_engine.news.config import NewsSourceDefinition, load_news_sources_config
+from macro_engine.news.config import (
+    REQUIRED_NEWS_SOURCE_GROUPS,
+    NewsSourceDefinition,
+    NewsSourceGroupRule,
+    load_news_sources_config,
+)
 from macro_engine.news.schema import NewsItem
 
 
@@ -28,13 +33,13 @@ def load_news_items_from_config(
         if not _source_selected(source, profile):
             continue
         if source.provider == "local_csv":
-            items.extend(load_local_csv_source(source))
+            items.extend(load_local_csv_source(source, rules=config.source_group_rules))
         elif source.provider == "local_json":
-            items.extend(load_local_json_source(source))
+            items.extend(load_local_json_source(source, rules=config.source_group_rules))
         elif source.provider == "manual_text":
-            items.extend(load_manual_text_source(source))
+            items.extend(load_manual_text_source(source, rules=config.source_group_rules))
         elif source.provider == "rss":
-            items.extend(load_rss_source(source))
+            items.extend(load_rss_source(source, rules=config.source_group_rules))
         else:
             raise ValueError(f"unsupported news provider {source.provider}")
     return dedupe_news_items(items)
@@ -52,7 +57,7 @@ def validate_news_input_config(
     all_items: list[NewsItem] = []
     warnings: list[str] = []
     for source in selected_sources:
-        source_items = _load_source_for_validation(source)
+        source_items = _load_source_for_validation(source, rules=config.source_group_rules)
         all_items.extend(source_items)
         dates = [item.published_at for item in source_items if item.published_at is not None]
         short_body_count = sum(1 for item in source_items if len(item.body.split()) < 25)
@@ -111,11 +116,17 @@ def validate_news_input_config(
     dates = [item.published_at for item in all_items if item.published_at is not None]
     by_source: dict[str, int] = {}
     by_day: dict[str, int] = {}
+    by_group: dict[str, int] = {}
     for item in all_items:
         by_source[item.source] = by_source.get(item.source, 0) + 1
+        group = _item_source_group(item)
+        by_group[group] = by_group.get(group, 0) + 1
         if item.published_at is not None:
             day = item.published_at.date().isoformat()
             by_day[day] = by_day.get(day, 0) + 1
+    unmapped_count = by_group.get("unmapped", 0)
+    if unmapped_count:
+        warnings.append(f"{unmapped_count} items missing source_group mapping")
     return {
         "valid": True,
         "profile": profile or "default",
@@ -126,13 +137,21 @@ def validate_news_input_config(
         "date_start": None if not dates else min(dates).isoformat(),
         "date_end": None if not dates else max(dates).isoformat(),
         "item_count_by_source": dict(sorted(by_source.items())),
+        "item_count_by_source_group": dict(sorted(by_group.items())),
+        "source_group_count": len([group for group in by_group if group != "unmapped"]),
+        "unmapped_item_count": unmapped_count,
+        "unmapped_pct": 0.0 if not all_items else unmapped_count / len(all_items),
         "item_count_by_day": dict(sorted(by_day.items())),
         "sources": source_summaries,
         "warnings": warnings,
     }
 
 
-def load_local_csv_source(source: NewsSourceDefinition) -> list[NewsItem]:
+def load_local_csv_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
     if source.path is None:
         raise ValueError(f"local_csv source {source.source_id} requires path")
     path = Path(source.path)
@@ -144,7 +163,7 @@ def load_local_csv_source(source: NewsSourceDefinition) -> list[NewsItem]:
         raise ValueError(f"news CSV missing required columns: {sorted(missing)}")
     return [
         _news_item_from_mapping(
-            _with_source_defaults(row, source),
+            _with_source_group_mapping(_with_source_defaults(row, source), source, rules or []),
             provider="local_csv",
             fallback_source_id=source.source_id,
         )
@@ -152,7 +171,11 @@ def load_local_csv_source(source: NewsSourceDefinition) -> list[NewsItem]:
     ]
 
 
-def load_local_json_source(source: NewsSourceDefinition) -> list[NewsItem]:
+def load_local_json_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
     if source.path is None:
         raise ValueError(f"local_json source {source.source_id} requires path")
     path = Path(source.path)
@@ -164,7 +187,7 @@ def load_local_json_source(source: NewsSourceDefinition) -> list[NewsItem]:
         raise ValueError("local_json news payload must be a list or an object with items")
     return [
         _news_item_from_mapping(
-            _with_source_defaults(record, source),
+            _with_source_group_mapping(_with_source_defaults(record, source), source, rules or []),
             provider="local_json",
             fallback_source_id=source.source_id,
         )
@@ -172,10 +195,14 @@ def load_local_json_source(source: NewsSourceDefinition) -> list[NewsItem]:
     ]
 
 
-def load_manual_text_source(source: NewsSourceDefinition) -> list[NewsItem]:
+def load_manual_text_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
     return [
         _news_item_from_mapping(
-            _with_source_defaults(item, source),
+            _with_source_group_mapping(_with_source_defaults(item, source), source, rules or []),
             provider="manual_text",
             fallback_source_id=source.source_id,
         )
@@ -183,7 +210,11 @@ def load_manual_text_source(source: NewsSourceDefinition) -> list[NewsItem]:
     ]
 
 
-def load_rss_source(source: NewsSourceDefinition) -> list[NewsItem]:
+def load_rss_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
     if source.feed_url is None:
         raise ValueError(f"rss source {source.source_id} requires feed_url")
     request = Request(
@@ -204,7 +235,11 @@ def load_rss_source(source: NewsSourceDefinition) -> list[NewsItem]:
         raise ValueError(f"rss source {source.source_id} returned non-XML content") from exc
     records = _rss_records(root, source)
     items = [
-        _news_item_from_mapping(record, provider="rss", fallback_source_id=source.source_id)
+        _news_item_from_mapping(
+            _with_source_group_mapping(record, source, rules or []),
+            provider="rss",
+            fallback_source_id=source.source_id,
+        )
         for record in records
     ]
     cutoff = None
@@ -258,6 +293,9 @@ def _news_item_from_mapping(
     if not title or not body:
         raise ValueError("news item requires title and body")
     source = str(record.get("source") or fallback_source_id).strip()
+    source_group = _clean_optional_text(record.get("source_group"))
+    if source_group and source_group not in REQUIRED_NEWS_SOURCE_GROUPS:
+        raise ValueError(f"unknown source_group {source_group}")
     published_at_raw = record.get("published_at")
     published_at = _parse_datetime(published_at_raw)
     content_hash = content_hash_for_news(
@@ -307,13 +345,17 @@ def _source_selected(source: NewsSourceDefinition, profile: str | None) -> bool:
     return source.source_id == profile or profile in source.profiles
 
 
-def _load_source_for_validation(source: NewsSourceDefinition) -> list[NewsItem]:
+def _load_source_for_validation(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
     if source.provider == "local_csv":
-        return load_local_csv_source(source)
+        return load_local_csv_source(source, rules=rules)
     if source.provider == "local_json":
-        return load_local_json_source(source)
+        return load_local_json_source(source, rules=rules)
     if source.provider == "manual_text":
-        return load_manual_text_source(source)
+        return load_manual_text_source(source, rules=rules)
     raise ValueError(f"unsupported news provider {source.provider}")
 
 
@@ -324,6 +366,71 @@ def _with_source_defaults(record: dict[str, Any], source: NewsSourceDefinition) 
     if source.source and not result.get("source"):
         result["source"] = source.source
     return result
+
+
+def _with_source_group_mapping(
+    record: dict[str, Any],
+    source: NewsSourceDefinition,
+    rules: list[NewsSourceGroupRule],
+) -> dict[str, Any]:
+    result = dict(record)
+    if _clean_optional_text(result.get("source_group")):
+        result["source_group_mapping_method"] = result.get(
+            "source_group_mapping_method",
+            "explicit_source_group",
+        )
+        return result
+    query_group = _clean_optional_text(result.get("query_group"))
+    if query_group in REQUIRED_NEWS_SOURCE_GROUPS:
+        result["source_group"] = query_group
+        result["source_group_mapping_method"] = "query_group"
+        return result
+    for rule in rules:
+        if not rule.enabled:
+            continue
+        if not _rule_matches(rule, source=source, record=result):
+            continue
+        result["source_group"] = rule.source_group
+        result["source_group_mapping_rule"] = rule.rule_id
+        result["source_group_mapping_method"] = "configured_rule"
+        return result
+    return result
+
+
+def _rule_matches(
+    rule: NewsSourceGroupRule,
+    *,
+    source: NewsSourceDefinition,
+    record: dict[str, Any],
+) -> bool:
+    if rule.source_ids and source.source_id not in rule.source_ids:
+        return False
+    source_value = str(record.get("source") or source.source or source.source_id).lower()
+    title_value = str(record.get("title") or "").lower()
+    body_value = str(record.get("body") or "").lower()
+    matchers = [
+        (rule.source_keywords, source_value),
+        (rule.title_keywords, title_value),
+        (rule.body_keywords, body_value),
+    ]
+    active_matchers = [(keywords, text) for keywords, text in matchers if keywords]
+    if not active_matchers:
+        return True
+    return any(any(keyword.lower() in text for keyword in keywords) for keywords, text in active_matchers)
+
+
+def _item_source_group(item: NewsItem) -> str:
+    group = item.raw_metadata.get("source_group") or item.raw_metadata.get("query_group")
+    if group in REQUIRED_NEWS_SOURCE_GROUPS:
+        return str(group)
+    return "unmapped"
+
+
+def _clean_optional_text(value: Any) -> str | None:
+    if value is None or pd.isna(value):
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def _rss_records(root: ET.Element, source: NewsSourceDefinition) -> list[dict[str, Any]]:

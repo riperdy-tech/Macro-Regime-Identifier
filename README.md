@@ -334,12 +334,29 @@ data/news_pilot/news_items_balanced.csv
 Expected schema:
 
 ```csv
-title,body,source,source_url,published_at
+title,body,source,source_url,published_at,source_group
 ```
 
-Optional columns include `source_group`, `query_group`, `region`,
-`sectors_hint`, and `raw_metadata_json`. Local pilot data stays ignored by git
-unless a tiny public example is intentionally added.
+Optional columns include `query_group`, `region`, `sectors_hint`, and
+`raw_metadata_json`. `source_group` should use one of the configured v0.6
+groups. If it is absent, the ingestion layer may use an explicit `query_group`
+or an audited `source_group_rules` entry in `config/news_sources.yaml`; otherwise
+the item remains `unmapped` and the coverage report warns. Local pilot data
+stays ignored by git unless a tiny public example is intentionally added.
+
+The source coverage report tracks:
+
+```text
+source_group_count
+unmapped_item_count / unmapped_pct
+old_item_count / old_item_pct
+missing groups
+stale groups
+single-group concentration
+```
+
+These are operating-quality checks. They do not validate predictive usefulness
+and they do not justify scoring calibration by themselves.
 
 ## Production Source Set
 

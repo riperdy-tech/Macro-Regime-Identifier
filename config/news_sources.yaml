@@ -76,3 +76,109 @@ news_sources:
         source: synthetic_manual
         source_url:
         published_at: "2026-05-01T12:00:00Z"
+
+source_group_rules:
+  - rule_id: expanded_inflation_rates_terms
+    source_group: inflation_rates
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - inflation
+      - interest rate
+      - interest rates
+      - Fed
+      - Powell
+      - Warsh
+      - bond yield
+      - monetary policy
+      - central bank
+
+  - rule_id: expanded_labor_terms
+    source_group: labor
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - jobless
+      - jobs report
+      - payroll
+      - labor market
+      - job market
+      - hiring
+      - layoffs
+      - JOLTS
+
+  - rule_id: expanded_energy_commodity_terms
+    source_group: energy_commodities
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - oil
+      - energy
+      - gas prices
+      - Strait of Hormuz
+      - commodity
+      - commodities
+      - supply disruption
+      - fuel price
+
+  - rule_id: expanded_credit_financial_conditions_terms
+    source_group: credit_financial_conditions
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - credit
+      - financial conditions
+      - financial stability
+      - lending
+      - banks
+      - bank
+      - liquidity
+      - debt
+
+  - rule_id: expanded_real_estate_terms
+    source_group: real_estate
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - mortgage
+      - housing
+      - real estate
+      - home prices
+      - home prices drop
+      - housing market
+
+  - rule_id: expanded_geopolitical_terms
+    source_group: geopolitical
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - war
+      - Iran
+      - Middle East
+      - geopolitical
+
+  - rule_id: expanded_macro_general_terms
+    source_group: macro_general
+    source_ids:
+      - pilot_expanded_local_csv
+      - pilot_balanced_local_csv
+      - daily_local_csv
+    title_keywords:
+      - economy
+      - economic
+      - GDP
+      - outlook
+      - markets
+      - market

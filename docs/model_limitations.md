@@ -156,6 +156,17 @@ source group. It can identify missing, stale, thin, or concentrated groups, but
 it does not solve source bias by itself. A balanced watchlist still depends on
 the user's local files, RSS feeds, and operating discipline.
 
+Source group mapping is operational metadata, not a model signal. Explicit
+`source_group` fields are preferred. `query_group` and configured mapping rules
+can reduce unmapped local/RSS pilot items, but those mappings are assumptions
+that require review. A low unmapped percentage does not mean the news set is
+balanced, current, or suitable for validation.
+
+Old RSS items can still enter local pilot files when a search/feed returns stale
+results. The coverage and monitoring reports flag old-item share, stale groups,
+and missing groups, but users must curate or replace the input data to improve
+coverage quality.
+
 Scheduled-run scripts make repeated operation easier, but they do not make the
 system autonomous. Local environment setup, API key handling, Windows Task
 Scheduler or cron configuration, and log review remain user-operated.

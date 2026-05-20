@@ -44,12 +44,17 @@ def build_news_source_coverage_report(
     counts_by_group = _counts_by_group(item_groups)
     latest_counts_by_group = _latest_counts_by_group(item_groups)
     latest_dates_by_group = _latest_dates_by_group(item_groups)
+    unmapped_item_count = counts_by_group.get("unmapped", 0)
+    unmapped_pct = 0.0 if not item_groups else unmapped_item_count / len(item_groups)
+    source_group_count = len([group for group in counts_by_group if group != "unmapped"])
+    old_item_count = _old_item_count(item_groups)
+    old_item_pct = 0.0 if not item_groups else old_item_count / len(item_groups)
     missing_configured_groups = sorted(set(required_groups) - set(configured_groups))
     missing_data_groups = sorted(group for group in configured_groups if counts_by_group.get(group, 0) == 0)
     stale_groups = _stale_groups(latest_dates_by_group, config.coverage.stale_after_days)
     overrepresented_groups = _overrepresented_groups(
         latest_counts_by_group,
-        max_share=config.coverage.max_group_share,
+        max_share=min(config.coverage.max_group_share, config.coverage.max_single_group_pct),
     )
     warnings = []
     if missing_configured_groups:
@@ -60,6 +65,12 @@ def build_news_source_coverage_report(
         warnings.append("some source groups have stale stored items")
     if overrepresented_groups:
         warnings.append("latest stored items are concentrated in a small number of source groups")
+    if unmapped_pct > config.coverage.max_unmapped_pct:
+        warnings.append("stored items exceed configured unmapped source-group threshold")
+    if source_group_count < config.coverage.min_source_groups and len(item_groups) > 0:
+        warnings.append("stored items cover fewer source groups than configured minimum")
+    if old_item_pct > config.coverage.max_old_item_pct:
+        warnings.append("old stored items exceed configured source coverage threshold")
     payload = {
         "valid": True,
         "configured_source_count": len(config.news_source_watchlist),
@@ -70,6 +81,17 @@ def build_news_source_coverage_report(
         "stored_item_count": int(len(news_items)),
         "item_count_by_group": counts_by_group,
         "latest_item_count_by_group": latest_counts_by_group,
+        "source_group_count": source_group_count,
+        "unmapped_item_count": unmapped_item_count,
+        "unmapped_pct": unmapped_pct,
+        "old_item_count": old_item_count,
+        "old_item_pct": old_item_pct,
+        "coverage_thresholds": {
+            "max_unmapped_pct": config.coverage.max_unmapped_pct,
+            "min_source_groups": config.coverage.min_source_groups,
+            "max_single_group_pct": config.coverage.max_single_group_pct,
+            "max_old_item_pct": config.coverage.max_old_item_pct,
+        },
         "latest_date_by_group": {
             group: value.isoformat() for group, value in sorted(latest_dates_by_group.items())
         },
@@ -121,6 +143,9 @@ Mode: source-group coverage and stored-news breadth diagnostic.
 - Configured source count: {payload.get("configured_source_count")}
 - Enabled source count: {payload.get("enabled_source_count")}
 - Stored item count: {payload.get("stored_item_count")}
+- Source groups with stored items: {payload.get("source_group_count")}
+- Unmapped item count: {payload.get("unmapped_item_count")} ({_format_pct(payload.get("unmapped_pct"))})
+- Old item count: {payload.get("old_item_count")} ({_format_pct(payload.get("old_item_pct"))})
 
 ## Latest Items By Source Group
 
@@ -245,6 +270,15 @@ def _overrepresented_groups(counts: dict[str, int], *, max_share: float) -> list
     return result
 
 
+def _old_item_count(rows: list[dict[str, Any]]) -> int:
+    now = datetime.now(UTC)
+    return sum(
+        1
+        for row in rows
+        if row.get("published_at") is not None and (now - row["published_at"]).days > 365
+    )
+
+
 def _metadata(value: Any) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
@@ -276,6 +310,12 @@ def _markdown_group_shares(items: list[dict[str, Any]]) -> str:
         f"- {item['source_group']}: {item['item_count']} items ({item['share']:.1%})"
         for item in items
     )
+
+
+def _format_pct(value: Any) -> str:
+    if value is None:
+        return "n/a"
+    return f"{float(value):.1%}"
 
 
 def _assert_no_forbidden_language(markdown: str) -> None:

@@ -10,6 +10,7 @@ from macro_engine.cli import app
 from macro_engine.daily_health import daily_health_check
 from macro_engine.news.config import load_news_source_watchlist_config, load_news_sources_config
 from macro_engine.news.ingest import load_rss_source
+from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.news.source_coverage import (
     build_news_source_coverage_report,
     write_news_source_coverage_report,
@@ -71,6 +72,99 @@ def test_rss_source_parsing_with_mocked_feed(monkeypatch):
     assert items[0].raw_metadata["source_group"] == "macro_general"
 
 
+def test_local_news_source_group_mapping_rules(tmp_path: Path):
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                "title,body,source,source_url,published_at",
+                (
+                    "Weekly jobless claims rise,"
+                    "A labor-market article with enough body text for validation,"
+                    "Example News,https://example.invalid/jobs,2026-05-18T12:00:00Z"
+                ),
+                (
+                    "Mortgage rates rise,"
+                    "A real-estate article with enough body text for validation,"
+                    "Example News,https://example.invalid/housing,2026-05-18T13:00:00Z"
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "news_sources.yaml"
+    config_path.write_text(
+        f"""
+news_sources:
+  - source_id: mapped_local_csv
+    provider: local_csv
+    enabled: true
+    path: {csv_path.as_posix()}
+source_group_rules:
+  - rule_id: labor_rule
+    source_group: labor
+    source_ids: [mapped_local_csv]
+    title_keywords: [jobless]
+  - rule_id: real_estate_rule
+    source_group: real_estate
+    source_ids: [mapped_local_csv]
+    title_keywords: [mortgage]
+""",
+        encoding="utf-8",
+    )
+
+    summary = validate_news_input_config(config_path)
+
+    assert summary["item_count_by_source_group"] == {"labor": 1, "real_estate": 1}
+    assert summary["source_group_count"] == 2
+    assert summary["unmapped_item_count"] == 0
+
+
+def test_explicit_source_group_and_query_group_win_before_rules(tmp_path: Path):
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "\n".join(
+            [
+                "title,body,source,source_url,published_at,source_group,query_group",
+                (
+                    "Mortgage rates rise,"
+                    "A housing article with explicit group metadata,"
+                    "Example News,https://example.invalid/housing,2026-05-18T12:00:00Z,"
+                    "consumer,real_estate"
+                ),
+                (
+                    "Generic topic,"
+                    "A generic article with query group metadata,"
+                    "Example News,https://example.invalid/generic,2026-05-18T13:00:00Z,"
+                    ",labor"
+                ),
+            ]
+        ),
+        encoding="utf-8",
+    )
+    config_path = tmp_path / "news_sources.yaml"
+    config_path.write_text(
+        f"""
+news_sources:
+  - source_id: explicit_local_csv
+    provider: local_csv
+    enabled: true
+    path: {csv_path.as_posix()}
+source_group_rules:
+  - rule_id: real_estate_rule
+    source_group: real_estate
+    source_ids: [explicit_local_csv]
+    title_keywords: [mortgage]
+""",
+        encoding="utf-8",
+    )
+
+    summary = validate_news_input_config(config_path)
+
+    assert summary["item_count_by_source_group"] == {"consumer": 1, "labor": 1}
+    assert summary["unmapped_pct"] == 0.0
+
+
 def test_source_coverage_report_and_cli(tmp_path: Path):
     db_path = tmp_path / "macro.duckdb"
     store = DuckDBStore(db_path)
@@ -83,6 +177,8 @@ def test_source_coverage_report_and_cli(tmp_path: Path):
     )
     assert payload["valid"] is True
     assert payload["item_count_by_group"]["macro_general"] == 2
+    assert payload["unmapped_item_count"] == 0
+    assert payload["source_group_count"] == 1
     assert "labor" in payload["missing_data_groups"]
 
     json_path, markdown_path = write_news_source_coverage_report(

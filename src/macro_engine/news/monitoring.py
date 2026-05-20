@@ -472,13 +472,22 @@ Rank changes caused by news overlay:
 def _input_details(config: NewsMonitoringConfig, input_summary: dict[str, Any]) -> dict[str, Any]:
     warnings = list(input_summary.get("warnings", []))
     by_source = input_summary.get("item_count_by_source", {})
+    by_group = input_summary.get("item_count_by_source_group", {})
     by_day = input_summary.get("item_count_by_day", {})
     unique_count = int(input_summary.get("unique_item_count", 0))
     source_count = len(by_source)
+    source_group_count = int(input_summary.get("source_group_count", 0))
+    unmapped_pct = float(input_summary.get("unmapped_pct", 0.0) or 0.0)
     if source_count < config.quality_thresholds.min_source_count:
         warnings.append("source count is below configured minimum")
+    if source_group_count < config.quality_thresholds.min_source_groups and unique_count:
+        warnings.append("source group count is below configured minimum")
     if by_source and _max_share(by_source) > config.quality_thresholds.max_source_share:
         warnings.append("one source exceeds configured concentration threshold")
+    if by_group and _max_share(by_group) > config.quality_thresholds.max_single_group_pct:
+        warnings.append("one source group exceeds configured concentration threshold")
+    if unmapped_pct > config.quality_thresholds.max_unmapped_pct:
+        warnings.append("unmapped source-group share exceeds configured threshold")
     if by_day and _max_share(by_day) > config.quality_thresholds.max_date_share:
         warnings.append("one date exceeds configured concentration threshold")
     if unique_count:
@@ -494,6 +503,10 @@ def _input_details(config: NewsMonitoringConfig, input_summary: dict[str, Any]) 
     return {
         "warnings": warnings,
         "item_count_by_source": by_source,
+        "item_count_by_source_group": by_group,
+        "source_group_count": source_group_count,
+        "unmapped_item_count": input_summary.get("unmapped_item_count", 0),
+        "unmapped_pct": unmapped_pct,
         "item_count_by_day": by_day,
     }
 
