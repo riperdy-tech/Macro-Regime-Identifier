@@ -1,4 +1,4 @@
-import type { RankedSector, ScoredItem } from "./types";
+import type { HistoryRun, RankedSector, ScoredItem } from "./types";
 
 export function text(value: unknown, fallback = "Data unavailable"): string {
   if (value === null || value === undefined || value === "") {
@@ -63,4 +63,11 @@ export function combinedRows(payload: Record<string, unknown> | null): RankedSec
 
 export function scoreItems(value: unknown): ScoredItem[] {
   return asArray<ScoredItem>(value);
+}
+
+export function historyRuns(payload: Record<string, unknown> | null): HistoryRun[] {
+  if (!payload) {
+    return [];
+  }
+  return asArray<HistoryRun>(payload.runs);
 }

@@ -8,6 +8,7 @@ const FILES = {
   monitoring: "news_monitoring_report.json",
   accumulation: "news_accumulation_report.json",
   coverage: "news_source_coverage_report.json",
+  history: "history_index.json",
 } as const;
 
 export async function loadDashboardData(): Promise<DashboardData> {
@@ -28,6 +29,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     monitoring: null,
     accumulation: null,
     coverage: null,
+    history: null,
     source: "empty",
   };
 }
@@ -52,6 +54,7 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     monitoring: valueFor(entries, "monitoring"),
     accumulation: valueFor(entries, "accumulation"),
     coverage: valueFor(entries, "coverage"),
+    history: valueFor(entries, "history"),
   };
 }
 
@@ -82,5 +85,6 @@ function emptyData(): Omit<DashboardData, "source"> {
     monitoring: null,
     accumulation: null,
     coverage: null,
+    history: null,
   };
 }

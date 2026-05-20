@@ -29,6 +29,22 @@ export type ScoredItem = {
   avg_confidence?: number;
 };
 
+export type HistoryRun = {
+  run_id?: string;
+  run_date?: string;
+  status?: string;
+  archive_path?: string;
+  macro_regime?: string;
+  macro_confidence?: number;
+  top_combined_sectors?: string[];
+  readiness_label?: string | null;
+  guardrail_status?: string;
+  classification_success_rate?: number;
+  max_overlay_rank_change?: number;
+  warning_count?: number;
+  error_count?: number;
+};
+
 export type DashboardData = {
   manifest: Manifest | null;
   daily: Record<string, unknown> | null;
@@ -38,5 +54,6 @@ export type DashboardData = {
   monitoring: Record<string, unknown> | null;
   accumulation: Record<string, unknown> | null;
   coverage: Record<string, unknown> | null;
+  history: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
 };

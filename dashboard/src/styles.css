@@ -223,6 +223,18 @@ td {
   gap: 16px;
 }
 
+.trend-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.block {
+  display: block;
+  color: #657579;
+  margin-top: 4px;
+}
+
 .muted {
   color: #657579;
 }
@@ -269,6 +281,10 @@ code {
   }
 
   .component-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trend-grid {
     grid-template-columns: 1fr;
   }
 }

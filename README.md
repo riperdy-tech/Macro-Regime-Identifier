@@ -419,6 +419,19 @@ Real exported dashboard data is generated and ignored by git. The frontend is a
 display layer only: no API keys, AI calls, or scoring logic belong in the
 dashboard.
 
+v0.8 adds daily operating aids and lightweight history visibility:
+
+```text
+docs/operations/daily_dashboard_checklist.md
+docs/operations/dashboard_issue_log_template.md
+dashboard/public/data/history_index.json
+```
+
+The history index is derived from archived daily summaries under
+`outputs/archive/`. It is read-only dashboard context, not a new scoring model.
+If there are too few archived runs, the dashboard shows that there is not enough
+history yet.
+
 Safe to commit:
 
 ```text

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadDashboardData } from "./data";
-import type { DashboardData, RankedSector } from "./types";
+import type { DashboardData, HistoryRun, RankedSector } from "./types";
 import {
   asArray,
   combinedRows,
@@ -8,12 +8,13 @@ import {
   formatScore,
   getNested,
   getObject,
+  historyRuns,
   scoreItems,
   sectorRows,
   text,
 } from "./utils";
 
-type TabId = "overview" | "macro" | "sectors" | "news" | "combined" | "monitoring";
+type TabId = "overview" | "macro" | "sectors" | "news" | "combined" | "monitoring" | "history";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -22,6 +23,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "news", label: "News" },
   { id: "combined", label: "Combined" },
   { id: "monitoring", label: "Monitoring" },
+  { id: "history", label: "History" },
 ];
 
 export function App() {
@@ -75,6 +77,7 @@ export function App() {
         {activeTab === "news" && <NewsPanel data={data} />}
         {activeTab === "combined" && <CombinedPanel data={data} />}
         {activeTab === "monitoring" && <MonitoringPanel data={data} />}
+        {activeTab === "history" && <HistoryPanel data={data} />}
       </main>
     </Shell>
   );
@@ -101,9 +104,12 @@ function Overview({ data }: { data: DashboardData }) {
   const accumulation = getObject(getObject(data.accumulation).latest_run);
   const monitoring = getObject(data.monitoring);
   const classification = getObject(monitoring.classification_quality);
+  const missingFiles = data.manifest?.missing_files ?? [];
   return (
     <section className="grid two">
       <Metric label="Run status" value={text(daily.status)} detail={text(daily.run_id, "No run id")} />
+      <Metric label="Archive path" value={text(daily.archive_path)} />
+      <Metric label="Exported at" value={text(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
       <Metric
         label="Macro regime"
         value={text(macro.reported_regime)}
@@ -127,8 +133,17 @@ function Overview({ data }: { data: DashboardData }) {
       <Metric
         label="Data source"
         value={data.source === "sample" ? "sample fixtures" : "exported outputs"}
-        detail={text(data.manifest?.data_status)}
+        detail={missingFiles.length ? `${missingFiles.length} missing files` : "complete file set"}
       />
+      <Panel title="Data Status">
+        <WarningList
+          items={
+            missingFiles.length
+              ? missingFiles.map((filename) => `Missing ${filename}`)
+              : ["Exported dashboard data is complete."]
+          }
+        />
+      </Panel>
       <Panel title="Top Sector Diagnostics">
         <RankingTable rows={sectorRows(data.sectors).slice(0, 5)} scoreKey="confidence_adjusted_score" />
       </Panel>
@@ -249,6 +264,10 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
   return (
     <section className="grid two">
       <Metric label="Readiness label" value={text(accumulation.readiness_label, "insufficient_history")} />
+      <Metric
+        label="Readiness meaning"
+        value={readinessMeaning(text(accumulation.readiness_label, "insufficient_history"))}
+      />
       <Metric label="Source groups" value={text(coverage.source_group_count ?? accumulation.source_group_count)} />
       <Metric label="Unmapped share" value={formatPct(coverage.unmapped_pct)} />
       <Metric label="Old item share" value={formatPct(coverage.old_item_pct)} />
@@ -264,6 +283,94 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
         <KeyValueTable values={getObject(coverage.item_count_by_group)} />
       </Panel>
     </section>
+  );
+}
+
+function HistoryPanel({ data }: { data: DashboardData }) {
+  const history = getObject(data.history);
+  const rows = historyRuns(data.history).slice(0, 20);
+  const latest = rows[0];
+  const confidenceValues = rows
+    .map((row) => row.macro_confidence)
+    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const avgConfidence =
+    confidenceValues.length > 0
+      ? confidenceValues.reduce((total, value) => total + value, 0) / confidenceValues.length
+      : null;
+  return (
+    <section className="grid two">
+      <Metric label="History status" value={text(history.history_status, "empty")} />
+      <Metric label="Recorded runs" value={text(history.total_runs, "0")} />
+      <Metric label="Latest run" value={text(latest?.run_date)} detail={text(latest?.run_id)} />
+      <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} />
+      <Panel title="History Readiness" wide>
+        {rows.length < 5 ? (
+          <p className="muted">Not enough history yet. Continue daily runs before interpreting trends.</p>
+        ) : (
+          <TrendCards rows={rows} />
+        )}
+      </Panel>
+      <Panel title="Recent Daily Runs" wide>
+        <HistoryTable rows={rows} />
+      </Panel>
+    </section>
+  );
+}
+
+function TrendCards({ rows }: { rows: HistoryRun[] }) {
+  const latestReadiness = text(rows[0]?.readiness_label, "insufficient_history");
+  const latestSuccess = rows[0]?.classification_success_rate;
+  const maxRankChange = rows.reduce(
+    (currentMax, row) => Math.max(currentMax, typeof row.max_overlay_rank_change === "number" ? row.max_overlay_rank_change : 0),
+    0,
+  );
+  return (
+    <div className="trend-grid">
+      <Metric label="Latest readiness" value={latestReadiness} detail={readinessMeaning(latestReadiness)} />
+      <Metric label="Latest classification success" value={formatPct(latestSuccess)} />
+      <Metric label="Largest overlay rank change" value={text(maxRankChange)} />
+    </div>
+  );
+}
+
+function HistoryTable({ rows }: { rows: HistoryRun[] }) {
+  if (!rows.length) {
+    return <p className="muted">No archived daily runs found.</p>;
+  }
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Macro</th>
+          <th>Confidence</th>
+          <th>Combined top</th>
+          <th>Readiness</th>
+          <th>Guardrail</th>
+          <th>Warnings</th>
+          <th>Errors</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, index) => (
+          <tr key={`${row.run_id}-${index}`}>
+            <td>
+              <strong>{text(row.run_date)}</strong>
+              <small className="block">{text(row.run_id)}</small>
+            </td>
+            <td>{text(row.status)}</td>
+            <td>{text(row.macro_regime)}</td>
+            <td>{formatPct(row.macro_confidence)}</td>
+            <td>{(row.top_combined_sectors ?? []).join(", ") || "n/a"}</td>
+            <td>{text(row.readiness_label, "insufficient_history")}</td>
+            <td>{text(row.guardrail_status)}</td>
+            <td>{text(row.warning_count, "0")}</td>
+            <td>{text(row.error_count, "0")}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -458,4 +565,17 @@ function dataStatus(data: DashboardData | null): string {
   }
   const source = data.source === "sample" ? "sample" : "exported";
   return `${source} / ${data.manifest.data_status ?? "unknown"}`;
+}
+
+function readinessMeaning(label: string): string {
+  if (label === "validation_candidate") {
+    return "enough history for validation planning";
+  }
+  if (label === "monitor_ready") {
+    return "enough history for monitoring";
+  }
+  if (label === "early_history") {
+    return "early operating record";
+  }
+  return "more daily runs needed";
 }

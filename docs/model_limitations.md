@@ -219,6 +219,11 @@ Dashboard quality is bounded by backend output quality. If backend reports are
 missing, stale, incomplete, or based on thin source coverage, the dashboard will
 surface that state but cannot correct it.
 
+The v0.8 history view is a convenience layer over archived daily summaries. It
+does not calculate new signals, does not prove predictive usefulness, and should
+not be interpreted as validation. Short history windows should be treated as
+operating context only.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
