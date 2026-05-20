@@ -364,6 +364,15 @@ v0.7 adds a local read-only dashboard under `dashboard/`. It displays generated
 backend JSON snapshots and does not calculate macro, sector, news, or combined
 scores in the frontend.
 
+Dashboard architecture:
+
+```text
+Python backend -> generated JSON outputs -> export-dashboard-data -> dashboard/public/data -> React display
+```
+
+The dashboard does not run ingestion, classify news, call AI providers, store
+API keys, or write diagnostic state.
+
 Refresh dashboard data:
 
 ```powershell
@@ -409,6 +418,25 @@ dashboard/public/sample-data/
 Real exported dashboard data is generated and ignored by git. The frontend is a
 display layer only: no API keys, AI calls, or scoring logic belong in the
 dashboard.
+
+Safe to commit:
+
+```text
+dashboard source code
+dashboard package manifests
+synthetic sample fixtures under dashboard/public/sample-data/
+dashboard documentation
+```
+
+Do not commit:
+
+```text
+real generated dashboard data under dashboard/public/data/
+outputs/
+API keys or .env files
+dashboard/node_modules/
+dashboard/dist/
+```
 
 ## Production Source Set
 

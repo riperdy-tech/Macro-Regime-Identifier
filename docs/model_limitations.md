@@ -211,6 +211,14 @@ The dashboard does not validate model performance. It can make operational
 state easier to inspect, but it does not change the evidence requirements for
 real validation, source balance, or accumulated-history review.
 
+Dashboard sample data may be synthetic. It is useful for interface development
+and missing-data checks, but it is not evidence that any diagnostic signal is
+useful.
+
+Dashboard quality is bounded by backend output quality. If backend reports are
+missing, stale, incomplete, or based on thin source coverage, the dashboard will
+surface that state but cannot correct it.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
