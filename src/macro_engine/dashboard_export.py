@@ -90,9 +90,12 @@ def _history_row(summary: dict[str, Any], summary_path: Path) -> dict[str, Any]:
     macro = _object(summary.get("macro"))
     monitoring = _object(summary.get("monitoring"))
     step_statuses = _object(summary.get("step_statuses"))
+    replay = _object(summary.get("replay"))
     return {
         "run_id": summary.get("run_id"),
         "run_date": summary.get("run_date"),
+        "run_mode": summary.get("run_mode") or ("replay" if replay else "daily"),
+        "replay_date": replay.get("replay_date"),
         "status": summary.get("status"),
         "archive_path": summary.get("archive_path") or str(summary_path.parent),
         "macro_regime": macro.get("reported_regime"),

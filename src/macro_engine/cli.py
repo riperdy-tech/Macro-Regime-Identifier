@@ -50,6 +50,7 @@ from macro_engine.outputs.report import build_markdown_report, write_markdown_re
 from macro_engine.pipeline import classify_observations
 from macro_engine.pipeline_runner import run_pipeline as run_full_pipeline
 from macro_engine.regimes.service import build_stored_regimes
+from macro_engine.replay import replay_news_history
 from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
     write_historical_diagnostic_report as write_historical_diagnostic_report_service,
@@ -1273,6 +1274,50 @@ def export_dashboard_data(
         dashboard_data_dir=dashboard_data_dir,
     )
     console.print_json(data=manifest)
+
+
+@app.command("replay-news-history")
+def replay_news_history_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/daily_pipeline.yaml",
+    news_file: Annotated[str, typer.Option("--news-file")] = (
+        "data/news_pilot/news_items_last_30_days.csv"
+    ),
+    start_date: Annotated[str | None, typer.Option("--start-date")] = None,
+    end_date: Annotated[str | None, typer.Option("--end-date")] = None,
+    archive: Annotated[bool, typer.Option("--archive/--no-archive")] = True,
+    include_prior_items: Annotated[bool, typer.Option("--include-prior-items/--same-day-only")] = True,
+    max_items_per_replay_day: Annotated[int, typer.Option("--max-items-per-replay-day")] = 10,
+    live_ai: Annotated[bool, typer.Option("--live-ai")] = False,
+    mock_ai: Annotated[bool, typer.Option("--mock-ai/--no-mock-ai")] = True,
+    only_unclassified: Annotated[bool, typer.Option("--only-unclassified/--force-reclassify")] = True,
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs/replay",
+) -> None:
+    """v0.9-M3: replay historical news dates as daily diagnostic runs."""
+    result = replay_news_history(
+        config_path=config,
+        news_file=news_file,
+        start_date=start_date,
+        end_date=end_date,
+        db_path=db_path,
+        output_dir=output_dir,
+        archive=archive,
+        include_prior_items=include_prior_items,
+        max_items_per_replay_day=max_items_per_replay_day,
+        live_ai=live_ai,
+        mock_ai=mock_ai,
+        only_unclassified=only_unclassified,
+    )
+    console.print_json(
+        data={
+            "status": result.status,
+            "replay_days": result.replay_days,
+            "summary_json_path": str(result.summary_json_path),
+            "summary_markdown_path": str(result.summary_markdown_path),
+            "run_count": len(result.replay_runs),
+            "blocked_reason": result.blocked_reason,
+        }
+    )
 
 
 @app.command("run-news-accumulation")

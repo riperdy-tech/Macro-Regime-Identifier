@@ -476,6 +476,7 @@ function HistoryTable({ rows }: { rows: HistoryRun[] }) {
       <thead>
         <tr>
           <th>Date</th>
+          <th>Mode</th>
           <th>Status</th>
           <th>Macro</th>
           <th>Confidence</th>
@@ -492,6 +493,10 @@ function HistoryTable({ rows }: { rows: HistoryRun[] }) {
             <td>
               <strong>{text(row.run_date)}</strong>
               <small className="block">{text(row.run_id)}</small>
+            </td>
+            <td>
+              {text(row.run_mode, "daily")}
+              {row.replay_date ? <small className="block">replay {row.replay_date}</small> : null}
             </td>
             <td>{text(row.status)}</td>
             <td>{text(row.macro_regime)}</td>

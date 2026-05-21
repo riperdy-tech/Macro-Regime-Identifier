@@ -32,6 +32,8 @@ export type ScoredItem = {
 export type HistoryRun = {
   run_id?: string;
   run_date?: string;
+  run_mode?: string;
+  replay_date?: string;
   status?: string;
   archive_path?: string;
   macro_regime?: string;

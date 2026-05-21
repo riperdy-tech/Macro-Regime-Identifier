@@ -76,6 +76,8 @@ def test_export_dashboard_data_writes_history_index_from_archives(tmp_path: Path
                     {"sector_id": "energy", "rank": 1},
                     {"sector_id": "materials", "rank": 2},
                 ],
+                "run_mode": "replay",
+                "replay": {"replay_date": "2026-05-20"},
                 "monitoring": {"success_rate": 1.0, "max_rank_change": 1},
                 "step_statuses": {"guardrail_status": "passed"},
                 "warnings": ["source coverage thin"],
@@ -91,6 +93,8 @@ def test_export_dashboard_data_writes_history_index_from_archives(tmp_path: Path
     assert history["history_status"] == "available"
     assert history["total_runs"] == 1
     assert history["runs"][0]["run_id"] == "sample-run"
+    assert history["runs"][0]["run_mode"] == "replay"
+    assert history["runs"][0]["replay_date"] == "2026-05-20"
     assert history["runs"][0]["macro_regime"] == "reflation"
     assert history["runs"][0]["top_combined_sectors"] == ["energy", "materials"]
     assert history["runs"][0]["warning_count"] == 1
