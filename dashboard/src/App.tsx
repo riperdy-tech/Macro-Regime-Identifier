@@ -84,6 +84,8 @@ export function App() {
 }
 
 function Shell({ children, status }: { children: React.ReactNode; status: string }) {
+  const [showSummary, setShowSummary] = useState(false);
+
   return (
     <div className="app">
       <header className="masthead">
@@ -91,9 +93,67 @@ function Shell({ children, status }: { children: React.ReactNode; status: string
           <p className="eyebrow">Read-only backend output viewer</p>
           <h1>Macro Diagnostic Dashboard</h1>
         </div>
-        <div className="status-pill">{status}</div>
+        <div className="header-actions">
+          <button type="button" className="summary-button" onClick={() => setShowSummary(true)}>
+            What this does
+          </button>
+          <div className="status-pill">{status}</div>
+        </div>
       </header>
+      {showSummary ? <ProgramSummary onClose={() => setShowSummary(false)} /> : null}
       {children}
+    </div>
+  );
+}
+
+function ProgramSummary({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="summary-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="program-summary-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <h2 id="program-summary-title">What This Program Does</h2>
+          <button type="button" className="close-button" aria-label="Close summary" onClick={onClose}>
+            Close
+          </button>
+        </div>
+        <div className="summary-copy">
+          <p>
+            This dashboard helps you understand the current economic backdrop in plain terms.
+            It reads reports made by the Python backend and shows them in one place.
+          </p>
+          <ol>
+            <li>
+              <strong>Checks economic data.</strong>
+              <span> It looks at things like inflation, growth, jobs, credit, and interest rates.</span>
+            </li>
+            <li>
+              <strong>Names the current backdrop.</strong>
+              <span> It groups the data into simple labels, such as reflation or slowdown.</span>
+            </li>
+            <li>
+              <strong>Shows which sectors may be helped or hurt.</strong>
+              <span> These are diagnostic signals, not instructions.</span>
+            </li>
+            <li>
+              <strong>Reads news in a structured way.</strong>
+              <span> News can be sorted into themes, sectors, confidence, and uncertainty.</span>
+            </li>
+            <li>
+              <strong>Tracks daily runs.</strong>
+              <span> The History page shows recent runs so you can see whether the system is working normally.</span>
+            </li>
+          </ol>
+          <p className="summary-note">
+            The website is read-only. It does not calculate scores, call AI, or give personal financial advice.
+          </p>
+        </div>
+      </section>
     </div>
   );
 }
