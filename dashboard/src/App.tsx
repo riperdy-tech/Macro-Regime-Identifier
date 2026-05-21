@@ -124,33 +124,107 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
         </div>
         <div className="summary-copy">
           <p>
-            This dashboard helps you understand the current economic backdrop in plain terms.
-            It reads reports made by the Python backend and shows them in one place.
+            This dashboard is a read-only view of a local economic diagnostic system. The
+            Python backend gathers data, prepares reports, and exports JSON files. This website
+            reads those exported files and turns them into a dashboard you can review each day.
           </p>
-          <ol>
-            <li>
-              <strong>Checks economic data.</strong>
-              <span> It looks at things like inflation, growth, jobs, credit, and interest rates.</span>
-            </li>
-            <li>
-              <strong>Names the current backdrop.</strong>
-              <span> It groups the data into simple labels, such as reflation or slowdown.</span>
-            </li>
-            <li>
-              <strong>Shows which sectors may be helped or hurt.</strong>
-              <span> These are diagnostic signals, not instructions.</span>
-            </li>
-            <li>
-              <strong>Reads news in a structured way.</strong>
-              <span> News can be sorted into themes, sectors, confidence, and uncertainty.</span>
-            </li>
-            <li>
-              <strong>Tracks daily runs.</strong>
-              <span> The History page shows recent runs so you can see whether the system is working normally.</span>
-            </li>
-          </ol>
+          <div className="summary-section">
+            <h3>1. It checks the economic backdrop</h3>
+            <p>
+              The backend looks at economic data such as inflation, job conditions, growth,
+              credit stress, interest rates, and market-related indicators. It compares the
+              latest readings with recent history and turns them into a current macro picture.
+            </p>
+            <p>
+              The goal is not to predict the future perfectly. The goal is to make the current
+              backdrop easier to inspect: what is strong, what is weak, what is changing, and
+              how confident the system is.
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>2. It labels the current macro regime</h3>
+            <p>
+              The system groups the backdrop into a broad regime label, such as reflation,
+              slowdown, inflation pressure, or other macro states used by the backend. Think of
+              the regime as a short name for the current economic weather.
+            </p>
+            <p>
+              The dashboard also shows confidence. A low confidence number means the signals
+              are mixed or weak. A higher confidence number means the data points more clearly
+              toward one backdrop.
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>3. It maps the macro backdrop to sectors</h3>
+            <p>
+              Different sectors can react differently to the same backdrop. For example,
+              energy, financials, utilities, real estate, and technology may be sensitive to
+              different combinations of growth, inflation, rates, and credit conditions.
+            </p>
+            <p>
+              The sector pages show which sectors have stronger or weaker diagnostic scores
+              under the current macro setup. These are research signals only. They are not
+              instructions to change holdings, choose securities, or make a market move.
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>4. It can classify news and events</h3>
+            <p>
+              The news layer takes articles or event text and turns them into structured
+              information: macro themes, sector impacts, confidence, severity, and uncertainty.
+              This helps separate a pile of headlines into a cleaner view of what themes are
+              showing up.
+            </p>
+            <p>
+              The AI step is used only to interpret unstructured text. After that, the scoring
+              and aggregation are handled by the backend in a transparent, repeatable way.
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>5. It combines macro and news diagnostics</h3>
+            <p>
+              The combined view compares the macro-only sector picture with the news overlay.
+              The news overlay is intentionally bounded, so a small amount of news should not
+              completely overpower the macro backdrop.
+            </p>
+            <p>
+              This is useful for seeing whether recent news confirms, softens, or slightly
+              changes the sector picture. If news coverage is thin or uneven, the dashboard
+              shows warnings instead of pretending the signal is stronger than it is.
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>6. It monitors data quality and daily runs</h3>
+            <p>
+              The monitoring pages show whether the system ran successfully, whether data was
+              missing, whether source coverage is thin, and whether classification quality looks
+              healthy. This is important because a dashboard is only as useful as the data behind
+              it.
+            </p>
+            <p>
+              The History page keeps a record of recent daily runs. It helps answer practical
+              questions: Did the pipeline run? Did reports export? Did the dashboard data
+              refresh? Are there enough repeated runs to start learning from the history?
+            </p>
+          </div>
+          <div className="summary-section">
+            <h3>7. What this website does not do</h3>
+            <p>
+              The website does not calculate the model itself. It does not call AI providers.
+              It does not store API keys. It does not place market orders. It does not decide
+              how to allocate money. It does not tell anyone what to own.
+            </p>
+            <p>
+              It is a display layer for backend-generated diagnostics. The right way to use it
+              is as a daily research dashboard: check the state, read the warnings, review the
+              history, and decide whether the system itself is healthy enough to pay attention
+              to.
+            </p>
+          </div>
           <p className="summary-note">
-            The website is read-only. It does not calculate scores, call AI, or give personal financial advice.
+            Bottom line: this is a diagnostic research tool. It helps organize macro data,
+            sector signals, news themes, and daily run history. It is not financial advice,
+            not an automated market system, and not a promise that any signal will be right.
           </p>
         </div>
       </section>
