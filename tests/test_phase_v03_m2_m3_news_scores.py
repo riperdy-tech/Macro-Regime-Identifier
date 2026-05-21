@@ -139,6 +139,22 @@ def test_combined_config_and_score_calculation():
     assert result.diagnostics["sector_news_score"].abs().max() <= config.max_news_adjustment
 
 
+def test_combined_score_handles_empty_news_sector_scores():
+    config = load_sector_news_integration_config("config/sector_news_integration.yaml")
+
+    result = build_combined_sector_diagnostics(
+        sector_scores=_sector_scores(),
+        daily_news_scores=pd.DataFrame(),
+        weekly_news_scores=pd.DataFrame(),
+        config=config,
+    )
+
+    assert len(result.diagnostics) == 2
+    assert set(result.diagnostics["sector_id"]) == {"energy", "real_estate"}
+    assert result.diagnostics["sector_news_score"].tolist() == [0.0, 0.0]
+    assert result.diagnostics["news_component_weight"].tolist() == [0.0, 0.0]
+
+
 def test_combined_cli_report_and_no_sector_score_mutation(tmp_path: Path):
     db_path = tmp_path / "macro.duckdb"
     store = DuckDBStore(db_path)

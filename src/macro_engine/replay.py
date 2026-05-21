@@ -99,9 +99,12 @@ def replay_news_history(
             max_items_per_replay_day=max_items_per_replay_day,
             only_unclassified=only_unclassified,
         )
+        daily_db_path = temp_dir / f"replay_{replay_day.isoformat()}.duckdb"
+        if daily_db_path.exists():
+            daily_db_path.unlink()
         result = run_daily_diagnostic(
             config_path=daily_config_path,
-            db_path=db_path,
+            db_path=daily_db_path,
             run_date=replay_day,
             source_profile="replay_local_csv",
             live_ai=live_ai,
@@ -123,7 +126,7 @@ def replay_news_history(
                 result=result,
                 replay_day=replay_day,
                 selected=selected,
-                db_path=db_path,
+                db_path=daily_db_path,
             )
         )
 

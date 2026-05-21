@@ -78,6 +78,8 @@ def test_replay_mock_path_archives_by_replay_date_and_updates_history(tmp_path: 
     assert result.status == "success"
     assert result.replay_days == 3
     assert len(result.replay_runs) == 3
+    assert not (tmp_path / "macro.duckdb").exists()
+    assert (tmp_path / "outputs" / "replay" / "tmp" / "replay_2026-05-01.duckdb").exists()
     assert any(row["selected_item_count"] == 0 for row in result.replay_runs)
     for row in result.replay_runs:
         archive_path = Path(row["archive_path"])

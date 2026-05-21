@@ -156,14 +156,28 @@ def _news_frame(
     if config.news_score_frequency == "weekly":
         frame = weekly_news_scores.copy()
         if frame.empty:
-            return pd.DataFrame()
+            return _empty_news_frame()
         frame["score_date"] = pd.to_datetime(frame["week_start_date"], errors="coerce")
         return frame
     frame = daily_news_scores.copy()
     if frame.empty:
-        return pd.DataFrame()
+        return _empty_news_frame()
     frame["score_date"] = pd.to_datetime(frame["score_date"], errors="coerce")
     return frame
+
+
+def _empty_news_frame() -> pd.DataFrame:
+    return pd.DataFrame(
+        columns=[
+            "score_date",
+            "sector_id",
+            "adjusted_news_score",
+            "positive_item_count",
+            "negative_item_count",
+            "neutral_item_count",
+            "avg_confidence",
+        ]
+    )
 
 
 def _diagnostic_dates(macro: pd.DataFrame, news: pd.DataFrame) -> pd.DatetimeIndex:
