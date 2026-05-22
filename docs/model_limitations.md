@@ -6,15 +6,15 @@ diagnostic. It is designed to be transparent and inspectable, not authoritative.
 ## Not Investment Advice
 
 The engine does not provide investment advice, trading guidance, allocation
-guidance, portfolio sizing, or security recommendations.
+guidance, portfolio sizing, or security advice.
 
 Macro regime output may inform future research workflows, but it should not be
 used by itself to make financial decisions.
 
 Sector macro scores are also diagnostics only. They describe how the configured
 macro regime probabilities and macro dimensions map to sector tailwind/headwind
-assumptions. They do not recommend buying, selling, avoiding, overweighting, or
-underweighting any sector, ETF, stock, or portfolio.
+assumptions. They do not provide instructions for market action or sector sizing, and they do not
+tell users which sector, ETF, stock, or portfolio to prefer.
 
 ## Revised-Data Diagnostic
 
@@ -50,12 +50,12 @@ the 11 GICS-style U.S. sectors. These values are transparent model assumptions,
 not objective truths.
 
 Sector proxy tickers such as XLE, XLF, XLK, and XLU are reporting and later
-validation references only. They are not security recommendations.
+validation references only. They are not security advice.
 
 The sector layer does not perform:
 
 - security selection
-- ETF recommendations
+- ETF advice
 - sector allocation sizing
 - trading rules
 - portfolio construction
@@ -227,6 +227,35 @@ operating context only.
 Archived daily summaries may be incomplete across versions because fields have
 been added over time. The dashboard should surface missing fields plainly rather
 than backfilling or inventing them.
+
+## Historical Replay Limitations
+
+The v0.9 historical news replay is an operating replay. It groups local news
+items by `published_at`, runs the daily workflow for replay dates, archives each
+replay date separately, and lets the dashboard History tab display replay runs.
+This checks workflow behavior, date filtering, archive handling, dashboard
+history, and guardrails.
+
+Replay is not predictive validation. It is not a trading backtest, and it does
+not show whether any score would have forecast later market behavior.
+
+The replay workflow does not make macro data vintage. Unless a separate
+vintage-data backend is added, macro inputs may still reflect currently
+available or revised data. Replay dates therefore should not be interpreted as
+true point-in-time macro states.
+
+Mock replay mode does not test live AI provider behavior. It is useful for
+software reliability and release checks, but live provider outputs can differ in
+classification content, schema drift, latency, retry behavior, and cost.
+
+RSS-derived replay files can be query-selected and biased. A mapped CSV can
+cover all configured source groups while still overrepresenting certain themes,
+publishers, regions, or article types. Balanced source coverage requires ongoing
+curation and monitoring.
+
+The replay command intentionally supports per-day item caps. These caps keep
+runs bounded and auditable, but they also mean a replay may sample only part of
+a larger local news file for each replay date.
 
 ## Data Freshness And Revisions
 

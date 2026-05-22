@@ -3,14 +3,14 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.8 release candidate moving through v0.9
-daily operating trials. It is not investment advice, trading guidance,
-allocation guidance, or portfolio sizing guidance. Historical outputs use
-revised FRED data and are not ALFRED/vintage point-in-time backtests.
+This project is an experimental v0.9 release candidate. It is not investment
+advice, trading guidance, allocation guidance, or portfolio sizing guidance.
+Historical outputs use revised FRED data and are not ALFRED/vintage
+point-in-time backtests.
 
 v0.2 adds an experimental sector macro mapper that translates stored macro
 regime probabilities and dimension scores into sector tailwind/headwind
-diagnostics. Sector scores are not investment recommendations.
+diagnostics. Sector scores are not investment advice.
 
 v0.3 adds an AI-assisted news/event diagnostic overlay. It ingests local or
 manual text items, classifies them into structured macro themes and sector
@@ -36,6 +36,11 @@ runbook for repeatable daily operation.
 v0.7 and v0.8 add a read-only dashboard and lightweight operating history. The
 dashboard displays backend-generated JSON only; it does not score data, call AI
 providers, or make market-action decisions.
+
+v0.9 adds live operating-trial reviews and historical news replay support. The
+replay workflow simulates daily operation over historical news dates, writes
+separate archives by replay date, and lets the dashboard History tab display
+replay runs. Replay is an operating check, not a predictive backtest.
 
 ## What It Does
 
@@ -329,6 +334,52 @@ Scheduled/manual script entrypoints:
 Set `MACRO_ENGINE_LIVE_AI=1` only for intentional live AI runs. Logs are written
 under `logs/daily/` and remain ignored by git.
 
+Run a v0.9 historical news operating replay:
+
+```powershell
+python -m macro_engine.cli replay-news-history --config config/daily_pipeline.yaml --news-file data/news_pilot/news_items_last_30_days.csv --start-date 2026-04-22 --end-date 2026-05-21 --archive --max-items-per-replay-day 10 --mock-ai
+```
+
+The replay file is local-only and ignored by git. Expected replay CSV schema:
+
+```csv
+title,body,source,source_url,published_at,source_group
+```
+
+Optional replay columns include `query_group`, `region`, `sectors_hint`, and
+`raw_metadata_json`.
+
+Replay options:
+
+- `--start-date` and `--end-date` define the replay calendar window.
+- `--archive` writes each replay date under `outputs/archive/<replay-date>/<run_id>/`.
+- `--max-items-per-replay-day` keeps each replay day bounded.
+- `--mock-ai` is the safe default for release checks and does not require an API key.
+- `--live-ai` must be chosen intentionally and should use conservative per-day item caps.
+- `--include-prior-items` uses news published from the replay start through the replay date.
+- `--same-day-only` restricts each replay date to same-day news only.
+
+Replay summaries are written to:
+
+```text
+outputs/replay/replay_summary.json
+outputs/replay/replay_summary.md
+```
+
+Dashboard History can display replay runs because replay daily summaries include
+`run_mode: replay` and the replay date. This is useful for checking archives,
+date handling, source coverage, and dashboard behavior across a multi-week
+window.
+
+Replay interpretation:
+
+- It is an operating replay, not a predictive backtest.
+- It does not use vintage macro data unless a separate vintage-data backend is added.
+- Mock replay verifies workflow behavior, not live AI classification quality.
+- Query-selected RSS files can be biased and should not be treated as balanced news history.
+- Real replay data under `data/news_pilot/`, generated replay outputs, archives,
+  and exported dashboard data should remain local-only.
+
 For a balanced real-news pilot, place a local file at:
 
 ```text
@@ -449,6 +500,11 @@ history yet.
 v0.8 release position: the dashboard operating loop is release-candidate ready
 for daily local use. It remains display-only and does not validate predictive
 performance.
+
+v0.9 extends History support to replay runs. Replay rows are marked separately
+from live or mock daily runs, and should be read as operating-trial history only.
+They are useful for checking whether archives, dashboard history, source
+coverage, and date filters behave sensibly over many replay dates.
 
 Safe to commit:
 
@@ -731,7 +787,7 @@ Old or missing current regime:
 
 DuckDB file lock on Windows:
 
-- Avoid running multiple CLI inspection commands against the same `.duckdb` file
+- Do not run multiple CLI inspection commands against the same `.duckdb` file
   in parallel.
 - Rerun commands sequentially if you see a file-in-use error.
 
@@ -750,7 +806,7 @@ Key limitations:
 - Uses revised FRED data, not vintage point-in-time data.
 - No ALFRED/vintage backtesting yet.
 - No trading, allocation, or portfolio logic.
-- Sector scores are macro diagnostics, not sector recommendations.
+- Sector scores are macro diagnostics, not sector advice.
 - Sector ETF proxy validation is not a trading backtest.
 - AI news classification is diagnostic only and can be wrong.
 - News score aggregation is deterministic, but depends on AI classification
