@@ -3,10 +3,11 @@
 Local-first U.S. macro regime engine for turning FRED data into transparent
 macro regime diagnostics.
 
-This project is an experimental v0.9 release candidate. It is not investment
-advice, trading guidance, allocation guidance, or portfolio sizing guidance.
-Historical outputs use revised FRED data and are not ALFRED/vintage
-point-in-time backtests.
+This project is a `v1.0-rc1` local-first macro, sector, news, operations, and
+dashboard diagnostic platform. It is not investment advice, a trading system,
+an allocation system, a security-selection engine, or a performance-validated
+forecasting model. Historical outputs use revised FRED data and are not
+ALFRED/vintage point-in-time studies.
 
 v0.2 adds an experimental sector macro mapper that translates stored macro
 regime probabilities and dimension scores into sector tailwind/headwind
@@ -41,6 +42,11 @@ v0.9 adds live operating-trial reviews and historical news replay support. The
 replay workflow simulates daily operation over historical news dates, writes
 separate archives by replay date, and lets the dashboard History tab display
 replay runs. Replay is an operating check, not a predictive backtest.
+
+v1.0 freezes those layers into a first full-system release candidate for local
+diagnostic use. Stable operating workflows are available, while sector/news
+overlays remain experimental and accumulated real-news history is still
+insufficient for predictive validation.
 
 ## What It Does
 
@@ -133,6 +139,49 @@ DEEPSEEK_MODEL=deepseek-v4-flash
 
 Never commit `.env`.
 
+## Quick Start
+
+Run the standard release checks:
+
+```powershell
+python -m pytest
+python -m ruff check .
+python -m macro_engine.cli validate-config
+```
+
+Run the macro pipeline:
+
+```powershell
+python -m macro_engine.cli run-pipeline --config config/phase_b_sources.yaml
+```
+
+Run the daily diagnostic workflow in mock-safe mode and archive the reports:
+
+```powershell
+python -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline.yaml --mock-ai --archive
+```
+
+Export the latest backend outputs for the dashboard:
+
+```powershell
+python -m macro_engine.cli export-dashboard-data
+```
+
+Start the local dashboard:
+
+```powershell
+cd dashboard
+npm install
+npm run dev
+```
+
+The dashboard also builds for static deployment:
+
+```powershell
+cd dashboard
+npm run build
+```
+
 ## Core Commands
 
 Validate production config:
@@ -153,6 +202,19 @@ Run the full live pipeline:
 ```powershell
 python -m macro_engine.cli run-pipeline --config config/phase_b_sources.yaml
 ```
+
+Main workflow groups:
+
+- Macro-only: `run-pipeline`, `current-regime`, and macro report commands.
+- Sector diagnostics: `build-sector-scores`, `current-sector-ranking`, and
+  sector reports.
+- News diagnostics: `ingest-news`, `classify-news`, `build-news-scores`, and
+  news reports.
+- Daily operation: `run-daily-diagnostic`, archives, guardrails, and daily
+  summaries.
+- Replay: `replay-news-history` over local mapped news files.
+- Dashboard: `export-dashboard-data`, then `npm run dev` or `npm run build`
+  from `dashboard/`.
 
 Inspect current regime:
 
@@ -497,9 +559,9 @@ The history index is derived from archived daily summaries under
 If there are too few archived runs, the dashboard shows that there is not enough
 history yet.
 
-v0.8 release position: the dashboard operating loop is release-candidate ready
-for daily local use. It remains display-only and does not validate predictive
-performance.
+v1.0 release position: the dashboard operating loop is release-candidate ready
+for daily local diagnostic use. It remains display-only and does not validate
+predictive performance.
 
 v0.9 extends History support to replay runs. Replay rows are marked separately
 from live or mock daily runs, and should be read as operating-trial history only.
@@ -524,6 +586,33 @@ API keys or .env files
 dashboard/node_modules/
 dashboard/dist/
 ```
+
+## v1.0 Release Status
+
+`v1.0-rc1` is intended to be used as diagnostic software:
+
+- stable local macro workflow;
+- stable local daily operating workflow;
+- stable report archive and dashboard export workflow;
+- stable read-only dashboard build;
+- experimental sector, news, and combined overlays;
+- insufficient accumulated real-news history for predictive validation.
+
+Generated local data remains local:
+
+```text
+.env
+data/
+outputs/
+outputs/archive/
+outputs/replay/
+dashboard/public/data/
+logs/
+*.duckdb
+```
+
+Only source code, configs, docs, and intentional synthetic fixtures should be
+committed.
 
 ## Production Source Set
 
@@ -825,3 +914,6 @@ For v0.2 sector mapper release checks, see `docs/release_checklist_v0_2.md`.
 
 For v0.3 news and combined diagnostic release checks, see
 `docs/release_checklist_v0_3.md`.
+
+For the full-system v1.0 release candidate checklist, see
+`docs/release_checklist_v1_0.md`.

@@ -1,7 +1,8 @@
 # Model Limitations
 
-This project is an experimental macro, sector, news, operations, and dashboard
-diagnostic. It is designed to be transparent and inspectable, not authoritative.
+This project is a local-first macro, sector, news, operations, replay, and
+dashboard diagnostic platform. It is designed to be transparent and inspectable,
+not authoritative.
 
 ## Not Investment Advice
 
@@ -257,6 +258,26 @@ The replay command intentionally supports per-day item caps. These caps keep
 runs bounded and auditable, but they also mean a replay may sample only part of
 a larger local news file for each replay date.
 
+## v1.0 Diagnostic Software Boundary
+
+The `v1.0-rc1` release is a software and operating-workflow milestone. It
+packages the macro engine, sector diagnostics, AI-assisted news classification,
+news aggregation, combined diagnostics, monitoring, daily operation, historical
+operating replay, and read-only dashboard into one local-first diagnostic
+platform.
+
+That release status does not mean the system has proven predictive value. It
+means the commands, reports, archive flow, replay flow, dashboard export, and
+dashboard build have passed release validation as software.
+
+The dashboard remains display-only. It can make generated backend outputs easier
+to inspect, but it does not calculate scores, call AI providers, classify news,
+or validate model performance.
+
+The project still requires repeated balanced real-news collection before
+credible validation or calibration work can begin. Current readiness labels such
+as `insufficient_history` should be treated literally.
+
 ## Data Freshness And Revisions
 
 FRED series have different frequencies, release lags, revision policies, and
@@ -302,8 +323,9 @@ claims.
 
 ## Current Release Intent
 
-v0.5 is intended as an operating and accumulation layer for local
-research and inspection. The macro v0.1 core remains the production macro
-engine, the v0.2 sector layer remains an experimental deterministic sector
-mapper, and the v0.3/v0.4 news layer remains an experimental interpretive
-overlay.
+v1.0 is intended as a local-first diagnostic platform for research and
+inspection. The macro v0.1 core is the stable deterministic macro engine, the
+v0.2 sector layer remains an experimental deterministic sector mapper, the
+v0.3/v0.4 news layer remains an experimental interpretive overlay, and the
+v0.5-v0.9 operating, source coverage, dashboard, and replay layers are release
+ready as local software workflows.
