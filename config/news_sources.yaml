@@ -30,6 +30,15 @@ news_sources:
       - balanced_real_news_pilot
     path: data/news_pilot/news_items_balanced.csv
 
+  - source_id: last_30_days_local_csv
+    provider: local_csv
+    enabled: false
+    profiles:
+      - last_30_days_local_csv
+      - last_30_days_real_news
+      - mapped_30_day_replay
+    path: data/news_pilot/news_items_last_30_days.csv
+
   - source_id: pilot_balanced_local_json
     provider: local_json
     enabled: false
