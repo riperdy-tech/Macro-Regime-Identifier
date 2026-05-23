@@ -48,6 +48,13 @@ diagnostic use. Stable operating workflows are available, while sector/news
 overlays remain experimental and accumulated real-news history is still
 insufficient for predictive validation.
 
+v1.1 is an operations release. It adds real daily operations trials, source
+coverage improvement, source freshness review, multi-day operating evidence,
+and daily wrapper observability improvements. It does not change scoring
+formulas, add trading logic, add allocation logic, provide investment
+recommendations, or validate predictive performance. Readiness remains
+`insufficient_history` pending more separate-date operating runs.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,

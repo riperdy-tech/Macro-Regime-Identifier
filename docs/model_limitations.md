@@ -44,6 +44,63 @@ Known omitted or deferred areas include:
 - detailed housing cycle data
 - survey breadth beyond selected FRED-accessible series
 
+## v1.1 Operational Limitations
+
+v1.1 is an operations release, not a predictive validation release.
+
+### Real Daily Operations Are Not Predictive Validation
+
+v1.1 ran real daily operating trials. Those trials confirm that the pipeline,
+dashboard, archives, and reports work across separate calendar dates. They do
+not validate that the macro regime, sector, or combined diagnostics have
+predictive value.
+
+### Source Freshness
+
+v1.1 improved source group coverage from 10 to 12 groups. However, several
+source groups have stale stored items (items more than a few days old).
+Freshness depends on ongoing data collection cadence, which is separate from
+the platform code.
+
+### Source Coverage
+
+All 12 configured source groups have stored items. Coverage remains limited
+by input source quality: RSS-derived snippets can be short, and source
+availability varies. The platform does not guarantee that every source group
+receives fresh items on every operating date.
+
+### Insufficient History
+
+At v1.1, the accumulated real-news history remains `insufficient_history`.
+Readiness thresholds:
+
+```
+insufficient_history   fewer than 5 real run dates
+early_history          5 to 20 real run dates
+monitor_ready          20+ real run dates with reasonable source coverage
+validation_candidate   60+ real run dates with stable source coverage
+```
+
+The platform has not yet reached `early_history`. Validation-readiness cannot
+be claimed.
+
+### Daily Wrapper Observability (Python 3.14)
+
+On Python 3.14, the `run-daily-diagnostic` wrapper has a known buffering
+limitation in the in-process `run_pipeline` call. Individual CLI steps
+(`ingest`, `build-features`, `build-dimensions`, etc.) work correctly. The
+recommended workaround is to run individual steps sequentially. Progress
+messages now flush correctly for the wrapper and for standalone CLI commands.
+
+### No Trading / Allocation / Recommendation Logic
+
+v1.1 added no trading logic, allocation logic, portfolio sizing, investment
+recommendations, frontend scoring, frontend AI calls, macro formula changes,
+sector assumption changes, news scoring formula changes, or combined
+diagnostic formula changes.
+
+## Source Coverage
+
 ## Sector Mapper
 
 The v0.2 sector layer uses heuristic exposure and regime-prior assumptions for
