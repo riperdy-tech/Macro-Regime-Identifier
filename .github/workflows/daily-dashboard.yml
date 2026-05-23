@@ -1,0 +1,141 @@
+name: Daily Diagnostic + Dashboard Publish
+
+# Runs the full daily diagnostic pipeline, exports dashboard data,
+# builds the dashboard, and publishes to GitHub Pages.
+#
+# GitHub cron is UTC. "37 22 * * 1-5" = Mon-Fri ~22:37 UTC.
+# Adjust for your timezone.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Run mode"
+        required: true
+        type: choice
+        default: "mock"
+        options:
+          - mock
+          - live
+      max_live_items:
+        description: "Max live AI classification items (live mode only)"
+        required: false
+        type: string
+        default: "25"
+      source_profile:
+        description: "News source profile"
+        required: false
+        type: string
+        default: "synthetic_sample"
+
+  schedule:
+    # Mon-Fri at 22:37 UTC (adjust cron for your timezone)
+    - cron: "37 22 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "daily-dashboard"
+  cancel-in-progress: false
+
+jobs:
+  daily:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dashboard dependencies
+        working-directory: dashboard
+        run: npm ci
+
+      - name: Validate config
+        run: python -m macro_engine.cli validate-config
+
+      - name: Lint check
+        run: python -m ruff check .
+
+      - name: Run tests
+        run: python -m pytest --tb=short
+
+      - name: Set run mode
+        id: mode
+        run: |
+          MODE="${{ inputs.run_mode || 'mock' }}"
+          echo "run_mode=$MODE" >> $GITHUB_OUTPUT
+          if [ "$MODE" = "live" ]; then
+            echo "mock_ai_flag=" >> $GITHUB_OUTPUT
+            echo "live_ai_flag=--live-ai" >> $GITHUB_OUTPUT
+          else
+            echo "mock_ai_flag=--mock-ai" >> $GITHUB_OUTPUT
+            echo "live_ai_flag=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run daily diagnostic
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          SOURCE_PROFILE="${{ inputs.source_profile || 'synthetic_sample' }}"
+          python -m macro_engine.cli run-daily-diagnostic \
+            --config config/daily_pipeline_github.yaml \
+            --source-profile "$SOURCE_PROFILE" \
+            ${{ steps.mode.outputs.mock_ai_flag }} \
+            --archive
+
+      - name: Export dashboard data
+        run: python -m macro_engine.cli export-dashboard-data
+
+      - name: Build dashboard
+        working-directory: dashboard
+        env:
+          GITHUB_PAGES: "true"
+        run: npm run build
+
+      - name: Write automation summary
+        if: always()
+        run: python -m macro_engine.cli write-automation-summary
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-outputs
+          path: |
+            outputs/daily_diagnostic_summary.json
+            outputs/daily_diagnostic_summary.md
+            outputs/automation_run_summary.json
+            outputs/automation_run_summary.md
+            dashboard/public/data/manifest.json
+            dashboard/public/data/history_index.json
+          retention-days: 7
+
+      - name: Disable Jekyll processing
+        run: touch dashboard/dist/.nojekyll
+
+      - name: Publish to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: dashboard/dist

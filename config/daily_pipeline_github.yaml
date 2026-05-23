@@ -1,0 +1,53 @@
+# GitHub Actions compatible daily pipeline config.
+# Uses mock-safe defaults: synthetic sample news, no live AI.
+# Does not depend on local-only files (data/news_pilot/, .env).
+#
+# For live mode, create a separate config that uses
+# public RSS sources and requires GitHub Secrets.
+
+daily_pipeline:
+  macro:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    mode: live
+
+  sector:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    sector_config_path: config/sectors.yaml
+    exposure_config_path: config/sector_exposures.yaml
+    prior_config_path: config/sector_regime_priors.yaml
+
+  news:
+    enabled: true
+    source_profile: synthetic_sample
+    news_sources_config: config/news_sources.yaml
+    news_ai_config: config/news_ai.yaml
+    news_themes_config: config/news_themes.yaml
+    news_scoring_config: config/news_scoring.yaml
+    allow_live_ai: false
+    mock_mode_default: true
+
+  live_ai_safety:
+    max_items_per_run: 25
+    batch_size: 5
+    classify_only_unclassified: true
+    continue_on_individual_failure: true
+    stop_on_failure_rate_above: 0.20
+    stop_on_timeout_count_above: 3
+
+  combined:
+    enabled: true
+    config_path: config/sector_news_integration.yaml
+
+  monitoring:
+    enabled: true
+    config_path: config/news_monitoring.yaml
+    source_profile: synthetic_sample
+
+  safety:
+    fail_on_guardrail_violation: true
+
+  outputs:
+    archive_enabled: true
+    archive_root: outputs/archive

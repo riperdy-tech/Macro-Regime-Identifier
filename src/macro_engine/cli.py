@@ -13,6 +13,7 @@ from macro_engine.accumulation import (
     run_news_accumulation,
     write_news_accumulation_report,
 )
+from macro_engine.automation import write_automation_summary
 from macro_engine.config.loader import load_all_configs
 from macro_engine.daily import run_daily_diagnostic
 from macro_engine.daily_health import daily_health_check as daily_health_check_service
@@ -1361,6 +1362,20 @@ def write_news_accumulation_report_cli(
     """v0.5-M2: write accumulated news history report."""
     json_path, markdown_path = write_news_accumulation_report(config_path=config, db_path=db_path)
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("write-automation-summary")
+def write_automation_summary_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+) -> None:
+    """Write automation run summary for scheduled/CI workflows."""
+    json_path, md_path = write_automation_summary(outputs_dir=outputs_dir)
+    console.print_json(
+        data={
+            "json_path": str(json_path),
+            "markdown_path": str(md_path),
+        }
+    )
 
 
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
