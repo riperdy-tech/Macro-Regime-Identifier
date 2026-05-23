@@ -79,6 +79,8 @@ def run_daily_diagnostic(
         "guardrail_status": "skipped",
     }
 
+    print(f"daily: run_id={run_id} date={run_day.isoformat()} starting", flush=True)
+
     try:
         if config.macro.enabled:
             _run_step(
@@ -241,6 +243,7 @@ def run_daily_diagnostic(
             "created_at": completed_at,
         }
     )
+    print(f"daily: run_id={run_id} status={status} complete", flush=True)
     return DailyDiagnosticResult(
         run_id=run_id,
         run_date=run_day,
@@ -366,7 +369,9 @@ def archive_outputs(
 
 def _run_macro(config: DailyPipelineConfig, db_path: str | Path, services: dict[str, Callable]) -> None:
     runner = services.get("run_pipeline", run_pipeline)
+    print("daily: macro pipeline (ingest → features → dimensions → regimes → reports)", flush=True)
     summary = runner(config_path=config.macro.config_path, db_path=db_path, mode=config.macro.mode)
+    print(f"daily: macro pipeline status={summary.status}", flush=True)
     if summary.status == "success_with_warnings":
         return
     if summary.status != "success":
@@ -447,15 +452,18 @@ def _run_step(
     fail: bool,
 ) -> None:
     status_key = f"{step}_status"
+    print(f"daily: {step} start", flush=True)
     try:
         func()
     except Exception as exc:
         statuses[status_key] = "failed"
         errors.append(f"{step}: {exc}")
+        print(f"daily: {step} failed - {exc}", flush=True)
         if fail:
             raise
     else:
         statuses[status_key] = "success"
+        print(f"daily: {step} done", flush=True)
 
 
 def _classification_limit(

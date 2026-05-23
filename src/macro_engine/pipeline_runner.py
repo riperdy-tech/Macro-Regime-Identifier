@@ -91,6 +91,7 @@ def run_pipeline(
     try:
         _require_live_key_if_needed(mode)
         failed_step = "ingest"
+        print("pipeline: ingest start", flush=True)
         runner = ingest_runner or run_fred_ingestion
         ingestion_summary = runner(
             config_path=config_path,
@@ -99,47 +100,59 @@ def run_pipeline(
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print(f"pipeline: ingest done ({ingestion_summary.series_succeeded}/{ingestion_summary.series_requested})", flush=True)
         warnings.extend([f"stale_source:{series}" for series in ingestion_summary.stale_series])
 
         failed_step = "build-features"
+        print("pipeline: build-features start", flush=True)
         feature_result = build_stored_features(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print("pipeline: build-features done", flush=True)
         _collect_invalid_feature_warnings(feature_result.feature_health, warnings)
 
         failed_step = "build-asof-features"
+        print("pipeline: build-asof-features start", flush=True)
         build_stored_asof_features(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print("pipeline: build-asof-features done", flush=True)
 
         failed_step = "build-dimensions"
+        print("pipeline: build-dimensions start", flush=True)
         dimension_result = build_stored_dimensions(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print("pipeline: build-dimensions done", flush=True)
         _collect_invalid_dimension_warnings(dimension_result.dimension_scores, warnings)
 
         failed_step = "build-regimes"
+        print("pipeline: build-regimes start", flush=True)
         regime_result = build_stored_regimes(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print("pipeline: build-regimes done", flush=True)
         _collect_invalid_regime_warnings(regime_result.regime_scores, warnings)
 
         failed_step = "run-historical-diagnostic"
+        print("pipeline: historical-diagnostic start", flush=True)
         run_stored_historical_diagnostic(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
         )
+        print("pipeline: historical-diagnostic done", flush=True)
 
         failed_step = "write-current-report"
+        print("pipeline: write-reports start", flush=True)
         current_json, current_md = write_current_regime_report(
             config_path=config_path,
             db_path=db_path,
@@ -152,6 +165,7 @@ def run_pipeline(
             db_path=db_path,
         )
         outputs.extend([str(diagnostic_json), str(diagnostic_md)])
+        print("pipeline: write-reports done", flush=True)
 
         latest = _latest_current_regime(store)
         failed_step = None
