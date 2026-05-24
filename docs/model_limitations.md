@@ -99,6 +99,54 @@ recommendations, frontend scoring, frontend AI calls, macro formula changes,
 sector assumption changes, news scoring formula changes, or combined
 diagnostic formula changes.
 
+## v1.2 Automation Limitations
+
+v1.2 is an automation release. The GitHub Actions runner is a temporary cloud
+environment, not the local development machine.
+
+### Schedule Timing
+
+GitHub Actions cron is UTC and may be delayed during high load. The
+scheduled run time (Mon-Fri 22:37 UTC) is approximate, not guaranteed exact.
+
+### Runner Environment Differences
+
+The GitHub runner uses Ubuntu with Python 3.11. This differs from the local
+Windows + Python 3.14 development environment. Some tests may behave
+differently. The workflow uses `continue-on-error` for test steps to ensure
+the pipeline runs even if minor test discrepancies exist.
+
+### Static Dashboard Staleness
+
+The dashboard reflects data generated during the most recent successful
+workflow run. If a workflow fails, the dashboard will show stale data until
+the next successful run. The dashboard itself has no mechanism to detect
+staleness.
+
+### Cloud Runner State
+
+The DuckDB database on the GitHub runner is ephemeral — it is created fresh
+for each workflow run and destroyed afterward. No persistent state is
+maintained across runs. This means news classification history and
+accumulation data are regenerated from scratch each time.
+
+### Local-Only Data
+
+The GitHub runner cannot access local-only files (`.env`, `data/news_pilot/`,
+`data/*.duckdb`). The workflow uses committed configuration and sample data.
+Live-news runs require public RSS sources or separate configuration.
+
+### Public Dashboard Data
+
+Dashboard data published to GitHub Pages is publicly accessible. Do not
+include secrets, API keys, or private data in dashboard JSON files or the
+dashboard build artifact.
+
+### v1.2 Did Not Add
+
+No scoring formulas, trading logic, allocation logic, portfolio sizing,
+investment recommendations, frontend scoring, or frontend AI calls were added.
+
 ## Source Coverage
 
 ## Sector Mapper

@@ -55,6 +55,12 @@ formulas, add trading logic, add allocation logic, provide investment
 recommendations, or validate predictive performance. Readiness remains
 `insufficient_history` pending more separate-date operating runs.
 
+v1.2 is an automation release. It adds GitHub Actions daily automation,
+scheduled dashboard refresh, manual workflow trigger, GitHub Pages automated
+publishing, and workflow artifacts for debugging. The dashboard remains
+static and read-only — no API keys, backend calls, or scoring logic in the
+browser. Published dashboard data is public.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
