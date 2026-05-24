@@ -108,6 +108,12 @@ jobs:
             ${{ steps.mode.outputs.mock_ai_flag }} \
             --archive
 
+      - name: Run news accumulation
+        run: python -m macro_engine.cli run-news-accumulation --config config/news_accumulation.yaml
+
+      - name: Write accumulation report
+        run: python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml
+
       - name: Export dashboard data
         run: python -m macro_engine.cli export-dashboard-data
 
@@ -129,6 +135,8 @@ jobs:
           path: |
             outputs/daily_diagnostic_summary.json
             outputs/daily_diagnostic_summary.md
+            outputs/news_accumulation_report.json
+            outputs/news_accumulation_report.md
             outputs/automation_run_summary.json
             outputs/automation_run_summary.md
             dashboard/public/data/manifest.json
