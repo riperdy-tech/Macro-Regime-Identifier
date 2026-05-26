@@ -74,6 +74,42 @@ news_sources:
     max_items: 25
     lookback_days: 2
 
+  - source_id: ai_compute_nvidia_blog_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - ai_compute_rss
+      - rss_watchlist
+    feed_url: https://feeds.feedburner.com/nvidiablog
+    source: nvidia_blog
+    source_group: ai_compute
+    max_items: 15
+    lookback_days: 7
+
+  - source_id: ai_compute_nvidia_developer_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - ai_compute_rss
+      - rss_watchlist
+    feed_url: https://developer.nvidia.com/blog/feed
+    source: nvidia_developer_blog
+    source_group: ai_compute
+    max_items: 15
+    lookback_days: 7
+
+  - source_id: ai_compute_google_cloud_blog_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - ai_compute_rss
+      - rss_watchlist
+    feed_url: https://cloud.google.com/blog/products/rss
+    source: google_cloud_blog
+    source_group: ai_compute
+    max_items: 15
+    lookback_days: 7
+
   - source_id: manual_text_example
     provider: manual_text
     enabled: false

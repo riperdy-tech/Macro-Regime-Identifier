@@ -38,5 +38,29 @@ if ($ExitCode -ne 0) {
     exit $ExitCode
 }
 
+& python -m macro_engine.cli run-news-accumulation --config config/news_accumulation.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "News accumulation failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
+& python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "News accumulation report failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
+& python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Secular theme tracker failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
+& python -m macro_engine.cli export-dashboard-data *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Dashboard export failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
 Write-Host "Daily diagnostic completed. See $LogPath"
 exit 0

@@ -247,6 +247,30 @@ class NewsScoringConfig(BaseModel):
         return self
 
 
+class SecularNewsScoringConfig(BaseModel):
+    aggregation_frequency: list[Literal["monthly", "quarterly"]] = Field(
+        default_factory=lambda: ["monthly", "quarterly"]
+    )
+    freshness_decay: FreshnessDecayConfig = Field(
+        default_factory=lambda: FreshnessDecayConfig(half_life_days=30.0, max_age_days=180)
+    )
+    source_weights: SourceWeightsConfig = Field(default_factory=SourceWeightsConfig)
+    confidence_weighting: bool = True
+    severity_weighting: bool = True
+    max_single_item_contribution: float = Field(default=0.35, gt=0.0)
+    max_single_source_period_contribution: float = Field(default=1.50, gt=0.0)
+    min_confidence: float = Field(default=0.10, ge=0.0, le=1.0)
+    min_severity: float = Field(default=0.05, ge=0.0, le=1.0)
+    trend_window_days: int = Field(default=30, gt=0)
+    output_dir: str = "outputs"
+
+    @model_validator(mode="after")
+    def validate_frequencies(self):
+        if not self.aggregation_frequency:
+            raise ValueError("at least one secular aggregation frequency is required")
+        return self
+
+
 class SectorNewsIntegrationConfig(BaseModel):
     enabled: bool = True
     macro_sector_weight: float = Field(default=0.75, ge=0.0)
@@ -354,6 +378,14 @@ def load_news_scoring_config(
     data = _load_yaml(path)
     payload = data.get("news_scoring", data)
     return NewsScoringConfig.model_validate(payload)
+
+
+def load_secular_news_scoring_config(
+    path: str | Path = "config/news_scoring.yaml",
+) -> SecularNewsScoringConfig:
+    data = _load_yaml(path)
+    payload = data.get("secular_scoring", {})
+    return SecularNewsScoringConfig.model_validate(payload)
 
 
 def load_sector_news_integration_config(

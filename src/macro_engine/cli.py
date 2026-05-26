@@ -33,6 +33,9 @@ from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
 from macro_engine.news.score_report import write_news_score_report as write_news_score_report_service
 from macro_engine.news.scoring import build_stored_news_scores
+from macro_engine.news.secular_scoring import (
+    write_secular_theme_tracker as write_secular_theme_tracker_service,
+)
 from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.news.monitoring import (
     refresh_news_monitoring_from_stored_outputs,
@@ -1001,6 +1004,23 @@ def write_news_score_report(
 ) -> None:
     """v0.3-M2: write aggregated news score JSON and Markdown reports."""
     json_path, markdown_path = write_news_score_report_service(config_path=config, db_path=db_path)
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("build-secular-theme-scores")
+def build_secular_theme_scores(
+    config: Annotated[str, typer.Option("--config")] = "config/news_scoring.yaml",
+    themes_config: Annotated[str, typer.Option("--themes-config")] = "config/news_themes.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+) -> None:
+    """WS2-T9: write secular-theme score JSON and Markdown tracker outputs."""
+    json_path, markdown_path = write_secular_theme_tracker_service(
+        scoring_config_path=config,
+        themes_config_path=themes_config,
+        db_path=db_path,
+        as_of=as_of,
+    )
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 

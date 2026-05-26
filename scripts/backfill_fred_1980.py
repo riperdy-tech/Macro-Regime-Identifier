@@ -36,11 +36,11 @@ _SCRIPT_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPT_DIR.parent
 sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
 
-from macro_engine.ingest.fred import FredError
-from macro_engine.ingest.service import run_fred_ingestion
-from macro_engine.storage.duckdb_store import DuckDBStore
+from macro_engine.ingest.fred import FredError  # noqa: E402
+from macro_engine.ingest.service import run_fred_ingestion  # noqa: E402
+from macro_engine.storage.duckdb_store import DuckDBStore  # noqa: E402
 
 # ── Constants ──────────────────────────────────────────────────────────────
 BACKFILL_START = "1980-01-01"
@@ -91,7 +91,7 @@ def _dry_run_report(series_list: list[str]) -> None:
     print("=" * 60)
     print(f"Config:          {DEFAULT_CONFIG}")
     print(f"Start date:      {BACKFILL_START}")
-    print(f"End date:        None (up to latest available)")
+    print("End date:        None (up to latest available)")
     print(f"DB path:         {DEFAULT_DB_PATH}")
     print(f"Parquet dir:     {DEFAULT_PARQUET_DIR}")
     print(f"Series to fetch: {len(series_list)}")

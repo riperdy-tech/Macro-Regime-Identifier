@@ -356,6 +356,8 @@ def _load_source_for_validation(
         return load_local_json_source(source, rules=rules)
     if source.provider == "manual_text":
         return load_manual_text_source(source, rules=rules)
+    if source.provider == "rss":
+        return []
     raise ValueError(f"unsupported news provider {source.provider}")
 
 

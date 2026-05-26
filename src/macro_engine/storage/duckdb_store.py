@@ -434,6 +434,7 @@ class DuckDBStore:
                     macro_themes_json TEXT,
                     sector_impacts_json TEXT,
                     entities_json TEXT,
+                    secular_theme TEXT,
                     time_horizon TEXT,
                     severity DOUBLE,
                     confidence DOUBLE,
@@ -443,6 +444,9 @@ class DuckDBStore:
                     error_message TEXT
                 )
                 """
+            )
+            con.execute(
+                "ALTER TABLE news_classifications ADD COLUMN IF NOT EXISTS secular_theme TEXT"
             )
             con.execute(
                 """
@@ -1160,6 +1164,8 @@ class DuckDBStore:
             con.execute("DELETE FROM news_sector_impacts")
             if not classifications.empty:
                 frame = classifications.copy()
+                if "secular_theme" not in frame.columns:
+                    frame["secular_theme"] = None
                 frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
                 frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
                 frame["entities_json"] = frame["entities"].map(json.dumps)
@@ -1167,11 +1173,18 @@ class DuckDBStore:
                 con.register("news_classification_frame", frame)
                 con.execute(
                     """
-                    INSERT INTO news_classifications
+                    INSERT INTO news_classifications (
+                        classification_id, news_id, classified_at, ai_provider,
+                        ai_model, macro_themes_json, sector_impacts_json,
+                        entities_json, secular_theme, time_horizon, severity,
+                        confidence, summary, raw_ai_response_json,
+                        classification_status, error_message
+                    )
                     SELECT classification_id, news_id, classified_at, ai_provider,
                            ai_model, macro_themes_json, sector_impacts_json,
-                           entities_json, time_horizon, severity, confidence, summary,
-                           raw_ai_response_json, classification_status, error_message
+                           entities_json, secular_theme, time_horizon, severity,
+                           confidence, summary, raw_ai_response_json,
+                           classification_status, error_message
                     FROM news_classification_frame
                     """
                 )
@@ -1204,6 +1217,8 @@ class DuckDBStore:
         if classifications.empty:
             return
         frame = classifications.copy()
+        if "secular_theme" not in frame.columns:
+            frame["secular_theme"] = None
         news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
         if not news_ids:
             return
@@ -1238,11 +1253,18 @@ class DuckDBStore:
             con.register("news_classification_frame", frame)
             con.execute(
                 """
-                INSERT INTO news_classifications
+                INSERT INTO news_classifications (
+                    classification_id, news_id, classified_at, ai_provider,
+                    ai_model, macro_themes_json, sector_impacts_json,
+                    entities_json, secular_theme, time_horizon, severity,
+                    confidence, summary, raw_ai_response_json,
+                    classification_status, error_message
+                )
                 SELECT classification_id, news_id, classified_at, ai_provider,
                        ai_model, macro_themes_json, sector_impacts_json,
-                       entities_json, time_horizon, severity, confidence, summary,
-                       raw_ai_response_json, classification_status, error_message
+                       entities_json, secular_theme, time_horizon, severity,
+                       confidence, summary, raw_ai_response_json,
+                       classification_status, error_message
                 FROM news_classification_frame
                 """
             )

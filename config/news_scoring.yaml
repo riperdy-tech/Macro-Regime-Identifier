@@ -19,3 +19,23 @@ news_scoring:
   output_start_date: null
   output_end_date: null
   output_dir: outputs
+
+secular_scoring:
+  aggregation_frequency:
+    - monthly
+    - quarterly
+  freshness_decay:
+    enabled: true
+    half_life_days: 30
+    max_age_days: 180
+  source_weights:
+    default: 1.0
+    sources: {}
+  confidence_weighting: true
+  severity_weighting: true
+  max_single_item_contribution: 0.35
+  max_single_source_period_contribution: 1.50
+  min_confidence: 0.10
+  min_severity: 0.05
+  trend_window_days: 30
+  output_dir: outputs

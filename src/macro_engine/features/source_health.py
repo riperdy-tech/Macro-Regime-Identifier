@@ -17,12 +17,12 @@ def calculate_source_health(feature_values: pd.DataFrame) -> SourceHealthReport:
         items.append(
             SourceHealthItem(
                 feature_id=row["feature_id"],
-                series_id=row["series_id"],
+                series_id=_optional_text(row.get("series_id")) or "",
                 status=row.get("status") or "unknown",
-                last_observation=row.get("last_observation"),
+                last_observation=_optional_text(row.get("last_observation")),
                 used_in_score=used_in_score,
                 freshness_score=float(row.get("freshness_score") or 0.0),
-                reason=row.get("reason"),
+                reason=_optional_text(row.get("reason")),
             )
         )
 
@@ -47,3 +47,9 @@ def calculate_source_health(feature_values: pd.DataFrame) -> SourceHealthReport:
         required_series_stale=required_stale,
         items=items,
     )
+
+
+def _optional_text(value) -> str | None:
+    if value is None or pd.isna(value):
+        return None
+    return str(value)
