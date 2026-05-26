@@ -22,8 +22,10 @@ Do not provide investment recommendations.
 Do not use buy, sell, overweight, underweight, avoid, trade, allocation, portfolio allocation, or position sizing language.
 Use only these macro theme IDs: {theme_ids}
 Use only these sector IDs: {sector_ids}
+Use only these secular theme IDs: {secular_theme_ids}
 Use uncertainty when the article is ambiguous.
 If the article is irrelevant to macro or sector diagnostics, use low severity and low confidence.
+If the article does not relate to any secular theme, set secular_theme to null.
 
 Expected JSON shape:
 {{
@@ -54,10 +56,13 @@ Expected JSON shape:
       "relevance": 0.0
     }}
   ],
+  "secular_theme": "ai_compute",
   "overall_severity": 0.0,
   "overall_confidence": 0.0,
   "time_horizon": "short_term"
 }}
+
+secular_theme must be one of the allowed secular theme IDs above, or null if none apply.
 
 Allowed enum values:
 - theme direction: positive, negative, mixed, neutral, unclear
@@ -91,6 +96,7 @@ class MockNewsClassifier:
         text = f"{item.title} {item.body}".lower()
         macro_themes = []
         sector_impacts = []
+        secular_theme = None
         if "oil" in text or "energy" in text:
             macro_themes.append(
                 {
@@ -147,6 +153,7 @@ class MockNewsClassifier:
             "macro_themes": macro_themes,
             "sector_impacts": sector_impacts,
             "entities": [],
+            "secular_theme": secular_theme,
             "overall_severity": max([theme["severity"] for theme in macro_themes], default=0.0),
             "overall_confidence": max(
                 [theme["confidence"] for theme in macro_themes] + [0.0]
@@ -159,6 +166,7 @@ def build_system_prompt(themes: NewsThemesConfig) -> str:
     return SYSTEM_PROMPT_TEMPLATE.format(
         theme_ids=", ".join(sorted(themes.active_theme_ids)),
         sector_ids=", ".join(sorted(themes.sector_ids)),
+        secular_theme_ids=", ".join(sorted(themes.secular_theme_ids)),
     )
 
 
@@ -237,6 +245,7 @@ def classify_news_item(
         if payload is None
         else [impact.model_dump() for impact in payload.sector_impacts],
         entities=[] if payload is None else [entity.model_dump() for entity in payload.entities],
+        secular_theme=None if payload is None else payload.secular_theme,
         time_horizon=None if payload is None else payload.time_horizon,
         severity=None if payload is None else payload.overall_severity,
         confidence=None if payload is None else payload.overall_confidence,
@@ -262,6 +271,11 @@ def validate_classification_payload(
     }
     if unknown_sectors:
         raise ValueError(f"unknown sector ids: {sorted(unknown_sectors)}")
+    if parsed.secular_theme is not None and parsed.secular_theme not in themes.secular_theme_ids:
+        raise ValueError(
+            f"unknown secular_theme '{parsed.secular_theme}'; "
+            f"must be one of {sorted(themes.secular_theme_ids)} or null"
+        )
     return parsed
 
 

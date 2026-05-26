@@ -71,6 +71,7 @@ class NewsClassificationPayload(BaseModel):
     macro_themes: list[MacroThemeSignal] = Field(default_factory=list)
     sector_impacts: list[SectorImpactSignal] = Field(default_factory=list)
     entities: list[NewsEntity] = Field(default_factory=list)
+    secular_theme: str | None = None
     overall_severity: float = Field(ge=0.0, le=1.0)
     overall_confidence: float = Field(ge=0.0, le=1.0)
     time_horizon: Literal["immediate", "short_term", "medium_term", "long_term", "unclear"]
@@ -92,6 +93,7 @@ class NewsClassificationRecord(BaseModel):
     macro_themes: list[dict[str, Any]]
     sector_impacts: list[dict[str, Any]]
     entities: list[dict[str, Any]]
+    secular_theme: str | None = None
     time_horizon: str | None
     severity: float | None
     confidence: float | None

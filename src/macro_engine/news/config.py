@@ -26,6 +26,7 @@ REQUIRED_NEWS_SOURCE_GROUPS = {
     "technology_ai",
     "healthcare",
     "defensive_sectors",
+    "ai_compute",
 }
 
 
@@ -155,6 +156,7 @@ class NewsThemeDefinition(BaseModel):
 
 class NewsThemesConfig(BaseModel):
     macro_themes: list[NewsThemeDefinition]
+    secular_themes: dict[str, Any] | None = None
     sector_ids: list[str]
     sector_impact_directions: list[str] = Field(
         default_factory=lambda: sorted(ALLOWED_IMPACT_DIRECTIONS)
@@ -165,6 +167,12 @@ class NewsThemesConfig(BaseModel):
     @property
     def active_theme_ids(self) -> set[str]:
         return {theme.theme_id for theme in self.macro_themes if theme.enabled}
+
+    @property
+    def secular_theme_ids(self) -> set[str]:
+        if self.secular_themes is None:
+            return set()
+        return set(self.secular_themes.keys())
 
     @model_validator(mode="after")
     def validate_taxonomy(self):

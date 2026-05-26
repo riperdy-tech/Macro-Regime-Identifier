@@ -13,6 +13,7 @@ coverage:
     - technology_ai
     - healthcare
     - defensive_sectors
+    - ai_compute
   max_group_share: 0.35
   max_unmapped_pct: 0.20
   min_source_groups: 3
@@ -163,6 +164,17 @@ news_source_watchlist:
     lookback_days: 2
     region: US
     notes: Local mapped 30-day defensive-sector coverage file used until a refreshed daily file is supplied.
+
+  - source_id: daily_ai_compute_csv
+    source_name: daily_ai_compute
+    source_group: ai_compute
+    provider_type: local_csv
+    path: data/news_pilot/news_items_expanded.csv
+    enabled: true
+    max_items_per_run: 12
+    lookback_days: 2
+    region: US
+    notes: Stub entry for ai_compute secular theme group — points at expanded pilot CSV; operator can swap to a dedicated file later.
 
   - source_id: rss_watchlist_macro_general
     source_name: rss_macro_general
