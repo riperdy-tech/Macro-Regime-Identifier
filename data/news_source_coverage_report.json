@@ -1,5 +1,6 @@
 {
   "configured_groups": [
+    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
@@ -13,7 +14,7 @@
     "real_estate",
     "technology_ai"
   ],
-  "configured_source_count": 14,
+  "configured_source_count": 15,
   "coverage_thresholds": {
     "max_old_item_pct": 0.2,
     "max_single_group_pct": 0.5,
@@ -21,8 +22,11 @@
     "min_source_groups": 3
   },
   "disclaimer": "This source coverage report is an operating diagnostic for news collection breadth. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
-  "enabled_source_count": 13,
+  "enabled_source_count": 14,
   "enabled_sources_by_group": {
+    "ai_compute": [
+      "daily_ai_compute_csv"
+    ],
     "consumer": [
       "daily_consumer_csv"
     ],
@@ -72,6 +76,7 @@
   },
   "missing_configured_groups": [],
   "missing_data_groups": [
+    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
@@ -94,6 +99,7 @@
     }
   ],
   "required_source_groups": [
+    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
@@ -113,6 +119,7 @@
   ],
   "stored_item_count": 2,
   "suggested_groups_needing_more_coverage": [
+    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
