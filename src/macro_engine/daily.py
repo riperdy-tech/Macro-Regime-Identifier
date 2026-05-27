@@ -54,6 +54,7 @@ def run_daily_diagnostic(
     source_profile: str | None = None,
     live_ai: bool | None = None,
     mock_ai: bool | None = None,
+    max_live_items: int | None = None,
     archive: bool | None = None,
     continue_on_warning: bool = False,
     services: dict[str, Callable] | None = None,
@@ -120,7 +121,12 @@ def run_daily_diagnostic(
                     ai_config_path=config.news.news_ai_config,
                     themes_config_path=config.news.news_themes_config,
                     db_path=db_path,
-                    limit=_classification_limit(config, live_ai=live_ai, mock_ai=mock_ai),
+                    limit=_classification_limit(
+                        config,
+                        live_ai=live_ai,
+                        mock_ai=mock_ai,
+                        max_live_items=max_live_items,
+                    ),
                     only_unclassified=_classification_only_unclassified(
                         config,
                         live_ai=live_ai,
@@ -471,9 +477,13 @@ def _classification_limit(
     *,
     live_ai: bool | None,
     mock_ai: bool | None,
+    max_live_items: int | None,
 ) -> int | None:
     if _daily_uses_live_ai(config, live_ai=live_ai, mock_ai=mock_ai):
-        return config.live_ai_safety.max_items_per_run
+        configured_limit = config.live_ai_safety.max_items_per_run
+        if max_live_items is None:
+            return configured_limit
+        return min(max_live_items, configured_limit)
     return None
 
 

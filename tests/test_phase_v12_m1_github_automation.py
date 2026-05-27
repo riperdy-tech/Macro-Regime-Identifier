@@ -150,6 +150,8 @@ class TestGitHubWorkflowConfig:
         content = workflow.read_text()
         assert "live_ai_flag=--live-ai" in content
         assert "${{ steps.mode.outputs.live_ai_flag }}" in content
+        assert "--max-live-items" in content
+        assert "${{ inputs.max_live_items || '25' }}" in content
 
     def test_workflow_does_not_expose_secrets_in_yaml(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")

@@ -105,6 +105,54 @@ def test_run_daily_diagnostic_live_ai_uses_bounded_classification(tmp_path: Path
     assert captured["progress"] is True
 
 
+def test_run_daily_diagnostic_live_ai_can_lower_batch_limit(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    config_path = _daily_config(tmp_path, allow_live_ai=True)
+    services = _daily_services(tmp_path)
+    captured: dict = {}
+
+    def classify_news(**kwargs):
+        captured.update(kwargs)
+        return {}
+
+    services["classify_news"] = classify_news
+    result = run_daily_diagnostic(
+        config_path=config_path,
+        db_path=db_path,
+        run_date="2026-05-19",
+        live_ai=True,
+        max_live_items=7,
+        services=services,
+    )
+
+    assert result.status == "success"
+    assert captured["limit"] == 7
+
+
+def test_run_daily_diagnostic_live_ai_cannot_raise_config_limit(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    config_path = _daily_config(tmp_path, allow_live_ai=True)
+    services = _daily_services(tmp_path)
+    captured: dict = {}
+
+    def classify_news(**kwargs):
+        captured.update(kwargs)
+        return {}
+
+    services["classify_news"] = classify_news
+    result = run_daily_diagnostic(
+        config_path=config_path,
+        db_path=db_path,
+        run_date="2026-05-19",
+        live_ai=True,
+        max_live_items=100,
+        services=services,
+    )
+
+    assert result.status == "success"
+    assert captured["limit"] == 25
+
+
 def test_news_accumulation_outputs_and_report(tmp_path: Path):
     config = load_news_accumulation_config("config/news_accumulation.yaml")
     result = build_news_accumulation_outputs(

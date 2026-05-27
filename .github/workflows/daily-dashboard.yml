@@ -107,6 +107,7 @@ jobs:
             --source-profile "$SOURCE_PROFILE" \
             ${{ steps.mode.outputs.mock_ai_flag }} \
             ${{ steps.mode.outputs.live_ai_flag }} \
+            --max-live-items "${{ inputs.max_live_items || '25' }}" \
             --archive
 
       - name: Run news accumulation

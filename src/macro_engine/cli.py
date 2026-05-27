@@ -1241,6 +1241,7 @@ def run_daily_diagnostic_cli(
     source_profile: Annotated[str | None, typer.Option("--source-profile")] = None,
     live_ai: Annotated[bool, typer.Option("--live-ai")] = False,
     mock_ai: Annotated[bool, typer.Option("--mock-ai")] = False,
+    max_live_items: Annotated[int | None, typer.Option("--max-live-items")] = None,
     archive: Annotated[bool | None, typer.Option("--archive/--no-archive")] = None,
     continue_on_warning: Annotated[bool, typer.Option("--continue-on-warning")] = False,
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
@@ -1253,6 +1254,7 @@ def run_daily_diagnostic_cli(
         source_profile=source_profile,
         live_ai=live_ai,
         mock_ai=mock_ai,
+        max_live_items=max_live_items,
         archive=archive,
         continue_on_warning=continue_on_warning,
     )
