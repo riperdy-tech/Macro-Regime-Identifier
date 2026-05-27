@@ -141,6 +141,7 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `a758556` - Codex WS-2 commit (source coverage report wired into daily automation)
 - `8cfd5a8` - Codex WS-2 commit (daily workflow passes `--live-ai` when live mode selected)
 - `ee17da8` - Codex WS-2 commit (`max_live_items` wired as a config-capped live batch limit)
+- `c8e716f` - Codex WS-2 commit (separate live GitHub daily config for explicit live runs)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -175,6 +176,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 #### WS2-T4 — Daily automation
 - **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, source coverage report, secular theme tracker, diagnostic `regime_status.json`, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present, and dashboard export is refreshed after automation summary is written.
 - **Live mode guard:** Manual GitHub `run_mode=live` now passes `--live-ai`; `max_live_items` is wired to `--max-live-items` but cannot raise the configured `live_ai_safety.max_items_per_run` cap.
+- **Live config:** Explicit live runs use `config/daily_pipeline_github_live.yaml`, which allows live AI and defaults to `ai_compute_rss`; mock/scheduled runs keep `config/daily_pipeline_github.yaml`.
 - **What to do:**
   1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
   2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.
