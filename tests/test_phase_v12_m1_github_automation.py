@@ -201,9 +201,13 @@ class TestAutomationSecretSafety:
 class TestLocalDailyScripts:
     def test_powershell_script_writes_automation_summary(self):
         content = Path("scripts/run_daily_diagnostic.ps1").read_text()
+        assert "write-regime-status" in content
         assert "write-automation-summary" in content
+        assert content.index("write-regime-status") < content.index("export-dashboard-data")
         assert "Automation summary failed" in content
 
     def test_shell_script_writes_automation_summary(self):
         content = Path("scripts/run_daily_diagnostic.sh").read_text()
+        assert "write-regime-status" in content
         assert "write-automation-summary" in content
+        assert content.index("write-regime-status") < content.index("export-dashboard-data")

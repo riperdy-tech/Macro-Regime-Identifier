@@ -117,6 +117,9 @@ jobs:
       - name: Build secular theme tracker
         run: python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml
 
+      - name: Write regime status
+        run: python -m macro_engine.cli write-regime-status
+
       - name: Export dashboard data
         run: python -m macro_engine.cli export-dashboard-data
 
@@ -142,6 +145,7 @@ jobs:
             outputs/news_accumulation_report.md
             outputs/secular_theme_scores.json
             outputs/secular_theme_tracker_*.md
+            outputs/regime_status.json
             outputs/automation_run_summary.json
             outputs/automation_run_summary.md
             dashboard/public/data/manifest.json

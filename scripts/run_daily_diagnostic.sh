@@ -27,6 +27,7 @@ python $ARGS > "$LOG_PATH" 2>&1
 python -m macro_engine.cli run-news-accumulation --config config/news_accumulation.yaml >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml >> "$LOG_PATH" 2>&1
+python -m macro_engine.cli write-regime-status >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli export-dashboard-data >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-automation-summary >> "$LOG_PATH" 2>&1
 echo "Daily diagnostic completed. See $LOG_PATH"

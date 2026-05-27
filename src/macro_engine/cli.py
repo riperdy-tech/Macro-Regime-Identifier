@@ -54,6 +54,7 @@ from macro_engine.outputs.report import build_markdown_report, write_markdown_re
 from macro_engine.pipeline import classify_observations
 from macro_engine.pipeline_runner import run_pipeline as run_full_pipeline
 from macro_engine.regimes.service import build_stored_regimes
+from macro_engine.regime_status import write_regime_status
 from macro_engine.replay import replay_news_history
 from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
@@ -1401,6 +1402,15 @@ def write_automation_summary_cli(
             "markdown_path": str(md_path),
         }
     )
+
+
+@app.command("write-regime-status")
+def write_regime_status_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+) -> None:
+    """Write a small diagnostic regime status JSON snapshot."""
+    json_path = write_regime_status(outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path)})
 
 
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:

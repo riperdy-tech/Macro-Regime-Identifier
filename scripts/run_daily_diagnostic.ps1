@@ -56,6 +56,12 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+& python -m macro_engine.cli write-regime-status *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Regime status failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
 & python -m macro_engine.cli export-dashboard-data *> $LogPath -Append
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Dashboard export failed. See $LogPath"

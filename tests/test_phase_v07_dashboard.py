@@ -37,6 +37,10 @@ def test_export_dashboard_data_copies_available_files_and_manifest(tmp_path: Pat
         json.dumps({"generated_at": "2026-05-20T00:00:00Z"}),
         encoding="utf-8",
     )
+    (outputs / "regime_status.json").write_text(
+        json.dumps({"computed_at": "2026-05-20T00:00:00Z", "monitor_ready": False}),
+        encoding="utf-8",
+    )
 
     manifest = export_dashboard_data(outputs_dir=outputs, dashboard_data_dir=data_dir)
 
@@ -46,11 +50,13 @@ def test_export_dashboard_data_copies_available_files_and_manifest(tmp_path: Pat
     assert manifest["latest_news_score_date"] == "2026-05-16"
     assert (data_dir / "daily_diagnostic_summary.json").exists()
     assert (data_dir / "secular_theme_scores.json").exists()
+    assert (data_dir / "regime_status.json").exists()
     assert (data_dir / "automation_run_summary.json").exists()
     assert (data_dir / "manifest.json").exists()
     assert (data_dir / "history_index.json").exists()
     assert "history_index.json" in manifest["available_files"]
     assert "secular_theme_scores.json" in manifest["available_files"]
+    assert "regime_status.json" in manifest["available_files"]
     assert "automation_run_summary.json" in manifest["available_files"]
     assert "current_sector_ranking.json" in manifest["missing_files"]
 
