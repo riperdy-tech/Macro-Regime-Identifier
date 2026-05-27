@@ -30,4 +30,5 @@ python -m macro_engine.cli build-secular-theme-scores --config config/news_scori
 python -m macro_engine.cli write-regime-status >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli export-dashboard-data >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-automation-summary >> "$LOG_PATH" 2>&1
+python -m macro_engine.cli export-dashboard-data >> "$LOG_PATH" 2>&1
 echo "Daily diagnostic completed. See $LOG_PATH"

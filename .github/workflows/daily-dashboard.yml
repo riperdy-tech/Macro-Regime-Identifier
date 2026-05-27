@@ -123,15 +123,17 @@ jobs:
       - name: Export dashboard data
         run: python -m macro_engine.cli export-dashboard-data
 
+      - name: Write automation summary
+        run: python -m macro_engine.cli write-automation-summary
+
+      - name: Export dashboard data with automation summary
+        run: python -m macro_engine.cli export-dashboard-data
+
       - name: Build dashboard
         working-directory: dashboard
         env:
           GITHUB_PAGES: "true"
         run: npm run build
-
-      - name: Write automation summary
-        if: always()
-        run: python -m macro_engine.cli write-automation-summary
 
       - name: Upload artifacts
         if: always()

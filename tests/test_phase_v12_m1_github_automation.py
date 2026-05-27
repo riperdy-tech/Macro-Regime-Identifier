@@ -129,6 +129,15 @@ class TestGitHubWorkflowConfig:
         assert "schedule:" in content
         assert "cron:" in content
 
+    def test_workflow_exports_after_automation_summary(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        assert "Write automation summary" in content
+        assert "Export dashboard data with automation summary" in content
+        assert content.index("Write automation summary") < content.index(
+            "Export dashboard data with automation summary"
+        )
+
     def test_workflow_does_not_expose_secrets_in_yaml(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")
         content = workflow.read_text()
@@ -204,6 +213,7 @@ class TestLocalDailyScripts:
         assert "write-regime-status" in content
         assert "write-automation-summary" in content
         assert content.index("write-regime-status") < content.index("export-dashboard-data")
+        assert content.index("write-automation-summary") < content.rindex("export-dashboard-data")
         assert "Automation summary failed" in content
 
     def test_shell_script_writes_automation_summary(self):
@@ -211,3 +221,4 @@ class TestLocalDailyScripts:
         assert "write-regime-status" in content
         assert "write-automation-summary" in content
         assert content.index("write-regime-status") < content.index("export-dashboard-data")
+        assert content.index("write-automation-summary") < content.rindex("export-dashboard-data")
