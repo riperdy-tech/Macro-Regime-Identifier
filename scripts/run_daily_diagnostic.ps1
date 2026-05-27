@@ -50,6 +50,12 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+& python -m macro_engine.cli write-news-source-coverage-report --config config/news_source_watchlist.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "News source coverage report failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
 & python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml *> $LogPath -Append
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Secular theme tracker failed. See $LogPath"

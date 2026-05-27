@@ -138,6 +138,13 @@ class TestGitHubWorkflowConfig:
             "Export dashboard data with automation summary"
         )
 
+    def test_workflow_writes_source_coverage_report(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        assert "write-news-source-coverage-report" in content
+        assert "outputs/news_source_coverage_report.json" in content
+        assert "outputs/news_source_coverage_report.md" in content
+
     def test_workflow_does_not_expose_secrets_in_yaml(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")
         content = workflow.read_text()
@@ -212,6 +219,7 @@ class TestLocalDailyScripts:
         content = Path("scripts/run_daily_diagnostic.ps1").read_text()
         assert "write-regime-status" in content
         assert "write-automation-summary" in content
+        assert "write-news-source-coverage-report" in content
         assert content.index("write-regime-status") < content.index("export-dashboard-data")
         assert content.index("write-automation-summary") < content.rindex("export-dashboard-data")
         assert "Automation summary failed" in content
@@ -220,5 +228,6 @@ class TestLocalDailyScripts:
         content = Path("scripts/run_daily_diagnostic.sh").read_text()
         assert "write-regime-status" in content
         assert "write-automation-summary" in content
+        assert "write-news-source-coverage-report" in content
         assert content.index("write-regime-status") < content.index("export-dashboard-data")
         assert content.index("write-automation-summary") < content.rindex("export-dashboard-data")

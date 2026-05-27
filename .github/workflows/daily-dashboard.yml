@@ -114,6 +114,9 @@ jobs:
       - name: Write accumulation report
         run: python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml
 
+      - name: Write source coverage report
+        run: python -m macro_engine.cli write-news-source-coverage-report --config config/news_source_watchlist.yaml
+
       - name: Build secular theme tracker
         run: python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml
 
@@ -145,6 +148,8 @@ jobs:
             outputs/daily_diagnostic_summary.md
             outputs/news_accumulation_report.json
             outputs/news_accumulation_report.md
+            outputs/news_source_coverage_report.json
+            outputs/news_source_coverage_report.md
             outputs/secular_theme_scores.json
             outputs/secular_theme_tracker_*.md
             outputs/regime_status.json
