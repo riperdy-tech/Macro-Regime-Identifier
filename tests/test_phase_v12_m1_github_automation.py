@@ -152,6 +152,9 @@ class TestGitHubWorkflowConfig:
         assert "${{ steps.mode.outputs.live_ai_flag }}" in content
         assert "--max-live-items" in content
         assert "${{ inputs.max_live_items || '25' }}" in content
+        assert "pipeline_config=config/daily_pipeline_github_live.yaml" in content
+        assert "default_source_profile=ai_compute_rss" in content
+        assert "--config \"${{ steps.mode.outputs.pipeline_config }}\"" in content
 
     def test_workflow_does_not_expose_secrets_in_yaml(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")
@@ -201,6 +204,15 @@ class TestGitHubDailyPipelineConfig:
         assert "FRED_API_KEY" not in content
         assert "DEEPSEEK_API_KEY" not in content
         assert "api_key" not in content.lower()
+
+    def test_github_live_config_exists_and_allows_live_ai(self):
+        config = Path("config/daily_pipeline_github_live.yaml")
+        assert config.exists(), "daily_pipeline_github_live.yaml must exist"
+        content = yaml.safe_load(config.read_text())
+        news = content["daily_pipeline"]["news"]
+        assert news["allow_live_ai"] is True
+        assert news["mock_mode_default"] is False
+        assert news["source_profile"] == "ai_compute_rss"
 
 
 class TestAutomationSecretSafety:

@@ -23,10 +23,10 @@ on:
         type: string
         default: "25"
       source_profile:
-        description: "News source profile"
+        description: "News source profile (blank uses run-mode default)"
         required: false
         type: string
-        default: "synthetic_sample"
+        default: ""
 
   schedule:
     # Mon-Fri at 22:37 UTC (adjust cron for your timezone)
@@ -91,9 +91,13 @@ jobs:
           if [ "$MODE" = "live" ]; then
             echo "mock_ai_flag=" >> $GITHUB_OUTPUT
             echo "live_ai_flag=--live-ai" >> $GITHUB_OUTPUT
+            echo "pipeline_config=config/daily_pipeline_github_live.yaml" >> $GITHUB_OUTPUT
+            echo "default_source_profile=ai_compute_rss" >> $GITHUB_OUTPUT
           else
             echo "mock_ai_flag=--mock-ai" >> $GITHUB_OUTPUT
             echo "live_ai_flag=" >> $GITHUB_OUTPUT
+            echo "pipeline_config=config/daily_pipeline_github.yaml" >> $GITHUB_OUTPUT
+            echo "default_source_profile=synthetic_sample" >> $GITHUB_OUTPUT
           fi
 
       - name: Run daily diagnostic
@@ -101,9 +105,9 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
-          SOURCE_PROFILE="${{ inputs.source_profile || 'synthetic_sample' }}"
+          SOURCE_PROFILE="${{ inputs.source_profile || steps.mode.outputs.default_source_profile }}"
           python -m macro_engine.cli run-daily-diagnostic \
-            --config config/daily_pipeline_github.yaml \
+            --config "${{ steps.mode.outputs.pipeline_config }}" \
             --source-profile "$SOURCE_PROFILE" \
             ${{ steps.mode.outputs.mock_ai_flag }} \
             ${{ steps.mode.outputs.live_ai_flag }} \

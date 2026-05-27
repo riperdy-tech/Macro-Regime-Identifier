@@ -1,0 +1,50 @@
+# GitHub Actions live-AI daily pipeline config.
+# Use only when workflow_dispatch run_mode=live is selected.
+# Requires GitHub Secrets for FRED_API_KEY and DEEPSEEK_API_KEY.
+
+daily_pipeline:
+  macro:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    mode: live
+
+  sector:
+    enabled: true
+    config_path: config/phase_b_sources.yaml
+    sector_config_path: config/sectors.yaml
+    exposure_config_path: config/sector_exposures.yaml
+    prior_config_path: config/sector_regime_priors.yaml
+
+  news:
+    enabled: true
+    source_profile: ai_compute_rss
+    news_sources_config: config/news_sources.yaml
+    news_ai_config: config/news_ai.yaml
+    news_themes_config: config/news_themes.yaml
+    news_scoring_config: config/news_scoring.yaml
+    allow_live_ai: true
+    mock_mode_default: false
+
+  live_ai_safety:
+    max_items_per_run: 25
+    batch_size: 5
+    classify_only_unclassified: true
+    continue_on_individual_failure: true
+    stop_on_failure_rate_above: 0.20
+    stop_on_timeout_count_above: 3
+
+  combined:
+    enabled: true
+    config_path: config/sector_news_integration.yaml
+
+  monitoring:
+    enabled: true
+    config_path: config/news_monitoring.yaml
+    source_profile: ai_compute_rss
+
+  safety:
+    fail_on_guardrail_violation: true
+
+  outputs:
+    archive_enabled: true
+    archive_root: outputs/archive
