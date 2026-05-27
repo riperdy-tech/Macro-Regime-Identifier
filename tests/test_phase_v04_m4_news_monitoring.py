@@ -28,6 +28,7 @@ def test_news_monitoring_config_and_cli():
         "macro_general",
         "inflation_rates",
         "technology_ai",
+        "ai_compute",
     }
 
     result = runner.invoke(
