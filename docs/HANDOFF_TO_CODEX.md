@@ -132,6 +132,10 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `5d59ea6` - Codex WS-2 commit (T7 RSS config, T8/T9 secular scoring/tracker, daily hooks)
 - `4844371` - Codex WS-2 commit (T3 accumulation-grade replay persistence)
 - `cbaecf2` - Codex WS-2 commit (T4/T2 automation summary hardening)
+- `54e03bf` - Codex WS-2 commit (T7 real `ai_compute_rss` feed verification)
+- `44b7ae5` - Codex WS-2 commit (T2 live-RSS mock smoke receipt)
+- `b425558` - Codex WS-2 commit (dashboard publishes secular + automation outputs)
+- `c871740` - Codex WS-2 commit (MGI-only diagnostic `regime_status.json` publisher)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -164,7 +168,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Watch out for:** Replay is still an operating replay, not validation. Real signal still needs T2 daily accumulation with fresh inputs.
 
 #### WS2-T4 — Daily automation
-- **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, secular theme tracker, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present.
+- **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, secular theme tracker, diagnostic `regime_status.json`, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present.
 - **What to do:**
   1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
   2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.
@@ -205,13 +209,14 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 ### 4.3 WS-3 — Wire MGI into Stock Screener (CROSS-REPO)
 
 - **Status:** NOT STARTED. **Blocked** on MGI reaching `monitor_ready` per brief discipline.
+- **MGI-side note:** `outputs/regime_status.json` now exists as a diagnostic-only publish artifact. Stock Screener is still not wired to consume it.
 - **What it is:** Stock Screener's `score_paradigm.py` currently reads raw FRED data (its own `fetch_macro_state.py`). It does NOT read MGI's processed regime or theme scores. WS-3 connects them.
 - **Two patterns (operator chose option C "flags only" for the initial macro overlay):**
   - **A. Hard multiplier:** Stock Screener pulls MGI's `dominant_regime` (Goldilocks/Reflation/Stagflation/Recession) and applies a per-regime multiplier to `pdm_signal`. Requires MGI signal to be trustworthy.
   - **B. Band downgrade:** MGI regime → demote paradigm band one tier in stressed regimes.
   - **C. Flags-only (current):** Stock Screener reads its own FRED snapshot. MGI not involved. Already shipped (WS1-T9).
 - **What to build for WS-3:**
-  1. MGI publishes nightly: `outputs/regime_status.json` with `{dominant_regime, regime_probability, secular_theme_scores: {...}, monitor_ready: bool, computed_at}`.
+  1. MGI publishes nightly: `outputs/regime_status.json` with `{dominant_regime, regime_probability, secular_theme_scores: {...}, monitor_ready: bool, computed_at}`. **MGI side done; output remains diagnostic-only until ready.**
   2. Commit it to MGI's repo on every nightly run.
   3. Stock Screener fetches it via raw GitHub URL: `https://raw.githubusercontent.com/riperdy-tech/Macro-Regime-Identifier/master/outputs/regime_status.json`.
   4. Stock Screener's `score_paradigm.py` reads + applies (multiplier OR band downgrade OR flags).
