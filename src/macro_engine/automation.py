@@ -80,6 +80,35 @@ def build_automation_summary(
     else:
         summary["accumulation"] = {"status": "missing"}
 
+    # Secular theme tracker
+    secular_path = outputs_dir / "secular_theme_scores.json"
+    if secular_path.exists():
+        secular = json.loads(secular_path.read_text(encoding="utf-8"))
+        themes = secular.get("themes") or {}
+        ranked = sorted(
+            (
+                {
+                    "theme_id": theme_id,
+                    "score": float(theme.get("score") or 0.0),
+                    "item_count": int(theme.get("item_count") or 0),
+                }
+                for theme_id, theme in themes.items()
+                if isinstance(theme, dict)
+                and (float(theme.get("score") or 0.0) != 0.0 or int(theme.get("item_count") or 0) > 0)
+            ),
+            key=lambda item: (abs(item["score"]), item["item_count"], item["theme_id"]),
+            reverse=True,
+        )
+        summary["secular_themes"] = {
+            "computed_at": secular.get("computed_at"),
+            "readiness_note": secular.get("readiness_note"),
+            "scored_theme_count": secular.get("scored_theme_count"),
+            "theme_count": secular.get("theme_count"),
+            "top_themes": ranked[:3],
+        }
+    else:
+        summary["secular_themes"] = {"status": "missing"}
+
     return summary
 
 
@@ -134,6 +163,17 @@ def write_automation_summary(
             f"- **Readiness**: {accum['readiness_label']} "
             f"({accum.get('classified_items', 'N/A')} classified)"
         )
+
+    secular = data.get("secular_themes", {})
+    if secular.get("top_themes"):
+        top = ", ".join(theme["theme_id"] for theme in secular["top_themes"])
+        md_lines.append(
+            f"- **Secular Themes**: {top} "
+            f"({secular.get('scored_theme_count', 'N/A')}/"
+            f"{secular.get('theme_count', 'N/A')} scored)"
+        )
+    else:
+        md_lines.append("- **Secular Themes**: not available")
     md_lines.append("")
 
     md_lines.append("This is an automated diagnostic summary.")

@@ -62,5 +62,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+& python -m macro_engine.cli write-automation-summary *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Automation summary failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
 Write-Host "Daily diagnostic completed. See $LogPath"
 exit 0

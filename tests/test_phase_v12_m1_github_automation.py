@@ -46,6 +46,54 @@ class TestAutomationSummary:
             assert "Automation Run Summary" in content
             assert "not investment advice" in content
 
+    def test_build_with_secular_theme_scores(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secular = {
+                "computed_at": "2026-05-21T00:00:00+00:00",
+                "readiness_note": "diagnostic_overlay_only",
+                "scored_theme_count": 2,
+                "theme_count": 9,
+                "themes": {
+                    "ai_compute": {"score": 0.5, "item_count": 4},
+                    "cloud_software": {"score": -0.2, "item_count": 8},
+                },
+            }
+            Path(tmp, "secular_theme_scores.json").write_text(json.dumps(secular))
+            summary = build_automation_summary(outputs_dir=tmp, dashboard_data_dir=tmp)
+            tracker = summary["secular_themes"]
+            assert tracker["readiness_note"] == "diagnostic_overlay_only"
+            assert tracker["scored_theme_count"] == 2
+            assert tracker["top_themes"][0]["theme_id"] == "ai_compute"
+
+    def test_write_summary_mentions_secular_themes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secular = {
+                "computed_at": "2026-05-21T00:00:00+00:00",
+                "scored_theme_count": 1,
+                "theme_count": 9,
+                "themes": {"ai_compute": {"score": 0.5, "item_count": 4}},
+            }
+            Path(tmp, "secular_theme_scores.json").write_text(json.dumps(secular))
+            _, md_path = write_automation_summary(outputs_dir=tmp)
+            content = md_path.read_text()
+            assert "Secular Themes" in content
+            assert "ai_compute" in content
+
+    def test_zero_score_secular_themes_are_not_ranked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secular = {
+                "computed_at": "2026-05-21T00:00:00+00:00",
+                "scored_theme_count": 0,
+                "theme_count": 9,
+                "themes": {
+                    "ai_compute": {"score": 0.0, "item_count": 0},
+                    "space_economy": {"score": 0.0, "item_count": 0},
+                },
+            }
+            Path(tmp, "secular_theme_scores.json").write_text(json.dumps(secular))
+            summary = build_automation_summary(outputs_dir=tmp, dashboard_data_dir=tmp)
+            assert summary["secular_themes"]["top_themes"] == []
+
     def test_github_env_vars_captured(self, monkeypatch):
         monkeypatch.setenv("GITHUB_RUN_ID", "12345")
         monkeypatch.setenv("GITHUB_RUN_NUMBER", "42")
@@ -148,3 +196,14 @@ class TestAutomationSecretSafety:
             data = summary_path.read_text()
             assert "FRED_API_KEY" not in data
             assert "DEEPSEEK_API_KEY" not in data
+
+
+class TestLocalDailyScripts:
+    def test_powershell_script_writes_automation_summary(self):
+        content = Path("scripts/run_daily_diagnostic.ps1").read_text()
+        assert "write-automation-summary" in content
+        assert "Automation summary failed" in content
+
+    def test_shell_script_writes_automation_summary(self):
+        content = Path("scripts/run_daily_diagnostic.sh").read_text()
+        assert "write-automation-summary" in content
