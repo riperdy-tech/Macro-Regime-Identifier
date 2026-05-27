@@ -129,6 +129,7 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 ### Commit reference
 - `5bc5f0d` — last commit before Claude's WS-2 session (operator's prior work)
 - `5e5e619` — Claude's WS-2 commit (T1 + T5 + T6 bundled)
+- `5d59ea6` - Codex WS-2 commit (T7 RSS config, T8/T9 secular scoring/tracker, daily hooks)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -152,13 +153,13 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Watch out for:** mock vs real classifier toggle. Check `MockNewsClassifier` vs `DeepSeekClassifier` selection logic in `classify.py`.
 
 #### WS2-T3 — Historical news replay
-- **Status:** NOT STARTED. CLI command `replay-news-history` already exists per audit §3 (`src/macro_engine/replay.py`).
+- **Status:** DONE IN CODE / REPLAY-CORPUS VERIFIED. `replay-news-history` now supports `--persist-replay-db`, letting replay-day classifications persist into the central `--db-path` so accumulation counts replay dates.
+- **Receipt:** Mock same-day replay over `data/news_pilot/news_items_last_30_days.csv` from 2026-04-22 to 2026-05-21 produced 30 replay days, 133 persisted unique classifications, 27 classified replay dates, and `run-news-accumulation` reported `monitor_ready` on `data/ws2_t3_replay_persist.duckdb`.
 - **Why it matters:** Replay over a date range generates multiple run dates from one large CSV file. Much cheaper way to clear `insufficient_history` than waiting 5 actual calendar days.
 - **What to do:**
-  1. Inspect `replay-news-history` CLI signature (`python -m macro_engine.cli replay-news-history --help`).
-  2. Run replay over 2025-01-01 to 2026-05-21 using `news_items_last_30_days.csv` or `news_items_expanded.csv`.
-  3. Verify accumulator clears `insufficient_history` after replay.
-- **Watch out for:** Replay may re-use the same source CSV repeatedly, producing identical classifications per date. That's fine for plumbing but won't surface true theme rotation across dates. Real signal needs T2 daily accumulation.
+  1. Use `--same-day-only --persist-replay-db` for accumulation-grade replay; this avoids duplicate prior-day reclassification overwriting central classifications by `news_id`.
+  2. Run accumulation against the same `--db-path` after replay.
+- **Watch out for:** Replay is still an operating replay, not validation. Real signal still needs T2 daily accumulation with fresh inputs.
 
 #### WS2-T4 — Daily automation
 - **Status:** NOT STARTED.
@@ -171,7 +172,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 ### 4.2 Theme-layer extension (audit §6b)
 
 #### WS2-T7 — Wire real RSS feeds for `ai_compute`
-- **Status:** NOT STARTED. Current RSS provider points at `example.invalid` (placeholder, per audit).
+- **Status:** PARTIAL. Disabled-by-default `ai_compute_rss` sources added for NVIDIA Blog, NVIDIA Developer Blog, and Google Cloud Blog. `validate-news-input --profile ai_compute_rss` passes without fetching RSS during validation.
 - **Why it matters:** Without real news flow, `ai_compute` source group has no input. Mock-only.
 - **What to do:**
   1. Pick free RSS feeds for AI compute coverage. Candidates: SemiAnalysis (paid), HackerNews "ask" feed (general), Tom's Hardware RSS, AnandTech RSS (defunct?), arxiv-sanity for papers (signal/noise issue), NVIDIA blog RSS, AMD blog RSS.
@@ -184,7 +185,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
   - Rate limits unclear; cache responses.
 
 #### WS2-T8 — Multi-month aggregation for secular themes
-- **Status:** NOT STARTED.
+- **Status:** DONE IN CODE. `config/news_scoring.yaml` now has `secular_scoring` defaults for monthly/quarterly scoring with 30-day half-life and 180-day max age. Secular scoring reads stored `news_classifications.secular_theme` separately from macro theme scoring.
 - **Why it matters:** Current `news_scoring.yaml` aggregates daily/weekly with a 7-day half-life. Secular themes need months-to-quarters horizons to capture drift.
 - **What to do:**
   1. Add `monthly` and/or `quarterly` aggregation frequency to `config/news_scoring.yaml`.
@@ -193,7 +194,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Watch out for:** the scoring code currently lumps macro and secular themes together in some paths. Separate them so macro themes keep their 7-day half-life and only secular themes get the longer horizon.
 
 #### WS2-T9 — Secular theme tracker report
-- **Status:** NOT STARTED.
+- **Status:** DONE IN CODE. New CLI: `python -m macro_engine.cli build-secular-theme-scores`.
 - **What to do:**
   1. New CLI command: `python -m macro_engine.cli build-secular-theme-scores`.
   2. New report writer in `src/macro_engine/news/report.py` (or wherever existing news reports live).

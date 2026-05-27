@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 import json
 from pathlib import Path
 import shutil
@@ -56,6 +56,7 @@ def replay_news_history(
     live_ai: bool = False,
     mock_ai: bool = True,
     only_unclassified: bool = True,
+    persist_replay_db: bool = False,
     export_dashboard: bool = True,
     services: dict[str, Callable] | None = None,
 ) -> ReplayResult:
@@ -121,6 +122,12 @@ def replay_news_history(
             live_ai=live_ai,
             mock_ai=mock_ai,
         )
+        if persist_replay_db and result.status == "success":
+            _persist_replay_day_to_central_db(
+                daily_db_path=daily_db_path,
+                central_db_path=db_path,
+                replay_day=replay_day,
+            )
         replay_runs.append(
             _run_record(
                 result=result,
@@ -142,6 +149,7 @@ def replay_news_history(
         live_ai=live_ai,
         mock_ai=mock_ai,
         include_prior_items=include_prior_items,
+        persist_replay_db=persist_replay_db,
     )
     return _write_result(payload, output_path)
 
@@ -320,6 +328,58 @@ def _run_record(
     }
 
 
+def _persist_replay_day_to_central_db(
+    *,
+    daily_db_path: str | Path,
+    central_db_path: str | Path,
+    replay_day: date,
+) -> None:
+    daily_store = DuckDBStore(daily_db_path)
+    daily_store.initialize()
+    central_store = DuckDBStore(central_db_path)
+    central_store.initialize()
+
+    news_items = daily_store.read_table("news_items")
+    if not news_items.empty:
+        central_store.upsert_news_items(news_items)
+
+    classifications = daily_store.read_table("news_classifications")
+    theme_scores = daily_store.read_table("news_theme_scores")
+    sector_impacts = daily_store.read_table("news_sector_impacts")
+    if classifications.empty:
+        return
+
+    persisted = _classification_frame_for_upsert(classifications)
+    persisted["classified_at"] = datetime(
+        replay_day.year,
+        replay_day.month,
+        replay_day.day,
+        12,
+        0,
+        0,
+        tzinfo=UTC,
+    )
+    central_store.upsert_news_classification_outputs(
+        persisted,
+        theme_scores,
+        sector_impacts,
+    )
+
+
+def _classification_frame_for_upsert(classifications: pd.DataFrame) -> pd.DataFrame:
+    frame = classifications.copy()
+    json_columns = {
+        "macro_themes_json": "macro_themes",
+        "sector_impacts_json": "sector_impacts",
+        "entities_json": "entities",
+        "raw_ai_response_json": "raw_ai_response",
+    }
+    for source, target in json_columns.items():
+        if target not in frame.columns:
+            frame[target] = frame[source].map(_loads_json_value) if source in frame.columns else None
+    return frame
+
+
 def _summary_payload(
     *,
     news_file: Path,
@@ -330,6 +390,7 @@ def _summary_payload(
     live_ai: bool,
     mock_ai: bool,
     include_prior_items: bool,
+    persist_replay_db: bool,
 ) -> dict[str, Any]:
     items_by_day = _items_by_day(source_frame)
     days = [start_day + timedelta(days=offset) for offset in range((end_day - start_day).days + 1)]
@@ -347,6 +408,7 @@ def _summary_payload(
         "replay_days": len(days),
         "classification_mode": "live_ai" if live_ai and not mock_ai else "mock",
         "include_prior_items": include_prior_items,
+        "persist_replay_db": persist_replay_db,
         "total_news_items": int(len(source_frame)),
         "items_by_day": items_by_day,
         "classified_success_count": total_success,
@@ -502,6 +564,19 @@ def _guardrail_status(result: DailyDiagnosticResult) -> str | None:
         return None
     statuses = payload.get("step_statuses")
     return statuses.get("guardrail_status") if isinstance(statuses, dict) else None
+
+
+def _loads_json_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        return value
+    if pd.isna(value):
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return None
 
 
 def _coerce_date(value: str | date) -> date:

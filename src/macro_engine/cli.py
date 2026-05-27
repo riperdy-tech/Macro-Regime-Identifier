@@ -1311,6 +1311,10 @@ def replay_news_history_cli(
     live_ai: Annotated[bool, typer.Option("--live-ai")] = False,
     mock_ai: Annotated[bool, typer.Option("--mock-ai/--no-mock-ai")] = True,
     only_unclassified: Annotated[bool, typer.Option("--only-unclassified/--force-reclassify")] = True,
+    persist_replay_db: Annotated[
+        bool,
+        typer.Option("--persist-replay-db/--no-persist-replay-db"),
+    ] = False,
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs/replay",
 ) -> None:
@@ -1328,6 +1332,7 @@ def replay_news_history_cli(
         live_ai=live_ai,
         mock_ai=mock_ai,
         only_unclassified=only_unclassified,
+        persist_replay_db=persist_replay_db,
     )
     console.print_json(
         data={

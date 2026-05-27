@@ -6,14 +6,17 @@ from pathlib import Path
 import pandas as pd
 from typer.testing import CliRunner
 
+from macro_engine.accumulation import build_news_accumulation_outputs
 from macro_engine.cli import app
 from macro_engine.dashboard_export import export_dashboard_data
+from macro_engine.operations_config import NewsAccumulationConfig
 from macro_engine.replay import (
     filter_replay_items,
     load_replay_news_frame,
     replay_news_history,
     replay_window,
 )
+from macro_engine.storage.duckdb_store import DuckDBStore
 
 
 runner = CliRunner()
@@ -121,6 +124,79 @@ def test_replay_cli_blocked_missing_file(tmp_path: Path):
 
     assert result.exit_code == 0, result.output
     assert '"status": "blocked"' in result.output
+
+
+def test_replay_persist_replay_db_updates_central_accumulation_inputs(tmp_path: Path):
+    news_file = _news_file(tmp_path)
+    central_db = tmp_path / "central.duckdb"
+    result = replay_news_history(
+        config_path=_daily_config(tmp_path),
+        news_file=news_file,
+        start_date="2026-05-01",
+        end_date="2026-05-03",
+        db_path=central_db,
+        output_dir=tmp_path / "outputs" / "replay",
+        archive=True,
+        include_prior_items=False,
+        max_items_per_replay_day=10,
+        persist_replay_db=True,
+        services=_daily_services(tmp_path),
+    )
+
+    assert result.status == "success"
+    store = DuckDBStore(central_db)
+    store.initialize()
+    news_items = store.read_table("news_items")
+    classifications = store.read_table("news_classifications")
+    daily_theme_scores = store.read_table("news_daily_theme_scores")
+    daily_sector_scores = store.read_table("news_daily_sector_scores")
+    combined = store.read_table("combined_sector_diagnostics")
+    sector_scores = store.read_table("sector_scores")
+
+    assert len(news_items) == 3
+    assert len(classifications) == 3
+    replay_dates = sorted(
+        pd.to_datetime(classifications["classified_at"], utc=True).dt.date.astype(str).unique()
+    )
+    assert replay_dates == ["2026-05-01", "2026-05-03"]
+
+    accumulation = build_news_accumulation_outputs(
+        config=NewsAccumulationConfig(min_items_per_run=0, min_source_count=0),
+        news_items=news_items,
+        classifications=classifications,
+        daily_theme_scores=daily_theme_scores,
+        daily_sector_scores=daily_sector_scores,
+        combined_diagnostics=combined,
+        sector_scores=sector_scores,
+        run_date=pd.Timestamp("2026-05-03").date(),
+    )
+    assert int(accumulation.runs.iloc[0]["classified_items"]) == 3
+
+
+def test_replay_cli_accepts_persist_replay_db_flag(tmp_path: Path):
+    result = runner.invoke(
+        app,
+        [
+            "replay-news-history",
+            "--config",
+            str(_daily_config(tmp_path)),
+            "--news-file",
+            str(_news_file(tmp_path)),
+            "--start-date",
+            "2026-05-01",
+            "--end-date",
+            "2026-05-01",
+            "--output-dir",
+            str(tmp_path / "replay"),
+            "--db-path",
+            str(tmp_path / "central.duckdb"),
+            "--same-day-only",
+            "--persist-replay-db",
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+    assert '"status": "success"' in result.output
 
 
 def _news_file(tmp_path: Path) -> Path:
