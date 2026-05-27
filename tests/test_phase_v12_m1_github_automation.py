@@ -145,6 +145,12 @@ class TestGitHubWorkflowConfig:
         assert "outputs/news_source_coverage_report.json" in content
         assert "outputs/news_source_coverage_report.md" in content
 
+    def test_workflow_passes_live_ai_flag_when_selected(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        assert "live_ai_flag=--live-ai" in content
+        assert "${{ steps.mode.outputs.live_ai_flag }}" in content
+
     def test_workflow_does_not_expose_secrets_in_yaml(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")
         content = workflow.read_text()

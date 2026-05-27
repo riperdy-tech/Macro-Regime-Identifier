@@ -106,6 +106,7 @@ jobs:
             --config config/daily_pipeline_github.yaml \
             --source-profile "$SOURCE_PROFILE" \
             ${{ steps.mode.outputs.mock_ai_flag }} \
+            ${{ steps.mode.outputs.live_ai_flag }} \
             --archive
 
       - name: Run news accumulation
