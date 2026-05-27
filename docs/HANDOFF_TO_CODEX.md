@@ -144,13 +144,13 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 ### 4.1 Backfill candidates (audit §6a)
 
 #### WS2-T2 — Enable local news CSV archives + accumulate runs
-- **Status:** NOT STARTED. Plumbing exists (T5 added `ai_compute` group); needs operator to flip enable flags and run the pipeline across multiple calendar dates.
+- **Status:** PARTIAL / LIVE-RSS MOCK SMOKE VERIFIED. Plumbing exists and a news-only daily diagnostic smoke using `--source-profile ai_compute_rss` succeeded on 2026-05-27 with real RSS ingest, mock bounded classification, 15/15 classified items, accumulation, accumulation report, and secular tracker output. It remains insufficient history with one run date, as expected.
 - **Why it matters:** `insufficient_history` is currently gated on **run dates** (5 distinct dates OR 100 classified items per accumulator), NOT item count. Per audit: `src/macro_engine/accumulation.py:139`. Even if you have 1000 items today, one run = one date = still insufficient.
 - **What to do:**
-  1. Flip `enabled: true` on the `ai_compute` watchlist entry (done by T5) and any other source groups you want active.
-  2. Decide on a **schedule** (daily? weekly?). Operator's existing GitHub Actions scaffolding can be used (see §5 below).
-  3. Run `python -m macro_engine.cli ingest-news` + `classify-news` daily for at least 5 distinct dates.
-  4. After 5+ dates, `insufficient_history` should clear and confidence rises.
+  1. Keep `ai_compute_rss` disabled by default in config; select it explicitly with `--source-profile ai_compute_rss`.
+  2. Run news-only daily diagnostic with mock classification for at least 5 distinct dates, or use T3 replay for operating readiness.
+  3. Only enable live DeepSeek classification after mock RSS runs are stable.
+  4. After 5+ dates or 100+ classified items, `insufficient_history` should clear and confidence rises.
 - **Cost:** DeepSeek classification calls (the mock classifier currently runs; the real `DeepSeekClassifier` calls API). Estimate ~$0.0003/item × items/run × runs.
 - **Watch out for:** mock vs real classifier toggle. Check `MockNewsClassifier` vs `DeepSeekClassifier` selection logic in `classify.py`.
 
