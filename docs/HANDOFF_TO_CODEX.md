@@ -136,6 +136,9 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `44b7ae5` - Codex WS-2 commit (T2 live-RSS mock smoke receipt)
 - `b425558` - Codex WS-2 commit (dashboard publishes secular + automation outputs)
 - `c871740` - Codex WS-2 commit (MGI-only diagnostic `regime_status.json` publisher)
+- `8e52fd1` - Codex WS-2 commit (dashboard refresh after automation summary)
+- `7b082b0` - Codex WS-2 commit (`ai_compute` added to news monitoring groups)
+- `a758556` - Codex WS-2 commit (source coverage report wired into daily automation)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -168,7 +171,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Watch out for:** Replay is still an operating replay, not validation. Real signal still needs T2 daily accumulation with fresh inputs.
 
 #### WS2-T4 — Daily automation
-- **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, secular theme tracker, diagnostic `regime_status.json`, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present.
+- **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, source coverage report, secular theme tracker, diagnostic `regime_status.json`, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present, and dashboard export is refreshed after automation summary is written.
 - **What to do:**
   1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
   2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.
@@ -179,6 +182,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 
 #### WS2-T7 — Wire real RSS feeds for `ai_compute`
 - **Status:** DONE IN CODE / DISABLED BY DEFAULT. Disabled-by-default `ai_compute_rss` sources added for NVIDIA Blog, NVIDIA Developer Blog, and Google Cloud Blog. `validate-news-input --profile ai_compute_rss` passes without fetching RSS during validation. Live fetch smoke returned 15 items, all mapped to `ai_compute` (`nvidia_blog`: 3, `nvidia_developer_blog`: 11, `google_cloud_blog`: 1).
+- **Monitoring:** `ai_compute` is now included in news monitoring source groups and source coverage daily reporting.
 - **Why it matters:** Without real news flow, `ai_compute` source group has no input. Mock-only.
 - **What to do:**
   1. Keep disabled by default until operator approves live ingestion.
