@@ -473,6 +473,8 @@ def _rss_records(root: ET.Element, source: NewsSourceDefinition) -> list[dict[st
 
 def _entry_text(entry: ET.Element, tag: str) -> str | None:
     child = entry.find(tag)
+    if child is None and not tag.startswith("{"):
+        child = entry.find(f"{{http://www.w3.org/2005/Atom}}{tag}")
     if child is None or child.text is None:
         return None
     return child.text.strip()

@@ -130,6 +130,8 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `5bc5f0d` — last commit before Claude's WS-2 session (operator's prior work)
 - `5e5e619` — Claude's WS-2 commit (T1 + T5 + T6 bundled)
 - `5d59ea6` - Codex WS-2 commit (T7 RSS config, T8/T9 secular scoring/tracker, daily hooks)
+- `4844371` - Codex WS-2 commit (T3 accumulation-grade replay persistence)
+- `cbaecf2` - Codex WS-2 commit (T4/T2 automation summary hardening)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -162,23 +164,22 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Watch out for:** Replay is still an operating replay, not validation. Real signal still needs T2 daily accumulation with fresh inputs.
 
 #### WS2-T4 — Daily automation
-- **Status:** NOT STARTED.
+- **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, secular theme tracker, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present.
 - **What to do:**
-  1. Extend or create GitHub Actions workflow that runs `ingest-news` + `classify-news` + `score-news` daily.
-  2. Commit DuckDB? **NO** — gitignored, too large. Commit only `outputs/*.json` summaries that fit and are meaningful.
-  3. Alternative: workflow runs nightly, pushes results to a small `outputs/daily_summary.json` that Stock Screener can fetch via raw GitHub URL.
+  1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
+  2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.
+  3. Watch first scheduled runs for source coverage and dashboard artifact completeness.
 - **Cost:** depends on classifier (mock = free, DeepSeek = pennies).
 
 ### 4.2 Theme-layer extension (audit §6b)
 
 #### WS2-T7 — Wire real RSS feeds for `ai_compute`
-- **Status:** PARTIAL. Disabled-by-default `ai_compute_rss` sources added for NVIDIA Blog, NVIDIA Developer Blog, and Google Cloud Blog. `validate-news-input --profile ai_compute_rss` passes without fetching RSS during validation.
+- **Status:** DONE IN CODE / DISABLED BY DEFAULT. Disabled-by-default `ai_compute_rss` sources added for NVIDIA Blog, NVIDIA Developer Blog, and Google Cloud Blog. `validate-news-input --profile ai_compute_rss` passes without fetching RSS during validation. Live fetch smoke returned 15 items, all mapped to `ai_compute` (`nvidia_blog`: 3, `nvidia_developer_blog`: 11, `google_cloud_blog`: 1).
 - **Why it matters:** Without real news flow, `ai_compute` source group has no input. Mock-only.
 - **What to do:**
-  1. Pick free RSS feeds for AI compute coverage. Candidates: SemiAnalysis (paid), HackerNews "ask" feed (general), Tom's Hardware RSS, AnandTech RSS (defunct?), arxiv-sanity for papers (signal/noise issue), NVIDIA blog RSS, AMD blog RSS.
-  2. Add to `config/news_sources.yaml` under a new `ai_compute_rss` provider.
-  3. Map source-group classification rules so ingested items are tagged `source_group: ai_compute`.
-  4. Run `ingest-news` and verify items land in DB.
+  1. Keep disabled by default until operator approves live ingestion.
+  2. If enabling, use `--source-profile ai_compute_rss` and bounded mock classification first.
+  3. Re-run RSS smoke if any feed starts returning HTML/non-XML.
 - **Watch out for:**
   - RSS feeds only give recent items (~10-50 latest). Historical not available without paid archive.
   - Some feeds need user-agent string or referer.

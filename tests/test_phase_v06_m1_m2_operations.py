@@ -72,6 +72,55 @@ def test_rss_source_parsing_with_mocked_feed(monkeypatch):
     assert items[0].raw_metadata["source_group"] == "macro_general"
 
 
+def test_atom_source_parsing_with_namespaced_fields(monkeypatch):
+    source = next(
+        source
+        for source in load_news_sources_config("config/news_sources.yaml").news_sources
+        if source.source_id == "ai_compute_nvidia_developer_rss"
+    )
+    source.lookback_days = 0
+    feed = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <title>GPU inference throughput improves</title>
+    <summary>Developers described lower latency inference serving for AI workloads.</summary>
+    <link href="https://developer.nvidia.com/blog/example"/>
+    <updated>2026-05-05T12:00:00Z</updated>
+  </entry>
+</feed>
+"""
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return feed
+
+    monkeypatch.setattr("macro_engine.news.ingest.urlopen", lambda *_args, **_kwargs: Response())
+
+    items = load_rss_source(source)
+    assert len(items) == 1
+    assert items[0].provider == "rss"
+    assert items[0].source == "nvidia_developer_blog"
+    assert items[0].raw_metadata["source_group"] == "ai_compute"
+
+
+def test_ai_compute_rss_sources_are_disabled_by_default_and_use_real_xml_feeds():
+    sources = load_news_sources_config("config/news_sources.yaml")
+    ai_compute_sources = [
+        source for source in sources.news_sources if "ai_compute_rss" in source.profiles
+    ]
+    assert len(ai_compute_sources) == 3
+    assert all(source.enabled is False for source in ai_compute_sources)
+    assert all(source.source_group == "ai_compute" for source in ai_compute_sources)
+    assert all("example.invalid" not in str(source.feed_url) for source in ai_compute_sources)
+    assert all("cloud.google.com/blog/products/rss" not in str(source.feed_url) for source in ai_compute_sources)
+
+
 def test_local_news_source_group_mapping_rules(tmp_path: Path):
     csv_path = tmp_path / "news.csv"
     csv_path.write_text(
