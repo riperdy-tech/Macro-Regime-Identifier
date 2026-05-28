@@ -29,6 +29,12 @@ from macro_engine.news.providers.openai_classifier import (
 )
 from macro_engine.news.report import build_news_report, news_report_markdown
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
+from macro_engine.news.usage_report import (
+    build_live_ai_usage_report,
+    live_ai_usage_report_markdown,
+    write_live_ai_usage_report,
+)
+from macro_engine.storage.duckdb_store import DuckDBStore
 
 runner = CliRunner()
 
@@ -564,6 +570,110 @@ def test_news_report_generation_and_language_guardrails():
     assert not any(term in markdown.lower() for term in forbidden)
 
 
+def test_live_ai_usage_report_aggregates_provider_usage():
+    classifications = pd.DataFrame(
+        [
+            _classification_row(
+                "classification_1",
+                "news_1",
+                "2026-05-28T12:00:00Z",
+                usage={
+                    "prompt_tokens": 100,
+                    "completion_tokens": 30,
+                    "total_tokens": 130,
+                    "prompt_cache_hit_tokens": 20,
+                    "prompt_cache_miss_tokens": 80,
+                },
+            ),
+            _classification_row(
+                "classification_2",
+                "news_2",
+                "2026-05-28T13:00:00Z",
+                usage={
+                    "prompt_tokens": 200,
+                    "completion_tokens": 45,
+                    "total_tokens": 245,
+                    "prompt_cache_hit_tokens": 50,
+                    "prompt_cache_miss_tokens": 150,
+                },
+            ),
+            _classification_row(
+                "classification_3",
+                "news_3",
+                "2026-05-28T14:00:00Z",
+                usage=None,
+            ),
+        ]
+    )
+
+    payload = build_live_ai_usage_report(classifications)
+    markdown = live_ai_usage_report_markdown(payload)
+
+    assert payload["valid"] is True
+    assert payload["classification_count"] == 3
+    assert payload["usage_classification_count"] == 2
+    assert payload["missing_usage_count"] == 1
+    assert payload["latest_classified_at"] == "2026-05-28T14:00:00+00:00"
+    assert payload["totals"]["prompt_tokens"] == 300
+    assert payload["totals"]["completion_tokens"] == 75
+    assert payload["totals"]["total_tokens"] == 375
+    assert payload["totals"]["prompt_cache_hit_tokens"] == 70
+    assert payload["totals"]["prompt_cache_miss_tokens"] == 230
+    assert payload["provider_model_breakdown"][0]["provider"] == "deepseek"
+    assert payload["provider_model_breakdown"][0]["model"] == "deepseek-v4-flash"
+    assert "Live AI Usage Report" in markdown
+    assert "buy" not in markdown.lower()
+
+
+def test_live_ai_usage_report_writes_outputs_and_cli(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    output_dir = tmp_path / "outputs"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.replace_news_classifications(
+        pd.DataFrame(
+            [
+                _classification_row(
+                    "classification_1",
+                    "news_1",
+                    "2026-05-28T12:00:00Z",
+                    usage={
+                        "prompt_tokens": 100,
+                        "completion_tokens": 30,
+                        "total_tokens": 130,
+                        "prompt_cache_hit_tokens": 20,
+                        "prompt_cache_miss_tokens": 80,
+                    },
+                )
+            ]
+        ),
+        pd.DataFrame(),
+        pd.DataFrame(),
+    )
+
+    json_path, markdown_path = write_live_ai_usage_report(
+        db_path=db_path,
+        output_dir=output_dir,
+    )
+
+    assert json_path.exists()
+    assert markdown_path.exists()
+    assert json.loads(json_path.read_text())["totals"]["total_tokens"] == 130
+
+    result = runner.invoke(
+        app,
+        [
+            "write-live-ai-usage-report",
+            "--db-path",
+            str(db_path),
+            "--output-dir",
+            str(output_dir),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.output)["json_path"].endswith("live_ai_usage_report.json")
+
+
 def test_news_cli_commands_work(tmp_path: Path):
     db_path = tmp_path / "macro.duckdb"
     csv_path = tmp_path / "news.csv"
@@ -597,6 +707,37 @@ def test_news_cli_commands_work(tmp_path: Path):
     )
     assert report.exit_code == 0, report.output
     assert (tmp_path / "outputs" / "news_classification_report.md").exists()
+
+
+def _classification_row(
+    classification_id: str,
+    news_id: str,
+    classified_at: str,
+    *,
+    usage: dict | None,
+) -> dict:
+    raw_response = {"response": {}}
+    if usage is not None:
+        raw_response["response"]["_provider_usage"] = usage
+    return {
+        "classification_id": classification_id,
+        "news_id": news_id,
+        "classified_at": classified_at,
+        "ai_provider": "deepseek",
+        "ai_model": "deepseek-v4-flash",
+        "macro_themes": [],
+        "sector_impacts": [],
+        "entities": [],
+        "secular_theme": None,
+        "time_horizon": "short_term",
+        "severity": 0.2,
+        "confidence": 0.7,
+        "summary": "Diagnostic summary.",
+        "raw_ai_response": raw_response,
+        "raw_ai_response_json": json.dumps(raw_response),
+        "classification_status": "success",
+        "error_message": None,
+    }
 
 
 def _news_source_config(tmp_path: Path, csv_path: Path) -> Path:

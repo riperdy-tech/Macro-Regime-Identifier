@@ -48,6 +48,9 @@ from macro_engine.news.source_coverage import (
     validate_news_sources_config,
     write_news_source_coverage_report,
 )
+from macro_engine.news.usage_report import (
+    write_live_ai_usage_report as write_live_ai_usage_report_service,
+)
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
@@ -1230,6 +1233,19 @@ def write_news_source_coverage_report_cli(
     json_path, markdown_path = write_news_source_coverage_report(
         config_path=config,
         db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("write-live-ai-usage-report")
+def write_live_ai_usage_report_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs",
+) -> None:
+    """Write a non-secret live AI token usage report from stored classifications."""
+    json_path, markdown_path = write_live_ai_usage_report_service(
+        db_path=db_path,
+        output_dir=output_dir,
     )
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
