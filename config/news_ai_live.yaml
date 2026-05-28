@@ -1,0 +1,14 @@
+ai:
+  provider: deepseek
+  model: deepseek-v4-flash
+  base_url: https://api.deepseek.com
+  temperature: 0.0
+  max_tokens: 1600
+  api_key_env: DEEPSEEK_API_KEY
+  enable_live_ai: true
+  mock_mode: false
+  request_timeout_seconds: 60
+  output_dir: outputs
+  enable_schema_repair: true
+  max_retries: 0
+  retry_backoff_seconds: 0.0

@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from macro_engine.automation import build_automation_summary, write_automation_summary
+from macro_engine.news.config import load_news_ai_config
 
 
 class TestAutomationSummary:
@@ -213,6 +214,12 @@ class TestGitHubDailyPipelineConfig:
         assert news["allow_live_ai"] is True
         assert news["mock_mode_default"] is False
         assert news["source_profile"] == "ai_compute_rss"
+        assert news["news_ai_config"] == "config/news_ai_live.yaml"
+
+    def test_github_live_ai_config_uses_real_classifier(self):
+        config = load_news_ai_config("config/news_ai_live.yaml")
+        assert config.enable_live_ai is True
+        assert config.mock_mode is False
 
 
 class TestAutomationSecretSafety:
