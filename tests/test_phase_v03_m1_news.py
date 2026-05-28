@@ -22,7 +22,11 @@ from macro_engine.news.config import (
 )
 from macro_engine.news.ingest import content_hash_for_news, load_news_items_from_config
 from macro_engine.news.ingest import validate_news_input_config
-from macro_engine.news.providers.openai_classifier import _request_payload, _user_prompt
+from macro_engine.news.providers.openai_classifier import (
+    DeepSeekNewsClassifier,
+    _request_payload,
+    _user_prompt,
+)
 from macro_engine.news.report import build_news_report, news_report_markdown
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 
@@ -324,6 +328,67 @@ def test_request_payload_uses_configured_output_cap():
 
 def test_truncate_for_prompt_preserves_short_text():
     assert truncate_for_prompt("short", 10) == "short"
+
+
+def test_live_ai_usage_metadata_preserved(monkeypatch):
+    themes = load_news_themes_config("config/news_themes.yaml")
+    item = load_news_items_from_config("config/news_sources.yaml")[0]
+    config = load_news_ai_config("config/news_ai_live.yaml")
+    monkeypatch.setenv(config.api_key_env, "test-key")
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "summary": "Usage metadata test.",
+                                    "macro_themes": [],
+                                    "sector_impacts": [],
+                                    "entities": [],
+                                    "overall_severity": 0.2,
+                                    "overall_confidence": 0.7,
+                                    "time_horizon": "short_term",
+                                }
+                            )
+                        },
+                        "finish_reason": "stop",
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 150,
+                    "completion_tokens": 45,
+                    "total_tokens": 195,
+                    "prompt_cache_hit_tokens": 100,
+                    "prompt_cache_miss_tokens": 50,
+                },
+            }
+
+    def fake_post(*args, **kwargs):
+        assert "Authorization" in kwargs["headers"]
+        return FakeResponse()
+
+    monkeypatch.setattr("macro_engine.news.providers.openai_classifier.requests.post", fake_post)
+
+    record = classify_news_item(
+        item,
+        classifier=DeepSeekNewsClassifier(config),
+        themes=themes,
+    )
+
+    usage = record.raw_ai_response["response"]["_provider_usage"]
+    assert usage["prompt_tokens"] == 150
+    assert usage["completion_tokens"] == 45
+    assert usage["total_tokens"] == 195
+    assert usage["prompt_cache_hit_tokens"] == 100
+    assert usage["prompt_cache_miss_tokens"] == 50
+    assert usage["finish_reason"] == "stop"
+    assert "test-key" not in json.dumps(record.raw_ai_response)
 
 
 def test_retry_stops_after_max_attempts():

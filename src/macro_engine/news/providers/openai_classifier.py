@@ -69,8 +69,13 @@ class DeepSeekNewsClassifier:
         )
         response.raise_for_status()
         data = response.json()
-        content = data["choices"][0]["message"]["content"]
-        return parse_ai_json_response(content)
+        choice = data["choices"][0]
+        content = choice["message"]["content"]
+        parsed = parse_ai_json_response(content)
+        provider_usage = _provider_usage_metadata(data.get("usage"), choice.get("finish_reason"))
+        if provider_usage:
+            parsed["_provider_usage"] = provider_usage
+        return parsed
 
 
 def _request_payload(
@@ -90,6 +95,28 @@ def _request_payload(
         "stream": False,
         "response_format": {"type": "json_object"},
     }
+
+
+def _provider_usage_metadata(
+    usage: dict[str, Any] | None,
+    finish_reason: str | None,
+) -> dict[str, Any]:
+    metadata: dict[str, Any] = {}
+    if isinstance(usage, dict):
+        for key in [
+            "prompt_tokens",
+            "completion_tokens",
+            "total_tokens",
+            "prompt_cache_hit_tokens",
+            "prompt_cache_miss_tokens",
+            "completion_tokens_details",
+            "prompt_tokens_details",
+        ]:
+            if key in usage:
+                metadata[key] = usage[key]
+    if finish_reason is not None:
+        metadata["finish_reason"] = finish_reason
+    return metadata
 
 
 def _user_prompt(item: NewsItem, *, max_body_chars: int = 8000) -> str:
