@@ -145,6 +145,7 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `7b4bf8c` - Codex WS-2 commit (live workflow points at real live AI config)
 - `6eed383` - Codex WS-2 commit (live AI prompt/body/output caps)
 - `27f8b43` - Codex WS-2 commit (non-secret live AI cost-cap logging)
+- `42899cf` - Codex WS-2 commit (live AI provider usage metadata retained in raw responses)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
