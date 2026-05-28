@@ -66,17 +66,16 @@
     ]
   },
   "item_count_by_group": {
-    "macro_general": 6
+    "ai_compute": 16
   },
   "latest_date_by_group": {
-    "macro_general": "2026-05-05T07:00:00+00:00"
+    "ai_compute": "2026-05-27T23:09:52+00:00"
   },
   "latest_item_count_by_group": {
-    "macro_general": 1
+    "ai_compute": 4
   },
   "missing_configured_groups": [],
   "missing_data_groups": [
-    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
@@ -85,6 +84,7 @@
     "healthcare",
     "inflation_rates",
     "labor",
+    "macro_general",
     "manufacturing_industrials",
     "real_estate",
     "technology_ai"
@@ -93,9 +93,9 @@
   "old_item_pct": 0.0,
   "overrepresented_groups": [
     {
-      "item_count": 1,
+      "item_count": 4,
       "share": 1.0,
-      "source_group": "macro_general"
+      "source_group": "ai_compute"
     }
   ],
   "required_source_groups": [
@@ -114,12 +114,9 @@
     "technology_ai"
   ],
   "source_group_count": 1,
-  "stale_groups": [
-    "macro_general"
-  ],
-  "stored_item_count": 6,
+  "stale_groups": [],
+  "stored_item_count": 16,
   "suggested_groups_needing_more_coverage": [
-    "ai_compute",
     "consumer",
     "credit_financial_conditions",
     "defensive_sectors",
@@ -138,7 +135,6 @@
   "valid": true,
   "warnings": [
     "some enabled source groups have no stored items",
-    "some source groups have stale stored items",
     "latest stored items are concentrated in a small number of source groups",
     "stored items cover fewer source groups than configured minimum"
   ]

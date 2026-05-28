@@ -225,38 +225,6 @@
       "sector_news_score": 0.0
     },
     {
-      "combined_score": -0.4567712376431426,
-      "components": [
-        {
-          "component_name": "normalized_sector_macro_score",
-          "component_value": -0.6764804122303791,
-          "component_weight": 0.75,
-          "rationale": "Cross-sectional normalized sector macro score."
-        },
-        {
-          "component_name": "bounded_sector_news_score",
-          "component_value": 0.25235628611856675,
-          "component_weight": 0.25,
-          "rationale": "bounded news overlay applied."
-        },
-        {
-          "component_name": "news_uncertainty_penalty",
-          "component_value": 0.0125,
-          "component_weight": 1.0,
-          "rationale": "Penalty applied when news confidence is low and news contributes."
-        }
-      ],
-      "diagnostic_confidence": 0.20541314884860168,
-      "macro_component_weight": 0.75,
-      "news_component_weight": 0.25,
-      "news_confidence": 0.75,
-      "news_item_count": 1,
-      "rank": 8,
-      "sector_id": "energy",
-      "sector_macro_score": -0.6764804122303791,
-      "sector_news_score": 0.25235628611856675
-    },
-    {
       "combined_score": -0.5011612194079503,
       "components": [
         {
@@ -283,42 +251,74 @@
       "news_component_weight": 0.0,
       "news_confidence": 0.0,
       "news_item_count": 0,
-      "rank": 9,
+      "rank": 8,
       "sector_id": "industrials",
       "sector_macro_score": -0.5011612194079503,
       "sector_news_score": 0.0
     },
     {
-      "combined_score": -0.7937681419268346,
+      "combined_score": -0.6764804122303791,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.8989842136855567,
-          "component_weight": 0.75,
+          "component_value": -0.6764804122303791,
+          "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
         {
           "component_name": "bounded_sector_news_score",
-          "component_value": -0.41811992665066844,
-          "component_weight": 0.25,
-          "rationale": "bounded news overlay applied."
+          "component_value": 0.0,
+          "component_weight": 0.0,
+          "rationale": "no_recent_news; macro-only diagnostic."
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.015000000000000003,
+          "component_value": 0.0,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.19291314884860167,
-      "macro_component_weight": 0.75,
-      "news_component_weight": 0.25,
-      "news_confidence": 0.7,
-      "news_item_count": 2,
+      "diagnostic_confidence": 0.023884198464802248,
+      "macro_component_weight": 1.0,
+      "news_component_weight": 0.0,
+      "news_confidence": 0.0,
+      "news_item_count": 0,
+      "rank": 9,
+      "sector_id": "energy",
+      "sector_macro_score": -0.6764804122303791,
+      "sector_news_score": 0.0
+    },
+    {
+      "combined_score": -0.8989842136855567,
+      "components": [
+        {
+          "component_name": "normalized_sector_macro_score",
+          "component_value": -0.8989842136855567,
+          "component_weight": 1.0,
+          "rationale": "Cross-sectional normalized sector macro score."
+        },
+        {
+          "component_name": "bounded_sector_news_score",
+          "component_value": 0.0,
+          "component_weight": 0.0,
+          "rationale": "no_recent_news; macro-only diagnostic."
+        },
+        {
+          "component_name": "news_uncertainty_penalty",
+          "component_value": 0.0,
+          "component_weight": 1.0,
+          "rationale": "Penalty applied when news confidence is low and news contributes."
+        }
+      ],
+      "diagnostic_confidence": 0.023884198464802248,
+      "macro_component_weight": 1.0,
+      "news_component_weight": 0.0,
+      "news_confidence": 0.0,
+      "news_item_count": 0,
       "rank": 10,
       "sector_id": "real_estate",
       "sector_macro_score": -0.8989842136855567,
-      "sector_news_score": -0.41811992665066844
+      "sector_news_score": 0.0
     },
     {
       "combined_score": -2.079741713105401,
@@ -353,7 +353,7 @@
       "sector_news_score": 0.0
     }
   ],
-  "diagnostic_date": "2026-05-05",
+  "diagnostic_date": "2026-05-01",
   "disclaimer": "This is an experimental diagnostic overlay, not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "macro_context": {
     "macro_confidence": 0.023884198464802248,
@@ -417,21 +417,10 @@
       "sector_id": "financials"
     }
   ],
-  "sector_news_ranking": [
-    {
-      "adjusted_news_score": 0.25235628611856675,
-      "item_count": 1,
-      "sector_id": "energy"
-    },
-    {
-      "adjusted_news_score": -0.41811992665066844,
-      "item_count": 2,
-      "sector_id": "real_estate"
-    }
-  ],
+  "sector_news_ranking": [],
   "valid": true,
   "validation_note": "Combined historical validation is blocked unless there is enough real classified news history aligned with sector proxy returns.",
   "warnings": [
-    "Some sectors have thin recent news coverage."
+    "News coverage is thin; combined diagnostics are macro-only for this date."
   ]
 }
