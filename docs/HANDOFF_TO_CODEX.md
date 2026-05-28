@@ -142,6 +142,9 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `8cfd5a8` - Codex WS-2 commit (daily workflow passes `--live-ai` when live mode selected)
 - `ee17da8` - Codex WS-2 commit (`max_live_items` wired as a config-capped live batch limit)
 - `c8e716f` - Codex WS-2 commit (separate live GitHub daily config for explicit live runs)
+- `7b4bf8c` - Codex WS-2 commit (live workflow points at real live AI config)
+- `6eed383` - Codex WS-2 commit (live AI prompt/body/output caps)
+- `27f8b43` - Codex WS-2 commit (non-secret live AI cost-cap logging)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -177,6 +180,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Status:** PARTIAL / MOCK-SAFE. GitHub workflow and local daily scripts run daily diagnostic, accumulation, accumulation report, source coverage report, secular theme tracker, diagnostic `regime_status.json`, dashboard export, and automation summary. Automation summary now includes secular-theme tracker state when present, and dashboard export is refreshed after automation summary is written.
 - **Live mode guard:** Manual GitHub `run_mode=live` now passes `--live-ai`; `max_live_items` is wired to `--max-live-items` but cannot raise the configured `live_ai_safety.max_items_per_run` cap.
 - **Live config:** Explicit live runs use `config/daily_pipeline_github_live.yaml`, which allows live AI and defaults to `ai_compute_rss`; mock/scheduled runs keep `config/daily_pipeline_github.yaml`.
+- **Live smoke receipt:** Local news-only live smoke on 2026-05-28 ingested 15 `ai_compute_rss` items and classified 1 item with `deepseek-v4-flash` successfully. Log showed `classifier_mode=live`, `limit=1`, `max_tokens=800`, and `max_prompt_body_chars=6000`; saved classification had `secular_theme=ai_compute`.
 - **What to do:**
   1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
   2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.
