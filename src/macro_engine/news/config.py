@@ -210,6 +210,8 @@ class NewsAIConfig(BaseModel):
     enable_schema_repair: bool = True
     max_retries: int = Field(default=0, ge=0, le=2)
     retry_backoff_seconds: float = Field(default=0.0, ge=0.0)
+    max_prompt_body_chars: int = Field(default=8000, gt=0)
+    max_retry_response_chars: int = Field(default=4000, gt=0)
 
 
 class FreshnessDecayConfig(BaseModel):

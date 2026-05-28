@@ -5,7 +5,12 @@ from typing import Any
 
 import requests
 
-from macro_engine.news.classify import build_system_prompt, parse_ai_json_response, retry_user_prompt
+from macro_engine.news.classify import (
+    build_system_prompt,
+    parse_ai_json_response,
+    retry_user_prompt,
+    truncate_for_prompt,
+)
 from macro_engine.news.config import NewsAIConfig, NewsThemesConfig
 from macro_engine.news.schema import NewsItem
 
@@ -22,7 +27,7 @@ class DeepSeekNewsClassifier:
         payload = _request_payload(
             config=self.config,
             themes=themes,
-            user_content=_user_prompt(item),
+            user_content=_user_prompt(item, max_body_chars=self.config.max_prompt_body_chars),
         )
         return self._post(payload)
 
@@ -43,6 +48,8 @@ class DeepSeekNewsClassifier:
                 item,
                 validation_error=validation_error,
                 previous_response=previous_response,
+                max_body_chars=self.config.max_prompt_body_chars,
+                max_previous_response_chars=self.config.max_retry_response_chars,
             ),
         )
         return self._post(payload)
@@ -85,12 +92,12 @@ def _request_payload(
     }
 
 
-def _user_prompt(item: NewsItem) -> str:
+def _user_prompt(item: NewsItem, *, max_body_chars: int = 8000) -> str:
     published = "unknown" if item.published_at is None else item.published_at.isoformat()
     return (
         "Classify this article/event as JSON only.\n\n"
         f"Title: {item.title}\n"
         f"Source: {item.source}\n"
         f"Published at: {published}\n"
-        f"Body:\n{item.body}"
+        f"Body:\n{truncate_for_prompt(item.body, max_body_chars)}"
     )

@@ -3,7 +3,7 @@ ai:
   model: deepseek-v4-flash
   base_url: https://api.deepseek.com
   temperature: 0.0
-  max_tokens: 1600
+  max_tokens: 800
   api_key_env: DEEPSEEK_API_KEY
   enable_live_ai: true
   mock_mode: false
@@ -12,3 +12,5 @@ ai:
   enable_schema_repair: true
   max_retries: 0
   retry_backoff_seconds: 0.0
+  max_prompt_body_chars: 6000
+  max_retry_response_chars: 3000

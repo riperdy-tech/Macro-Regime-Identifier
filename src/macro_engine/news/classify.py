@@ -323,16 +323,29 @@ def retry_user_prompt(
     *,
     validation_error: str,
     previous_response: dict[str, Any] | None,
+    max_body_chars: int = 8000,
+    max_previous_response_chars: int = 4000,
 ) -> str:
+    previous_response_text = truncate_for_prompt(
+        json.dumps(previous_response or {}, ensure_ascii=False),
+        max_previous_response_chars,
+    )
     return (
         "Your previous JSON did not validate. Return corrected JSON only.\n\n"
         f"Validation error:\n{validation_error}\n\n"
         "Remember: enum values must exactly match the allowed lists, and numeric scores "
         "must be bounded decimals.\n\n"
-        f"Previous response:\n{json.dumps(previous_response or {}, ensure_ascii=False)}\n\n"
+        f"Previous response:\n{previous_response_text}\n\n"
         f"Article title: {item.title}\n"
-        f"Article body:\n{item.body}"
+        f"Article body:\n{truncate_for_prompt(item.body, max_body_chars)}"
     )
+
+
+def truncate_for_prompt(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    suffix = f"\n\n[truncated_to_{max_chars}_chars]"
+    return text[:max_chars].rstrip() + suffix
 
 
 def _classification_id(news_id: str, provider: str, classified_at: datetime) -> str:

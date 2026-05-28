@@ -12,6 +12,7 @@ from macro_engine.news.classify import (
     classify_news_item,
     repair_classification_payload,
     retry_user_prompt,
+    truncate_for_prompt,
     validate_classification_payload,
 )
 from macro_engine.news.config import (
@@ -21,6 +22,7 @@ from macro_engine.news.config import (
 )
 from macro_engine.news.ingest import content_hash_for_news, load_news_items_from_config
 from macro_engine.news.ingest import validate_news_input_config
+from macro_engine.news.providers.openai_classifier import _request_payload, _user_prompt
 from macro_engine.news.report import build_news_report, news_report_markdown
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 
@@ -276,6 +278,52 @@ def test_retry_prompt_and_retry_flow_records_metadata():
     assert classifier.calls == 2
     assert record.raw_ai_response["retry_count"] == 1
     assert record.raw_ai_response["validation_errors"]
+
+
+def test_live_ai_prompt_truncates_long_body():
+    item = load_news_items_from_config("config/news_sources.yaml")[0].model_copy(
+        update={"body": "A" * 1000}
+    )
+
+    prompt = _user_prompt(item, max_body_chars=80)
+
+    assert "A" * 80 in prompt
+    assert "A" * 81 not in prompt
+    assert "[truncated_to_80_chars]" in prompt
+
+
+def test_retry_prompt_truncates_body_and_previous_response():
+    item = load_news_items_from_config("config/news_sources.yaml")[0].model_copy(
+        update={"body": "B" * 1000}
+    )
+    previous_response = {"summary": "C" * 1000}
+
+    prompt = retry_user_prompt(
+        item,
+        validation_error="bad",
+        previous_response=previous_response,
+        max_body_chars=60,
+        max_previous_response_chars=70,
+    )
+
+    assert "B" * 60 in prompt
+    assert "B" * 61 not in prompt
+    assert "[truncated_to_60_chars]" in prompt
+    assert "[truncated_to_70_chars]" in prompt
+
+
+def test_request_payload_uses_configured_output_cap():
+    themes = load_news_themes_config("config/news_themes.yaml")
+    config = load_news_ai_config("config/news_ai_live.yaml")
+
+    payload = _request_payload(config=config, themes=themes, user_content="{}")
+
+    assert payload["max_tokens"] == config.max_tokens
+    assert payload["max_tokens"] <= 800
+
+
+def test_truncate_for_prompt_preserves_short_text():
+    assert truncate_for_prompt("short", 10) == "short"
 
 
 def test_retry_stops_after_max_attempts():
