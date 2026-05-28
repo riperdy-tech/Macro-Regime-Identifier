@@ -372,6 +372,31 @@ def test_mock_classification_flow_stores_outputs(tmp_path: Path):
     assert result["sector_impacts"].iloc[0]["sector_id"] == "energy"
 
 
+def test_classification_progress_logs_ai_cost_caps(tmp_path: Path):
+    db_path = tmp_path / "macro.duckdb"
+    csv_path = tmp_path / "news.csv"
+    csv_path.write_text(
+        "title,body,source,source_url,published_at\n"
+        "Oil event,Oil supply disruption lifted prices,unit,https://example.invalid,2026-01-01T00:00:00Z\n",
+        encoding="utf-8",
+    )
+    source_config = _news_source_config(tmp_path, csv_path)
+    ingest_stored_news(config_path=source_config, db_path=db_path)
+    progress_lines: list[str] = []
+
+    classify_stored_news(db_path=db_path, progress_callback=progress_lines.append)
+
+    config_line = next(line for line in progress_lines if line.startswith("classify-news: ai_config"))
+    assert "provider=deepseek" in config_line
+    assert "model=deepseek-v4-flash" in config_line
+    assert "classifier_mode=mock" in config_line
+    assert "selected_items=1" in config_line
+    assert "limit=None" in config_line
+    assert "max_tokens=1600" in config_line
+    assert "max_prompt_body_chars=8000" in config_line
+    assert "DEEPSEEK_API_KEY" not in config_line
+
+
 def test_classification_error_record_for_invalid_ai_response():
     item = load_news_items_from_config("config/news_sources.yaml")[0]
     themes = load_news_themes_config("config/news_themes.yaml")

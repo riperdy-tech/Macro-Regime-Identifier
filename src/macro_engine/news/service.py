@@ -50,7 +50,8 @@ def classify_stored_news(
 ) -> dict[str, pd.DataFrame]:
     ai_config = load_news_ai_config(ai_config_path)
     themes = load_news_themes_config(themes_config_path)
-    classifier = MockNewsClassifier() if should_use_mock_classifier(ai_config) else DeepSeekNewsClassifier(ai_config)
+    use_mock = should_use_mock_classifier(ai_config)
+    classifier = MockNewsClassifier() if use_mock else DeepSeekNewsClassifier(ai_config)
     store = DuckDBStore(db_path)
     store.initialize()
     news_items = store.read_news_items()
@@ -64,6 +65,17 @@ def classify_stored_news(
     rows = news_items.to_dict(orient="records")
     total = len(rows)
     failure_count = 0
+    _emit_progress(
+        "classify-news: ai_config "
+        f"provider={ai_config.provider} model={ai_config.model} "
+        f"classifier_mode={'mock' if use_mock else 'live'} "
+        f"selected_items={total} limit={limit} "
+        f"max_tokens={ai_config.max_tokens} "
+        f"max_prompt_body_chars={ai_config.max_prompt_body_chars} "
+        f"only_unclassified={only_unclassified}",
+        enabled=progress,
+        callback=progress_callback,
+    )
     _emit_progress(
         f"classify-news: selected {total} item(s)"
         + (" using only-unclassified mode" if only_unclassified else ""),
