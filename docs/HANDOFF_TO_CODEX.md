@@ -146,6 +146,7 @@ pytest tests/test_ws2_t6_secular_themes.py  # specific
 - `6eed383` - Codex WS-2 commit (live AI prompt/body/output caps)
 - `27f8b43` - Codex WS-2 commit (non-secret live AI cost-cap logging)
 - `42899cf` - Codex WS-2 commit (live AI provider usage metadata retained in raw responses)
+- `e1b80fa` - Codex WS-2 commit (local live AI usage report CLI)
 - Branch: `master`
 - Untracked items operator may want to handle: `outputs/` (gitignored), `.claude/` (skip).
 
@@ -182,6 +183,7 @@ Numbering continues from WS-2 audit doc §6. Sequenced by leverage + dependency.
 - **Live mode guard:** Manual GitHub `run_mode=live` now passes `--live-ai`; `max_live_items` is wired to `--max-live-items` but cannot raise the configured `live_ai_safety.max_items_per_run` cap.
 - **Live config:** Explicit live runs use `config/daily_pipeline_github_live.yaml`, which allows live AI and defaults to `ai_compute_rss`; mock/scheduled runs keep `config/daily_pipeline_github.yaml`.
 - **Live smoke receipt:** Local news-only live smoke on 2026-05-28 ingested 15 `ai_compute_rss` items and classified 1 item with `deepseek-v4-flash` successfully. Log showed `classifier_mode=live`, `limit=1`, `max_tokens=800`, and `max_prompt_body_chars=6000`; saved classification had `secular_theme=ai_compute`.
+- **Usage receipt:** Follow-up 1-item smoke with `max_tokens=1200` succeeded and `write-live-ai-usage-report` showed prompt tokens 871, completion tokens 830, total tokens 1701, cache hit tokens 768, cache miss tokens 103. The previous 800-token cap produced a truncated invalid JSON response but preserved usage metadata for audit.
 - **What to do:**
   1. Keep scheduled/default mode mock-safe until live AI and live RSS are explicitly selected.
   2. Persist small JSON/MD artifacts only, not DuckDB database or raw CSV.

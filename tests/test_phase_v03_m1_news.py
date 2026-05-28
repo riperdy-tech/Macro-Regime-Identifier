@@ -329,7 +329,7 @@ def test_request_payload_uses_configured_output_cap():
     payload = _request_payload(config=config, themes=themes, user_content="{}")
 
     assert payload["max_tokens"] == config.max_tokens
-    assert payload["max_tokens"] <= 800
+    assert payload["max_tokens"] <= 1200
 
 
 def test_truncate_for_prompt_preserves_short_text():
@@ -395,6 +395,50 @@ def test_live_ai_usage_metadata_preserved(monkeypatch):
     assert usage["prompt_cache_miss_tokens"] == 50
     assert usage["finish_reason"] == "stop"
     assert "test-key" not in json.dumps(record.raw_ai_response)
+
+
+def test_live_ai_usage_metadata_survives_invalid_json(monkeypatch):
+    themes = load_news_themes_config("config/news_themes.yaml")
+    item = load_news_items_from_config("config/news_sources.yaml")[0]
+    config = load_news_ai_config("config/news_ai_live.yaml")
+    monkeypatch.setenv(config.api_key_env, "test-key")
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "choices": [
+                    {
+                        "message": {"content": '{"summary": "unterminated'},
+                        "finish_reason": "length",
+                    }
+                ],
+                "usage": {
+                    "prompt_tokens": 50,
+                    "completion_tokens": 800,
+                    "total_tokens": 850,
+                },
+            }
+
+    monkeypatch.setattr(
+        "macro_engine.news.providers.openai_classifier.requests.post",
+        lambda *args, **kwargs: FakeResponse(),
+    )
+
+    record = classify_news_item(
+        item,
+        classifier=DeepSeekNewsClassifier(config),
+        themes=themes,
+    )
+
+    usage = record.raw_ai_response["response"]["_provider_usage"]
+    assert record.classification_status == "error"
+    assert usage["prompt_tokens"] == 50
+    assert usage["completion_tokens"] == 800
+    assert usage["total_tokens"] == 850
+    assert usage["finish_reason"] == "length"
 
 
 def test_retry_stops_after_max_attempts():

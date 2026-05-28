@@ -71,8 +71,12 @@ class DeepSeekNewsClassifier:
         data = response.json()
         choice = data["choices"][0]
         content = choice["message"]["content"]
-        parsed = parse_ai_json_response(content)
         provider_usage = _provider_usage_metadata(data.get("usage"), choice.get("finish_reason"))
+        try:
+            parsed = parse_ai_json_response(content)
+        except ValueError as exc:
+            parsed = _invalid_provider_payload(str(exc), provider_usage)
+            return parsed
         if provider_usage:
             parsed["_provider_usage"] = provider_usage
         return parsed
@@ -117,6 +121,22 @@ def _provider_usage_metadata(
     if finish_reason is not None:
         metadata["finish_reason"] = finish_reason
     return metadata
+
+
+def _invalid_provider_payload(error: str, provider_usage: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {
+        "summary": "",
+        "macro_themes": [],
+        "sector_impacts": [],
+        "entities": [],
+        "overall_severity": 0.0,
+        "overall_confidence": 0.0,
+        "time_horizon": "unclear",
+        "_provider_error": error,
+    }
+    if provider_usage:
+        payload["_provider_usage"] = provider_usage
+    return payload
 
 
 def _user_prompt(item: NewsItem, *, max_body_chars: int = 8000) -> str:

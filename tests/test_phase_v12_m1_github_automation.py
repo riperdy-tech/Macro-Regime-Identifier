@@ -220,7 +220,7 @@ class TestGitHubDailyPipelineConfig:
         config = load_news_ai_config("config/news_ai_live.yaml")
         assert config.enable_live_ai is True
         assert config.mock_mode is False
-        assert config.max_tokens <= 800
+        assert config.max_tokens <= 1200
         assert config.max_prompt_body_chars <= 6000
         assert config.max_retry_response_chars <= 3000
 
