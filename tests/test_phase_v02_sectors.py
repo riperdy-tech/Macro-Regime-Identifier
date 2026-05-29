@@ -169,8 +169,11 @@ def _dimension_scores() -> pd.DataFrame:
 def test_sector_config_loads_default_files():
     config = load_sector_config()
 
-    assert len(config.sectors) == 11
-    assert config.sectors[0].sector_id == "communication_services"
+    # 11 parent GICS sectors + 6 WS-A sub-industries.
+    assert len(config.sectors) == 17
+    sector_ids = {sector.sector_id for sector in config.sectors}
+    assert "communication_services" in sector_ids
+    assert {"semiconductors", "software", "banks", "biotech", "homebuilders", "oil_gas_ep"} <= sector_ids
     assert config.exposures["energy"]["inflation_pressure"] == 0.7
     assert config.regime_priors["reflation"]["materials"] == 0.35
 

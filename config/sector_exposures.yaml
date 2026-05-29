@@ -61,6 +61,7 @@ sector_exposures:
     policy_stance: -0.25
     credit_liquidity: -0.25
     yield_curve: 0.20
+    housing_activity: 0.30        # WS-B: construction input demand
 
   real_estate:
     growth_momentum: 0.10
@@ -68,6 +69,8 @@ sector_exposures:
     policy_stance: -0.80
     credit_liquidity: -0.55
     yield_curve: -0.30
+    housing_activity: 0.45        # WS-B: rate/housing demand levered
+    monetary_liquidity: 0.20      # WS-B: liquidity-sensitive duration asset
 
   utilities:
     growth_momentum: -0.30
@@ -75,3 +78,52 @@ sector_exposures:
     policy_stance: -0.70
     credit_liquidity: -0.20
     yield_curve: -0.40
+
+  # ── Sub-industry exposures (WS-A) ────────────────────────────────────────
+  # Hand-set priors from sub-industry economics, not measured. See sectors.yaml.
+  semiconductors:        # parent: information_technology; more cyclical
+    growth_momentum: 0.75
+    inflation_pressure: -0.30
+    policy_stance: -0.65
+    credit_liquidity: -0.35
+    yield_curve: -0.15
+    monetary_liquidity: 0.25      # WS-B: liquidity tailwind for growth cyclicals
+
+  software:              # parent: information_technology; longest duration
+    growth_momentum: 0.45
+    inflation_pressure: -0.25
+    policy_stance: -0.80
+    credit_liquidity: -0.30
+    yield_curve: -0.30
+    monetary_liquidity: 0.35      # WS-B: long-duration, liquidity-driven multiples
+
+  banks:                 # parent: financials; NIM + curve levered
+    growth_momentum: 0.40
+    inflation_pressure: 0.10
+    policy_stance: 0.30
+    credit_liquidity: -0.65
+    yield_curve: 0.70
+
+  biotech:               # parent: health_care; long-duration growth, funding-dependent
+    growth_momentum: 0.30
+    inflation_pressure: -0.20
+    policy_stance: -0.65
+    credit_liquidity: -0.40
+    yield_curve: -0.25
+    monetary_liquidity: 0.40      # WS-B: funding-dependent, liquidity-levered
+
+  homebuilders:          # parent: consumer_discretionary/real_estate; rate-sensitive
+    growth_momentum: 0.55
+    inflation_pressure: -0.30
+    policy_stance: -0.80
+    credit_liquidity: -0.45
+    yield_curve: -0.35
+    housing_activity: 0.80        # WS-B: most direct housing-starts beta
+    monetary_liquidity: 0.25      # WS-B: mortgage-credit / liquidity sensitive
+
+  oil_gas_ep:            # parent: energy; higher inflation/commodity beta
+    growth_momentum: 0.40
+    inflation_pressure: 0.80
+    policy_stance: -0.10
+    credit_liquidity: -0.30
+    yield_curve: 0.15

@@ -47,6 +47,14 @@ export type HistoryRun = {
   error_count?: number;
 };
 
+export type RegimeTimelinePoint = {
+  date?: string;
+  reported_regime?: string | null;
+  raw_dominant_regime?: string | null;
+  confidence?: number | null;
+  valid?: boolean | null;
+};
+
 export type DashboardData = {
   manifest: Manifest | null;
   daily: Record<string, unknown> | null;
@@ -57,5 +65,6 @@ export type DashboardData = {
   accumulation: Record<string, unknown> | null;
   coverage: Record<string, unknown> | null;
   history: Record<string, unknown> | null;
+  timeline: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
 };

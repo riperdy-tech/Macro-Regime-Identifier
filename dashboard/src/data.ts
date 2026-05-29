@@ -9,6 +9,7 @@ const FILES = {
   accumulation: "news_accumulation_report.json",
   coverage: "news_source_coverage_report.json",
   history: "history_index.json",
+  timeline: "regime_timeline.json",
 } as const;
 
 const BASE_URL = import.meta.env.BASE_URL;
@@ -32,6 +33,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     accumulation: null,
     coverage: null,
     history: null,
+    timeline: null,
     source: "empty",
   };
 }
@@ -57,6 +59,7 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     accumulation: valueFor(entries, "accumulation"),
     coverage: valueFor(entries, "coverage"),
     history: valueFor(entries, "history"),
+    timeline: valueFor(entries, "timeline"),
   };
 }
 
@@ -93,5 +96,6 @@ function emptyData(): Omit<DashboardData, "source"> {
     accumulation: null,
     coverage: null,
     history: null,
+    timeline: null,
   };
 }

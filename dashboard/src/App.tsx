@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadDashboardData } from "./data";
-import type { DashboardData, HistoryRun, RankedSector } from "./types";
+import type { DashboardData, HistoryRun, RankedSector, RegimeTimelinePoint } from "./types";
 import {
   asArray,
   combinedRows,
@@ -304,6 +304,9 @@ function MacroPanel({ data }: { data: DashboardData }) {
       <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} />
       <Metric label="Confidence" value={formatPct(dailyMacro.confidence ?? sectorPayload.macro_confidence)} />
       <Metric label="Macro date" value={text(dailyMacro.date ?? sectorPayload.date)} />
+      <Panel title="Regime Timeline (1990 to present)" wide>
+        <RegimeTimeline data={data} />
+      </Panel>
       <Panel title="Regime Probabilities">
         <KeyValueTable values={probabilities} />
       </Panel>
@@ -311,6 +314,91 @@ function MacroPanel({ data }: { data: DashboardData }) {
         <WarningList items={asArray<string>(getObject(data.daily).warnings)} />
       </Panel>
     </section>
+  );
+}
+
+const REGIME_COLORS: Record<string, string> = {
+  goldilocks: "#2e7d32",
+  reflation: "#1565c0",
+  stagflation: "#c62828",
+  recession: "#6a1b9a",
+  tightening: "#ef6c00",
+};
+
+function regimeColor(regime?: string | null): string {
+  if (!regime) {
+    return "#9e9e9e";
+  }
+  return REGIME_COLORS[regime] ?? "#607d8b";
+}
+
+function RegimeTimeline({ data }: { data: DashboardData }) {
+  const timeline = getObject(data.timeline);
+  const points = asArray<RegimeTimelinePoint>(timeline.points);
+  if (!points.length) {
+    return <p className="muted">Regime timeline unavailable. Run the daily pipeline and export dashboard data.</p>;
+  }
+  const width = 960;
+  const height = 60;
+  const segWidth = width / points.length;
+  const regimes = Array.from(new Set(points.map((point) => point.reported_regime ?? "unknown")));
+  const ticks: { x: number; label: string }[] = [];
+  let lastYear = "";
+  points.forEach((point, index) => {
+    const year = (point.date ?? "").slice(0, 4);
+    if (year && year !== lastYear && Number(year) % 5 === 0) {
+      ticks.push({ x: index * segWidth, label: year });
+      lastYear = year;
+    }
+  });
+  return (
+    <div>
+      <svg
+        viewBox={`0 0 ${width} ${height + 20}`}
+        preserveAspectRatio="none"
+        style={{ width: "100%", height: "auto" }}
+        role="img"
+        aria-label="Macro regime over time"
+      >
+        {points.map((point, index) => (
+          <rect
+            key={index}
+            x={index * segWidth}
+            y={0}
+            width={segWidth + 0.5}
+            height={height}
+            fill={regimeColor(point.reported_regime)}
+            opacity={point.valid === false ? 0.35 : 1}
+          >
+            <title>{`${point.date}: ${point.reported_regime ?? "unknown"}`}</title>
+          </rect>
+        ))}
+        {ticks.map((tick, index) => (
+          <text key={index} x={tick.x} y={height + 14} fontSize={10} fill="#666">
+            {tick.label}
+          </text>
+        ))}
+      </svg>
+      <ul style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", listStyle: "none", padding: 0, margin: "0.5rem 0 0" }}>
+        {regimes.map((regime) => (
+          <li key={regime} style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem" }}>
+            <span
+              style={{
+                display: "inline-block",
+                width: 12,
+                height: 12,
+                borderRadius: 2,
+                background: regimeColor(regime),
+              }}
+            />
+            {regime}
+          </li>
+        ))}
+      </ul>
+      <small className="muted">
+        {text(timeline.start_date)} to {text(timeline.end_date)} · {text(timeline.point_count)} points
+      </small>
+    </div>
   );
 }
 
