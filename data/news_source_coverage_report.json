@@ -65,9 +65,15 @@
       "daily_technology_ai_csv"
     ]
   },
-  "item_count_by_group": {},
-  "latest_date_by_group": {},
-  "latest_item_count_by_group": {},
+  "item_count_by_group": {
+    "macro_general": 6
+  },
+  "latest_date_by_group": {
+    "macro_general": "2026-05-05T07:00:00+00:00"
+  },
+  "latest_item_count_by_group": {
+    "macro_general": 1
+  },
   "missing_configured_groups": [],
   "missing_data_groups": [
     "ai_compute",
@@ -79,14 +85,19 @@
     "healthcare",
     "inflation_rates",
     "labor",
-    "macro_general",
     "manufacturing_industrials",
     "real_estate",
     "technology_ai"
   ],
   "old_item_count": 0,
   "old_item_pct": 0.0,
-  "overrepresented_groups": [],
+  "overrepresented_groups": [
+    {
+      "item_count": 1,
+      "share": 1.0,
+      "source_group": "macro_general"
+    }
+  ],
   "required_source_groups": [
     "ai_compute",
     "consumer",
@@ -102,9 +113,11 @@
     "real_estate",
     "technology_ai"
   ],
-  "source_group_count": 0,
-  "stale_groups": [],
-  "stored_item_count": 0,
+  "source_group_count": 1,
+  "stale_groups": [
+    "macro_general"
+  ],
+  "stored_item_count": 6,
   "suggested_groups_needing_more_coverage": [
     "ai_compute",
     "consumer",
@@ -124,6 +137,9 @@
   "unmapped_pct": 0.0,
   "valid": true,
   "warnings": [
-    "some enabled source groups have no stored items"
+    "some enabled source groups have no stored items",
+    "some source groups have stale stored items",
+    "latest stored items are concentrated in a small number of source groups",
+    "stored items cover fewer source groups than configured minimum"
   ]
 }
