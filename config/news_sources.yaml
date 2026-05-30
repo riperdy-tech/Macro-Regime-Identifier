@@ -79,6 +79,7 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
+      - live_rss
       - rss_watchlist
     feed_url: https://feeds.feedburner.com/nvidiablog
     source: nvidia_blog
@@ -91,6 +92,7 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
+      - live_rss
       - rss_watchlist
     feed_url: https://developer.nvidia.com/blog/feed
     source: nvidia_developer_blog
@@ -103,12 +105,137 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
+      - live_rss
       - rss_watchlist
     feed_url: https://blog.google/products/google-cloud/rss/
     source: google_cloud_blog
     source_group: ai_compute
     max_items: 15
     lookback_days: 7
+
+  # --- Real macro/markets RSS (live_rss profile) ---------------------------
+  # Validated reachable + parse to title/body/date via load_rss_source.
+  # Free public feeds; used as headline diagnostics, not republished.
+  - source_id: cnbc_economy_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/20910258/device/rss/rss.html
+    source: cnbc_economy
+    source_group: macro_general
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: cnbc_markets_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/15839135/device/rss/rss.html
+    source: cnbc_markets
+    source_group: macro_general
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: cnbc_finance_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/10000664/device/rss/rss.html
+    source: cnbc_finance
+    source_group: credit_financial_conditions
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: fed_press_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.federalreserve.gov/feeds/press_all.xml
+    source: federal_reserve_press
+    source_group: credit_financial_conditions
+    max_items: 10
+    lookback_days: 7
+
+  - source_id: bls_latest_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.bls.gov/feed/bls_latest.rss
+    source: bls_latest
+    source_group: labor
+    max_items: 10
+    lookback_days: 7
+
+  - source_id: dol_releases_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.dol.gov/rss/releases.xml
+    source: dol_releases
+    source_group: labor
+    max_items: 10
+    lookback_days: 7
+
+  - source_id: eia_energy_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.eia.gov/rss/todayinenergy.xml
+    source: eia_energy
+    source_group: energy_commodities
+    max_items: 12
+    lookback_days: 5
+
+  - source_id: oilprice_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://oilprice.com/rss/main
+    source: oilprice
+    source_group: energy_commodities
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: housingwire_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.housingwire.com/feed/
+    source: housingwire
+    source_group: real_estate
+    max_items: 10
+    lookback_days: 5
+
+  - source_id: cnbc_technology_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/19854910/device/rss/rss.html
+    source: cnbc_tech
+    source_group: technology_ai
+    max_items: 10
+    lookback_days: 3
+
+  - source_id: cnbc_health_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/10000108/device/rss/rss.html
+    source: cnbc_health
+    source_group: healthcare
+    max_items: 10
+    lookback_days: 3
 
   - source_id: manual_text_example
     provider: manual_text

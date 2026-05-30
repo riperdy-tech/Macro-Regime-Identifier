@@ -1,0 +1,63 @@
+# News selection / prioritization for the DeepSeek classification budget.
+#
+# Problem: the classifier has a per-run cap. Selecting the NEWEST N items is
+# arbitrary - trivial late-posted blurbs can evict the day's important macro
+# news. This config drives a PURE (no LLM, no network) ranker that spends the
+# budget on the most important, broadest set instead.
+#
+# priority = source_authority * (1 + macro_keyword_hits) * freshness
+# then per-group quotas guarantee breadth, and a min_priority threshold means
+# quiet days classify fewer items (cost scales with real signal).
+#
+# ALL numbers below are HAND-SET PRIORS (editorial judgement), not measured.
+
+news_selection:
+  # Hard ceiling per run. ~120/day x 30 ~= $1.2/month at flash rates (< $5 cap).
+  daily_cap: 120
+
+  # Drop items whose priority is below this. Keeps quiet days cheap.
+  min_priority: 0.15
+
+  # Freshness exponential decay (selection-tuned: shorter half-life than scoring).
+  half_life_days: 4.0
+  max_age_days: 14
+
+  # Per-source authority multiplier. Official sources outrank vendor blogs.
+  # Unlisted sources default to 1.0.
+  source_authority:
+    federal_reserve_press: 1.6
+    bls_latest: 1.5
+    dol_releases: 1.4
+    eia_energy: 1.3
+    cnbc_economy: 1.2
+    cnbc_markets: 1.2
+    cnbc_finance: 1.2
+    cnbc_tech: 1.0
+    cnbc_health: 1.0
+    housingwire: 1.0
+    oilprice: 0.9
+    nvidia_blog: 0.7
+    nvidia_developer_blog: 0.7
+    google_cloud_blog: 0.7
+
+  # Relative share of the daily_cap given to each source_group. Items with no
+  # mapped group use `unmapped`. Weights are normalized over groups actually
+  # present in the candidate pool; leftover budget is filled by global priority.
+  group_quota_weights:
+    macro_general: 1.3
+    credit_financial_conditions: 1.2
+    inflation_rates: 1.2
+    labor: 1.1
+    energy_commodities: 1.0
+    real_estate: 0.9
+    manufacturing_industrials: 0.8
+    consumer: 0.8
+    geopolitical: 0.8
+    technology_ai: 0.7
+    healthcare: 0.7
+    ai_compute: 0.6
+    unmapped: 0.3
+
+  # Quality gate (pure): drop likely non-news and too-short bodies before ranking.
+  min_body_words: 25
+  drop_likely_non_news: true

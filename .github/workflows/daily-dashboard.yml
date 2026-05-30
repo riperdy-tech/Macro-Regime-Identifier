@@ -86,13 +86,15 @@ jobs:
       - name: Set run mode
         id: mode
         run: |
-          MODE="${{ inputs.run_mode || 'mock' }}"
+          # Scheduled runs (no inputs) default to LIVE so the dashboard uses real
+          # news. Manual dispatch keeps its own default (mock) for cheap testing.
+          MODE="${{ inputs.run_mode || 'live' }}"
           echo "run_mode=$MODE" >> $GITHUB_OUTPUT
           if [ "$MODE" = "live" ]; then
             echo "mock_ai_flag=" >> $GITHUB_OUTPUT
             echo "live_ai_flag=--live-ai" >> $GITHUB_OUTPUT
             echo "pipeline_config=config/daily_pipeline_github_live.yaml" >> $GITHUB_OUTPUT
-            echo "default_source_profile=ai_compute_rss" >> $GITHUB_OUTPUT
+            echo "default_source_profile=live_rss" >> $GITHUB_OUTPUT
           else
             echo "mock_ai_flag=--mock-ai" >> $GITHUB_OUTPUT
             echo "live_ai_flag=" >> $GITHUB_OUTPUT
@@ -111,7 +113,7 @@ jobs:
             --source-profile "$SOURCE_PROFILE" \
             ${{ steps.mode.outputs.mock_ai_flag }} \
             ${{ steps.mode.outputs.live_ai_flag }} \
-            --max-live-items "${{ inputs.max_live_items || '25' }}" \
+            --max-live-items "${{ inputs.max_live_items || '120' }}" \
             --archive
 
       - name: Run news accumulation

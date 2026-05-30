@@ -139,6 +139,8 @@ def run_daily_diagnostic(
                     stop_on_failure_rate_above=(
                         config.live_ai_safety.stop_on_failure_rate_above
                     ),
+                    selection_config_path="config/news_selection.yaml",
+                    sources_config_path=config.news.news_sources_config,
                 ),
                 fail=True,
             )

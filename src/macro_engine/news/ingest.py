@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 from urllib.error import URLError
@@ -32,16 +33,22 @@ def load_news_items_from_config(
     for source in config.news_sources:
         if not _source_selected(source, profile):
             continue
-        if source.provider == "local_csv":
-            items.extend(load_local_csv_source(source, rules=config.source_group_rules))
-        elif source.provider == "local_json":
-            items.extend(load_local_json_source(source, rules=config.source_group_rules))
-        elif source.provider == "manual_text":
-            items.extend(load_manual_text_source(source, rules=config.source_group_rules))
-        elif source.provider == "rss":
-            items.extend(load_rss_source(source, rules=config.source_group_rules))
-        else:
-            raise ValueError(f"unsupported news provider {source.provider}")
+        try:
+            if source.provider == "local_csv":
+                items.extend(load_local_csv_source(source, rules=config.source_group_rules))
+            elif source.provider == "local_json":
+                items.extend(load_local_json_source(source, rules=config.source_group_rules))
+            elif source.provider == "manual_text":
+                items.extend(load_manual_text_source(source, rules=config.source_group_rules))
+            elif source.provider == "rss":
+                items.extend(load_rss_source(source, rules=config.source_group_rules))
+            else:
+                raise ValueError(f"unsupported news provider {source.provider}")
+        except Exception as exc:  # noqa: BLE001 - one bad source must not abort the run
+            # A flaky feed or unsupported provider is skipped, not fatal. Thin
+            # coverage then surfaces through the monitoring/coverage warnings.
+            print(f"WARN news source {source.source_id} skipped: {exc}", file=sys.stderr)
+            continue
     return dedupe_news_items(items)
 
 

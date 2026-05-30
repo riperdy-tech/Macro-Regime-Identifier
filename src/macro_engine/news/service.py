@@ -15,9 +15,11 @@ from macro_engine.news.classify import (
 )
 from macro_engine.news.config import (
     load_news_ai_config,
+    load_news_selection_config,
     load_news_themes_config,
 )
 from macro_engine.news.ingest import load_news_items_from_config
+from macro_engine.news.selection import rank_and_select
 from macro_engine.news.providers.openai_classifier import DeepSeekNewsClassifier
 from macro_engine.storage.duckdb_store import DuckDBStore
 
@@ -47,6 +49,8 @@ def classify_stored_news(
     progress_callback: Callable[[str], None] | None = None,
     continue_on_individual_failure: bool = True,
     stop_on_failure_rate_above: float | None = None,
+    selection_config_path: str | Path | None = None,
+    sources_config_path: str | Path = "config/news_sources.yaml",
 ) -> dict[str, pd.DataFrame]:
     ai_config = load_news_ai_config(ai_config_path)
     themes = load_news_themes_config(themes_config_path)
@@ -60,7 +64,16 @@ def classify_stored_news(
         classified_ids = set(existing["news_id"].dropna().astype(str))
         news_items = news_items[~news_items["news_id"].astype(str).isin(classified_ids)].copy()
     if limit is not None:
-        news_items = news_items.sort_values("published_at", na_position="last").tail(limit)
+        if selection_config_path is not None and not news_items.empty:
+            # Importance-ranked selection within the budget (pure, no LLM). The
+            # live_ai_safety cap stays authoritative: never exceed `limit`.
+            sel_cfg = load_news_selection_config(selection_config_path)
+            sel_cfg = sel_cfg.model_copy(update={"daily_cap": min(limit, sel_cfg.daily_cap)})
+            news_items = rank_and_select(
+                news_items, config=sel_cfg, sources_config_path=sources_config_path
+            )
+        else:
+            news_items = news_items.sort_values("published_at", na_position="last").tail(limit)
     records = []
     rows = news_items.to_dict(orient="records")
     total = len(rows)

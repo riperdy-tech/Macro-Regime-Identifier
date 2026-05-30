@@ -152,9 +152,9 @@ class TestGitHubWorkflowConfig:
         assert "live_ai_flag=--live-ai" in content
         assert "${{ steps.mode.outputs.live_ai_flag }}" in content
         assert "--max-live-items" in content
-        assert "${{ inputs.max_live_items || '25' }}" in content
+        assert "${{ inputs.max_live_items || '120' }}" in content
         assert "pipeline_config=config/daily_pipeline_github_live.yaml" in content
-        assert "default_source_profile=ai_compute_rss" in content
+        assert "default_source_profile=live_rss" in content
         assert "--config \"${{ steps.mode.outputs.pipeline_config }}\"" in content
 
     def test_workflow_does_not_expose_secrets_in_yaml(self):
@@ -213,7 +213,7 @@ class TestGitHubDailyPipelineConfig:
         news = content["daily_pipeline"]["news"]
         assert news["allow_live_ai"] is True
         assert news["mock_mode_default"] is False
-        assert news["source_profile"] == "ai_compute_rss"
+        assert news["source_profile"] == "live_rss"
         assert news["news_ai_config"] == "config/news_ai_live.yaml"
 
     def test_github_live_ai_config_uses_real_classifier(self):

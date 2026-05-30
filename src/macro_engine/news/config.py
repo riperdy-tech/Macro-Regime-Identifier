@@ -360,8 +360,29 @@ class NewsMonitoringConfig(BaseModel):
         return self
 
 
+class NewsSelectionConfig(BaseModel):
+    """Pure (no-LLM) prioritization of news items for the classification budget."""
+
+    daily_cap: int = Field(default=120, ge=1)
+    min_priority: float = Field(default=0.15, ge=0.0)
+    half_life_days: float = Field(default=4.0, gt=0.0)
+    max_age_days: int = Field(default=14, ge=0)
+    source_authority: dict[str, float] = Field(default_factory=dict)
+    group_quota_weights: dict[str, float] = Field(default_factory=dict)
+    min_body_words: int = Field(default=25, ge=0)
+    drop_likely_non_news: bool = True
+
+
 def load_news_sources_config(path: str | Path = "config/news_sources.yaml") -> NewsSourcesConfig:
     return NewsSourcesConfig.model_validate(_load_yaml(path))
+
+
+def load_news_selection_config(
+    path: str | Path = "config/news_selection.yaml",
+) -> NewsSelectionConfig:
+    data = _load_yaml(path)
+    payload = data.get("news_selection", data)
+    return NewsSelectionConfig.model_validate(payload)
 
 
 def load_news_themes_config(path: str | Path = "config/news_themes.yaml") -> NewsThemesConfig:
