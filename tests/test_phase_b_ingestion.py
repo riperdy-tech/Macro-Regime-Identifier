@@ -72,7 +72,7 @@ def test_load_production_controlled_source_set():
     sources = load_ingestion_sources("config/phase_b_sources.yaml")
     selected = select_sources(sources)
 
-    assert len(selected) == 12
+    assert len(selected) == 14
     assert {source.series_id for source in selected} == {
         "INDPRO",
         "PAYEMS",
@@ -86,6 +86,9 @@ def test_load_production_controlled_source_set():
         "T10Y2Y",
         "ICSA",
         "BAMLH0A0HYM2",
+        # WS-B additive non-regime series (sector exposures only)
+        "M2SL",
+        "HOUST",
     }
 
 

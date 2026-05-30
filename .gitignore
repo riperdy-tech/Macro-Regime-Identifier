@@ -20,5 +20,15 @@ outputs/**/*.json
 outputs/**/*.md
 outputs/**/*.yaml
 !outputs/.gitkeep
+# Persist per-run audit snapshots so history_index accumulates across CI runs.
+# Only the small daily summary JSON is tracked, not the full archive payload.
+!outputs/archive/**/daily_diagnostic_summary.json
 logs/
 *.egg-info/
+# ds-codex:start
+.ds-codex/.env
+.ds-codex/runs/
+.ds-codex/worktrees/
+__pycache__/
+.pytest_cache/
+# ds-codex:end

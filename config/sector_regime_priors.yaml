@@ -1,4 +1,6 @@
 sector_regime_priors:
+  # Sub-industry priors (WS-A) are hand-set from sub-industry economics, not
+  # measured. See sectors.yaml. Every regime block below includes all 6.
   goldilocks:
     communication_services: 0.15
     consumer_discretionary: 0.25
@@ -11,6 +13,12 @@ sector_regime_priors:
     materials: 0.10
     real_estate: 0.05
     utilities: -0.20
+    semiconductors: 0.35
+    software: 0.35
+    banks: 0.15
+    biotech: 0.30
+    homebuilders: 0.30
+    oil_gas_ep: -0.05
 
   reflation:
     communication_services: 0.05
@@ -24,6 +32,12 @@ sector_regime_priors:
     materials: 0.35
     real_estate: -0.05
     utilities: -0.25
+    semiconductors: 0.20
+    software: 0.00
+    banks: 0.30
+    biotech: 0.05
+    homebuilders: 0.10
+    oil_gas_ep: 0.40
 
   stagflation:
     communication_services: -0.15
@@ -37,6 +51,12 @@ sector_regime_priors:
     materials: 0.05
     real_estate: -0.25
     utilities: 0.10
+    semiconductors: -0.35
+    software: -0.30
+    banks: -0.20
+    biotech: -0.30
+    homebuilders: -0.35
+    oil_gas_ep: 0.45
 
   recession:
     communication_services: -0.10
@@ -50,6 +70,12 @@ sector_regime_priors:
     materials: -0.20
     real_estate: -0.25
     utilities: 0.25
+    semiconductors: -0.30
+    software: -0.15
+    banks: -0.35
+    biotech: -0.20
+    homebuilders: -0.30
+    oil_gas_ep: -0.25
 
   tightening:
     communication_services: -0.15
@@ -63,3 +89,9 @@ sector_regime_priors:
     materials: -0.05
     real_estate: -0.40
     utilities: -0.30
+    semiconductors: -0.30
+    software: -0.35
+    banks: 0.20
+    biotech: -0.35
+    homebuilders: -0.45
+    oil_gas_ep: 0.15

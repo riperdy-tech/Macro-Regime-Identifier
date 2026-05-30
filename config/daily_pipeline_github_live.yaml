@@ -17,7 +17,7 @@ daily_pipeline:
 
   news:
     enabled: true
-    source_profile: ai_compute_rss
+    source_profile: live_rss
     news_sources_config: config/news_sources.yaml
     news_ai_config: config/news_ai_live.yaml
     news_themes_config: config/news_themes.yaml
@@ -26,7 +26,7 @@ daily_pipeline:
     mock_mode_default: false
 
   live_ai_safety:
-    max_items_per_run: 25
+    max_items_per_run: 120
     batch_size: 5
     classify_only_unclassified: true
     continue_on_individual_failure: true
@@ -40,7 +40,7 @@ daily_pipeline:
   monitoring:
     enabled: true
     config_path: config/news_monitoring.yaml
-    source_profile: ai_compute_rss
+    source_profile: live_rss
 
   safety:
     fail_on_guardrail_violation: true

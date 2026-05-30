@@ -17,6 +17,7 @@ DASHBOARD_OUTPUT_FILES = [
     "news_source_coverage_report.json",
     "secular_theme_scores.json",
     "regime_status.json",
+    "regime_timeline.json",
     "automation_run_summary.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"

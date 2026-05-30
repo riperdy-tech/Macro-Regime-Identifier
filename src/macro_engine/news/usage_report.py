@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -74,10 +75,27 @@ def build_live_ai_usage_report(classifications: pd.DataFrame) -> dict[str, Any]:
             "missing_usage_count": len(rows) - len(usage_rows),
             "latest_classified_at": latest,
             "totals": totals,
+            "completion_token_stats": _completion_stats(usage_rows),
+            "truncation": _truncation_stats(usage_rows),
             "provider_model_breakdown": _provider_model_breakdown(rows),
             "disclaimer": USAGE_REPORT_DISCLAIMER,
         }
     )
+
+
+def _completion_stats(usage_rows: list[dict[str, Any]]) -> dict[str, int]:
+    values = sorted(_to_int(row["usage"].get("completion_tokens")) for row in usage_rows)
+    if not values:
+        return {"count": 0, "max": 0, "p95": 0}
+    p95_index = max(0, math.ceil(0.95 * len(values)) - 1)
+    return {"count": len(values), "max": values[-1], "p95": values[p95_index]}
+
+
+def _truncation_stats(usage_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    count = len(usage_rows)
+    truncated = sum(1 for row in usage_rows if row.get("finish_reason") == "length")
+    rate = round(truncated / count, 4) if count else 0.0
+    return {"usage_count": count, "truncation_count": truncated, "truncation_rate": rate}
 
 
 def live_ai_usage_report_markdown(payload: dict[str, Any]) -> str:
@@ -88,6 +106,8 @@ def live_ai_usage_report_markdown(payload: dict[str, Any]) -> str:
             f"{payload['disclaimer']}\n"
         )
     totals = payload["totals"]
+    comp = payload.get("completion_token_stats", {})
+    trunc = payload.get("truncation", {})
     groups = "\n".join(_group_lines(payload["provider_model_breakdown"])) or "- None"
     return f"""# Live AI Usage Report
 
@@ -106,6 +126,8 @@ Latest classified at: {payload["latest_classified_at"]}
 - Total tokens: {totals["total_tokens"]}
 - Prompt cache hit tokens: {totals["prompt_cache_hit_tokens"]}
 - Prompt cache miss tokens: {totals["prompt_cache_miss_tokens"]}
+- Completion tokens max / p95: {comp.get("max", 0)} / {comp.get("p95", 0)}
+- Truncated responses (finish_reason=length): {trunc.get("truncation_count", 0)} (rate {trunc.get("truncation_rate", 0.0)})
 
 ## Provider / Model
 
@@ -121,12 +143,14 @@ def _usage_row(row: dict[str, Any]) -> dict[str, Any]:
     provider = _string_or_unknown(row.get("ai_provider") or row.get("provider"))
     model = _string_or_unknown(row.get("ai_model") or row.get("model"))
     normalized_usage = _normalize_usage(usage)
+    finish_reason = usage.get("finish_reason") if isinstance(usage, dict) else None
     return {
         "provider": provider,
         "model": model,
         "classified_at": row.get("classified_at"),
         "has_usage": normalized_usage is not None,
         "usage": normalized_usage or _empty_usage_totals(),
+        "finish_reason": finish_reason,
     }
 
 

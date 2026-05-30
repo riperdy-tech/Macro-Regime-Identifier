@@ -3,14 +3,19 @@ ai:
   model: deepseek-v4-flash
   base_url: https://api.deepseek.com
   temperature: 0.0
-  max_tokens: 1200
+  # Generous ceiling (~1.4x the measured p100 completion of 1433). max_tokens is
+  # a ceiling, not billed - actual median ~733 - so headroom costs nothing in
+  # normal operation. Truncations are also auto-retried at a larger budget.
+  max_tokens: 2048
+  truncation_retry_multiplier: 2.0
   api_key_env: DEEPSEEK_API_KEY
   enable_live_ai: true
   mock_mode: false
   request_timeout_seconds: 60
   output_dir: outputs
   enable_schema_repair: true
-  max_retries: 0
+  # One retry recovers transient invalid-JSON / empty-field responses.
+  max_retries: 1
   retry_backoff_seconds: 0.0
   max_prompt_body_chars: 6000
   max_retry_response_chars: 3000

@@ -139,6 +139,8 @@ def run_daily_diagnostic(
                     stop_on_failure_rate_above=(
                         config.live_ai_safety.stop_on_failure_rate_above
                     ),
+                    selection_config_path="config/news_selection.yaml",
+                    sources_config_path=config.news.news_sources_config,
                 ),
                 fail=True,
             )
@@ -213,6 +215,8 @@ def run_daily_diagnostic(
     )
     summary_json, summary_md = write_daily_summary(summary_payload)
     outputs.extend([str(summary_json), str(summary_md)])
+    timeline_json = write_regime_timeline(store, Path(summary_json).parent)
+    outputs.append(str(timeline_json))
     archive_path = None
     archive_enabled = config.outputs.archive_enabled if archive is None else archive
     if archive_enabled:
@@ -303,6 +307,58 @@ def write_daily_summary(payload: dict[str, Any], output_dir: str | Path = "outpu
     json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
+
+
+def write_regime_timeline(
+    store: DuckDBStore,
+    output_dir: str | Path = "outputs",
+) -> Path:
+    """Export the full historical regime timeline as a chartable series.
+
+    The daily diagnostic recomputes ``historical_regime_timeline`` back to the
+    configured start_date on every run, but previously only the latest point was
+    surfaced to the dashboard. This writes the entire series so the site can
+    render regime-over-time instead of only post-automation daily snapshots.
+    """
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    path = output / "regime_timeline.json"
+
+    timeline = store.read_table("historical_regime_timeline")
+    points: list[dict[str, Any]] = []
+    if not timeline.empty:
+        frame = timeline.copy()
+        frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+        frame = frame.dropna(subset=["date"]).sort_values("date")
+        for row in frame.to_dict(orient="records"):
+            confidence = row.get("reported_confidence")
+            if confidence is None or pd.isna(confidence):
+                confidence = row.get("confidence")
+            valid = row.get("valid")
+            points.append(
+                {
+                    "date": row["date"].date().isoformat(),
+                    "reported_regime": row.get("reported_regime") or row.get("dominant_regime"),
+                    "raw_dominant_regime": row.get("raw_dominant_regime")
+                    or row.get("dominant_regime"),
+                    "confidence": confidence,
+                    "valid": None if valid is None or pd.isna(valid) else bool(valid),
+                }
+            )
+
+    payload = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "start_date": points[0]["date"] if points else None,
+        "end_date": points[-1]["date"] if points else None,
+        "point_count": len(points),
+        "points": points,
+        "disclaimer": DAILY_SUMMARY_DISCLAIMER,
+    }
+    path.write_text(
+        json.dumps(_json_safe(payload), indent=2, sort_keys=True),
+        encoding="utf-8",
+    )
+    return path
 
 
 def daily_summary_markdown(payload: dict[str, Any]) -> str:

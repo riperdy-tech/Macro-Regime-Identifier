@@ -212,6 +212,9 @@ class NewsAIConfig(BaseModel):
     retry_backoff_seconds: float = Field(default=0.0, ge=0.0)
     max_prompt_body_chars: int = Field(default=8000, gt=0)
     max_retry_response_chars: int = Field(default=4000, gt=0)
+    # On a truncated response (finish_reason=length), retry that item with
+    # max_tokens scaled by this factor so an oversize article self-heals.
+    truncation_retry_multiplier: float = Field(default=2.0, ge=1.0)
 
 
 class FreshnessDecayConfig(BaseModel):
@@ -316,6 +319,7 @@ class NewsMonitoringQualityThresholds(BaseModel):
     max_failed_classification_rate: float = Field(default=0.10, ge=0.0, le=1.0)
     max_retry_rate: float = Field(default=0.20, ge=0.0, le=1.0)
     max_repair_rate: float = Field(default=0.20, ge=0.0, le=1.0)
+    max_truncation_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     min_source_count: int = Field(default=3, ge=0)
     min_date_coverage_days: int = Field(default=3, ge=0)
     max_source_share: float = Field(default=0.35, ge=0.0, le=1.0)
@@ -360,8 +364,29 @@ class NewsMonitoringConfig(BaseModel):
         return self
 
 
+class NewsSelectionConfig(BaseModel):
+    """Pure (no-LLM) prioritization of news items for the classification budget."""
+
+    daily_cap: int = Field(default=120, ge=1)
+    min_priority: float = Field(default=0.15, ge=0.0)
+    half_life_days: float = Field(default=4.0, gt=0.0)
+    max_age_days: int = Field(default=14, ge=0)
+    source_authority: dict[str, float] = Field(default_factory=dict)
+    group_quota_weights: dict[str, float] = Field(default_factory=dict)
+    min_body_words: int = Field(default=25, ge=0)
+    drop_likely_non_news: bool = True
+
+
 def load_news_sources_config(path: str | Path = "config/news_sources.yaml") -> NewsSourcesConfig:
     return NewsSourcesConfig.model_validate(_load_yaml(path))
+
+
+def load_news_selection_config(
+    path: str | Path = "config/news_selection.yaml",
+) -> NewsSelectionConfig:
+    data = _load_yaml(path)
+    payload = data.get("news_selection", data)
+    return NewsSelectionConfig.model_validate(payload)
 
 
 def load_news_themes_config(path: str | Path = "config/news_themes.yaml") -> NewsThemesConfig:

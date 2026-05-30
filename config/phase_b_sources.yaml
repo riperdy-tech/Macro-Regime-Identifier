@@ -130,6 +130,30 @@ sources:
     stale_after_days: 5
     unusable_after_days: 15
 
+  # --- WS-B additive series (NOT part of regime classification) -------------
+  # Both have full 1990+ FRED history. Wired into NEW non-regime dimensions
+  # (monetary_liquidity, housing_activity) consumed only by sector exposures.
+  # required:false so a fetch gap never invalidates the regime timeline.
+  - series_id: M2SL
+    name: M2 Money Supply
+    provider: FRED
+    dimension: monetary_liquidity
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
+  - series_id: HOUST
+    name: Housing Starts, Total New Privately Owned
+    provider: FRED
+    dimension: housing_activity
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
@@ -252,6 +276,23 @@ features:
     enabled: true
     min_observations: 60
 
+  # --- WS-B additive features (feed non-regime sector dimensions only) ------
+  - feature_id: m2_money_supply_yoy_z
+    series_id: M2SL
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_liquidity_loose
+    enabled: true
+    min_observations: 24
+
+  - feature_id: housing_starts_yoy_z
+    series_id: HOUST
+    transform: yoy_pct_change
+    normalization: rolling_z_5y
+    direction: higher_is_housing_strong
+    enabled: true
+    min_observations: 24
+
 dimensions:
   - dimension_id: growth_momentum
     enabled: true
@@ -324,6 +365,29 @@ dimensions:
     min_coverage_ratio: 1.00
     features:
       - feature_id: yield_curve_10y2y_level_z
+        weight: 1.00
+        polarity: positive
+
+  # --- WS-B additive dimensions (required_for_regime: false) ----------------
+  # NOT listed in any regime's `dimensions:` weight map, so they are computed
+  # but excluded from regime classification. Consumed only by sector exposures.
+  - dimension_id: monetary_liquidity
+    enabled: true
+    required_for_regime: false
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: m2_money_supply_yoy_z
+        weight: 1.00
+        polarity: positive
+
+  - dimension_id: housing_activity
+    enabled: true
+    required_for_regime: false
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: housing_starts_yoy_z
         weight: 1.00
         polarity: positive
 

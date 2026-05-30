@@ -53,3 +53,39 @@ sectors:
     label: Utilities
     proxy_ticker: XLU
     enabled: true
+
+  # ── Sub-industries (WS-A) ────────────────────────────────────────────────
+  # Finer-grained groups carved from their parent GICS sector. Their exposures
+  # and regime priors are HAND-SET from sub-industry macro economics (duration,
+  # cyclicality, rate/credit sensitivity), NOT empirically measured. Treat as
+  # priors. Each must have a row in sector_exposures.yaml and a prior for every
+  # regime in sector_regime_priors.yaml (config validation enforces this).
+  - sector_id: semiconductors
+    label: Semiconductors
+    proxy_ticker: SMH
+    enabled: true
+
+  - sector_id: software
+    label: Software & SaaS
+    proxy_ticker: IGV
+    enabled: true
+
+  - sector_id: banks
+    label: Banks
+    proxy_ticker: KBE
+    enabled: true
+
+  - sector_id: biotech
+    label: Biotechnology
+    proxy_ticker: XBI
+    enabled: true
+
+  - sector_id: homebuilders
+    label: Homebuilders
+    proxy_ticker: XHB
+    enabled: true
+
+  - sector_id: oil_gas_ep
+    label: Oil & Gas E&P
+    proxy_ticker: XOP
+    enabled: true
