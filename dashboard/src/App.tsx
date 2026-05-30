@@ -13,6 +13,14 @@ import {
   sectorRows,
   text,
 } from "./utils";
+import {
+  DATA_FLOW,
+  GLOSSARY,
+  GUIDE_DISCLAIMER,
+  TAB_GUIDE,
+  TAB_INTROS,
+  TOOLTIPS,
+} from "./help";
 
 type TabId = "overview" | "macro" | "sectors" | "news" | "combined" | "monitoring" | "history";
 
@@ -71,6 +79,7 @@ export function App() {
         ))}
       </div>
       <main>
+        <p className="tab-intro">{TAB_INTROS[activeTab]}</p>
         {activeTab === "overview" && <Overview data={data} />}
         {activeTab === "macro" && <MacroPanel data={data} />}
         {activeTab === "sectors" && <SectorPanel data={data} />}
@@ -95,7 +104,7 @@ function Shell({ children, status }: { children: React.ReactNode; status: string
         </div>
         <div className="header-actions">
           <button type="button" className="summary-button" onClick={() => setShowSummary(true)}>
-            What this does
+            How it works
           </button>
           <div className="status-pill">{status}</div>
         </div>
@@ -128,6 +137,19 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
             Python backend gathers data, prepares reports, and exports JSON files. This website
             reads those exported files and turns them into a dashboard you can review each day.
           </p>
+          <nav className="toc" aria-label="Guide contents">
+            <a href="#guide-flow">How the data flows</a>
+            <a href="#guide-tabs">What each tab shows</a>
+            <a href="#guide-glossary">Glossary</a>
+          </nav>
+          <div className="summary-section" id="guide-flow">
+            <h3>How the data flows</h3>
+            <ol className="flow-list">
+              {DATA_FLOW.map((step, index) => (
+                <li key={index}>{step}</li>
+              ))}
+            </ol>
+          </div>
           <div className="summary-section">
             <h3>1. It checks the economic backdrop</h3>
             <p>
@@ -221,11 +243,29 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
               to.
             </p>
           </div>
-          <p className="summary-note">
-            Bottom line: this is a diagnostic research tool. It helps organize macro data,
-            sector signals, news themes, and daily run history. It is not financial advice,
-            not an automated market system, and not a promise that any signal will be right.
-          </p>
+          <div className="summary-section" id="guide-tabs">
+            <h3>What each tab shows</h3>
+            <dl className="guide-dl">
+              {TAB_GUIDE.map((entry) => (
+                <div key={entry.tab}>
+                  <dt>{entry.tab}</dt>
+                  <dd>{entry.read}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div className="summary-section" id="guide-glossary">
+            <h3>Glossary</h3>
+            <dl className="guide-dl">
+              {GLOSSARY.map((entry) => (
+                <div key={entry.term}>
+                  <dt>{entry.term}</dt>
+                  <dd>{entry.def}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <p className="summary-note">{GUIDE_DISCLAIMER}</p>
         </div>
       </section>
     </div>
@@ -248,11 +288,13 @@ function Overview({ data }: { data: DashboardData }) {
         label="Macro regime"
         value={text(macro.reported_regime)}
         detail={`confidence ${formatPct(macro.confidence)}`}
+        info={TOOLTIPS.regime}
       />
       <Metric
         label="Latest macro date"
         value={text(macro.date)}
         detail={`raw leader ${text(macro.raw_dominant_regime)}`}
+        info={TOOLTIPS.reported_vs_raw}
       />
       <Metric
         label="Accumulation"
@@ -263,13 +305,15 @@ function Overview({ data }: { data: DashboardData }) {
         label="Classification quality"
         value={formatPct(classification.success_rate)}
         detail={`retry ${formatPct(classification.retry_rate)} / repair ${formatPct(classification.repair_rate)}`}
+        info={TOOLTIPS.classification_success}
       />
       <Metric
         label="Data source"
         value={data.source === "sample" ? "sample fixtures" : "exported outputs"}
         detail={missingFiles.length ? `${missingFiles.length} missing files` : "complete file set"}
+        info={TOOLTIPS.data_source}
       />
-      <Panel title="Data Status">
+      <Panel title="Data Status" info={TOOLTIPS.data_status}>
         <WarningList
           items={
             missingFiles.length
@@ -278,16 +322,16 @@ function Overview({ data }: { data: DashboardData }) {
           }
         />
       </Panel>
-      <Panel title="Top Sector Diagnostics">
+      <Panel title="Top Sector Diagnostics" info={TOOLTIPS.confidence_adjusted_score}>
         <RankingTable rows={sectorRows(data.sectors).slice(0, 5)} scoreKey="confidence_adjusted_score" />
       </Panel>
-      <Panel title="Top News Themes">
+      <Panel title="Top News Themes" info={TOOLTIPS.news_themes}>
         <ScoreList items={scoreItems(getNested(data.newsScores, "top_positive_macro_themes")).slice(0, 5)} />
       </Panel>
-      <Panel title="Combined Top Sectors">
+      <Panel title="Combined Top Sectors" info={TOOLTIPS.combined_overlay}>
         <RankingTable rows={combinedRows(data.combined).slice(0, 5)} scoreKey="combined_score" />
       </Panel>
-      <Panel title="Coverage Warnings">
+      <Panel title="Coverage Warnings" info={TOOLTIPS.coverage_warnings}>
         <WarningList items={asArray<string>(getObject(data.coverage).warnings)} />
       </Panel>
     </section>
@@ -300,14 +344,14 @@ function MacroPanel({ data }: { data: DashboardData }) {
   const probabilities = getObject(getObject(data.daily).regime_probabilities);
   return (
     <section className="grid two">
-      <Metric label="Reported regime" value={text(dailyMacro.reported_regime ?? sectorPayload.reported_macro_regime)} />
-      <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} />
-      <Metric label="Confidence" value={formatPct(dailyMacro.confidence ?? sectorPayload.macro_confidence)} />
-      <Metric label="Macro date" value={text(dailyMacro.date ?? sectorPayload.date)} />
-      <Panel title="Regime Timeline (1990 to present)" wide>
+      <Metric label="Reported regime" value={text(dailyMacro.reported_regime ?? sectorPayload.reported_macro_regime)} info={TOOLTIPS.regime} />
+      <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} info={TOOLTIPS.reported_vs_raw} />
+      <Metric label="Confidence" value={formatPct(dailyMacro.confidence ?? sectorPayload.macro_confidence)} info={TOOLTIPS.confidence} />
+      <Metric label="Macro date" value={text(dailyMacro.date ?? sectorPayload.date)} info={TOOLTIPS.macro_date} />
+      <Panel title="Regime Timeline (1990 to present)" wide info={TOOLTIPS.regime_timeline}>
         <RegimeTimeline data={data} />
       </Panel>
-      <Panel title="Regime Probabilities">
+      <Panel title="Regime Probabilities" info={TOOLTIPS.regime_probabilities}>
         <KeyValueTable values={probabilities} />
       </Panel>
       <Panel title="Warnings">
@@ -408,15 +452,15 @@ function SectorPanel({ data }: { data: DashboardData }) {
   const bottom = rows[rows.length - 1];
   return (
     <section className="grid two">
-      <Metric label="Top sector" value={text(top?.sector_id)} detail={formatScore(top?.confidence_adjusted_score)} />
-      <Metric label="Lowest sector" value={text(bottom?.sector_id)} detail={formatScore(bottom?.confidence_adjusted_score)} />
-      <Panel title="Sector Ranking" wide>
+      <Metric label="Top sector" value={text(top?.sector_id)} detail={formatScore(top?.confidence_adjusted_score)} info={TOOLTIPS.confidence_adjusted_score} />
+      <Metric label="Lowest sector" value={text(bottom?.sector_id)} detail={formatScore(bottom?.confidence_adjusted_score)} info={TOOLTIPS.confidence_adjusted_score} />
+      <Panel title="Sector Ranking" wide info={TOOLTIPS.sector_ranking}>
         <RankingTable rows={rows} scoreKey="confidence_adjusted_score" />
       </Panel>
-      <Panel title="Top Sector Components">
+      <Panel title="Top Sector Components" info={TOOLTIPS.sector_components}>
         <ComponentList sector={top} />
       </Panel>
-      <Panel title="Lowest Sector Components">
+      <Panel title="Lowest Sector Components" info={TOOLTIPS.sector_components}>
         <ComponentList sector={bottom} />
       </Panel>
     </section>
@@ -430,22 +474,22 @@ function NewsPanel({ data }: { data: DashboardData }) {
   return (
     <section className="grid two">
       <Metric label="News score date" value={text(report.latest_news_scoring_date)} />
-      <Metric label="Classification success" value={formatPct(classification.success_rate)} />
-      <Metric label="Retry rate" value={formatPct(classification.retry_rate)} />
-      <Metric label="Repair rate" value={formatPct(classification.repair_rate)} />
-      <Panel title="Positive Macro Themes">
+      <Metric label="Classification success" value={formatPct(classification.success_rate)} info={TOOLTIPS.classification_success} />
+      <Metric label="Retry rate" value={formatPct(classification.retry_rate)} info={TOOLTIPS.retry_rate} />
+      <Metric label="Repair rate" value={formatPct(classification.repair_rate)} info={TOOLTIPS.repair_rate} />
+      <Panel title="Positive Macro Themes" info={TOOLTIPS.news_themes}>
         <ScoreList items={scoreItems(report.top_positive_macro_themes)} />
       </Panel>
-      <Panel title="Negative Macro Themes">
+      <Panel title="Negative Macro Themes" info={TOOLTIPS.news_themes}>
         <ScoreList items={scoreItems(report.top_negative_macro_themes)} />
       </Panel>
-      <Panel title="Sector Diagnostic Tailwinds">
+      <Panel title="Sector Diagnostic Tailwinds" info={TOOLTIPS.news_themes}>
         <ScoreList items={scoreItems(report.top_sector_news_tailwinds)} />
       </Panel>
-      <Panel title="Sector Diagnostic Headwinds">
+      <Panel title="Sector Diagnostic Headwinds" info={TOOLTIPS.news_themes}>
         <ScoreList items={scoreItems(report.top_sector_news_headwinds)} />
       </Panel>
-      <Panel title="Low Confidence Items" wide>
+      <Panel title="Low Confidence Items" wide info={TOOLTIPS.low_confidence_items}>
         <ItemTable items={asArray<Record<string, unknown>>(report.low_confidence_items)} />
       </Panel>
     </section>
@@ -459,19 +503,19 @@ function CombinedPanel({ data }: { data: DashboardData }) {
   return (
     <section className="grid two">
       <Metric label="Diagnostic date" value={text(combined.diagnostic_date ?? overlay.diagnostic_date)} />
-      <Metric label="Max rank change" value={text(overlay.max_rank_change, "0")} />
-      <Metric label="News item count" value={text(overlay.news_item_count, "0")} />
-      <Metric label="Overlay status" value={text(overlay.overlay_status)} />
-      <Panel title="Combined Ranking" wide>
+      <Metric label="Max rank change" value={text(overlay.max_rank_change, "0")} info={TOOLTIPS.overlay_rank_change} />
+      <Metric label="News item count" value={text(overlay.news_item_count, "0")} info={TOOLTIPS.news_item_count} />
+      <Metric label="Overlay status" value={text(overlay.overlay_status)} info={TOOLTIPS.combined_overlay} />
+      <Panel title="Combined Ranking" wide info={TOOLTIPS.combined_overlay}>
         <RankingTable rows={combinedRows(data.combined)} scoreKey="combined_score" />
       </Panel>
-      <Panel title="Macro-only Top Sectors">
+      <Panel title="Macro-only Top Sectors" info={TOOLTIPS.confidence_adjusted_score}>
         <RankingTable
           rows={asArray<RankedSector>(overlay.macro_only_top_sectors_json)}
           scoreKey="confidence_adjusted_score"
         />
       </Panel>
-      <Panel title="Rank Changes From News Overlay">
+      <Panel title="Rank Changes From News Overlay" info={TOOLTIPS.overlay_rank_change}>
         <ChangeList items={asArray<Record<string, unknown>>(overlay.sectors_changed_by_news_json)} />
       </Panel>
     </section>
@@ -485,23 +529,24 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
   const inputQuality = getObject(monitoring.input_quality);
   return (
     <section className="grid two">
-      <Metric label="Readiness label" value={text(accumulation.readiness_label, "insufficient_history")} />
+      <Metric label="Readiness label" value={text(accumulation.readiness_label, "insufficient_history")} info={TOOLTIPS.readiness_label} />
       <Metric
         label="Readiness meaning"
         value={readinessMeaning(text(accumulation.readiness_label, "insufficient_history"))}
+        info={TOOLTIPS.readiness_label}
       />
       <Metric label="Source groups" value={text(coverage.source_group_count ?? accumulation.source_group_count)} />
-      <Metric label="Unmapped share" value={formatPct(coverage.unmapped_pct)} />
-      <Metric label="Old item share" value={formatPct(coverage.old_item_pct)} />
-      <Metric label="Input quality" value={text(inputQuality.quality_status)} />
-      <Metric label="Guardrail status" value={text(getNested(data.daily, "step_statuses", "guardrail_status"))} />
-      <Panel title="Missing Groups">
+      <Metric label="Unmapped share" value={formatPct(coverage.unmapped_pct)} info={TOOLTIPS.unmapped_share} />
+      <Metric label="Old item share" value={formatPct(coverage.old_item_pct)} info={TOOLTIPS.old_item_share} />
+      <Metric label="Input quality" value={text(inputQuality.quality_status)} info={TOOLTIPS.input_quality} />
+      <Metric label="Guardrail status" value={text(getNested(data.daily, "step_statuses", "guardrail_status"))} info={TOOLTIPS.guardrail} />
+      <Panel title="Missing Groups" info={TOOLTIPS.coverage_warnings}>
         <WarningList items={asArray<string>(coverage.missing_data_groups)} />
       </Panel>
-      <Panel title="Coverage Warnings">
+      <Panel title="Coverage Warnings" info={TOOLTIPS.coverage_warnings}>
         <WarningList items={asArray<string>(coverage.warnings)} />
       </Panel>
-      <Panel title="Source Group Counts" wide>
+      <Panel title="Source Group Counts" wide info={TOOLTIPS.coverage_warnings}>
         <KeyValueTable values={getObject(coverage.item_count_by_group)} />
       </Panel>
     </section>
@@ -522,10 +567,10 @@ function HistoryPanel({ data }: { data: DashboardData }) {
   return (
     <section className="grid two">
       <Metric label="History status" value={text(history.history_status, "empty")} />
-      <Metric label="Recorded runs" value={text(history.total_runs, "0")} />
+      <Metric label="Recorded runs" value={text(history.total_runs, "0")} info={TOOLTIPS.recorded_runs} />
       <Metric label="Latest run" value={text(latest?.run_date)} detail={text(latest?.run_id)} />
-      <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} />
-      <Panel title="History Readiness" wide>
+      <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} info={TOOLTIPS.avg_confidence} />
+      <Panel title="History Readiness" wide info={TOOLTIPS.history_readiness}>
         {rows.length < 2 ? (
           <p className="muted">
             Run-over-run trend deltas need at least two recorded daily runs. For full
@@ -604,27 +649,54 @@ function HistoryTable({ rows }: { rows: HistoryRun[] }) {
   );
 }
 
+function InfoTip({ text: tip }: { text: string }) {
+  return (
+    <span className="infotip" tabIndex={0} role="button" aria-label={tip}>
+      <span className="infotip-glyph" aria-hidden="true">?</span>
+      <span className="infotip-bubble" role="tooltip">{tip}</span>
+    </span>
+  );
+}
+
 function Panel({
   children,
   title,
   wide = false,
+  info,
 }: {
   children: React.ReactNode;
   title: string;
   wide?: boolean;
+  info?: string;
 }) {
   return (
     <section className={wide ? "panel wide" : "panel"}>
-      <h2>{title}</h2>
+      <h2>
+        {title}
+        {info ? <InfoTip text={info} /> : null}
+      </h2>
       {children}
     </section>
   );
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
+function Metric({
+  label,
+  value,
+  detail,
+  info,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+  info?: string;
+}) {
   return (
     <div className="metric">
-      <span>{label}</span>
+      <span>
+        {label}
+        {info ? <InfoTip text={info} /> : null}
+      </span>
       <strong>{value}</strong>
       {detail ? <small>{detail}</small> : null}
     </div>
