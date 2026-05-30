@@ -38,6 +38,7 @@ class DeepSeekNewsClassifier:
         *,
         validation_error: str,
         previous_response: dict[str, Any] | None,
+        max_tokens: int | None = None,
     ) -> dict[str, Any]:
         if not self.config.enable_live_ai:
             raise ValueError("live AI classification is disabled by config")
@@ -51,6 +52,7 @@ class DeepSeekNewsClassifier:
                 max_body_chars=self.config.max_prompt_body_chars,
                 max_previous_response_chars=self.config.max_retry_response_chars,
             ),
+            max_tokens=max_tokens,
         )
         return self._post(payload)
 
@@ -87,6 +89,7 @@ def _request_payload(
     config: NewsAIConfig,
     themes: NewsThemesConfig,
     user_content: str,
+    max_tokens: int | None = None,
 ) -> dict[str, Any]:
     return {
         "model": config.model,
@@ -95,7 +98,7 @@ def _request_payload(
             {"role": "user", "content": user_content},
         ],
         "temperature": config.temperature,
-        "max_tokens": config.max_tokens,
+        "max_tokens": max_tokens or config.max_tokens,
         "stream": False,
         "response_format": {"type": "json_object"},
     }

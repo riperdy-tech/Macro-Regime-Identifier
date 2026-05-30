@@ -329,7 +329,7 @@ def test_request_payload_uses_configured_output_cap():
     payload = _request_payload(config=config, themes=themes, user_content="{}")
 
     assert payload["max_tokens"] == config.max_tokens
-    assert payload["max_tokens"] <= 1200
+    assert payload["max_tokens"] <= 2048
 
 
 def test_truncate_for_prompt_preserves_short_text():

@@ -3,9 +3,11 @@ ai:
   model: deepseek-v4-flash
   base_url: https://api.deepseek.com
   temperature: 0.0
-  # 1600 leaves headroom so long official-source bodies (DOL/BLS/EIA) do not
-  # truncate the JSON output and produce an empty summary.
-  max_tokens: 1600
+  # Generous ceiling (~1.4x the measured p100 completion of 1433). max_tokens is
+  # a ceiling, not billed - actual median ~733 - so headroom costs nothing in
+  # normal operation. Truncations are also auto-retried at a larger budget.
+  max_tokens: 2048
+  truncation_retry_multiplier: 2.0
   api_key_env: DEEPSEEK_API_KEY
   enable_live_ai: true
   mock_mode: false

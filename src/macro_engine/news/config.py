@@ -212,6 +212,9 @@ class NewsAIConfig(BaseModel):
     retry_backoff_seconds: float = Field(default=0.0, ge=0.0)
     max_prompt_body_chars: int = Field(default=8000, gt=0)
     max_retry_response_chars: int = Field(default=4000, gt=0)
+    # On a truncated response (finish_reason=length), retry that item with
+    # max_tokens scaled by this factor so an oversize article self-heals.
+    truncation_retry_multiplier: float = Field(default=2.0, ge=1.0)
 
 
 class FreshnessDecayConfig(BaseModel):
@@ -316,6 +319,7 @@ class NewsMonitoringQualityThresholds(BaseModel):
     max_failed_classification_rate: float = Field(default=0.10, ge=0.0, le=1.0)
     max_retry_rate: float = Field(default=0.20, ge=0.0, le=1.0)
     max_repair_rate: float = Field(default=0.20, ge=0.0, le=1.0)
+    max_truncation_rate: float = Field(default=0.0, ge=0.0, le=1.0)
     min_source_count: int = Field(default=3, ge=0)
     min_date_coverage_days: int = Field(default=3, ge=0)
     max_source_share: float = Field(default=0.35, ge=0.0, le=1.0)

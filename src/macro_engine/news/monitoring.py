@@ -243,6 +243,8 @@ def build_classification_quality_run(
     repaired_count = sum(1 for item in metadata if bool(item.get("was_repaired", False)))
     retry_rate = retry_count / total if total else 0.0
     repair_rate = repaired_count / total if total else 0.0
+    truncation_count = sum(1 for item in metadata if _metadata_truncated(item))
+    truncation_rate = truncation_count / total if total else 0.0
     failure_modes = _failure_modes(frame, metadata)
     warnings = []
     thresholds = config.quality_thresholds
@@ -252,6 +254,8 @@ def build_classification_quality_run(
         warnings.append("retry rate exceeds configured threshold")
     if repair_rate > thresholds.max_repair_rate:
         warnings.append("repair rate exceeds configured threshold")
+    if truncation_rate > thresholds.max_truncation_rate:
+        warnings.append("truncation rate exceeds configured threshold")
     status = "ok" if not warnings else "warning"
     return pd.DataFrame(
         [
@@ -270,7 +274,14 @@ def build_classification_quality_run(
                 "model": _last_non_null(frame, "ai_model"),
                 "top_failure_modes_json": json.dumps(failure_modes, sort_keys=True),
                 "quality_status": status,
-                "details_json": json.dumps({"warnings": warnings}, sort_keys=True),
+                "details_json": json.dumps(
+                    {
+                        "warnings": warnings,
+                        "truncation_count": truncation_count,
+                        "truncation_rate": round(truncation_rate, 4),
+                    },
+                    sort_keys=True,
+                ),
             }
         ],
         columns=_classification_columns(),
@@ -710,6 +721,17 @@ def _raw_metadata(value: Any) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+def _metadata_truncated(meta: dict[str, Any]) -> bool:
+    """True if the FINAL provider response hit the token ceiling
+    (finish_reason == 'length'). Auto-recovered truncations do not count."""
+    response = meta.get("response")
+    if isinstance(response, dict):
+        usage = response.get("_provider_usage")
+        if isinstance(usage, dict) and usage.get("finish_reason") == "length":
+            return True
+    return False
 
 
 def _latest_record(frame: pd.DataFrame, date_column: str) -> dict[str, Any] | None:

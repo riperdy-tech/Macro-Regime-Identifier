@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import hashlib
 import json
+import math
 from copy import deepcopy
 import time
 from typing import Any, Protocol
@@ -203,11 +204,17 @@ def classify_news_item(
             try:
                 if retry_backoff_seconds:
                     time.sleep(retry_backoff_seconds)
+                previous = raw_attempts[-1] if raw_attempts else None
+                retry_max_tokens = _truncation_retry_max_tokens(classifier, previous)
+                # Only pass the override on a truncation bump so classifiers
+                # without a max_tokens parameter keep working on normal retries.
+                extra = {} if retry_max_tokens is None else {"max_tokens": retry_max_tokens}
                 raw_retry = classifier.classify_with_feedback(  # type: ignore[attr-defined]
                     item,
                     themes,
                     validation_error=str(exc),
-                    previous_response=raw_attempts[-1] if raw_attempts else None,
+                    previous_response=previous,
+                    **extra,
                 )
                 raw_attempts.append(raw_retry)
                 payload, attempt_notes = _validate_with_optional_repair(
@@ -394,6 +401,28 @@ def _raw_response_with_metadata(
 
 def _classifier_can_retry(classifier: NewsClassifier) -> bool:
     return callable(getattr(classifier, "classify_with_feedback", None))
+
+
+def _response_was_truncated(raw: Any) -> bool:
+    """True if a provider response hit the output token ceiling
+    (finish_reason == 'length'), captured in _provider_usage."""
+    if not isinstance(raw, dict):
+        return False
+    usage = raw.get("_provider_usage")
+    return isinstance(usage, dict) and usage.get("finish_reason") == "length"
+
+
+def _truncation_retry_max_tokens(classifier: NewsClassifier, previous: Any) -> int | None:
+    """When the prior attempt truncated, return a larger token budget for the
+    retry so an oversize article self-heals; otherwise None (use default)."""
+    if not _response_was_truncated(previous):
+        return None
+    config = getattr(classifier, "config", None)
+    base = getattr(config, "max_tokens", None)
+    if not base:
+        return None
+    multiplier = getattr(config, "truncation_retry_multiplier", 2.0) or 2.0
+    return int(math.ceil(base * multiplier))
 
 
 def _list_items(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
