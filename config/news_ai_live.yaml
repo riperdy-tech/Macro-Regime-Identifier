@@ -3,14 +3,17 @@ ai:
   model: deepseek-v4-flash
   base_url: https://api.deepseek.com
   temperature: 0.0
-  max_tokens: 1200
+  # 1600 leaves headroom so long official-source bodies (DOL/BLS/EIA) do not
+  # truncate the JSON output and produce an empty summary.
+  max_tokens: 1600
   api_key_env: DEEPSEEK_API_KEY
   enable_live_ai: true
   mock_mode: false
   request_timeout_seconds: 60
   output_dir: outputs
   enable_schema_repair: true
-  max_retries: 0
+  # One retry recovers transient invalid-JSON / empty-field responses.
+  max_retries: 1
   retry_backoff_seconds: 0.0
   max_prompt_body_chars: 6000
   max_retry_response_chars: 3000

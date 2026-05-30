@@ -23,6 +23,10 @@ from macro_engine.news.selection import rank_and_select
 from macro_engine.news.providers.openai_classifier import DeepSeekNewsClassifier
 from macro_engine.storage.duckdb_store import DuckDBStore
 
+# Don't enforce the failure-rate guard until enough items are attempted; a
+# couple of early transient errors should not abort the whole run.
+_MIN_ATTEMPTS_BEFORE_RATE_GUARD = 10
+
 
 def ingest_stored_news(
     *,
@@ -132,7 +136,7 @@ def classify_stored_news(
             raise ValueError(f"classification failed for {item.news_id}: {record.error_message}")
         if (
             stop_on_failure_rate_above is not None
-            and attempted > 0
+            and attempted >= _MIN_ATTEMPTS_BEFORE_RATE_GUARD
             and failure_count / attempted > stop_on_failure_rate_above
         ):
             raise ValueError(
