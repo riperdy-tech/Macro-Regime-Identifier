@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -12,12 +13,19 @@ class FredError(RuntimeError):
     """Raised when FRED returns an error or unusable payload."""
 
 
+# Retried on transient FRED responses (rate limit + server errors).
+_RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+
+
 @dataclass
 class FredClient:
     api_key: str
     base_url: str = "https://api.stlouisfed.org/fred"
     timeout: int = 30
     session: requests.Session | None = None
+    max_retries: int = 5
+    backoff_base_seconds: float = 1.0
+    backoff_cap_seconds: float = 30.0
 
     def __post_init__(self) -> None:
         if not self.api_key:
@@ -74,17 +82,35 @@ class FredClient:
             "file_type": "json",
             **{key: value for key, value in params.items() if value is not None},
         }
-        response = self.session.get(
-            f"{self.base_url}{endpoint}",
-            params=request_params,
-            timeout=self.timeout,
+        url = f"{self.base_url}{endpoint}"
+        for attempt in range(self.max_retries + 1):
+            response = self.session.get(url, params=request_params, timeout=self.timeout)
+            if response.status_code in _RETRYABLE_STATUS and attempt < self.max_retries:
+                time.sleep(self._retry_delay(response, attempt))
+                continue
+            if response.status_code >= 400:
+                raise FredError(
+                    f"FRED request failed with HTTP {response.status_code}: {response.text}"
+                )
+            payload = response.json()
+            if "error_message" in payload:
+                raise FredError(f"FRED error: {payload['error_message']}")
+            return payload
+        # Exhausted retries on a retryable status.
+        raise FredError(
+            f"FRED request failed with HTTP {response.status_code} after "
+            f"{self.max_retries} retries: {response.text}"
         )
-        if response.status_code >= 400:
-            raise FredError(f"FRED request failed with HTTP {response.status_code}: {response.text}")
-        payload = response.json()
-        if "error_message" in payload:
-            raise FredError(f"FRED error: {payload['error_message']}")
-        return payload
+
+    def _retry_delay(self, response: requests.Response, attempt: int) -> float:
+        """Honor Retry-After when present, else exponential backoff (capped)."""
+        retry_after = response.headers.get("Retry-After")
+        if retry_after:
+            try:
+                return min(float(retry_after), self.backoff_cap_seconds)
+            except ValueError:
+                pass
+        return min(self.backoff_base_seconds * (2**attempt), self.backoff_cap_seconds)
 
 
 def _parse_fred_date(value: str) -> date:
