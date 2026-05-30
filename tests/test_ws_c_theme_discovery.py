@@ -8,11 +8,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-import yaml
 
 from macro_engine.news.config import load_news_themes_config
 from macro_engine.news.theme_discovery import (
-    PromotionThresholds,
     ThemeCandidate,
     build_discovery_prompt,
     evaluate_promotion,
