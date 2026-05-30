@@ -526,8 +526,11 @@ function HistoryPanel({ data }: { data: DashboardData }) {
       <Metric label="Latest run" value={text(latest?.run_date)} detail={text(latest?.run_id)} />
       <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} />
       <Panel title="History Readiness" wide>
-        {rows.length < 5 ? (
-          <p className="muted">Not enough history yet. Continue daily runs before interpreting trends.</p>
+        {rows.length < 2 ? (
+          <p className="muted">
+            Run-over-run trend deltas need at least two recorded daily runs. For full
+            regime history, see the Regime Timeline (1990 to present) panel above.
+          </p>
         ) : (
           <TrendCards rows={rows} />
         )}
