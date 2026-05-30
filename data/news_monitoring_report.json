@@ -1,0 +1,128 @@
+{
+  "calibration_note": "News scoring calibration remains deferred until balanced, time-consistent real-news history exists.",
+  "classification_quality": {
+    "details_json": {
+      "truncation_count": 0,
+      "truncation_rate": 0.0,
+      "warnings": []
+    },
+    "failure_count": 0,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "quality_status": "ok",
+    "repair_rate": 0.024390243902439025,
+    "repaired_count": 1,
+    "retry_count": 1,
+    "retry_rate": 0.024390243902439025,
+    "run_at": "2026-05-30T16:11:56.113283",
+    "run_id": "20260530T161156Z-0a094594",
+    "success_count": 41,
+    "success_rate": 1.0,
+    "top_failure_modes_json": [
+      {
+        "count": 1,
+        "failure_mode": "unknown news theme ids: ['energy_transition']"
+      }
+    ],
+    "total_items": 41
+  },
+  "disclaimer": "This is a diagnostic operating-quality report for news inputs, AI classifications, and the experimental combined overlay. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "input_quality": {
+    "date_max": null,
+    "date_min": null,
+    "details_json": {
+      "item_count_by_day": {},
+      "item_count_by_source": {},
+      "item_count_by_source_group": {},
+      "source_group_count": 0,
+      "unmapped_item_count": 0,
+      "unmapped_pct": 0.0,
+      "warnings": [
+        "source count is below configured minimum"
+      ]
+    },
+    "duplicate_count": 0,
+    "future_item_count": 0,
+    "old_item_count": 0,
+    "profile": "live_rss",
+    "quality_status": "warning",
+    "raw_item_count": 0,
+    "run_at": "2026-05-30T16:11:56.089477",
+    "run_id": "20260530T161156Z-0a094594",
+    "short_body_count": 0,
+    "source_count": 0,
+    "unique_item_count": 0,
+    "warning_count": 1
+  },
+  "overlay_monitoring": {
+    "avg_abs_rank_change": 0.0,
+    "combined_top_sectors_json": [],
+    "diagnostic_date": null,
+    "macro_only_top_sectors_json": [],
+    "max_rank_change": 0,
+    "news_item_count": 0,
+    "overlay_status": "blocked",
+    "run_at": "2026-05-30T16:11:56.188212",
+    "run_id": "20260530T161156Z-0a094594",
+    "sectors_changed_by_news_json": [],
+    "thin_news_warning": true,
+    "top_news_themes_json": [],
+    "top_sector_headwinds_json": [],
+    "top_sector_tailwinds_json": []
+  },
+  "source_groups": [
+    {
+      "group_id": "macro_general",
+      "target_item_count": 12
+    },
+    {
+      "group_id": "inflation_rates",
+      "target_item_count": 10
+    },
+    {
+      "group_id": "labor",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "energy_commodities",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "credit_financial_conditions",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "real_estate",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "consumer",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "manufacturing_industrials",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "geopolitical",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "technology_ai",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "healthcare",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "defensive_sectors",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "ai_compute",
+      "target_item_count": 6
+    }
+  ],
+  "valid": true
+}
