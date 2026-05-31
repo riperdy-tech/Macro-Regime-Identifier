@@ -348,12 +348,21 @@ function MacroPanel({ data }: { data: DashboardData }) {
   const dailyMacro = getObject(getObject(data.daily).macro);
   const sectorPayload = getObject(data.sectors);
   const probabilities = getObject(getObject(data.daily).regime_probabilities);
+  const regimeLabel = text(dailyMacro.reported_regime ?? sectorPayload.reported_macro_regime);
+  const confidenceRaw = dailyMacro.confidence ?? sectorPayload.macro_confidence;
+  const confidence = typeof confidenceRaw === "number" ? confidenceRaw : null;
+  const note = regimeConfidenceNote(confidence, regimeLabel);
   return (
     <section className="grid two">
-      <Metric label="Reported regime" value={text(dailyMacro.reported_regime ?? sectorPayload.reported_macro_regime)} info={TOOLTIPS.regime} />
+      <Metric label="Reported regime" value={regimeLabel} info={TOOLTIPS.regime} />
       <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} info={TOOLTIPS.reported_vs_raw} />
-      <Metric label="Confidence" value={formatPct(dailyMacro.confidence ?? sectorPayload.macro_confidence)} info={TOOLTIPS.confidence} />
+      <Metric label="Confidence" value={formatPct(confidence)} info={TOOLTIPS.confidence} />
       <Metric label="Macro date" value={text(dailyMacro.date ?? sectorPayload.date)} info={TOOLTIPS.macro_date} />
+      {note ? (
+        <Panel title="Reading this confidence" wide info={TOOLTIPS.confidence}>
+          <p className="conf-note" style={{ margin: 0 }}>{note}</p>
+        </Panel>
+      ) : null}
       <Panel title="Regime Timeline (1990 to present)" wide info={TOOLTIPS.regime_timeline}>
         <RegimeTimeline data={data} />
       </Panel>
@@ -368,19 +377,34 @@ function MacroPanel({ data }: { data: DashboardData }) {
 }
 
 const REGIME_COLORS: Record<string, string> = {
-  goldilocks: "#2e7d32",
-  reflation: "#1565c0",
-  stagflation: "#c62828",
-  recession: "#6a1b9a",
-  tightening: "#ef6c00",
+  goldilocks: "#34a853",
+  reflation: "#4285f4",
+  stagflation: "#ea4335",
+  recession: "#8e44ec",
+  tightening: "#f59e0b",
 };
 
 function regimeColor(regime?: string | null): string {
   if (!regime) {
-    return "#9e9e9e";
+    return "#b0bec5";
   }
-  return REGIME_COLORS[regime] ?? "#607d8b";
+  return REGIME_COLORS[regime] ?? "#78909c";
 }
+
+function regimeConfidenceNote(confidence: number | null, regime: string): string | null {
+  if (confidence === null || !Number.isFinite(confidence)) {
+    return null;
+  }
+  if (confidence >= 0.35) {
+    return `High conviction: the macro data points clearly to ${regime} and the underlying dimensions broadly agree. The regime label is a strong read this period.`;
+  }
+  if (confidence >= 0.12) {
+    return `Moderate conviction: ${regime} is the leading regime, but one or two others are in contention. Treat it as a lean, not a firm call, and check the dimensions for what is driving it.`;
+  }
+  return `Low conviction — a contested backdrop. No single regime dominates right now; several are near a tie, so the ${regime} label is weak signal. Read the underlying dimensions and the 1990-to-present timeline rather than this one label.`;
+}
+
+type RegimeRun = { regime: string; start: number; len: number; from?: string; to?: string; faded: boolean };
 
 function RegimeTimeline({ data }: { data: DashboardData }) {
   const timeline = getObject(data.timeline);
@@ -389,64 +413,85 @@ function RegimeTimeline({ data }: { data: DashboardData }) {
     return <p className="muted">Regime timeline unavailable. Run the daily pipeline and export dashboard data.</p>;
   }
   const width = 960;
-  const height = 60;
+  const barTop = 6;
+  const barH = 46;
+  const totalH = barTop + barH + 22;
   const segWidth = width / points.length;
-  const regimes = Array.from(new Set(points.map((point) => point.reported_regime ?? "unknown")));
-  const ticks: { x: number; label: string }[] = [];
-  let lastYear = "";
+  const gap = points.length > 200 ? 0 : 1.5;
+  const radius = 5;
+
+  // Group consecutive same-regime months into phase runs (clean ribbon).
+  const runs: RegimeRun[] = [];
   points.forEach((point, index) => {
-    const year = (point.date ?? "").slice(0, 4);
-    if (year && year !== lastYear && Number(year) % 5 === 0) {
-      ticks.push({ x: index * segWidth, label: year });
-      lastYear = year;
+    const regime = point.reported_regime ?? "unknown";
+    const last = runs[runs.length - 1];
+    if (last && last.regime === regime) {
+      last.len += 1;
+      last.to = point.date ?? last.to;
+      if (point.valid === false) last.faded = true;
+    } else {
+      runs.push({ regime, start: index, len: 1, from: point.date ?? undefined, to: point.date ?? undefined, faded: point.valid === false });
     }
   });
+
+  const regimes = Array.from(new Set(points.map((p) => p.reported_regime ?? "unknown")));
+  const ticks: { x: number; label: string }[] = [];
+  let lastDecade = "";
+  points.forEach((point, index) => {
+    const year = (point.date ?? "").slice(0, 4);
+    if (year && Number(year) % 10 === 0 && year !== lastDecade) {
+      ticks.push({ x: index * segWidth, label: year });
+      lastDecade = year;
+    }
+  });
+
   return (
-    <div>
+    <div className="regime-timeline">
       <svg
-        viewBox={`0 0 ${width} ${height + 20}`}
+        viewBox={`0 0 ${width} ${totalH}`}
         preserveAspectRatio="none"
         style={{ width: "100%", height: "auto" }}
         role="img"
-        aria-label="Macro regime over time"
+        aria-label="Macro regime phases, 1990 to present"
       >
-        {points.map((point, index) => (
-          <rect
-            key={index}
-            x={index * segWidth}
-            y={0}
-            width={segWidth + 0.5}
-            height={height}
-            fill={regimeColor(point.reported_regime)}
-            opacity={point.valid === false ? 0.35 : 1}
-          >
-            <title>{`${point.date}: ${point.reported_regime ?? "unknown"}`}</title>
-          </rect>
+        <rect x={0} y={barTop} width={width} height={barH} rx={radius} fill="#eef2f4" />
+        {ticks.map((tick, i) => (
+          <line key={`g${i}`} x1={tick.x} y1={barTop} x2={tick.x} y2={barTop + barH} stroke="#ffffff" strokeWidth={1} opacity={0.6} />
         ))}
-        {ticks.map((tick, index) => (
-          <text key={index} x={tick.x} y={height + 14} fontSize={10} fill="#666">
+        {runs.map((run, i) => {
+          const x = run.start * segWidth;
+          const w = Math.max(run.len * segWidth - gap, 0.6);
+          return (
+            <rect
+              key={i}
+              x={x}
+              y={barTop}
+              width={w}
+              height={barH}
+              rx={w > radius * 2 ? radius : 1}
+              fill={regimeColor(run.regime)}
+              opacity={run.faded ? 0.45 : 0.92}
+            >
+              <title>{`${run.regime}: ${run.from} to ${run.to}`}</title>
+            </rect>
+          );
+        })}
+        {ticks.map((tick, i) => (
+          <text key={`t${i}`} x={tick.x + 2} y={barTop + barH + 15} fontSize={11} fill="#7a8a8e">
             {tick.label}
           </text>
         ))}
       </svg>
-      <ul style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", listStyle: "none", padding: 0, margin: "0.5rem 0 0" }}>
+      <ul className="regime-legend">
         {regimes.map((regime) => (
-          <li key={regime} style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "0.8rem" }}>
-            <span
-              style={{
-                display: "inline-block",
-                width: 12,
-                height: 12,
-                borderRadius: 2,
-                background: regimeColor(regime),
-              }}
-            />
+          <li key={regime} className="regime-chip">
+            <span className="regime-swatch" style={{ background: regimeColor(regime) }} />
             {regime}
           </li>
         ))}
       </ul>
       <small className="muted">
-        {text(timeline.start_date)} to {text(timeline.end_date)} · {text(timeline.point_count)} points
+        {text(timeline.start_date)} to {text(timeline.end_date)} · {text(timeline.point_count)} months · each band is a continuous regime phase
       </small>
     </div>
   );
