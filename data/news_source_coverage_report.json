@@ -1,0 +1,142 @@
+{
+  "configured_groups": [
+    "ai_compute",
+    "consumer",
+    "credit_financial_conditions",
+    "defensive_sectors",
+    "energy_commodities",
+    "geopolitical",
+    "healthcare",
+    "inflation_rates",
+    "labor",
+    "macro_general",
+    "manufacturing_industrials",
+    "real_estate",
+    "technology_ai"
+  ],
+  "configured_source_count": 15,
+  "coverage_thresholds": {
+    "max_old_item_pct": 0.2,
+    "max_single_group_pct": 0.5,
+    "max_unmapped_pct": 0.2,
+    "min_source_groups": 3
+  },
+  "disclaimer": "This source coverage report is an operating diagnostic for news collection breadth. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "enabled_source_count": 14,
+  "enabled_sources_by_group": {
+    "ai_compute": [
+      "daily_ai_compute_csv"
+    ],
+    "consumer": [
+      "daily_consumer_csv"
+    ],
+    "credit_financial_conditions": [
+      "daily_credit_financial_conditions_csv"
+    ],
+    "defensive_sectors": [
+      "daily_defensive_sectors_csv"
+    ],
+    "energy_commodities": [
+      "daily_energy_commodities_csv"
+    ],
+    "geopolitical": [
+      "daily_geopolitical_csv"
+    ],
+    "healthcare": [
+      "daily_healthcare_csv"
+    ],
+    "inflation_rates": [
+      "daily_inflation_rates_csv"
+    ],
+    "labor": [
+      "daily_labor_csv"
+    ],
+    "macro_general": [
+      "daily_macro_general_csv",
+      "synthetic_sample_news"
+    ],
+    "manufacturing_industrials": [
+      "daily_manufacturing_industrials_csv"
+    ],
+    "real_estate": [
+      "daily_real_estate_csv"
+    ],
+    "technology_ai": [
+      "daily_technology_ai_csv"
+    ]
+  },
+  "item_count_by_group": {
+    "ai_compute": 14,
+    "consumer": 1,
+    "credit_financial_conditions": 6,
+    "energy_commodities": 24,
+    "geopolitical": 10,
+    "healthcare": 7,
+    "labor": 5,
+    "macro_general": 15,
+    "real_estate": 10,
+    "technology_ai": 10
+  },
+  "latest_date_by_group": {
+    "ai_compute": "2026-05-29T22:31:03+00:00",
+    "consumer": "2026-05-29T18:14:47+00:00",
+    "credit_financial_conditions": "2026-05-30T15:33:42+00:00",
+    "energy_commodities": "2026-05-30T23:00:00+00:00",
+    "geopolitical": "2026-05-31T12:18:24+00:00",
+    "healthcare": "2026-05-31T12:00:02+00:00",
+    "labor": "2026-05-29T12:00:00+00:00",
+    "macro_general": "2026-05-29T23:06:37+00:00",
+    "real_estate": "2026-05-30T21:30:36+00:00",
+    "technology_ai": "2026-05-31T06:12:28+00:00"
+  },
+  "latest_item_count_by_group": {
+    "geopolitical": 8,
+    "healthcare": 2,
+    "technology_ai": 1
+  },
+  "missing_configured_groups": [],
+  "missing_data_groups": [
+    "defensive_sectors",
+    "inflation_rates",
+    "manufacturing_industrials"
+  ],
+  "old_item_count": 0,
+  "old_item_pct": 0.0,
+  "overrepresented_groups": [
+    {
+      "item_count": 8,
+      "share": 0.7272727272727273,
+      "source_group": "geopolitical"
+    }
+  ],
+  "required_source_groups": [
+    "ai_compute",
+    "consumer",
+    "credit_financial_conditions",
+    "defensive_sectors",
+    "energy_commodities",
+    "geopolitical",
+    "healthcare",
+    "inflation_rates",
+    "labor",
+    "macro_general",
+    "manufacturing_industrials",
+    "real_estate",
+    "technology_ai"
+  ],
+  "source_group_count": 10,
+  "stale_groups": [],
+  "stored_item_count": 102,
+  "suggested_groups_needing_more_coverage": [
+    "defensive_sectors",
+    "inflation_rates",
+    "manufacturing_industrials"
+  ],
+  "unmapped_item_count": 0,
+  "unmapped_pct": 0.0,
+  "valid": true,
+  "warnings": [
+    "some enabled source groups have no stored items",
+    "latest stored items are concentrated in a small number of source groups"
+  ]
+}

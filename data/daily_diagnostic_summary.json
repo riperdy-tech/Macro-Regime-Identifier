@@ -1,0 +1,161 @@
+{
+  "archive_path": "outputs/archive/2026-05-31/20260531T124654Z-0368047e",
+  "combined_top": [
+    {
+      "combined_score": 1.4410587025671722,
+      "news_item_count": 0,
+      "rank": 1,
+      "sector_id": "homebuilders"
+    },
+    {
+      "combined_score": 0.8697786835594016,
+      "news_item_count": 0,
+      "rank": 2,
+      "sector_id": "consumer_staples"
+    },
+    {
+      "combined_score": 0.8382391094347301,
+      "news_item_count": 2,
+      "rank": 3,
+      "sector_id": "utilities"
+    },
+    {
+      "combined_score": 0.8182905158955487,
+      "news_item_count": 0,
+      "rank": 4,
+      "sector_id": "software"
+    },
+    {
+      "combined_score": 0.7831831214513915,
+      "news_item_count": 2,
+      "rank": 5,
+      "sector_id": "health_care"
+    }
+  ],
+  "disclaimer": "This daily package is a diagnostic research artifact. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "errors": [],
+  "generated_artifacts": [
+    "outputs/current_sector_ranking.json",
+    "outputs/current_sector_ranking.md",
+    "outputs/news_classification_report.json",
+    "outputs/news_classification_report.md",
+    "outputs/news_score_report.json",
+    "outputs/news_score_report.md",
+    "outputs/combined_sector_diagnostic.json",
+    "outputs/combined_sector_diagnostic.md",
+    "outputs/news_monitoring_report.json",
+    "outputs/news_monitoring_report.md"
+  ],
+  "macro": {
+    "confidence": 0.004904727341428106,
+    "date": "2026-05-01",
+    "raw_dominant_regime": "goldilocks",
+    "reported_regime": "tightening"
+  },
+  "monitoring": {
+    "max_rank_change": 2,
+    "repair_rate": 0.0,
+    "retry_rate": 0.0,
+    "success_rate": 1.0,
+    "warning_count": 0
+  },
+  "news": {
+    "top_sector_headwinds": [
+      {
+        "id": "consumer_discretionary",
+        "score": -0.2871173746026733
+      },
+      {
+        "id": "financials",
+        "score": -0.12030572560199596
+      }
+    ],
+    "top_sector_tailwinds": [
+      {
+        "id": "information_technology",
+        "score": 1.6776661244277846
+      },
+      {
+        "id": "energy",
+        "score": 0.6917958970081928
+      },
+      {
+        "id": "industrials",
+        "score": 0.6131402784369028
+      },
+      {
+        "id": "real_estate",
+        "score": 0.4265743851239717
+      },
+      {
+        "id": "health_care",
+        "score": 0.4109506827102237
+      }
+    ],
+    "top_themes": [
+      {
+        "id": "growth_acceleration",
+        "score": 1.423705962856046
+      },
+      {
+        "id": "inflation_pressure",
+        "score": 0.8779906733450602
+      },
+      {
+        "id": "geopolitical_risk",
+        "score": 0.81
+      },
+      {
+        "id": "energy_supply_shock",
+        "score": 0.5232768565582554
+      },
+      {
+        "id": "monetary_tightening",
+        "score": 0.35
+      }
+    ]
+  },
+  "run_date": "2026-05-31",
+  "run_id": "20260531T124654Z-0368047e",
+  "sector_macro_top": [
+    {
+      "confidence_adjusted_score": 0.058886277305013446,
+      "rank": 1,
+      "sector_id": "homebuilders"
+    },
+    {
+      "confidence_adjusted_score": 0.03703120785532641,
+      "rank": 2,
+      "sector_id": "utilities"
+    },
+    {
+      "confidence_adjusted_score": 0.024458897565999064,
+      "rank": 3,
+      "sector_id": "health_care"
+    },
+    {
+      "confidence_adjusted_score": 0.02060728387759783,
+      "rank": 4,
+      "sector_id": "consumer_staples"
+    },
+    {
+      "confidence_adjusted_score": 0.01715728533744673,
+      "rank": 5,
+      "sector_id": "software"
+    }
+  ],
+  "status": "success",
+  "step_statuses": {
+    "combined_status": "success",
+    "guardrail_status": "passed",
+    "macro_status": "success",
+    "monitoring_status": "success",
+    "news_classification_status": "success",
+    "news_ingestion_status": "success",
+    "news_report_status": "success",
+    "news_score_report_status": "success",
+    "news_scoring_status": "success",
+    "sector_status": "success"
+  },
+  "warnings": []
+}
