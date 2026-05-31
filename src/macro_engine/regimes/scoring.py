@@ -227,11 +227,15 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
             continue
         valid = valid.sort_values("probability", ascending=False)
         top = valid.iloc[0]
-        second_probability = float(valid.iloc[1]["probability"]) if len(valid) > 1 else 0.0
         top_probability = float(top["probability"])
         average_coverage = float(valid["coverage_ratio"].mean())
-        confidence = (top_probability - second_probability) * average_coverage
         entropy = _entropy(valid["probability"].astype(float).tolist())
+        # Confidence = how PEAKED the regime distribution is, normalized by the
+        # number of regimes, times data coverage. The old raw top-2 probability
+        # gap pinned near zero over a 5-way softmax (a clear plurality leader
+        # still read ~5%); normalized peakedness gives an interpretable 0..1
+        # signal (uniform -> 0, single regime -> 1).
+        confidence = _normalized_peakedness(entropy, int(len(valid))) * average_coverage
         rows.append(
             {
                 "date": pd.Timestamp(date).date(),
@@ -259,6 +263,17 @@ def _softmax(scores: dict[str, float], temperature: float) -> dict[str, float]:
 
 def _entropy(probabilities: list[float]) -> float:
     return float(-sum(probability * math.log(probability) for probability in probabilities if probability > 0))
+
+
+def _normalized_peakedness(entropy: float, regime_count: int) -> float:
+    """1 - (entropy / max_entropy) over `regime_count` regimes, clamped to [0, 1].
+    Uniform distribution -> 0 (no conviction); a single dominant regime -> 1."""
+    if regime_count <= 1:
+        return 1.0
+    max_entropy = math.log(regime_count)
+    if max_entropy <= 0:
+        return 1.0
+    return max(0.0, min(1.0, 1.0 - entropy / max_entropy))
 
 
 def _contribution_row(

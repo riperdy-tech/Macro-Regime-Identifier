@@ -260,7 +260,7 @@ def _sector_health_row(score_row: dict, components: list[dict]) -> dict:
         for component in components
         if not component["valid"]
     ]
-    warning_count = 1 if score_row["macro_confidence"] is not None and score_row["macro_confidence"] < 0.05 else 0
+    warning_count = 1 if score_row["macro_confidence"] is not None and score_row["macro_confidence"] < 0.10 else 0
     return {
         "sector_id": score_row["sector_id"],
         "date": score_row["date"],

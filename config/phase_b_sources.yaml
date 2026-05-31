@@ -402,12 +402,15 @@ historical_diagnostic:
   end_date: null
   mode: revised_data
   min_valid_regimes: 2
-  low_confidence_threshold: 0.05
-  # Promoted in Phase S. Raw monthly probabilities remain unsmoothed;
-  # reported regime transitions require a small confidence gap.
+  # Rescaled for the normalized-peakedness confidence metric (1 - entropy/ln N).
+  # Distribution over 1990->present: median ~0.15, 2020 COVID ~0.95. ~0.10 flags
+  # genuinely mixed backdrops without crying wolf on every modest plurality.
+  low_confidence_threshold: 0.10
+  # Raw monthly probabilities remain unsmoothed; a reported-regime switch
+  # requires modest peakedness (~p25 of the new scale).
   transition_filter:
     enabled: true
-    min_confidence_to_switch: 0.02
+    min_confidence_to_switch: 0.08
   smoothing:
     enabled: false
     min_months_before_switch: 2
