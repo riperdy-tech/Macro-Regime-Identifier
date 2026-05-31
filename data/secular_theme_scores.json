@@ -1,53 +1,53 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-05-30T16:12:00.278436+00:00",
+  "computed_at": "2026-05-31T02:20:07.778497+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
     "quarterly"
   ],
   "readiness_note": "diagnostic_overlay_only",
-  "scored_theme_count": 3,
+  "scored_theme_count": 4,
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6100000000000001,
-      "avg_severity": 0.38,
-      "item_count": 10,
+      "avg_confidence": 0.6875,
+      "avg_severity": 0.4,
+      "item_count": 8,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6100000000000001,
-          "item_count": 10,
+          "avg_confidence": 0.6875,
+          "item_count": 8,
           "period_start": "2026-05-01",
-          "score": 2.052980468345871
+          "score": 1.861427449863974
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6100000000000001,
-          "item_count": 10,
+          "avg_confidence": 0.6875,
+          "item_count": 8,
           "period_start": "2026-04-01",
-          "score": 2.052980468345871
+          "score": 1.861427449863974
         }
       ],
-      "raw_score": 3.8000000000000003,
-      "score": 2.052980468345871,
+      "raw_score": 3.2,
+      "score": 1.861427449863974,
       "source_mix": {
         "cnbc_markets": 1,
         "cnbc_tech": 2,
         "eia_energy": 1,
         "housingwire": 1,
         "nvidia_blog": 2,
-        "nvidia_developer_blog": 3
+        "nvidia_developer_blog": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
         "news_2a36d0bf60d22f97",
-        "news_be098573ef407902",
-        "news_d0c7ec3a91bf60f8",
         "news_c3b56d07d99db1e0",
+        "news_d0c7ec3a91bf60f8",
+        "news_be098573ef407902",
         "news_e445d60b608d2600"
       ],
       "top_news_items": [
@@ -61,14 +61,14 @@
         },
         {
           "confidence": 0.9,
-          "news_id": "news_be098573ef407902",
+          "news_id": "news_c3b56d07d99db1e0",
           "score_component": 0.35,
-          "source": "cnbc_tech",
+          "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/05/29/dell-stock-earnings-ai-servers.html",
           "title": "Dell stock skyrockets 32% for its best day ever as AI server revenue soars"
         },
         {
-          "confidence": 0.9,
+          "confidence": 0.8,
           "news_id": "news_d0c7ec3a91bf60f8",
           "score_component": 0.35,
           "source": "eia_energy",
@@ -76,39 +76,66 @@
           "title": "Data center server energy use grows across the commercial building stock"
         },
         {
-          "confidence": 0.8,
-          "news_id": "news_c3b56d07d99db1e0",
-          "score_component": 0.3126911898989588,
-          "source": "cnbc_markets",
+          "confidence": 0.9,
+          "news_id": "news_be098573ef407902",
+          "score_component": 0.34374297740775,
+          "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/05/29/dell-stock-earnings-ai-servers.html",
           "title": "Dell stock skyrockets 32% for its best day ever as AI server revenue soars"
         },
         {
           "confidence": 0.7,
           "news_id": "news_e445d60b608d2600",
-          "score_component": 0.25528229679630066,
+          "score_component": 0.18708873080947125,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/vera-cpu-phoronix/",
           "title": "NVIDIA Vera CPU Is \u2018Packing a Heavy-Hitting Punch\u2019 Against Competition"
         }
       ],
-      "trend_30d": 2.052980468345871
+      "trend_30d": 1.861427449863974
     },
     "cloud_software": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.2,
+      "avg_severity": 0.1,
+      "item_count": 1,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.2,
+          "item_count": 1,
+          "period_start": "2026-05-01",
+          "score": 0.018660659830736153
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.2,
+          "item_count": 1,
+          "period_start": "2026-04-01",
+          "score": 0.018660659830736153
+        }
+      ],
+      "raw_score": 0.1,
+      "score": 0.018660659830736153,
+      "source_mix": {
+        "nvidia_blog": 1
+      },
       "theme_id": "cloud_software",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_af3cc173a30eee83"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.2,
+          "news_id": "news_af3cc173a30eee83",
+          "score_component": 0.018660659830736153,
+          "source": "nvidia_blog",
+          "source_url": "https://blogs.nvidia.com/blog/geforce-now-thursday-007-first-light-launch/",
+          "title": "The Name\u2019s Gaming \u2026 Cloud Gaming: \u2018007 First Light\u2019 Launches on GeForce NOW"
+        }
+      ],
+      "trend_30d": 0.018660659830736153
     },
     "cybersecurity": {
       "avg_confidence": null,
@@ -127,46 +154,61 @@
       "trend_30d": 0.0
     },
     "energy_transition": {
-      "avg_confidence": 0.6749999999999999,
-      "avg_severity": 0.35,
+      "avg_confidence": 0.7749999999999999,
+      "avg_severity": 0.575,
       "item_count": 4,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6749999999999999,
+          "avg_confidence": 0.7749999999999999,
           "item_count": 4,
           "period_start": "2026-05-01",
-          "score": 0.93458099246925
+          "score": 1.362005988951986
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6749999999999999,
+          "avg_confidence": 0.7749999999999999,
           "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.93458099246925
+          "score": 1.362005988951986
         }
       ],
-      "raw_score": 1.4,
-      "score": 0.93458099246925,
+      "raw_score": 2.3,
+      "score": 1.362005988951986,
       "source_mix": {
-        "cnbc_finance": 1,
-        "eia_energy": 2,
-        "oilprice": 1
+        "eia_energy": 1,
+        "oilprice": 3
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
+        "news_0e8b57e59a657a86",
+        "news_7a53e25204dc9773",
         "news_a2d06f199b69d243",
-        "news_df737941e3ecbf78",
-        "news_82ff1b4532dd11bd",
-        "news_89c34a2fc09b21df"
+        "news_df737941e3ecbf78"
       ],
       "top_news_items": [
         {
+          "confidence": 0.8,
+          "news_id": "news_0e8b57e59a657a86",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Colombias-Oil-Industry-Faces-a-Defining-Election-in-2026.html",
+          "title": "Colombia\u2019s Oil Industry Faces a Defining Election in 2026"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_7a53e25204dc9773",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Cuba-Bets-on-Solar-Power-as-Energy-Crisis-Deepens.html",
+          "title": "Cuba Bets on Solar Power as Energy Crisis Deepens"
+        },
+        {
           "confidence": 0.7,
           "news_id": "news_a2d06f199b69d243",
-          "score_component": 0.35,
+          "score_component": 0.34200598895198603,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Morocco-Is-Emerging-as-a-Renewable-Energy-Superpower.html",
           "title": "Morocco Is Emerging as a Renewable Energy Superpower"
@@ -174,29 +216,13 @@
         {
           "confidence": 0.8,
           "news_id": "news_df737941e3ecbf78",
-          "score_component": 0.35,
+          "score_component": 0.32000000000000006,
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67685",
           "title": "Electricity generation from solar could exceed coal in ERCOT for the first time in 2026"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_82ff1b4532dd11bd",
-          "score_component": 0.12,
-          "source": "eia_energy",
-          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67725",
-          "title": "Natural gas for power generation flat this summer, record high expected in 2027"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_89c34a2fc09b21df",
-          "score_component": 0.11458099246924998,
-          "source": "cnbc_finance",
-          "source_url": "https://www.cnbc.com/2026/05/28/nio-surges-9percent-after-releasing-first-flagship-ev-in-more-than-two-years.html",
-          "title": "Nio shares jump 10% after releasing first flagship EV in more than two years"
         }
       ],
-      "trend_30d": 0.93458099246925
+      "trend_30d": 1.362005988951986
     },
     "glp1_metabolic": {
       "avg_confidence": null,
@@ -231,29 +257,29 @@
       "trend_30d": 0.0
     },
     "physical_ai": {
-      "avg_confidence": 0.55,
-      "avg_severity": 0.35,
+      "avg_confidence": 0.5,
+      "avg_severity": 0.25,
       "item_count": 2,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.55,
+          "avg_confidence": 0.5,
           "item_count": 2,
           "period_start": "2026-05-01",
-          "score": 0.39554931325133336
+          "score": 0.2905640366833334
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.55,
+          "avg_confidence": 0.5,
           "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.39554931325133336
+          "score": 0.2905640366833334
         }
       ],
-      "raw_score": 0.7,
-      "score": 0.39554931325133336,
+      "raw_score": 0.5,
+      "score": 0.2905640366833334,
       "source_mix": {
         "cnbc_tech": 1,
         "nvidia_blog": 1
@@ -265,9 +291,9 @@
       ],
       "top_news_items": [
         {
-          "confidence": 0.8,
+          "confidence": 0.7,
           "news_id": "news_1c0555523586f353",
-          "score_component": 0.30554931325133333,
+          "score_component": 0.26124923763030605,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/icra-research-robotics-simulation-to-real-world/",
           "title": "NVIDIA Research Advances Robotics From Simulation to the Real World"
@@ -275,13 +301,13 @@
         {
           "confidence": 0.3,
           "news_id": "news_03a1d0b7e64ed4e9",
-          "score_component": 0.09,
+          "score_component": 0.029314799053027377,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/05/30/humanoid-robots-ukraine-war-foundation-military-ai.html",
           "title": "This Trump-linked startup plans to put humanoid robots in the military"
         }
       ],
-      "trend_30d": 0.39554931325133336
+      "trend_30d": 0.2905640366833334
     },
     "quantum_computing": {
       "avg_confidence": null,

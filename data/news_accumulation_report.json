@@ -1,14 +1,45 @@
 {
   "classification_success_rate": 1.0,
-  "combined_rank_change_history": [],
+  "combined_rank_change_history": [
+    {
+      "diagnostic_date": "2026-05-26",
+      "max_rank_change": 2,
+      "news_item_count": 3,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-05-27",
+      "max_rank_change": 2,
+      "news_item_count": 4,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-05-28",
+      "max_rank_change": 2,
+      "news_item_count": 10,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-05-29",
+      "max_rank_change": 2,
+      "news_item_count": 32,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-05-30",
+      "max_rank_change": 3,
+      "news_item_count": 46,
+      "thin_news_warning": true
+    }
+  ],
   "daily_item_counts": {
     "2026-05-26": 7,
-    "2026-05-27": 8,
-    "2026-05-28": 21,
-    "2026-05-29": 43,
-    "2026-05-30": 6
+    "2026-05-27": 4,
+    "2026-05-28": 20,
+    "2026-05-29": 38,
+    "2026-05-30": 11
   },
-  "date_end": "2026-05-30T15:33:42",
+  "date_end": "2026-05-30T23:00:00",
   "date_start": "2026-05-26T12:00:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -19,16 +50,16 @@
   },
   "latest_run": {
     "classified_items": 41,
-    "created_at": "2026-05-30T16:11:57.553735",
-    "date_max": "2026-05-30T15:33:42",
+    "created_at": "2026-05-31T02:20:04.807488",
+    "date_max": "2026-05-30T23:00:00",
     "date_min": "2026-05-26T12:00:00",
     "duplicate_items": 0,
     "failed_items": 0,
-    "new_unique_items": 97,
+    "new_unique_items": 92,
     "quality_status": "ok",
-    "raw_item_count": 97,
-    "run_date": "2026-05-30T00:00:00",
-    "run_id": "20260530T161157Z-03370906",
+    "raw_item_count": 92,
+    "run_date": "2026-05-31T00:00:00",
+    "run_id": "20260531T022004Z-368f33c3",
     "source_count": 12,
     "source_group_count": 8,
     "success_rate": 1.0,
@@ -47,8 +78,8 @@
       "id": "inflation_pressure"
     },
     {
-      "count": 3,
-      "id": "monetary_tightening"
+      "count": 2,
+      "id": "commodity_pressure"
     },
     {
       "count": 2,
@@ -56,7 +87,7 @@
     },
     {
       "count": 2,
-      "id": "geopolitical_risk"
+      "id": "monetary_tightening"
     }
   ],
   "top_recurring_sector_headwinds": [
@@ -66,10 +97,18 @@
     },
     {
       "count": 1,
-      "id": "industrials"
+      "id": "consumer_staples"
+    },
+    {
+      "count": 1,
+      "id": "utilities"
     }
   ],
   "top_recurring_sector_tailwinds": [
+    {
+      "count": 5,
+      "id": "health_care"
+    },
     {
       "count": 5,
       "id": "information_technology"
@@ -79,19 +118,15 @@
       "id": "energy"
     },
     {
-      "count": 2,
+      "count": 3,
       "id": "industrials"
     },
     {
       "count": 2,
       "id": "real_estate"
-    },
-    {
-      "count": 1,
-      "id": "financials"
     }
   ],
-  "total_accumulated_news_items": 97,
+  "total_accumulated_news_items": 92,
   "total_classified_items": 41,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
