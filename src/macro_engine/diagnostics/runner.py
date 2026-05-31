@@ -293,7 +293,12 @@ def _apply_transition_filter(
         filtered["reported_regime"] = current_regime
         filtered["dominant_probability"] = reported_probability
         filtered["reported_regime_probability"] = reported_probability
-        filtered["reported_confidence"] = _reported_confidence(scores, date, current_regime)
+        # Confidence is the peakedness of the regime distribution; it does not
+        # depend on WHICH regime the transition filter reports. Using the raw
+        # peakedness keeps reported_confidence consistent and never negative
+        # (the old gap formula went negative when a held regime was not the
+        # raw leader).
+        filtered["reported_confidence"] = raw_confidence
         filtered["confidence"] = raw_confidence
         rows.append(filtered)
 
@@ -315,23 +320,6 @@ def _probability_for_regime(
     return float(rows.iloc[0]["probability"])
 
 
-def _reported_confidence(
-    regime_scores: pd.DataFrame,
-    date: pd.Timestamp,
-    regime_id: str,
-) -> float | None:
-    date_scores = regime_scores[
-        (regime_scores["date"] == date)
-        & (regime_scores["valid"])
-        & (regime_scores["probability"].notna())
-    ]
-    reported_probability = _probability_for_regime(regime_scores, date, regime_id)
-    if date_scores.empty or reported_probability is None:
-        return None
-    other_scores = date_scores[date_scores["regime_id"] != regime_id]
-    if other_scores.empty:
-        return reported_probability
-    return float(reported_probability - other_scores["probability"].astype(float).max())
 
 
 def _transition_columns() -> list[str]:
