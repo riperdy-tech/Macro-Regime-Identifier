@@ -1,0 +1,70 @@
+name: Weekly Secular Theme Discovery
+
+# WS-C: once a week, propose EMERGING secular themes from recent news, gate them
+# with the anti-noise promotion test, and push any survivors to a REVIEW branch
+# (never straight to master). A human reviews the diff and merges.
+#
+# Cost: one cost-gated DeepSeek discovery call (--max-calls 1), ~cents/month.
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: "Hard cap on DeepSeek discovery calls"
+        required: false
+        type: string
+        default: "1"
+  schedule:
+    # Sundays ~07:23 UTC (off the :00 mark)
+    - cron: "23 7 * * 0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "weekly-themes"
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Ingest recent news (real feeds)
+        run: python -m macro_engine.cli ingest-news --profile live_rss
+
+      - name: Discover + promote themes (cost-gated)
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          python scripts/discover_themes.py \
+            --apply --promote \
+            --max-calls "${{ inputs.max_calls || '1' }}"
+
+      - name: Push promoted themes to a review branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- config/news_themes.yaml; then
+            echo "No new themes promoted this week."
+          else
+            BRANCH="auto/theme-proposals"
+            git checkout -b "$BRANCH"
+            git add config/news_themes.yaml
+            git commit -m "chore(themes): weekly secular-theme proposals for review [skip ci]"
+            git push --force origin "$BRANCH"
+            echo "Pushed proposals to $BRANCH - open a PR to review/merge."
+          fi
