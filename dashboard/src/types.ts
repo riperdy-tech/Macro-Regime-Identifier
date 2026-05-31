@@ -53,6 +53,7 @@ export type RegimeTimelinePoint = {
   raw_dominant_regime?: string | null;
   confidence?: number | null;
   valid?: boolean | null;
+  probabilities?: Record<string, number>;
 };
 
 export type DashboardData = {

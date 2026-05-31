@@ -324,6 +324,24 @@ def write_regime_timeline(
     output.mkdir(parents=True, exist_ok=True)
     path = output / "regime_timeline.json"
 
+    # Per-month probability for every regime, so the dashboard can chart the full
+    # regime "mix" over time (a stacked area), not just the winning label.
+    prob_by_date: dict[str, dict[str, float]] = {}
+    try:
+        regime_scores = store.read_table("regime_scores")
+    except Exception:
+        regime_scores = pd.DataFrame()
+    if not regime_scores.empty and "probability" in regime_scores.columns:
+        rs = regime_scores.copy()
+        rs["date"] = pd.to_datetime(rs["date"], errors="coerce")
+        rs = rs.dropna(subset=["date"])
+        for row in rs.to_dict(orient="records"):
+            prob = row.get("probability")
+            if prob is None or pd.isna(prob):
+                continue
+            key = row["date"].date().isoformat()
+            prob_by_date.setdefault(key, {})[str(row.get("regime_id"))] = round(float(prob), 4)
+
     timeline = store.read_table("historical_regime_timeline")
     points: list[dict[str, Any]] = []
     if not timeline.empty:
@@ -335,14 +353,16 @@ def write_regime_timeline(
             if confidence is None or pd.isna(confidence):
                 confidence = row.get("confidence")
             valid = row.get("valid")
+            iso = row["date"].date().isoformat()
             points.append(
                 {
-                    "date": row["date"].date().isoformat(),
+                    "date": iso,
                     "reported_regime": row.get("reported_regime") or row.get("dominant_regime"),
                     "raw_dominant_regime": row.get("raw_dominant_regime")
                     or row.get("dominant_regime"),
                     "confidence": confidence,
                     "valid": None if valid is None or pd.isna(valid) else bool(valid),
+                    "probabilities": prob_by_date.get(iso, {}),
                 }
             )
 
