@@ -237,6 +237,28 @@ news_sources:
     max_items: 10
     lookback_days: 3
 
+  - source_id: bbc_world_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://feeds.bbci.co.uk/news/world/rss.xml
+    source: bbc_world
+    source_group: geopolitical
+    max_items: 10
+    lookback_days: 3
+
+  - source_id: cnbc_retail_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/10000115/device/rss/rss.html
+    source: cnbc_retail
+    source_group: consumer
+    max_items: 10
+    lookback_days: 3
+
   - source_id: manual_text_example
     provider: manual_text
     enabled: false

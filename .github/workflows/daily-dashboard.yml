@@ -34,6 +34,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: "daily-dashboard"
@@ -161,6 +162,24 @@ jobs:
             git commit -m "chore(history): persist daily run-audit snapshot [skip ci]"
             git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
             git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+      - name: Alert on regime change or guardrail failure
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          MSG=$(python scripts/check_alert.py) || true
+          if [ -n "$MSG" ]; then
+            echo "ALERT: $MSG"
+            BODY=$(python -c "import json,sys;print(json.dumps({'title':'MGI alert: '+sys.argv[1],'body':sys.argv[1]+chr(10)+chr(10)+'Automated alert from the daily diagnostic run.','labels':['mgi-alert']}))" "$MSG")
+            curl -s -X POST \
+              -H "Authorization: token $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$REPO/issues" -d "$BODY" >/dev/null
+          else
+            echo "No alert."
           fi
 
       - name: Build dashboard
