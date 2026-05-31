@@ -40,6 +40,8 @@ export const TOOLTIPS: Record<string, string> = {
     "Sectors ordered by their confidence-adjusted score under today's regime. Higher = more supported by the current backdrop.",
   sector_components:
     "The dimension exposures and regime priors that pushed a sector's score up (supporting) or down (opposing).",
+  validation:
+    "An honest backtest: do the sector scores actually rank-order future sector-ETF returns? Rank IC near 0 and hit-rate near 50% mean no measurable edge.",
 
   // news tab
   news_themes:

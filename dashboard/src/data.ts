@@ -10,6 +10,7 @@ const FILES = {
   coverage: "news_source_coverage_report.json",
   history: "history_index.json",
   timeline: "regime_timeline.json",
+  validation: "sector_validation.json",
 } as const;
 
 const BASE_URL = import.meta.env.BASE_URL;
@@ -34,6 +35,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     coverage: null,
     history: null,
     timeline: null,
+    validation: null,
     source: "empty",
   };
 }
@@ -60,6 +62,7 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     coverage: valueFor(entries, "coverage"),
     history: valueFor(entries, "history"),
     timeline: valueFor(entries, "timeline"),
+    validation: valueFor(entries, "validation"),
   };
 }
 
@@ -97,5 +100,6 @@ function emptyData(): Omit<DashboardData, "source"> {
     coverage: null,
     history: null,
     timeline: null,
+    validation: null,
   };
 }

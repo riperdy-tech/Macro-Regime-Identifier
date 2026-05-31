@@ -131,6 +131,14 @@ jobs:
       - name: Write regime status
         run: python -m macro_engine.cli write-regime-status
 
+      - name: Run sector validation (free stooq prices)
+        run: python -m macro_engine.cli run-sector-validation
+        continue-on-error: true
+
+      - name: Write sector validation report
+        run: python -m macro_engine.cli write-sector-validation-report
+        continue-on-error: true
+
       - name: Export dashboard data
         run: python -m macro_engine.cli export-dashboard-data
 

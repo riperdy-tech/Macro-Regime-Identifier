@@ -1,5 +1,6 @@
 price_provider:
-  provider: csv
+  # Free daily ETF prices from stooq (no API key). CI fetches live each run.
+  provider: stooq
   csv_path: data/sector_proxy_prices.csv
   start_date: "1998-12-22"
   end_date: null
@@ -21,6 +22,13 @@ proxies:
   materials: XLB
   real_estate: XLRE
   utilities: XLU
+  # Sub-industries (WS-A). ETF proxies for forward-return validation.
+  semiconductors: SMH
+  software: IGV
+  banks: KBE
+  biotech: XBI
+  homebuilders: XHB
+  oil_gas_ep: XOP
 
 reports:
   output_dir: outputs

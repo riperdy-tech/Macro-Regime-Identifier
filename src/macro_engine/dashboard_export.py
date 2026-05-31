@@ -18,6 +18,7 @@ DASHBOARD_OUTPUT_FILES = [
     "secular_theme_scores.json",
     "regime_status.json",
     "regime_timeline.json",
+    "sector_validation.json",
     "automation_run_summary.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"

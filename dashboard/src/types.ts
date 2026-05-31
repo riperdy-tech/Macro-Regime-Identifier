@@ -66,5 +66,14 @@ export type DashboardData = {
   coverage: Record<string, unknown> | null;
   history: Record<string, unknown> | null;
   timeline: Record<string, unknown> | null;
+  validation: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
+};
+
+export type ValidationSummaryRow = {
+  horizon?: string;
+  observation_count?: number;
+  rank_ic_spearman?: number | null;
+  top_minus_bottom_spread?: number | null;
+  hit_rate_top_positive?: number | null;
 };

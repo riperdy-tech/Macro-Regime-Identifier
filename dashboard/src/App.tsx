@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadDashboardData } from "./data";
-import type { DashboardData, HistoryRun, RankedSector, RegimeTimelinePoint } from "./types";
+import type {
+  DashboardData,
+  HistoryRun,
+  RankedSector,
+  RegimeTimelinePoint,
+  ValidationSummaryRow,
+} from "./types";
 import {
   asArray,
   combinedRows,
@@ -463,7 +469,58 @@ function SectorPanel({ data }: { data: DashboardData }) {
       <Panel title="Lowest Sector Components" info={TOOLTIPS.sector_components}>
         <ComponentList sector={bottom} />
       </Panel>
+      <Panel title="Signal Validation (does this work?)" wide info={TOOLTIPS.validation}>
+        <ValidationScorecard data={data} />
+      </Panel>
     </section>
+  );
+}
+
+function ValidationScorecard({ data }: { data: DashboardData }) {
+  const v = getObject(data.validation);
+  const rows = asArray<ValidationSummaryRow>(v.summary);
+  if (!rows.length) {
+    return <p className="muted">Validation unavailable. Run the sector validation step.</p>;
+  }
+  const bestIc = rows.reduce(
+    (m, r) => Math.max(m, typeof r.rank_ic_spearman === "number" ? Math.abs(r.rank_ic_spearman) : 0),
+    0,
+  );
+  const verdict =
+    bestIc >= 0.1
+      ? "Some forward signal: scores show modest rank skill on sector returns."
+      : "No measurable forward edge (rank IC ~0, hit-rate ~50%). Treat this as a descriptive macro lens, not a return predictor.";
+  return (
+    <div>
+      <p className="muted" style={{ marginTop: 0 }}>{verdict}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Horizon</th>
+            <th>Rank IC</th>
+            <th>Hit rate (top)</th>
+            <th>Top−Bottom spread</th>
+            <th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={`${r.horizon}-${i}`}>
+              <td>{text(r.horizon)}</td>
+              <td>{formatScore(r.rank_ic_spearman)}</td>
+              <td>{formatPct(r.hit_rate_top_positive)}</td>
+              <td>{formatScore(r.top_minus_bottom_spread)}</td>
+              <td>{text(r.observation_count, "0")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <small className="muted">
+        Sector scores {text(v.score_start_date)}–{text(v.score_end_date)} vs forward ETF-proxy
+        returns {text(v.price_start_date)}–{text(v.price_end_date)}. Diagnostic only, not a trading
+        backtest; cost/slippage not modeled.
+      </small>
+    </div>
   );
 }
 
