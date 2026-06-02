@@ -1431,6 +1431,19 @@ def write_regime_status_cli(
     console.print_json(data={"json_path": str(json_path)})
 
 
+@app.command("prune-news-history")
+def prune_news_history_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    max_age_days: Annotated[int, typer.Option("--max-age-days")] = 150,
+) -> None:
+    """Null out raw_ai_response_json older than --max-age-days to bound the
+    persisted DB. Structured classification fields are kept."""
+    from macro_engine.news.retention import prune_raw_ai_responses
+
+    result = prune_raw_ai_responses(db_path, max_age_days=max_age_days)
+    console.print_json(data=result)
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:

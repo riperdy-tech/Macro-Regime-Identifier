@@ -49,6 +49,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore accumulated database
+        # Persist the DuckDB across runs so news accumulates (readiness advances,
+        # classify-only-unclassified avoids re-paying DeepSeek). Rolling key:
+        # restores the most recent cache, saves a fresh one at job end.
+        uses: actions/cache@v4
+        with:
+          path: data/macro_engine.duckdb
+          key: mgi-duckdb-${{ github.run_id }}
+          restore-keys: |
+            mgi-duckdb-
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -131,6 +142,10 @@ jobs:
 
       - name: Write regime status
         run: python -m macro_engine.cli write-regime-status
+
+      - name: Prune old raw AI responses (bound the DB)
+        run: python -m macro_engine.cli prune-news-history --max-age-days 150
+        continue-on-error: true
 
       - name: Run sector validation (free stooq prices)
         run: python -m macro_engine.cli run-sector-validation
