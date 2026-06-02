@@ -79,7 +79,6 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
-      - live_rss
       - rss_watchlist
     feed_url: https://feeds.feedburner.com/nvidiablog
     source: nvidia_blog
@@ -92,7 +91,6 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
-      - live_rss
       - rss_watchlist
     feed_url: https://developer.nvidia.com/blog/feed
     source: nvidia_developer_blog
@@ -105,7 +103,6 @@ news_sources:
     enabled: false
     profiles:
       - ai_compute_rss
-      - live_rss
       - rss_watchlist
     feed_url: https://blog.google/products/google-cloud/rss/
     source: google_cloud_blog
@@ -256,6 +253,51 @@ news_sources:
     feed_url: https://www.cnbc.com/id/10000115/device/rss/rss.html
     source: cnbc_retail
     source_group: consumer
+    max_items: 10
+    lookback_days: 3
+
+  # --- Added from the FinancialJuice list (validated fresh + free) ----------
+  - source_id: fed_speeches_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.federalreserve.gov/feeds/speeches.xml
+    source: federal_reserve_speeches
+    source_group: credit_financial_conditions
+    max_items: 10
+    lookback_days: 14
+
+  - source_id: nasdaq_markets_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.nasdaq.com/feed/rssoutbound?category=Markets
+    source: nasdaq_markets
+    source_group: macro_general
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: marketwatch_top_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: http://feeds.marketwatch.com/marketwatch/topstories/
+    source: marketwatch
+    source_group: macro_general
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: scmp_news_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.scmp.com/rss/91/feed
+    source: scmp
+    source_group: geopolitical
     max_items: 10
     lookback_days: 3
 
