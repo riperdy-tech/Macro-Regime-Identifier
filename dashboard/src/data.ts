@@ -11,6 +11,7 @@ const FILES = {
   history: "history_index.json",
   timeline: "regime_timeline.json",
   macroFeatures: "macro_features_timeline.json",
+  newsSources: "news_sources.json",
   validation: "sector_validation.json",
 } as const;
 
@@ -37,6 +38,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     history: null,
     timeline: null,
     macroFeatures: null,
+    newsSources: null,
     validation: null,
     source: "empty",
   };
@@ -65,6 +67,7 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     history: valueFor(entries, "history"),
     timeline: valueFor(entries, "timeline"),
     macroFeatures: valueFor(entries, "macroFeatures"),
+    newsSources: valueFor(entries, "newsSources"),
     validation: valueFor(entries, "validation"),
   };
 }
@@ -104,6 +107,7 @@ function emptyData(): Omit<DashboardData, "source"> {
     history: null,
     timeline: null,
     macroFeatures: null,
+    newsSources: null,
     validation: null,
   };
 }

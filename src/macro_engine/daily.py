@@ -219,6 +219,10 @@ def run_daily_diagnostic(
     outputs.append(str(timeline_json))
     features_json = write_macro_features_timeline(store, Path(summary_json).parent)
     outputs.append(str(features_json))
+    sources_json = write_news_sources_used(
+        config.news.news_sources_config, profile, Path(summary_json).parent
+    )
+    outputs.append(str(sources_json))
     archive_path = None
     archive_enabled = config.outputs.archive_enabled if archive is None else archive
     if archive_enabled:
@@ -454,6 +458,51 @@ def write_macro_features_timeline(
         "end_date": end_date,
         "dimensions": dimensions,
         "disclaimer": DAILY_SUMMARY_DISCLAIMER,
+    }
+    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
+    return path
+
+
+def write_news_sources_used(
+    sources_config_path: str | Path,
+    profile: str | None,
+    output_dir: str | Path = "outputs",
+) -> Path:
+    """Export the news feeds actually used (the selected profile's RSS sources),
+    grouped by category, so the dashboard can show where the news comes from."""
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    path = output / "news_sources.json"
+
+    groups: dict[str, list[dict[str, str]]] = {}
+    try:
+        from macro_engine.news.config import load_news_sources_config
+
+        config = load_news_sources_config(sources_config_path)
+        for source in config.news_sources:
+            if profile and profile not in source.profiles:
+                continue
+            if source.provider != "rss" or not source.feed_url:
+                continue
+            group = source.source_group or "unmapped"
+            groups.setdefault(group, []).append(
+                {
+                    "name": source.source or source.source_id,
+                    "url": source.feed_url,
+                }
+            )
+    except Exception:
+        groups = {}
+
+    payload = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "profile": profile,
+        "source_count": sum(len(v) for v in groups.values()),
+        "groups": [
+            {"group": g, "sources": sorted(groups[g], key=lambda s: s["name"])}
+            for g in sorted(groups)
+        ],
+        "disclaimer": "News headlines are used as diagnostic inputs only, not republished.",
     }
     path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
     return path

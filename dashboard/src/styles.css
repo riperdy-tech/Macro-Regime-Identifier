@@ -545,6 +545,48 @@ h2 .infotip {
   box-shadow: 0 0 0 1px rgb(0 0 0 / 6%);
 }
 
+.strip-caption {
+  font-size: 11px;
+  margin: 0 0 4px;
+}
+
+.source-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.source-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.source-group-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #536266;
+  min-width: 150px;
+  text-transform: capitalize;
+}
+
+.source-chip {
+  font-size: 12px;
+  color: #163b40;
+  text-decoration: none;
+  padding: 3px 9px;
+  border: 1px solid #d9e0e3;
+  border-radius: 999px;
+  background: #fbfdfd;
+}
+
+.source-chip:hover,
+.source-chip:focus {
+  border-color: #218a7d;
+  background: #f0f8f6;
+}
+
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

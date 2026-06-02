@@ -56,6 +56,8 @@ export const TOOLTIPS: Record<string, string> = {
     "Share of news items the AI classified into valid structured output on this run.",
   low_confidence_items:
     "News items the classifier was least sure about. Useful for spotting ambiguous or off-topic articles.",
+  news_sources:
+    "The live RSS feeds the news layer pulls from, grouped by category. Headlines are used as diagnostic inputs only, not republished.",
 
   // combined tab
   combined_overlay:

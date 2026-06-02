@@ -19,6 +19,7 @@ DASHBOARD_OUTPUT_FILES = [
     "regime_status.json",
     "regime_timeline.json",
     "macro_features_timeline.json",
+    "news_sources.json",
     "sector_validation.json",
     "automation_run_summary.json",
 ]

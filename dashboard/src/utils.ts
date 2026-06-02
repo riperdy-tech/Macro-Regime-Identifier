@@ -27,6 +27,23 @@ export function formatScore(value: unknown): string {
   return numeric.toFixed(3);
 }
 
+// Trim a full ISO timestamp to a friendly "YYYY-MM-DD HH:MM UTC" (no seconds /
+// microseconds). Falls back to the raw value if it is not a parseable date.
+export function formatStamp(value: unknown, withTime = true): string {
+  if (value === null || value === undefined || value === "") {
+    return "Data unavailable";
+  }
+  const d = new Date(String(value));
+  if (Number.isNaN(d.getTime())) {
+    return String(value);
+  }
+  const date = d.toISOString().slice(0, 10);
+  if (!withTime) {
+    return date;
+  }
+  return `${date} ${d.toISOString().slice(11, 16)} UTC`;
+}
+
 export function asArray<T>(value: unknown): T[] {
   return Array.isArray(value) ? (value as T[]) : [];
 }

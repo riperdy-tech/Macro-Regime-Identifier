@@ -5,6 +5,7 @@ import type {
   HistoryRun,
   MacroDimensionSeries,
   MacroFeatureSeries,
+  NewsSourceGroup,
   RankedSector,
   RegimeTimelinePoint,
   ValidationSummaryRow,
@@ -14,6 +15,7 @@ import {
   combinedRows,
   formatPct,
   formatScore,
+  formatStamp,
   getNested,
   getObject,
   historyRuns,
@@ -306,7 +308,7 @@ function Overview({ data }: { data: DashboardData }) {
     <section className="grid two">
       <Metric label="Run status" value={text(daily.status)} detail={text(daily.run_id, "No run id")} />
       <Metric label="Archive path" value={text(daily.archive_path)} />
-      <Metric label="Exported at" value={text(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
+      <Metric label="Exported at" value={formatStamp(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
       <Metric
         label="Macro regime"
         value={text(macro.reported_regime)}
@@ -472,8 +474,43 @@ function RegimeTimeline({ data }: { data: DashboardData }) {
 
   const legend = hasProbs ? REGIME_STACK : Array.from(new Set(points.map((p) => p.reported_regime ?? "unknown")));
 
+  // Reported-regime band strip: the clear winning regime for each month, grouped
+  // into continuous phases (the at-a-glance "what regime, when" view).
+  const runs: { regime: string; start: number; len: number; faded: boolean }[] = [];
+  points.forEach((pt, i) => {
+    const r = pt.reported_regime ?? "unknown";
+    const last = runs[runs.length - 1];
+    if (last && last.regime === r) {
+      last.len += 1;
+      if (pt.valid === false) last.faded = true;
+    } else {
+      runs.push({ regime: r, start: i, len: 1, faded: pt.valid === false });
+    }
+  });
+  const stripH = 24;
+
   return (
     <div className="regime-timeline">
+      <div className="strip-caption muted">Reported regime each month (the published label)</div>
+      <svg
+        viewBox={`0 0 ${width} ${stripH}`}
+        preserveAspectRatio="none"
+        style={{ width: "100%", height: "auto" }}
+        role="img"
+        aria-label="Reported regime per month, 1990 to present"
+      >
+        {runs.map((run, i) => {
+          const rx = x(run.start);
+          const rightX = Math.min((n <= 1 ? width : ((run.start + run.len) / (n - 1)) * width), width);
+          const rw = Math.max(rightX - rx, 0.6);
+          return (
+            <rect key={i} x={rx} y={2} width={rw} height={stripH - 4} rx={rw > 6 ? 3 : 1} fill={regimeColor(run.regime)} opacity={run.faded ? 0.45 : 0.95}>
+              <title>{run.regime}</title>
+            </rect>
+          );
+        })}
+      </svg>
+      <div className="strip-caption muted" style={{ marginTop: 8 }}>Probability mix (band thickness = each regime's monthly probability)</div>
       <svg
         viewBox={`0 0 ${width} ${height + padBottom}`}
         preserveAspectRatio="none"
@@ -734,7 +771,37 @@ function NewsPanel({ data }: { data: DashboardData }) {
       <Panel title="Low Confidence Items" wide info={TOOLTIPS.low_confidence_items}>
         <ItemTable items={asArray<Record<string, unknown>>(report.low_confidence_items)} />
       </Panel>
+      <Panel title="News Sources We Read" wide info={TOOLTIPS.news_sources}>
+        <NewsSources data={data} />
+      </Panel>
     </section>
+  );
+}
+
+function NewsSources({ data }: { data: DashboardData }) {
+  const payload = getObject(data.newsSources);
+  const groups = asArray<NewsSourceGroup>(payload.groups).filter((g) => (g.sources?.length ?? 0) > 0);
+  if (!groups.length) {
+    return <p className="muted">Source list unavailable. Run the live pipeline and export dashboard data.</p>;
+  }
+  return (
+    <div>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Live RSS feeds the news layer pulls from (headlines used as diagnostic inputs only, not republished).
+      </p>
+      <div className="source-groups">
+        {groups.map((g) => (
+          <div key={g.group} className="source-group">
+            <span className="source-group-label">{prettyDimension(g.group ?? "")}</span>
+            {(g.sources ?? []).map((s, i) => (
+              <a key={i} className="source-chip" href={s.url} target="_blank" rel="noopener noreferrer">
+                {prettyDimension(s.name ?? "")}
+              </a>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

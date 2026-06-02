@@ -68,8 +68,14 @@ export type DashboardData = {
   history: Record<string, unknown> | null;
   timeline: Record<string, unknown> | null;
   macroFeatures: Record<string, unknown> | null;
+  newsSources: Record<string, unknown> | null;
   validation: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
+};
+
+export type NewsSourceGroup = {
+  group?: string;
+  sources?: { name?: string; url?: string }[];
 };
 
 export type MacroFeaturePoint = { date?: string; value?: number };
