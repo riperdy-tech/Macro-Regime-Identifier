@@ -1,5 +1,5 @@
 {
-  "computed_at": "2026-06-02T06:28:15.453805+00:00",
+  "computed_at": "2026-06-02T11:55:03.847941+00:00",
   "confidence": 0.002306044059730339,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "tightening",
@@ -8,12 +8,12 @@
   "raw_regime_probability": 0.21813698405718426,
   "readiness_label": "insufficient_history",
   "regime_probability": 0.20429875624090063,
-  "secular_theme_computed_at": "2026-06-02T06:28:14.418502+00:00",
+  "secular_theme_computed_at": "2026-06-02T11:55:02.890077+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.615,
-      "avg_severity": 0.36,
-      "item_count": 10,
+      "avg_confidence": 0.5954545454545455,
+      "avg_severity": 0.34545454545454546,
+      "item_count": 11,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -24,27 +24,28 @@
           "score": 0.8780814356702765
         },
         {
-          "avg_confidence": 0.71,
-          "item_count": 5,
+          "avg_confidence": 0.6583333333333333,
+          "item_count": 6,
           "period_start": "2026-06-01",
-          "score": 1.25698118200752
+          "score": 1.3369811820075201
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.615,
-          "item_count": 10,
+          "avg_confidence": 0.5954545454545455,
+          "item_count": 11,
           "period_start": "2026-04-01",
-          "score": 2.1350626176777965
+          "score": 2.2150626176777966
         }
       ],
-      "raw_score": 3.5999999999999996,
-      "score": 2.1350626176777965,
+      "raw_score": 3.8,
+      "score": 2.2150626176777966,
       "source_mix": {
         "cnbc_finance": 1,
         "eia_energy": 1,
         "nvidia_blog": 5,
-        "nvidia_developer_blog": 3
+        "nvidia_developer_blog": 3,
+        "scmp": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
@@ -96,7 +97,7 @@
           "title": "'Disrupted or dead': AI is crushing a generation of startups built before ChatGPT"
         }
       ],
-      "trend_30d": 2.1350626176777965
+      "trend_30d": 2.2150626176777966
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -288,9 +289,9 @@
       "trend_30d": 0.29314799053027374
     },
     "physical_ai": {
-      "avg_confidence": 0.6666666666666666,
-      "avg_severity": 0.3,
-      "item_count": 3,
+      "avg_confidence": 0.625,
+      "avg_severity": 0.325,
+      "item_count": 4,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -301,29 +302,31 @@
           "score": 0.07127189745122715
         },
         {
-          "avg_confidence": 0.8,
-          "item_count": 2,
+          "avg_confidence": 0.7000000000000001,
+          "item_count": 3,
           "period_start": "2026-06-01",
-          "score": 0.5436047911615889
+          "score": 0.7436047911615888
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6666666666666666,
-          "item_count": 3,
+          "avg_confidence": 0.625,
+          "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.6148766886128161
+          "score": 0.814876688612816
         }
       ],
-      "raw_score": 0.9,
-      "score": 0.6148766886128161,
+      "raw_score": 1.3,
+      "score": 0.814876688612816,
       "source_mix": {
+        "nasdaq_markets": 1,
         "nvidia_blog": 3
       },
       "theme_id": "physical_ai",
       "top_news_ids": [
         "news_289dbe63e82c5920",
         "news_f0455ea7d9e8f728",
+        "news_8f6b1d14a1926d78",
         "news_1c0555523586f353"
       ],
       "top_news_items": [
@@ -344,6 +347,14 @@
           "title": "NVIDIA Jetson Brings Agentic AI to the Physical World"
         },
         {
+          "confidence": 0.5,
+          "news_id": "news_8f6b1d14a1926d78",
+          "score_component": 0.2,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/heres-why-tesla-stock-soared-may-and-what-spacex-ipo-means-tesla-investors",
+          "title": "Here's Why Tesla Stock Soared in May (And What the SpaceX IPO Means to Tesla Investors)"
+        },
+        {
           "confidence": 0.4,
           "news_id": "news_1c0555523586f353",
           "score_component": 0.07127189745122715,
@@ -352,7 +363,7 @@
           "title": "NVIDIA Research Advances Robotics From Simulation to the Real World"
         }
       ],
-      "trend_30d": 0.614876688612816
+      "trend_30d": 0.814876688612816
     },
     "quantum_computing": {
       "avg_confidence": null,
