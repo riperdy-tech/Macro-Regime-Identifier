@@ -25,6 +25,7 @@ import {
   DATA_FLOW,
   GLOSSARY,
   GUIDE_DISCLAIMER,
+  PIPELINE_DETAIL,
   TAB_GUIDE,
   TAB_INTROS,
   TOOLTIPS,
@@ -148,6 +149,7 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
           <nav className="toc" aria-label="Guide contents">
             <a href="#guide-flow">How the data flows</a>
             <a href="#guide-tabs">What each tab shows</a>
+            <a href="#guide-detail">Under the hood</a>
             <a href="#guide-glossary">Glossary</a>
           </nav>
           <div className="summary-section" id="guide-flow">
@@ -261,6 +263,19 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
                 </div>
               ))}
             </dl>
+          </div>
+          <div className="summary-section" id="guide-detail">
+            <h3>Under the hood (the gritty details)</h3>
+            {PIPELINE_DETAIL.map((sec) => (
+              <div key={sec.title} className="detail-block">
+                <h4>{sec.title}</h4>
+                <ul className="detail-list">
+                  {sec.lines.map((line, i) => (
+                    <li key={i}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
           <div className="summary-section" id="guide-glossary">
             <h3>Glossary</h3>

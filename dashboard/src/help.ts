@@ -191,5 +191,75 @@ export const GLOSSARY: { term: string; def: string }[] = [
   },
 ];
 
+// Deep technical walkthrough for the "How it works" guide.
+export const PIPELINE_DETAIL: { title: string; lines: string[] }[] = [
+  {
+    title: "1. What it is",
+    lines: [
+      "A macro regime diagnostic. It reads US economic data plus news, decides what 'economic weather' we are in (the regime), maps that to which stock sectors the backdrop favors, and publishes it as a daily dashboard.",
+      "It is a descriptive lens, not a return predictor - the validation panel proves that honestly.",
+    ],
+  },
+  {
+    title: "2. Two data sources",
+    lines: [
+      "FRED (Federal Reserve economic data): ~14 series - growth (industrial production, payrolls, unemployment, jobless claims), inflation (CPI, PCE), policy (fed funds, 10y yield), credit (corporate + high-yield spreads, financial-conditions index), the yield curve, plus money supply and housing starts. Free API.",
+      "RSS news: CNBC, Fed, BLS, DOL, EIA, OilPrice, HousingWire, BBC, NVIDIA and more. Free feeds.",
+    ],
+  },
+  {
+    title: "3. Macro pipeline (FRED -> regime -> sectors)",
+    lines: [
+      "Ingest: pull raw FRED observations back to 1990.",
+      "Features: transform each series (year-over-year %, 6/12-month change, or level) and normalize to a rolling z-score - how many standard deviations from its own recent norm.",
+      "Dimensions: group features into 5 macro axes (growth momentum, inflation pressure, policy stance, credit/liquidity, yield curve) plus 2 non-regime ones (monetary liquidity, housing).",
+      "Regimes: score 5 regimes (goldilocks, reflation, stagflation, recession, tightening) from the dimensions, then softmax into probabilities that sum to 1. The highest is the regime.",
+      "Confidence: the peakedness of that probability distribution - one regime dominating reads high; a five-way tie reads low ('contested').",
+      "Sector scores: each sector = sum(regime_prior x regime_probability) + sum(dimension_exposure x dimension_score), times confidence. 17 sectors/sub-industries. The priors are hand-set economic judgement, not fitted - which is why the signal shows no measured edge.",
+    ],
+  },
+  {
+    title: "4. News pipeline (parallel AI layer)",
+    lines: [
+      "Ingest RSS articles.",
+      "Rank + select (pure, free): score each article by source authority x macro-keyword relevance x freshness, drop junk and duplicates, apply per-group quotas, and take the top ~120 a day. The budget goes to important news, not merely the newest.",
+      "Classify: send those ~120 to DeepSeek (the only paid step, ~$0.25/month). Each article becomes structured JSON - macro themes, affected sectors, severity, confidence, secular theme. Truncation-safe (auto-retry if a reply is cut off).",
+      "Score: aggregate into theme scores and per-sector news tailwinds/headwinds.",
+      "Secular themes: long-run themes (AI compute, GLP-1, nuclear, ...); a weekly job can discover new ones for review.",
+    ],
+  },
+  {
+    title: "5. Combined view",
+    lines: [
+      "The macro sector scores plus a bounded news overlay. News can nudge the ranking but is capped so it cannot overpower the macro backdrop.",
+    ],
+  },
+  {
+    title: "6. Validation (the honesty layer)",
+    lines: [
+      "Backtests the sector scores against forward sector-ETF returns (free stooq prices) to compute rank-IC and hit-rate.",
+      "It currently reads about zero, so the dashboard states plainly that there is no measured predictive edge yet.",
+    ],
+  },
+  {
+    title: "7. Automation",
+    lines: [
+      "A GitHub Actions cron runs the whole pipeline on a fresh machine each weekday, exports JSON, and publishes the site.",
+      "The database is cached between runs so news accumulates day over day; old raw AI responses are pruned at 150 days to stay bounded.",
+      "Alerting opens a GitHub issue when the regime flips or a guardrail fails. A weekly job proposes new secular themes to a review branch.",
+    ],
+  },
+  {
+    title: "8. Cost and honest limits",
+    lines: [
+      "FRED, RSS and stooq are free; DeepSeek news classification is about $0.25/month. That is the whole bill.",
+      "Priors are editorial, not learned, so there is no measured forward edge.",
+      "FRED uses revised data, a mild lookahead bias.",
+      "Macro-to-sector at a 1-3 month horizon is a genuinely weak signal; momentum and earnings drive sector returns more than macro.",
+      "It is a research and monitoring tool, not financial advice or a trading system.",
+    ],
+  },
+];
+
 export const GUIDE_DISCLAIMER =
   "This is a diagnostic research tool. It organizes macro data, sector signals, news themes, and run history. It is not financial advice, not an automated trading system, and not a promise any signal will be right.";
