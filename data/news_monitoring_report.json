@@ -1,0 +1,307 @@
+{
+  "calibration_note": "News scoring calibration remains deferred until balanced, time-consistent real-news history exists.",
+  "classification_quality": {
+    "details_json": {
+      "truncation_count": 0,
+      "truncation_rate": 0.0,
+      "warnings": []
+    },
+    "failure_count": 0,
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "quality_status": "ok",
+    "repair_rate": 0.0,
+    "repaired_count": 0,
+    "retry_count": 1,
+    "retry_rate": 0.02127659574468085,
+    "run_at": "2026-06-02T06:15:12.645059",
+    "run_id": "20260602T061512Z-98057423",
+    "success_count": 47,
+    "success_rate": 1.0,
+    "top_failure_modes_json": [
+      {
+        "count": 1,
+        "failure_mode": "unknown news theme ids: ['energy_transition']"
+      }
+    ],
+    "total_items": 47
+  },
+  "disclaimer": "This is a diagnostic operating-quality report for news inputs, AI classifications, and the experimental combined overlay. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "input_quality": {
+    "date_max": null,
+    "date_min": null,
+    "details_json": {
+      "item_count_by_day": {},
+      "item_count_by_source": {},
+      "item_count_by_source_group": {},
+      "source_group_count": 0,
+      "unmapped_item_count": 0,
+      "unmapped_pct": 0.0,
+      "warnings": [
+        "source count is below configured minimum"
+      ]
+    },
+    "duplicate_count": 0,
+    "future_item_count": 0,
+    "old_item_count": 0,
+    "profile": "live_rss",
+    "quality_status": "warning",
+    "raw_item_count": 0,
+    "run_at": "2026-06-02T06:15:12.621053",
+    "run_id": "20260602T061512Z-98057423",
+    "short_body_count": 0,
+    "source_count": 0,
+    "unique_item_count": 0,
+    "warning_count": 1
+  },
+  "overlay_monitoring": {
+    "avg_abs_rank_change": 1.25,
+    "combined_top_sectors_json": [
+      {
+        "combined_score": 1.0402933293844603,
+        "news_item_count": 5,
+        "rank": 1,
+        "sector_id": "utilities"
+      },
+      {
+        "combined_score": 1.0362789506888157,
+        "news_item_count": 0,
+        "rank": 2,
+        "sector_id": "homebuilders"
+      },
+      {
+        "combined_score": 0.8244714790898803,
+        "news_item_count": 3,
+        "rank": 3,
+        "sector_id": "health_care"
+      },
+      {
+        "combined_score": 0.7702980566975599,
+        "news_item_count": 0,
+        "rank": 4,
+        "sector_id": "software"
+      },
+      {
+        "combined_score": 0.6913919163163288,
+        "news_item_count": 2,
+        "rank": 5,
+        "sector_id": "consumer_staples"
+      }
+    ],
+    "diagnostic_date": "2026-06-02T00:00:00",
+    "macro_only_top_sectors_json": [
+      {
+        "confidence_adjusted_score": 0.08127895540788989,
+        "rank": 1,
+        "sector_id": "utilities"
+      },
+      {
+        "confidence_adjusted_score": 0.03879677177558642,
+        "rank": 2,
+        "sector_id": "homebuilders"
+      },
+      {
+        "confidence_adjusted_score": 0.03507484180109814,
+        "rank": 3,
+        "sector_id": "consumer_staples"
+      },
+      {
+        "confidence_adjusted_score": 0.03298858559391572,
+        "rank": 4,
+        "sector_id": "health_care"
+      },
+      {
+        "confidence_adjusted_score": 0.011146933133487767,
+        "rank": 5,
+        "sector_id": "software"
+      }
+    ],
+    "max_rank_change": 2,
+    "news_item_count": 52,
+    "overlay_status": "ok",
+    "run_at": "2026-06-02T06:15:12.739699",
+    "run_id": "20260602T061512Z-98057423",
+    "sectors_changed_by_news_json": [
+      {
+        "combined_rank": 5,
+        "macro_rank": 3,
+        "rank_change": -2,
+        "sector_id": "consumer_staples"
+      },
+      {
+        "combined_rank": 12,
+        "macro_rank": 10,
+        "rank_change": -2,
+        "sector_id": "materials"
+      },
+      {
+        "combined_rank": 9,
+        "macro_rank": 8,
+        "rank_change": -1,
+        "sector_id": "communication_services"
+      },
+      {
+        "combined_rank": 11,
+        "macro_rank": 12,
+        "rank_change": 1,
+        "sector_id": "consumer_discretionary"
+      },
+      {
+        "combined_rank": 3,
+        "macro_rank": 4,
+        "rank_change": 1,
+        "sector_id": "health_care"
+      },
+      {
+        "combined_rank": 8,
+        "macro_rank": 9,
+        "rank_change": 1,
+        "sector_id": "information_technology"
+      },
+      {
+        "combined_rank": 10,
+        "macro_rank": 11,
+        "rank_change": 1,
+        "sector_id": "semiconductors"
+      },
+      {
+        "combined_rank": 4,
+        "macro_rank": 5,
+        "rank_change": 1,
+        "sector_id": "software"
+      }
+    ],
+    "thin_news_warning": true,
+    "top_news_themes_json": [
+      {
+        "id": "growth_acceleration",
+        "item_count": 9,
+        "score": 1.1420032824923672
+      },
+      {
+        "id": "commodity_pressure",
+        "item_count": 4,
+        "score": 0.9432156648929172
+      },
+      {
+        "id": "energy_supply_shock",
+        "item_count": 7,
+        "score": 0.75
+      },
+      {
+        "id": "geopolitical_risk",
+        "item_count": 10,
+        "score": 0.75
+      },
+      {
+        "id": "inflation_pressure",
+        "item_count": 3,
+        "score": 0.75
+      }
+    ],
+    "top_sector_headwinds_json": [
+      {
+        "id": "materials",
+        "item_count": 2,
+        "score": -0.49814801534514863
+      },
+      {
+        "id": "consumer_discretionary",
+        "item_count": 6,
+        "score": -0.15727665435205884
+      },
+      {
+        "id": "consumer_staples",
+        "item_count": 2,
+        "score": -0.135858549639586
+      },
+      {
+        "id": "utilities",
+        "item_count": 5,
+        "score": -0.08165070871955649
+      }
+    ],
+    "top_sector_tailwinds_json": [
+      {
+        "id": "information_technology",
+        "item_count": 11,
+        "score": 1.068686839711669
+      },
+      {
+        "id": "energy",
+        "item_count": 11,
+        "score": 0.8824907416408575
+      },
+      {
+        "id": "health_care",
+        "item_count": 3,
+        "score": 0.44999999999999996
+      },
+      {
+        "id": "industrials",
+        "item_count": 10,
+        "score": 0.2822559236456922
+      },
+      {
+        "id": "financials",
+        "item_count": 1,
+        "score": 0.135858549639586
+      }
+    ]
+  },
+  "source_groups": [
+    {
+      "group_id": "macro_general",
+      "target_item_count": 12
+    },
+    {
+      "group_id": "inflation_rates",
+      "target_item_count": 10
+    },
+    {
+      "group_id": "labor",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "energy_commodities",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "credit_financial_conditions",
+      "target_item_count": 8
+    },
+    {
+      "group_id": "real_estate",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "consumer",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "manufacturing_industrials",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "geopolitical",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "technology_ai",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "healthcare",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "defensive_sectors",
+      "target_item_count": 6
+    },
+    {
+      "group_id": "ai_compute",
+      "target_item_count": 6
+    }
+  ],
+  "valid": true
+}
