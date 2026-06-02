@@ -31,6 +31,8 @@ export const TOOLTIPS: Record<string, string> = {
     "Monthly regime label from 1990 to today. Each colored band is one month; faded bands had insufficient data to validate.",
   regime_probabilities:
     "The model's probability for each candidate regime this period. They sum to 1; the highest is the leader.",
+  macro_indicators:
+    "Each FRED indicator's history as a z-score (standard deviations from its own recent norm), grouped by the regime dimension it feeds. Shows what is actually driving each axis.",
   macro_date: "The date of the latest macro reading the regime is based on.",
 
   // sectors tab

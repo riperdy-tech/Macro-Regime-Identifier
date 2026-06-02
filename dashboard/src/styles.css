@@ -519,10 +519,57 @@ h2 .infotip {
   box-shadow: 0 0 0 1px rgb(0 0 0 / 6%);
 }
 
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.feature-card {
+  border: 1px solid #e6ecee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.feature-card h3 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: #163b40;
+  text-transform: capitalize;
+}
+
+.feature-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+}
+
+.feature-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #536266;
+}
+
+.feature-line {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
 @media (max-width: 980px) {
   .grid,
   .grid.two {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
   }
 }
 

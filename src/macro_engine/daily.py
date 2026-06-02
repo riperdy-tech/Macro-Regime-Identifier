@@ -217,6 +217,8 @@ def run_daily_diagnostic(
     outputs.extend([str(summary_json), str(summary_md)])
     timeline_json = write_regime_timeline(store, Path(summary_json).parent)
     outputs.append(str(timeline_json))
+    features_json = write_macro_features_timeline(store, Path(summary_json).parent)
+    outputs.append(str(features_json))
     archive_path = None
     archive_enabled = config.outputs.archive_enabled if archive is None else archive
     if archive_enabled:
@@ -378,6 +380,82 @@ def write_regime_timeline(
         json.dumps(_json_safe(payload), indent=2, sort_keys=True),
         encoding="utf-8",
     )
+    return path
+
+
+def write_macro_features_timeline(
+    store: DuckDBStore,
+    output_dir: str | Path = "outputs",
+) -> Path:
+    """Export each macro indicator's normalized (z-score) history, grouped by the
+    dimension it feeds, so the dashboard can chart what drives every regime axis.
+    """
+    output = Path(output_dir)
+    output.mkdir(parents=True, exist_ok=True)
+    path = output / "macro_features_timeline.json"
+
+    try:
+        af = store.read_table("asof_feature_values")
+    except Exception:
+        af = pd.DataFrame()
+    try:
+        contrib = store.read_table("dimension_feature_contributions")
+    except Exception:
+        contrib = pd.DataFrame()
+    try:
+        health = store.read_table("feature_health")
+    except Exception:
+        health = pd.DataFrame()
+
+    # feature -> dimension and feature -> series_id maps.
+    feat_dim: dict[str, str] = {}
+    if not contrib.empty:
+        for row in contrib[["feature_id", "dimension_id"]].drop_duplicates().to_dict("records"):
+            feat_dim[str(row["feature_id"])] = str(row["dimension_id"])
+    feat_series: dict[str, str] = {}
+    if not health.empty and "series_id" in health.columns:
+        for row in health[["feature_id", "series_id"]].drop_duplicates().to_dict("records"):
+            feat_series[str(row["feature_id"])] = str(row.get("series_id") or "")
+
+    dimensions: list[dict[str, Any]] = []
+    start_date = end_date = None
+    if not af.empty:
+        frame = af.copy()
+        frame["evaluation_date"] = pd.to_datetime(frame["evaluation_date"], errors="coerce")
+        frame = frame.dropna(subset=["evaluation_date"]).sort_values("evaluation_date")
+        start_date = frame["evaluation_date"].min().date().isoformat()
+        end_date = frame["evaluation_date"].max().date().isoformat()
+
+        by_dim: dict[str, list[dict[str, Any]]] = {}
+        for feature_id, fgroup in frame.groupby("feature_id"):
+            dim = feat_dim.get(str(feature_id), "unmapped")
+            points = [
+                {"date": row["evaluation_date"].date().isoformat(), "value": round(float(v), 3)}
+                for row in fgroup.to_dict("records")
+                if (v := row.get("normalized_value")) is not None and not pd.isna(v)
+            ]
+            if not points:
+                continue
+            by_dim.setdefault(dim, []).append(
+                {
+                    "feature_id": str(feature_id),
+                    "series_id": feat_series.get(str(feature_id), ""),
+                    "points": points,
+                }
+            )
+        for dim_id in sorted(by_dim):
+            dimensions.append(
+                {"dimension_id": dim_id, "features": sorted(by_dim[dim_id], key=lambda f: f["feature_id"])}
+            )
+
+    payload = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "start_date": start_date,
+        "end_date": end_date,
+        "dimensions": dimensions,
+        "disclaimer": DAILY_SUMMARY_DISCLAIMER,
+    }
+    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
     return path
 
 

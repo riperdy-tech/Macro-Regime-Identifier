@@ -3,6 +3,8 @@ import { loadDashboardData } from "./data";
 import type {
   DashboardData,
   HistoryRun,
+  MacroDimensionSeries,
+  MacroFeatureSeries,
   RankedSector,
   RegimeTimelinePoint,
   ValidationSummaryRow,
@@ -366,6 +368,9 @@ function MacroPanel({ data }: { data: DashboardData }) {
       <Panel title="Regime Timeline (1990 to present)" wide info={TOOLTIPS.regime_timeline}>
         <RegimeTimeline data={data} />
       </Panel>
+      <Panel title="Macro Indicators by Dimension" wide info={TOOLTIPS.macro_indicators}>
+        <MacroIndicators data={data} />
+      </Panel>
       <Panel title="Regime Probabilities" info={TOOLTIPS.regime_probabilities}>
         <KeyValueTable values={probabilities} />
       </Panel>
@@ -501,6 +506,118 @@ function RegimeTimeline({ data }: { data: DashboardData }) {
           ? "band thickness = each regime's monthly probability; an even mix means a contested backdrop"
           : "each color is the reported regime for that month"}
       </small>
+    </div>
+  );
+}
+
+const FEATURE_LINE_COLORS = ["#1565c0", "#ef6c00", "#2e7d32", "#8e24aa", "#00838f", "#c62828"];
+
+function prettyDimension(id: string): string {
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function featureLabel(f: MacroFeatureSeries): string {
+  const id = f.feature_id ?? "";
+  const tag = /yoy/.test(id)
+    ? "YoY"
+    : /12m/.test(id)
+      ? "12m Δ"
+      : /6m/.test(id)
+        ? "6m Δ"
+        : /level/.test(id)
+          ? "level"
+          : "";
+  return `${f.series_id || id}${tag ? ` · ${tag}` : ""}`;
+}
+
+function MacroIndicators({ data }: { data: DashboardData }) {
+  const payload = getObject(data.macroFeatures);
+  const dims = asArray<MacroDimensionSeries>(payload.dimensions).filter(
+    (d) => (d.dimension_id ?? "") !== "unmapped" && (d.features?.length ?? 0) > 0,
+  );
+  if (!dims.length) {
+    return <p className="muted">Indicator history unavailable. Run the daily pipeline and export dashboard data.</p>;
+  }
+  return (
+    <div>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Each line is one indicator as a z-score (standard deviations from its own recent norm).
+        0 = average; above 0 = elevated, below 0 = depressed. These features roll up into the
+        regime dimensions.
+      </p>
+      <div className="feature-grid">
+        {dims.map((dim) => (
+          <div key={dim.dimension_id} className="feature-card">
+            <h3>{prettyDimension(dim.dimension_id ?? "")}</h3>
+            <FeatureChart features={dim.features ?? []} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeatureChart({ features }: { features: MacroFeatureSeries[] }) {
+  const width = 900;
+  const height = 96;
+  const mid = height / 2;
+  const zMax = 3.5;
+  const base = features.find((f) => (f.points?.length ?? 0) > 1)?.points ?? [];
+  const n = base.length;
+  if (n < 2) {
+    return <p className="muted">No data.</p>;
+  }
+  const x = (i: number) => (i / (n - 1)) * width;
+  const y = (v: number) => mid - (Math.max(-zMax, Math.min(zMax, v)) / zMax) * (mid - 4);
+
+  const ticks: { x: number; label: string }[] = [];
+  let lastYear = "";
+  base.forEach((pt, i) => {
+    const yr = (pt.date ?? "").slice(0, 4);
+    if (yr && Number(yr) % 5 === 0 && yr !== lastYear) {
+      ticks.push({ x: x(i), label: yr });
+      lastYear = yr;
+    }
+  });
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${width} ${height + 16}`} preserveAspectRatio="none" style={{ width: "100%", height: "auto" }}>
+        <rect x={0} y={0} width={width} height={height} fill="#f6f8f9" />
+        {ticks.map((t, i) => (
+          <line key={`g${i}`} x1={t.x} y1={0} x2={t.x} y2={height} stroke="#e3e9eb" strokeWidth={1} />
+        ))}
+        <line x1={0} y1={mid} x2={width} y2={mid} stroke="#b6c2c6" strokeWidth={1} strokeDasharray="3 3" />
+        {features.map((f, fi) => {
+          const pts = (f.points ?? [])
+            .map((p, i) => (typeof p.value === "number" ? `${x(i).toFixed(1)},${y(p.value).toFixed(1)}` : null))
+            .filter((s): s is string => s !== null)
+            .join(" ");
+          return (
+            <polyline
+              key={fi}
+              points={pts}
+              fill="none"
+              stroke={FEATURE_LINE_COLORS[fi % FEATURE_LINE_COLORS.length]}
+              strokeWidth={1.4}
+              opacity={0.9}
+            />
+          );
+        })}
+        {ticks.map((t, i) => (
+          <text key={`t${i}`} x={Math.min(t.x + 2, width - 22)} y={height + 12} fontSize={10} fill="#7a8a8e">
+            {t.label}
+          </text>
+        ))}
+      </svg>
+      <ul className="feature-legend">
+        {features.map((f, fi) => (
+          <li key={fi} className="feature-chip">
+            <span className="feature-line" style={{ background: FEATURE_LINE_COLORS[fi % FEATURE_LINE_COLORS.length] }} />
+            {featureLabel(f)}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

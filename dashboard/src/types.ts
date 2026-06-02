@@ -67,8 +67,20 @@ export type DashboardData = {
   coverage: Record<string, unknown> | null;
   history: Record<string, unknown> | null;
   timeline: Record<string, unknown> | null;
+  macroFeatures: Record<string, unknown> | null;
   validation: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
+};
+
+export type MacroFeaturePoint = { date?: string; value?: number };
+export type MacroFeatureSeries = {
+  feature_id?: string;
+  series_id?: string;
+  points?: MacroFeaturePoint[];
+};
+export type MacroDimensionSeries = {
+  dimension_id?: string;
+  features?: MacroFeatureSeries[];
 };
 
 export type ValidationSummaryRow = {
