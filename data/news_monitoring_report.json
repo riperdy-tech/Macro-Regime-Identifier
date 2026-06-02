@@ -12,17 +12,13 @@
     "quality_status": "ok",
     "repair_rate": 0.0,
     "repaired_count": 0,
-    "retry_count": 2,
-    "retry_rate": 0.043478260869565216,
-    "run_at": "2026-06-02T00:00:52.023725",
-    "run_id": "20260602T000051Z-5b6e8ac8",
+    "retry_count": 1,
+    "retry_rate": 0.021739130434782608,
+    "run_at": "2026-06-02T05:51:13.703640",
+    "run_id": "20260602T055113Z-09d48f2b",
     "success_count": 46,
     "success_rate": 1.0,
     "top_failure_modes_json": [
-      {
-        "count": 1,
-        "failure_mode": "unknown news theme ids: ['energy_transition', 'regulatory_risk']"
-      },
       {
         "count": 1,
         "failure_mode": "unknown news theme ids: ['energy_transition']"
@@ -51,8 +47,8 @@
     "profile": "live_rss",
     "quality_status": "warning",
     "raw_item_count": 0,
-    "run_at": "2026-06-02T00:00:52.000260",
-    "run_id": "20260602T000051Z-5b6e8ac8",
+    "run_at": "2026-06-02T05:51:13.680889",
+    "run_id": "20260602T055113Z-09d48f2b",
     "short_body_count": 0,
     "source_count": 0,
     "unique_item_count": 0,
@@ -62,7 +58,7 @@
     "avg_abs_rank_change": 1.25,
     "combined_top_sectors_json": [
       {
-        "combined_score": 1.0607060065643492,
+        "combined_score": 1.0402933293844603,
         "news_item_count": 5,
         "rank": 1,
         "sector_id": "utilities"
@@ -86,13 +82,13 @@
         "sector_id": "software"
       },
       {
-        "combined_score": 0.6553565537262254,
-        "news_item_count": 1,
+        "combined_score": 0.6913919163163288,
+        "news_item_count": 2,
         "rank": 5,
         "sector_id": "consumer_staples"
       }
     ],
-    "diagnostic_date": "2026-06-01T00:00:00",
+    "diagnostic_date": "2026-06-02T00:00:00",
     "macro_only_top_sectors_json": [
       {
         "confidence_adjusted_score": 0.08127895540788989,
@@ -121,10 +117,10 @@
       }
     ],
     "max_rank_change": 2,
-    "news_item_count": 51,
+    "news_item_count": 50,
     "overlay_status": "ok",
-    "run_at": "2026-06-02T00:00:52.116022",
-    "run_id": "20260602T000051Z-5b6e8ac8",
+    "run_at": "2026-06-02T05:51:13.796133",
+    "run_id": "20260602T055113Z-09d48f2b",
     "sectors_changed_by_news_json": [
       {
         "combined_rank": 5,
@@ -179,57 +175,62 @@
     "top_news_themes_json": [
       {
         "id": "growth_acceleration",
-        "item_count": 7,
-        "score": 1.22
+        "item_count": 8,
+        "score": 1.0670032824923672
+      },
+      {
+        "id": "commodity_pressure",
+        "item_count": 4,
+        "score": 0.9432156648929172
       },
       {
         "id": "energy_supply_shock",
-        "item_count": 10,
+        "item_count": 7,
         "score": 0.75
       },
       {
         "id": "geopolitical_risk",
-        "item_count": 9,
+        "item_count": 10,
         "score": 0.75
       },
       {
         "id": "inflation_pressure",
-        "item_count": 4,
+        "item_count": 3,
         "score": 0.75
-      },
-      {
-        "id": "disinflation",
-        "item_count": 2,
-        "score": 0.44999999999999996
       }
     ],
     "top_sector_headwinds_json": [
       {
         "id": "materials",
-        "item_count": 1,
-        "score": -0.35
+        "item_count": 2,
+        "score": -0.49814801534514863
+      },
+      {
+        "id": "consumer_discretionary",
+        "item_count": 6,
+        "score": -0.15727665435205884
       },
       {
         "id": "consumer_staples",
-        "item_count": 1,
-        "score": -0.3
+        "item_count": 2,
+        "score": -0.135858549639586
+      },
+      {
+        "id": "utilities",
+        "item_count": 5,
+        "score": -0.08165070871955649
       }
     ],
     "top_sector_tailwinds_json": [
       {
-        "id": "information_technology",
-        "item_count": 11,
-        "score": 1.0648599428913694
-      },
-      {
         "id": "energy",
         "item_count": 11,
-        "score": 0.75
+        "score": 0.8824907416408575
       },
       {
-        "id": "industrials",
+        "id": "information_technology",
         "item_count": 10,
-        "score": 0.74
+        "score": 0.8586868397116688
       },
       {
         "id": "health_care",
@@ -237,9 +238,14 @@
         "score": 0.35
       },
       {
+        "id": "industrials",
+        "item_count": 10,
+        "score": 0.2822559236456922
+      },
+      {
         "id": "financials",
-        "item_count": 2,
-        "score": 0.21
+        "item_count": 1,
+        "score": 0.135858549639586
       }
     ]
   },
