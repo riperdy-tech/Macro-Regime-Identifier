@@ -1,19 +1,19 @@
 {
-  "computed_at": "2026-06-02T11:55:03.847941+00:00",
-  "confidence": 0.002306044059730339,
+  "computed_at": "2026-06-03T00:20:29.965680+00:00",
+  "confidence": 0.010363410372631998,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "tightening",
   "monitor_ready": false,
-  "raw_dominant_regime": "stagflation",
-  "raw_regime_probability": 0.21813698405718426,
+  "raw_dominant_regime": "goldilocks",
+  "raw_regime_probability": 0.2539793006964245,
   "readiness_label": "insufficient_history",
-  "regime_probability": 0.20429875624090063,
-  "secular_theme_computed_at": "2026-06-02T11:55:02.890077+00:00",
+  "regime_probability": 0.17027543550023133,
+  "secular_theme_computed_at": "2026-06-03T00:20:28.946131+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.5954545454545455,
-      "avg_severity": 0.34545454545454546,
-      "item_count": 11,
+      "avg_confidence": 0.625,
+      "avg_severity": 0.3857142857142857,
+      "item_count": 14,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -21,28 +21,30 @@
           "avg_confidence": 0.52,
           "item_count": 5,
           "period_start": "2026-05-01",
-          "score": 0.8780814356702765
+          "score": 0.8660200390102787
         },
         {
-          "avg_confidence": 0.6583333333333333,
-          "item_count": 6,
+          "avg_confidence": 0.6833333333333333,
+          "item_count": 9,
           "period_start": "2026-06-01",
-          "score": 1.3369811820075201
+          "score": 2.2569509041278955
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5954545454545455,
-          "item_count": 11,
+          "avg_confidence": 0.625,
+          "item_count": 14,
           "period_start": "2026-04-01",
-          "score": 2.2150626176777966
+          "score": 3.1229709431381747
         }
       ],
-      "raw_score": 3.8,
-      "score": 2.2150626176777966,
+      "raw_score": 5.3999999999999995,
+      "score": 3.1229709431381747,
       "source_mix": {
-        "cnbc_finance": 1,
+        "cnbc_finance": 2,
+        "cnbc_tech": 1,
         "eia_energy": 1,
+        "nasdaq_markets": 1,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "scmp": 1
@@ -50,10 +52,10 @@
       "theme_id": "ai_compute",
       "top_news_ids": [
         "news_431d1d59c2e71ae2",
+        "news_58c05e040743df98",
+        "news_7f69c19b67e59a6a",
         "news_d0c7ec3a91bf60f8",
-        "news_e445d60b608d2600",
-        "news_4a62d054700c77f4",
-        "news_38ba07a61d81c5c5"
+        "news_e445d60b608d2600"
       ],
       "top_news_items": [
         {
@@ -63,6 +65,22 @@
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/taiwan-ecosystem-ai-infrastructure/",
           "title": "Taiwan\u2019s Industry Titans Turbocharge World\u2019s AI Infrastructure Buildout With NVIDIA"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_58c05e040743df98",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/06/02/microsoft-unveils-new-ai-models-lessen-reliance-on-openai-lower-costs.html",
+          "title": "Microsoft unveils new AI models to lessen reliance on OpenAI and lower costs for developers"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_7f69c19b67e59a6a",
+          "score_component": 0.35,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/stock-market-today-june-2-marvell-technology-surges-after-nvidia-ceo-highlights-ai",
+          "title": "Stock Market Today, June 2: Marvell Technology Surges After Nvidia CEO Highlights AI Infrastructure Role"
         },
         {
           "confidence": 0.8,
@@ -79,25 +97,9 @@
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/vera-cpu-phoronix/",
           "title": "NVIDIA Vera CPU Is \u2018Packing a Heavy-Hitting Punch\u2019 Against Competition"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_4a62d054700c77f4",
-          "score_component": 0.34822022531844965,
-          "source": "nvidia_blog",
-          "source_url": "https://blogs.nvidia.com/blog/ai-factories-the-new-infrastructure-of-intelligence/",
-          "title": "AI Factories: The New Infrastructure of Intelligence"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_38ba07a61d81c5c5",
-          "score_component": 0.234518392424219,
-          "source": "cnbc_finance",
-          "source_url": "https://www.cnbc.com/2026/06/01/ai-startup-valuations-pre-chatgpt.html",
-          "title": "'Disrupted or dead': AI is crushing a generation of startups built before ChatGPT"
         }
       ],
-      "trend_30d": 2.2150626176777966
+      "trend_30d": 3.1229709431381747
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -110,7 +112,7 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.10690784617684071
+          "score": 0.1044660675955349
         }
       ],
       "quarterly_scores": [
@@ -118,11 +120,11 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.10690784617684071
+          "score": 0.1044660675955349
         }
       ],
       "raw_score": 0.2,
-      "score": 0.10690784617684071,
+      "score": 0.1044660675955349,
       "source_mix": {
         "nvidia_blog": 1
       },
@@ -134,13 +136,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_af3cc173a30eee83",
-          "score_component": 0.10690784617684071,
+          "score_component": 0.1044660675955349,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/geforce-now-thursday-007-first-light-launch/",
           "title": "The Name\u2019s Gaming \u2026 Cloud Gaming: \u2018007 First Light\u2019 Launches on GeForce NOW"
         }
       ],
-      "trend_30d": 0.10690784617684071
+      "trend_30d": 0.1044660675955349
     },
     "cybersecurity": {
       "avg_confidence": null,
@@ -169,7 +171,7 @@
           "avg_confidence": 0.625,
           "item_count": 4,
           "period_start": "2026-06-01",
-          "score": 0.7977159968434245
+          "score": 0.7874901493430277
         }
       ],
       "quarterly_scores": [
@@ -177,11 +179,11 @@
           "avg_confidence": 0.625,
           "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.7977159968434245
+          "score": 0.7874901493430277
         }
       ],
       "raw_score": 1.4,
-      "score": 0.7977159968434245,
+      "score": 0.7874901493430277,
       "source_mix": {
         "eia_energy": 2,
         "oilprice": 2
@@ -205,7 +207,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_df737941e3ecbf78",
-          "score_component": 0.21,
+          "score_component": 0.20520359337119162,
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67685",
           "title": "Electricity generation from solar could exceed coal in ERCOT for the first time in 2026"
@@ -213,7 +215,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_ee04b3d133674982",
-          "score_component": 0.13999999999999999,
+          "score_component": 0.1368023955807944,
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67684",
           "title": "The United States set record energy production in 2025, again"
@@ -221,13 +223,13 @@
         {
           "confidence": 0.5,
           "news_id": "news_03ac3615dd092abc",
-          "score_component": 0.0977159968434246,
+          "score_component": 0.09548416039104166,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Theres-Enough-Hydrogen-Underground-to-Power-Earth-for-170000-Years.html",
           "title": "There's Enough Hydrogen Underground to Power Earth for 170,000 Years"
         }
       ],
-      "trend_30d": 0.7977159968434245
+      "trend_30d": 0.7874901493430277
     },
     "glp1_metabolic": {
       "avg_confidence": null,
@@ -256,7 +258,7 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 0.29314799053027374
+          "score": 0.28645248117312494
         }
       ],
       "quarterly_scores": [
@@ -264,11 +266,11 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.29314799053027374
+          "score": 0.28645248117312494
         }
       ],
       "raw_score": 0.5,
-      "score": 0.29314799053027374,
+      "score": 0.28645248117312494,
       "source_mix": {
         "oilprice": 1
       },
@@ -280,13 +282,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_629dce8e5cd8e858",
-          "score_component": 0.29314799053027374,
+          "score_component": 0.28645248117312494,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Russias-16-Billion-Nuclear-Deal-With-Kazakhstan-Lacks-One-Critical-Detail.html",
           "title": "Russia's $16 Billion Nuclear Deal With Kazakhstan Lacks One Critical Detail"
         }
       ],
-      "trend_30d": 0.29314799053027374
+      "trend_30d": 0.28645248117312494
     },
     "physical_ai": {
       "avg_confidence": 0.625,
@@ -299,13 +301,13 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.07127189745122715
+          "score": 0.06964404506368994
         },
         {
           "avg_confidence": 0.7000000000000001,
           "item_count": 3,
           "period_start": "2026-06-01",
-          "score": 0.7436047911615888
+          "score": 0.7266208342590121
         }
       ],
       "quarterly_scores": [
@@ -313,11 +315,11 @@
           "avg_confidence": 0.625,
           "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.814876688612816
+          "score": 0.7962648793227021
         }
       ],
       "raw_score": 1.3,
-      "score": 0.814876688612816,
+      "score": 0.7962648793227021,
       "source_mix": {
         "nasdaq_markets": 1,
         "nvidia_blog": 3
@@ -333,7 +335,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_289dbe63e82c5920",
-          "score_component": 0.2736047911615888,
+          "score_component": 0.2673556490949166,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/factory-operations-fox-blueprint-ai-brain/",
           "title": "NVIDIA Factory Operations Blueprint Gives Factories a New AI Brain"
@@ -341,7 +343,7 @@
         {
           "confidence": 0.9,
           "news_id": "news_f0455ea7d9e8f728",
-          "score_component": 0.27,
+          "score_component": 0.26383319147724643,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/",
           "title": "NVIDIA Jetson Brings Agentic AI to the Physical World"
@@ -349,7 +351,7 @@
         {
           "confidence": 0.5,
           "news_id": "news_8f6b1d14a1926d78",
-          "score_component": 0.2,
+          "score_component": 0.1954319936868492,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/heres-why-tesla-stock-soared-may-and-what-spacex-ipo-means-tesla-investors",
           "title": "Here's Why Tesla Stock Soared in May (And What the SpaceX IPO Means to Tesla Investors)"
@@ -357,13 +359,13 @@
         {
           "confidence": 0.4,
           "news_id": "news_1c0555523586f353",
-          "score_component": 0.07127189745122715,
+          "score_component": 0.06964404506368994,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/icra-research-robotics-simulation-to-real-world/",
           "title": "NVIDIA Research Advances Robotics From Simulation to the Real World"
         }
       ],
-      "trend_30d": 0.814876688612816
+      "trend_30d": 0.7962648793227021
     },
     "quantum_computing": {
       "avg_confidence": null,
