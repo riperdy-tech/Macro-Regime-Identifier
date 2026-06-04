@@ -1,466 +1,339 @@
 {
-  "date": "2026-06-01",
+  "date": "2026-05-01",
   "disclaimer": "This sector ranking is an experimental macro diagnostic. It is not investment advice and does not provide trading, allocation, portfolio sizing, or security selection guidance. Proxy tickers are reporting references only.",
-  "macro_confidence": 0.010363410372631998,
-  "raw_macro_leader": "goldilocks",
-  "reported_macro_regime": "tightening",
+  "macro_confidence": 0.02749939930181322,
+  "raw_macro_leader": "reflation",
+  "reported_macro_regime": "goldilocks",
   "sector_ranking": [
     {
-      "confidence_adjusted_score": 0.007629694030863112,
-      "label": "Consumer Staples",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLP",
-      "rank": 1,
-      "raw_sector_score": 0.018782262634052915,
-      "sector_id": "consumer_staples",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.08317613891398142,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": -0.025744263931304474,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.02539793006964245,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": -0.022814582412270037,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": 0.08922796545608294,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": 0.054055116442782505,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.04828906246103061,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": 0.25
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03829164265112132,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.008513771775011567,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": 0.003986185945184948,
-      "label": "Health Care",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLV",
-      "rank": 2,
-      "raw_sector_score": 0.009812921858697983,
-      "sector_id": "health_care",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.08317613891398142,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": -0.022814582412270037,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.012698965034821225,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.05
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.05743746397668197,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": 0.04633295695095643,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.03863124996882449,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03569118618243318,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.012872131965652237,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.03393833948601271,
+      "confidence_adjusted_score": 0.38538045160380824,
       "label": "Materials",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
       "proxy_ticker": "XLB",
-      "rank": 3,
-      "raw_sector_score": -0.08354709940024012,
+      "rank": 1,
+      "raw_sector_score": 0.9252839978239138,
       "sector_id": "materials",
       "top_opposing_components": [
         {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.20794034728495353,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": -0.1963015240033825,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.1329583572832635,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
           "weight_or_exposure": 0.55
         },
         {
-          "component_id": "inflation_pressure",
+          "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.09010492375956565,
-          "input_value": -0.25744263931304473,
+          "contribution": -0.08278036370548883,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": 0.35
+          "weight_or_exposure": -0.25
         },
         {
           "component_id": "recession",
           "component_type": "regime_prior",
-          "contribution": -0.03088863796730429,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.024487183547208483,
+          "input_value": 0.1224359177360424,
           "reason": "ok",
           "weight_or_exposure": -0.2
         },
         {
           "component_id": "tightening",
           "component_type": "regime_prior",
-          "contribution": -0.008513771775011567,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.009714978731963655,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
           "weight_or_exposure": -0.05
         }
       ],
       "top_supporting_components": [
         {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.1249247616495553,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
           "component_id": "housing_activity",
           "component_type": "dimension_exposure",
-          "contribution": 0.11464145610782514,
-          "input_value": 0.3821381870260838,
+          "contribution": 0.5481516347621929,
+          "input_value": 1.8271721158739764,
           "reason": "ok",
           "weight_or_exposure": 0.3
         },
         {
-          "component_id": "policy_stance",
+          "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": 0.09572910662780329,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.07985103844294511,
-          "input_value": 0.22814582412270035,
+          "contribution": 0.26225366890467405,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": 0.35
         },
         {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.02539793006964245,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.03679796875421601,
-      "label": "Utilities",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLU",
-      "rank": 4,
-      "raw_sector_score": -0.09058674053580254,
-      "sector_id": "utilities",
-      "top_opposing_components": [
-        {
           "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.2498495232991106,
-          "input_value": 0.6246238082477764,
+          "contribution": 0.20608831992385515,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
-          "weight_or_exposure": -0.4
-        },
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.16635227782796283,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
+          "weight_or_exposure": 0.2
         },
         {
           "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": -0.05703645603067509,
-          "input_value": 0.22814582412270035,
+          "contribution": 0.10055040865938686,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
-          "weight_or_exposure": -0.25
+          "weight_or_exposure": 0.35
         },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": -0.0510826306500694,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.0507958601392849,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        }
-      ],
-      "top_supporting_components": [
         {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.2680414985578492,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.0306887774619554,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": -0.7
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": 0.10707355854729952,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.05148852786260895,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": 0.03861079745913036,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": 0.25
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.019315624984412246,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
+          "weight_or_exposure": -0.25
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.05255897976227478,
-      "label": "Homebuilders",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XHB",
-      "rank": 5,
-      "raw_sector_score": -0.1293861271080673,
-      "sector_id": "homebuilders",
+      "confidence_adjusted_score": 0.32693306851430015,
+      "label": "Oil & Gas E&P",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XOP",
+      "rank": 2,
+      "raw_sector_score": 0.7849540250337956,
+      "sector_id": "oil_gas_ep",
       "top_opposing_components": [
         {
           "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.3742926251129164,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": -0.45
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.21861833288672172,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.3
         },
         {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": -0.1963015240033825,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.09669698711510072,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
-          "weight_or_exposure": 0.55
+          "weight_or_exposure": 0.4
         },
         {
-          "component_id": "tightening",
+          "component_id": "recession",
           "component_type": "regime_prior",
-          "contribution": -0.07662394597510411,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.0306089794340106,
+          "input_value": 0.1224359177360424,
           "reason": "ok",
-          "weight_or_exposure": -0.45
+          "weight_or_exposure": -0.25
         },
         {
-          "component_id": "stagflation",
+          "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": -0.06760468744544285,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.007693190092737873,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.05
         }
       ],
       "top_supporting_components": [
         {
-          "component_id": "policy_stance",
+          "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": 0.30633314120897054,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.8
-        },
-        {
-          "component_id": "housing_activity",
-          "component_type": "dimension_exposure",
-          "contribution": 0.3057105496208671,
-          "input_value": 0.3821381870260838,
+          "contribution": 0.5994369574963979,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": 0.8
         },
         {
-          "component_id": "inflation_pressure",
+          "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": 0.07723279179391342,
-          "input_value": -0.25744263931304473,
+          "contribution": 0.15456623994289134,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
-          "weight_or_exposure": -0.3
+          "weight_or_exposure": 0.15
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.11491475275358498,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.10895122074868407,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.45
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": 0.02914493619589096,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.2771293890135202,
+      "label": "Energy",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLE",
+      "rank": 3,
+      "raw_sector_score": 0.6653772600914007,
+      "sector_id": "energy",
+      "top_opposing_components": [
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.07252274033632554,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.06622429096439107,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.01836538766040636,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
         },
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.07619379020892734,
-          "input_value": 0.2539793006964245,
+          "contribution": -0.007693190092737873,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": -0.05
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.5245073378093481,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.7
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.10304415996192758,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.08618606456518874,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
           "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.08473983836008761,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": 0.01942995746392731,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.2584883587563766,
+      "label": "Homebuilders",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XHB",
+      "rank": 4,
+      "raw_sector_score": 0.620620846194158,
+      "sector_id": "homebuilders",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.3606545598667465,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.1490046546698799,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.45
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.1329583572832635,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.55
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": -0.08743480858767289,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": -0.45
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "housing_activity",
+          "component_type": "dimension_exposure",
+          "contribution": 1.4617376926991812,
+          "input_value": 1.8271721158739764,
+          "reason": "ok",
+          "weight_or_exposure": 0.8
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.0982040878782573,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.8
         },
         {
           "component_id": "monetary_liquidity",
@@ -469,536 +342,378 @@
           "input_value": 0.24841236008603312,
           "reason": "ok",
           "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.028728688188396245,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.06839379575743634,
-      "label": "Consumer Discretionary",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLY",
-      "rank": 6,
-      "raw_sector_score": -0.16836720178549858,
-      "sector_id": "consumer_discretionary",
+      "confidence_adjusted_score": 0.21005596527270537,
+      "label": "Banks",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "KBE",
+      "rank": 5,
+      "raw_sector_score": 0.5043364875032738,
+      "sector_id": "banks",
       "top_opposing_components": [
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.21522894563427097,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.65
+        },
         {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": -0.24983830327703221,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.09669698711510072,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.04842276477719293,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.042852571207614834,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": -0.03682653295434648,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.721309119733493,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
           "weight_or_exposure": 0.7
         },
         {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.20794034728495353,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "stagflation",
+          "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": -0.05794687495323673,
-          "input_value": 0.19315624984412244,
+          "contribution": 0.08618606456518874,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.054055116442782505,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": -0.03405508710004627,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.17231239193004594,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.45
+          "weight_or_exposure": 0.3
         },
         {
           "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": 0.1029770557252179,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.4
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.06349482517410612,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.25
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.06246238082477765,
-          "input_value": 0.6246238082477764,
+          "contribution": 0.07492961968704974,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": 0.1
         },
         {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.03422187361840505,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.07664498479621658,
-      "label": "Communication Services",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLC",
-      "rank": 7,
-      "raw_sector_score": -0.18867941862442955,
-      "sector_id": "communication_services",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.16635227782796283,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.12491915163851611,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.028973437476618364,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        },
-        {
           "component_id": "tightening",
           "component_type": "regime_prior",
-          "contribution": -0.0255413153250347,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.1340207492789246,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.05148852786260895,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.03809689510446367,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.011407291206135019,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.07787393735671887,
-      "label": "Software & SaaS",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "IGV",
-      "rank": 8,
-      "raw_sector_score": -0.19170477057993052,
-      "sector_id": "software",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.1873871424743329,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.1606103378209493,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.45
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": -0.05959640242508096,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.05794687495323673,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.30633314120897054,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.8
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.08889275524374857,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "monetary_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": 0.08694432603011158,
-          "input_value": 0.24841236008603312,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.06436065982826118,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.08503980303449757,
-      "label": "Industrials",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLI",
-      "rank": 9,
-      "raw_sector_score": -0.20934521207285883,
-      "sector_id": "industrials",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.23199271018581566,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.65
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.028973437476618364,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": -0.025744263931304474,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.1561559520619441,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.25
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.09572910662780329,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.07985103844294511,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.0507958601392849,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.03885991492785462,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
           "weight_or_exposure": 0.2
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.09573386423175112,
-      "label": "Energy",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLE",
-      "rank": 10,
-      "raw_sector_score": -0.23567112569651805,
-      "sector_id": "energy",
-      "top_opposing_components": [
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": -0.1802098475191313,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.7
-        },
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.16635227782796283,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.10707355854729952,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.023166478475478217,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
         },
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": -0.012698965034821225,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.023079570278213616,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
-          "weight_or_exposure": -0.05
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.0684437472368101,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.06760468744544285,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03829164265112132,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.017027543550023134,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
+          "weight_or_exposure": 0.15
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.09827511154598349,
-      "label": "Real Estate",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLRE",
-      "rank": 11,
-      "raw_sector_score": -0.2419269957590551,
-      "sector_id": "real_estate",
+      "confidence_adjusted_score": 0.18200181814563499,
+      "label": "Financials",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLF",
+      "rank": 6,
+      "raw_sector_score": 0.43697953335251616,
+      "sector_id": "financials",
       "top_opposing_components": [
         {
           "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.4574687640268978,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.18211680015207543,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
           "weight_or_exposure": -0.55
         },
         {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.08460986372571312,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.03631707358289469,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.0306089794340106,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": -0.024551021969564324,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
+        }
+      ],
+      "top_supporting_components": [
+        {
           "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.1873871424743329,
-          "input_value": 0.6246238082477764,
+          "contribution": 0.6182649597715654,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
-          "weight_or_exposure": -0.3
+          "weight_or_exposure": 0.6
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07492961968704974,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.05745737637679249,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
         },
         {
           "component_id": "tightening",
           "component_type": "regime_prior",
-          "contribution": -0.06811017420009254,
-          "input_value": 0.17027543550023133,
+          "contribution": 0.02914493619589096,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.015386380185475746,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.0631942054516948,
+      "label": "Industrials",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLI",
+      "rank": 7,
+      "raw_sector_score": 0.1517269150947046,
+      "sector_id": "industrials",
+      "top_opposing_components": [
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.15713260406203866,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.65
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.03631707358289469,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.0306089794340106,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": -0.01942995746392731,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.25761039990481893,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.10055040865938686,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07492961968704974,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.03077276037095149,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.0306887774619554,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.03825050087281181,
+      "label": "Real Estate",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLRE",
+      "rank": 8,
+      "raw_sector_score": 0.09183801674182446,
+      "sector_id": "real_estate",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.3091324798857827,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.18732404921762433,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.18211680015207543,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.55
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": -0.07771982985570924,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
           "weight_or_exposure": -0.4
         },
         {
           "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": -0.04828906246103061,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.06052845597149115,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
           "weight_or_exposure": -0.25
         }
       ],
       "top_supporting_components": [
         {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.30633314120897054,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.8
-        },
-        {
           "component_id": "housing_activity",
           "component_type": "dimension_exposure",
-          "contribution": 0.17196218416173772,
-          "input_value": 0.3821381870260838,
+          "contribution": 0.8222274521432894,
+          "input_value": 1.8271721158739764,
           "reason": "ok",
           "weight_or_exposure": 0.45
         },
         {
-          "component_id": "inflation_pressure",
+          "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.06436065982826118,
-          "input_value": -0.25744263931304473,
+          "contribution": 0.0982040878782573,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": -0.25
+          "weight_or_exposure": -0.8
         },
         {
           "component_id": "monetary_liquidity",
@@ -1011,74 +726,406 @@
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.012698965034821225,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.007693190092737873,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
           "weight_or_exposure": 0.05
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.10440443624688615,
-      "label": "Biotechnology",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XBI",
-      "rank": 12,
-      "raw_sector_score": -0.2570157510664181,
-      "sector_id": "biotech",
+      "confidence_adjusted_score": 0.03351380164873857,
+      "label": "Consumer Staples",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLP",
+      "rank": 9,
+      "raw_sector_score": 0.08046537971184439,
+      "sector_id": "consumer_staples",
       "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.33270455565592566,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.4
-        },
         {
           "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.1561559520619441,
-          "input_value": 0.6246238082477764,
+          "contribution": -0.10304415996192758,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
-          "weight_or_exposure": -0.25
+          "weight_or_exposure": -0.1
         },
         {
-          "component_id": "growth_momentum",
+          "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.10707355854729952,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.033112145482195536,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": 0.3
+          "weight_or_exposure": -0.1
         },
         {
-          "component_id": "tightening",
+          "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": -0.05959640242508096,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.028728688188396245,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": -0.015386380185475746,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07492961968704974,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
         },
         {
           "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": -0.05794687495323673,
-          "input_value": 0.19315624984412244,
+          "contribution": 0.06052845597149115,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": -0.3
+          "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": 0.06043561694693795,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": 0.042852571207614834,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.012275510984782162,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.03427872843630012,
+      "label": "Health Care",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLV",
+      "rank": 10,
+      "raw_sector_score": -0.08230194021482803,
+      "sector_id": "health_care",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.10304415996192758,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.03746480984352487,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.05
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.033112145482195536,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": -0.028728688188396245,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": -0.007693190092737873,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": -0.05
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.04842276477719293,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": 0.03673077532081272,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": 0.02417424677877518,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.01841326647717324,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.16703091328369699,
+      "label": "Communication Services",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLC",
+      "rank": 11,
+      "raw_sector_score": -0.40103495275937184,
+      "sector_id": "communication_services",
+      "top_opposing_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.14985923937409948,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.10304415996192758,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.1
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.08460986372571312,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.06622429096439107,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.03631707358289469,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
         }
       ],
       "top_supporting_components": [
         {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.24889567723228856,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.04296428844673756,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": -0.65
+          "weight_or_exposure": -0.35
         },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.023079570278213616,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.014364344094198123,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.05
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.19418140369893622,
+      "label": "Consumer Discretionary",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLY",
+      "rank": 12,
+      "raw_sector_score": -0.4662222610666419,
+      "sector_id": "consumer_discretionary",
+      "top_opposing_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.29971847874819896,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.4
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.16921972745142624,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.7
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.08278036370548883,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.042852571207614834,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.10304415996192758,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.05523979943151972,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.45
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.04309303228259437,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.03846595046368936,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.25
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.2240301136922511,
+      "label": "Biotechnology",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XBI",
+      "rank": 13,
+      "raw_sector_score": -0.5378878932946468,
+      "sector_id": "biotech",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.25761039990481893,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.14985923937409948,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.13244858192878214,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.07252274033632554,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        }
+      ],
+      "top_supporting_components": [
         {
           "component_id": "monetary_liquidity",
           "component_type": "dimension_exposure",
@@ -1088,281 +1135,178 @@
           "weight_or_exposure": 0.4
         },
         {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.07619379020892734,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.05148852786260895,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.011407291206135019,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.1141298055085874,
-      "label": "Financials",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLF",
-      "rank": 13,
-      "raw_sector_score": -0.28095700466682677,
-      "sector_id": "financials",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.4574687640268978,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.55
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.12491915163851611,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": -0.07658328530224263,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.028973437476618364,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.3747742849486658,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.6
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.045629164824540075,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.0255413153250347,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.02539793006964245,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.11663710143760418,
-      "label": "Information Technology",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLK",
-      "rank": 14,
-      "raw_sector_score": -0.28712929551487243,
-      "sector_id": "information_technology",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.21414711709459905,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.6
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.1249247616495553,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.2
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.05794687495323673,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": -0.04256885887505783,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.2680414985578492,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.7
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.07723279179391342,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.07619379020892734,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.011407291206135019,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.11973713586067601,
-      "label": "Semiconductors",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "SMH",
-      "rank": 15,
-      "raw_sector_score": -0.2947607497348201,
-      "sector_id": "semiconductors",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.29111648619893493,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.26768389636824885,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.75
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.09369357123716646,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.06760468744544285,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": -0.0510826306500694,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.24889567723228856,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.07979082140108405,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
           "weight_or_exposure": -0.65
         },
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.08889275524374857,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
-          "weight_or_exposure": 0.35
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.014364344094198123,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.05
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.23985083212360686,
+      "label": "Utilities",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLU",
+      "rank": 14,
+      "raw_sector_score": -0.5758728443675172,
+      "sector_id": "utilities",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.4121766398477103,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.4
         },
         {
           "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": 0.07723279179391342,
-          "input_value": -0.25744263931304473,
+          "contribution": -0.14985923937409948,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": -0.07182172047099061,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.06622429096439107,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": -0.05828987239178192,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
           "weight_or_exposure": -0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.08592857689347512,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.7
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07252274033632554,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": 0.0306089794340106,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.024211382388596464,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.25119565017977524,
+      "label": "Semiconductors",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "SMH",
+      "rank": 15,
+      "raw_sector_score": -0.603111326656671,
+      "sector_id": "semiconductors",
+      "top_opposing_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.18130685084081385,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.75
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.15456623994289134,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.11589250918768436,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.08473983836008761,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07979082140108405,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.65
         },
         {
           "component_id": "monetary_liquidity",
@@ -1375,455 +1319,399 @@
         {
           "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": 0.045629164824540075,
-          "input_value": 0.22814582412270035,
+          "contribution": 0.05745737637679249,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
           "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.05385233064916511,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.12749229104800094,
-      "label": "Oil & Gas E&P",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XOP",
+      "confidence_adjusted_score": -0.2601376437059266,
+      "label": "Software & SaaS",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "IGV",
       "rank": 16,
-      "raw_sector_score": -0.3138518641238065,
-      "sector_id": "oil_gas_ep",
+      "raw_sector_score": -0.6245807174468891,
+      "sector_id": "software",
       "top_opposing_components": [
         {
-          "component_id": "credit_liquidity",
+          "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.3091324798857827,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
           "weight_or_exposure": -0.3
         },
         {
           "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": -0.2059541114504358,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.8
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.14276474472973272,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.4
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.18732404921762433,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": -0.25
         },
         {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.012698965034821225,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.05
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "yield_curve",
+          "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": 0.09369357123716646,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.09125832964908015,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.4
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.0869203124298551,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.10878411050448832,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
           "weight_or_exposure": 0.45
         },
         {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03829164265112132,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.0255413153250347,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.1376603132824827,
-      "label": "Banks",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "KBE",
-      "rank": 17,
-      "raw_sector_score": -0.3388828107521239,
-      "sector_id": "banks",
-      "top_opposing_components": [
-        {
           "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.5406449029408792,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": -0.65
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.14276474472973272,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.4
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": -0.11487492795336395,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.054055116442782505,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.3
         },
         {
           "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": -0.03863124996882449,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": -0.2
+          "weight_or_exposure": -0.3
         }
       ],
       "top_supporting_components": [
         {
-          "component_id": "yield_curve",
+          "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.43723666577344344,
-          "input_value": 0.6246238082477764,
+          "contribution": 0.0982040878782573,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": 0.7
+          "weight_or_exposure": -0.8
         },
         {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.0684437472368101,
-          "input_value": 0.22814582412270035,
+          "component_id": "monetary_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": 0.08694432603011158,
+          "input_value": 0.24841236008603312,
           "reason": "ok",
-          "weight_or_exposure": 0.3
+          "weight_or_exposure": 0.35
         },
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.03809689510446367,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.05385233064916511,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
-          "weight_or_exposure": 0.15
+          "weight_or_exposure": 0.35
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.2809303642418461,
+      "label": "Information Technology",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLK",
+      "rank": 17,
+      "raw_sector_score": -0.6745032589329576,
+      "sector_id": "information_technology",
+      "top_opposing_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
         },
         {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.03405508710004627,
-          "input_value": 0.17027543550023133,
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.20608831992385515,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
-          "weight_or_exposure": 0.2
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.14504548067265108,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.6
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.08592857689347512,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.7
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.014364344094198123,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.05
         }
       ]
     }
   ],
   "top_macro_pressured_sectors": [
     {
-      "confidence_adjusted_score": -0.1376603132824827,
-      "label": "Banks",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "KBE",
+      "confidence_adjusted_score": -0.2809303642418461,
+      "label": "Information Technology",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLK",
       "rank": 17,
-      "raw_sector_score": -0.3388828107521239,
-      "sector_id": "banks",
+      "raw_sector_score": -0.6745032589329576,
+      "sector_id": "information_technology",
       "top_opposing_components": [
         {
-          "component_id": "credit_liquidity",
+          "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": -0.5406449029408792,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
-          "weight_or_exposure": -0.65
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.20608831992385515,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
         },
         {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": -0.14276474472973272,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.14504548067265108,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
-          "weight_or_exposure": 0.4
+          "weight_or_exposure": 0.6
         },
         {
-          "component_id": "policy_stance",
+          "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": -0.11487492795336395,
-          "input_value": -0.38291642651121316,
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": 0.3
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.054055116442782505,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.3
         },
         {
           "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": -0.03863124996882449,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": -0.2
+          "weight_or_exposure": -0.3
         }
       ],
       "top_supporting_components": [
         {
-          "component_id": "yield_curve",
+          "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.43723666577344344,
-          "input_value": 0.6246238082477764,
+          "contribution": 0.08592857689347512,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": 0.7
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.0684437472368101,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.3
+          "weight_or_exposure": -0.7
         },
         {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.03809689510446367,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
-          "weight_or_exposure": 0.15
+          "weight_or_exposure": 0.3
         },
         {
-          "component_id": "tightening",
+          "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": 0.03405508710004627,
-          "input_value": 0.17027543550023133,
+          "contribution": 0.014364344094198123,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
-          "weight_or_exposure": 0.2
+          "weight_or_exposure": 0.05
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.12749229104800094,
-      "label": "Oil & Gas E&P",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XOP",
+      "confidence_adjusted_score": -0.2601376437059266,
+      "label": "Software & SaaS",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "IGV",
       "rank": 16,
-      "raw_sector_score": -0.3138518641238065,
-      "sector_id": "oil_gas_ep",
+      "raw_sector_score": -0.6245807174468891,
+      "sector_id": "software",
       "top_opposing_components": [
         {
-          "component_id": "credit_liquidity",
+          "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.3091324798857827,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
           "weight_or_exposure": -0.3
         },
         {
           "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": -0.2059541114504358,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.8
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.14276474472973272,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.4
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.18732404921762433,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": -0.25
         },
         {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.012698965034821225,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.05
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "yield_curve",
+          "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": 0.09369357123716646,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.09125832964908015,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.4
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.0869203124298551,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.10878411050448832,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
           "weight_or_exposure": 0.45
         },
         {
-          "component_id": "policy_stance",
+          "component_id": "credit_liquidity",
           "component_type": "dimension_exposure",
-          "contribution": 0.03829164265112132,
-          "input_value": -0.38291642651121316,
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
-          "weight_or_exposure": -0.1
+          "weight_or_exposure": -0.3
         },
         {
-          "component_id": "tightening",
+          "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": 0.0255413153250347,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": 0.15
+          "weight_or_exposure": -0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.0982040878782573,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.8
+        },
+        {
+          "component_id": "monetary_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": 0.08694432603011158,
+          "input_value": 0.24841236008603312,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.05385233064916511,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.11973713586067601,
+      "confidence_adjusted_score": -0.25119565017977524,
       "label": "Semiconductors",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
       "proxy_ticker": "SMH",
       "rank": 15,
-      "raw_sector_score": -0.2947607497348201,
+      "raw_sector_score": -0.603111326656671,
       "sector_id": "semiconductors",
       "top_opposing_components": [
         {
-          "component_id": "credit_liquidity",
+          "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": -0.29111648619893493,
-          "input_value": 0.8317613891398141,
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
-          "weight_or_exposure": -0.35
+          "weight_or_exposure": -0.3
         },
         {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": -0.26768389636824885,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.18130685084081385,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
           "weight_or_exposure": 0.75
         },
         {
           "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.09369357123716646,
-          "input_value": 0.6246238082477764,
+          "contribution": -0.15456623994289134,
+          "input_value": 1.0304415996192757,
           "reason": "ok",
           "weight_or_exposure": -0.15
         },
         {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.06760468744544285,
-          "input_value": 0.19315624984412244,
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.11589250918768436,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
           "weight_or_exposure": -0.35
         },
         {
-          "component_id": "tightening",
+          "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": -0.0510826306500694,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.08473983836008761,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": -0.3
+          "weight_or_exposure": -0.35
         }
       ],
       "top_supporting_components": [
         {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.24889567723228856,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.07979082140108405,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
           "weight_or_exposure": -0.65
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.08889275524374857,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": 0.07723279179391342,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
         },
         {
           "component_id": "monetary_liquidity",
@@ -1836,368 +1724,645 @@
         {
           "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": 0.045629164824540075,
-          "input_value": 0.22814582412270035,
+          "contribution": 0.05745737637679249,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
           "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.05385233064916511,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
         }
       ]
     },
     {
-      "confidence_adjusted_score": -0.11663710143760418,
-      "label": "Information Technology",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLK",
+      "confidence_adjusted_score": -0.23985083212360686,
+      "label": "Utilities",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLU",
       "rank": 14,
-      "raw_sector_score": -0.28712929551487243,
-      "sector_id": "information_technology",
+      "raw_sector_score": -0.5758728443675172,
+      "sector_id": "utilities",
       "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.24952841674194423,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.3
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.21414711709459905,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.6
-        },
         {
           "component_id": "yield_curve",
           "component_type": "dimension_exposure",
-          "contribution": -0.1249247616495553,
-          "input_value": 0.6246238082477764,
+          "contribution": -0.4121766398477103,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.4
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.14985923937409948,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
           "weight_or_exposure": -0.2
         },
         {
-          "component_id": "stagflation",
+          "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": -0.05794687495323673,
-          "input_value": 0.19315624984412244,
+          "contribution": -0.07182172047099061,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
-          "weight_or_exposure": -0.3
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.06622429096439107,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
         },
         {
           "component_id": "tightening",
           "component_type": "regime_prior",
-          "contribution": -0.04256885887505783,
-          "input_value": 0.17027543550023133,
+          "contribution": -0.05828987239178192,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
-          "weight_or_exposure": -0.25
+          "weight_or_exposure": -0.3
         }
       ],
       "top_supporting_components": [
         {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.2680414985578492,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.08592857689347512,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
           "weight_or_exposure": -0.7
         },
         {
-          "component_id": "inflation_pressure",
+          "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": 0.07723279179391342,
-          "input_value": -0.25744263931304473,
+          "contribution": 0.07252274033632554,
+          "input_value": -0.2417424677877518,
           "reason": "ok",
           "weight_or_exposure": -0.3
         },
         {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": 0.0306089794340106,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.024211382388596464,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": -0.2240301136922511,
+      "label": "Biotechnology",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XBI",
+      "rank": 13,
+      "raw_sector_score": -0.5378878932946468,
+      "sector_id": "biotech",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.25761039990481893,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": -0.14985923937409948,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.13244858192878214,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.07263414716578938,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.07252274033632554,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "monetary_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": 0.09936494403441326,
+          "input_value": 0.24841236008603312,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07979082140108405,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.65
+        },
+        {
           "component_id": "goldilocks",
           "component_type": "regime_prior",
-          "contribution": 0.07619379020892734,
-          "input_value": 0.2539793006964245,
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
           "reason": "ok",
           "weight_or_exposure": 0.3
         },
         {
           "component_id": "reflation",
           "component_type": "regime_prior",
-          "contribution": 0.011407291206135019,
-          "input_value": 0.22814582412270035,
+          "contribution": 0.014364344094198123,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
           "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": -0.1141298055085874,
-      "label": "Financials",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLF",
-      "rank": 13,
-      "raw_sector_score": -0.28095700466682677,
-      "sector_id": "financials",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.4574687640268978,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.55
-        },
-        {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": -0.12491915163851611,
-          "input_value": -0.35691186182433177,
-          "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": -0.07658328530224263,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
-          "component_id": "recession",
-          "component_type": "regime_prior",
-          "contribution": -0.03861079745913036,
-          "input_value": 0.15444318983652144,
-          "reason": "ok",
-          "weight_or_exposure": -0.25
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": -0.028973437476618364,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": -0.15
-        }
-      ],
-      "top_supporting_components": [
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": 0.3747742849486658,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": 0.6
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": 0.045629164824540075,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": 0.2
-        },
-        {
-          "component_id": "tightening",
-          "component_type": "regime_prior",
-          "contribution": 0.0255413153250347,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.15
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": 0.02539793006964245,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
         }
       ]
     }
   ],
   "top_macro_supported_sectors": [
     {
-      "confidence_adjusted_score": 0.007629694030863112,
-      "label": "Consumer Staples",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLP",
+      "confidence_adjusted_score": 0.38538045160380824,
+      "label": "Materials",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLB",
       "rank": 1,
-      "raw_sector_score": 0.018782262634052915,
-      "sector_id": "consumer_staples",
+      "raw_sector_score": 0.9252839978239138,
+      "sector_id": "materials",
       "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.08317613891398142,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "inflation_pressure",
-          "component_type": "dimension_exposure",
-          "contribution": -0.025744263931304474,
-          "input_value": -0.25744263931304473,
-          "reason": "ok",
-          "weight_or_exposure": 0.1
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.02539793006964245,
-          "input_value": 0.2539793006964245,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": -0.022814582412270037,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        }
-      ],
-      "top_supporting_components": [
         {
           "component_id": "growth_momentum",
           "component_type": "dimension_exposure",
-          "contribution": 0.08922796545608294,
-          "input_value": -0.35691186182433177,
+          "contribution": -0.1329583572832635,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.55
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.08278036370548883,
+          "input_value": 0.3311214548219553,
           "reason": "ok",
           "weight_or_exposure": -0.25
         },
         {
           "component_id": "recession",
           "component_type": "regime_prior",
-          "contribution": 0.054055116442782505,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.024487183547208483,
+          "input_value": 0.1224359177360424,
           "reason": "ok",
-          "weight_or_exposure": 0.35
-        },
-        {
-          "component_id": "stagflation",
-          "component_type": "regime_prior",
-          "contribution": 0.04828906246103061,
-          "input_value": 0.19315624984412244,
-          "reason": "ok",
-          "weight_or_exposure": 0.25
-        },
-        {
-          "component_id": "policy_stance",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03829164265112132,
-          "input_value": -0.38291642651121316,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
+          "weight_or_exposure": -0.2
         },
         {
           "component_id": "tightening",
           "component_type": "regime_prior",
-          "contribution": 0.008513771775011567,
-          "input_value": 0.17027543550023133,
-          "reason": "ok",
-          "weight_or_exposure": 0.05
-        }
-      ]
-    },
-    {
-      "confidence_adjusted_score": 0.003986185945184948,
-      "label": "Health Care",
-      "macro_confidence": 0.010363410372631998,
-      "macro_raw_dominant_regime": "goldilocks",
-      "macro_reported_regime": "tightening",
-      "proxy_ticker": "XLV",
-      "rank": 2,
-      "raw_sector_score": 0.009812921858697983,
-      "sector_id": "health_care",
-      "top_opposing_components": [
-        {
-          "component_id": "credit_liquidity",
-          "component_type": "dimension_exposure",
-          "contribution": -0.08317613891398142,
-          "input_value": 0.8317613891398141,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "yield_curve",
-          "component_type": "dimension_exposure",
-          "contribution": -0.06246238082477765,
-          "input_value": 0.6246238082477764,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "reflation",
-          "component_type": "regime_prior",
-          "contribution": -0.022814582412270037,
-          "input_value": 0.22814582412270035,
-          "reason": "ok",
-          "weight_or_exposure": -0.1
-        },
-        {
-          "component_id": "goldilocks",
-          "component_type": "regime_prior",
-          "contribution": -0.012698965034821225,
-          "input_value": 0.2539793006964245,
+          "contribution": -0.009714978731963655,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
           "weight_or_exposure": -0.05
         }
       ],
       "top_supporting_components": [
         {
+          "component_id": "housing_activity",
+          "component_type": "dimension_exposure",
+          "contribution": 0.5481516347621929,
+          "input_value": 1.8271721158739764,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.26225366890467405,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.20608831992385515,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.10055040865938686,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.35
+        },
+        {
           "component_id": "policy_stance",
           "component_type": "dimension_exposure",
-          "contribution": 0.05743746397668197,
-          "input_value": -0.38291642651121316,
+          "contribution": 0.0306887774619554,
+          "input_value": -0.1227551098478216,
           "reason": "ok",
-          "weight_or_exposure": -0.15
+          "weight_or_exposure": -0.25
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.32693306851430015,
+      "label": "Oil & Gas E&P",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XOP",
+      "rank": 2,
+      "raw_sector_score": 0.7849540250337956,
+      "sector_id": "oil_gas_ep",
+      "top_opposing_components": [
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.09933643644658659,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.09669698711510072,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
         },
         {
           "component_id": "recession",
           "component_type": "regime_prior",
-          "contribution": 0.04633295695095643,
-          "input_value": 0.15444318983652144,
+          "contribution": -0.0306089794340106,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.25
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": -0.007693190092737873,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": -0.05
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.5994369574963979,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.8
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.15456623994289134,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.11491475275358498,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": 0.10895122074868407,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": 0.45
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": 0.02914493619589096,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.2771293890135202,
+      "label": "Energy",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XLE",
+      "rank": 3,
+      "raw_sector_score": 0.6653772600914007,
+      "sector_id": "energy",
+      "top_opposing_components": [
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.07252274033632554,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.06622429096439107,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.01836538766040636,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.15
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": -0.007693190092737873,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": -0.05
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.5245073378093481,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.7
+        },
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.10304415996192758,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.08618606456518874,
+          "input_value": 0.28728688188396245,
           "reason": "ok",
           "weight_or_exposure": 0.3
         },
         {
           "component_id": "stagflation",
           "component_type": "regime_prior",
-          "contribution": 0.03863124996882449,
-          "input_value": 0.19315624984412244,
+          "contribution": 0.08473983836008761,
+          "input_value": 0.2421138238859646,
           "reason": "ok",
-          "weight_or_exposure": 0.2
+          "weight_or_exposure": 0.35
         },
         {
-          "component_id": "growth_momentum",
-          "component_type": "dimension_exposure",
-          "contribution": 0.03569118618243318,
-          "input_value": -0.35691186182433177,
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": 0.01942995746392731,
+          "input_value": 0.19429957463927308,
           "reason": "ok",
-          "weight_or_exposure": -0.1
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.2584883587563766,
+      "label": "Homebuilders",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "XHB",
+      "rank": 4,
+      "raw_sector_score": 0.620620846194158,
+      "sector_id": "homebuilders",
+      "top_opposing_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": -0.3606545598667465,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
         },
         {
           "component_id": "inflation_pressure",
           "component_type": "dimension_exposure",
-          "contribution": 0.012872131965652237,
-          "input_value": -0.25744263931304473,
+          "contribution": -0.22478885906114918,
+          "input_value": 0.7492961968704973,
           "reason": "ok",
-          "weight_or_exposure": -0.05
+          "weight_or_exposure": -0.3
+        },
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.1490046546698799,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.45
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.1329583572832635,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.55
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": -0.08743480858767289,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": -0.45
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "housing_activity",
+          "component_type": "dimension_exposure",
+          "contribution": 1.4617376926991812,
+          "input_value": 1.8271721158739764,
+          "reason": "ok",
+          "weight_or_exposure": 0.8
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": 0.0982040878782573,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": -0.8
+        },
+        {
+          "component_id": "monetary_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": 0.06210309002150828,
+          "input_value": 0.24841236008603312,
+          "reason": "ok",
+          "weight_or_exposure": 0.25
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.04615914055642723,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.028728688188396245,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        }
+      ]
+    },
+    {
+      "confidence_adjusted_score": 0.21005596527270537,
+      "label": "Banks",
+      "macro_confidence": 0.02749939930181322,
+      "macro_raw_dominant_regime": "reflation",
+      "macro_reported_regime": "goldilocks",
+      "proxy_ticker": "KBE",
+      "rank": 5,
+      "raw_sector_score": 0.5043364875032738,
+      "sector_id": "banks",
+      "top_opposing_components": [
+        {
+          "component_id": "credit_liquidity",
+          "component_type": "dimension_exposure",
+          "contribution": -0.21522894563427097,
+          "input_value": 0.3311214548219553,
+          "reason": "ok",
+          "weight_or_exposure": -0.65
+        },
+        {
+          "component_id": "growth_momentum",
+          "component_type": "dimension_exposure",
+          "contribution": -0.09669698711510072,
+          "input_value": -0.2417424677877518,
+          "reason": "ok",
+          "weight_or_exposure": 0.4
+        },
+        {
+          "component_id": "stagflation",
+          "component_type": "regime_prior",
+          "contribution": -0.04842276477719293,
+          "input_value": 0.2421138238859646,
+          "reason": "ok",
+          "weight_or_exposure": -0.2
+        },
+        {
+          "component_id": "recession",
+          "component_type": "regime_prior",
+          "contribution": -0.042852571207614834,
+          "input_value": 0.1224359177360424,
+          "reason": "ok",
+          "weight_or_exposure": -0.35
+        },
+        {
+          "component_id": "policy_stance",
+          "component_type": "dimension_exposure",
+          "contribution": -0.03682653295434648,
+          "input_value": -0.1227551098478216,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        }
+      ],
+      "top_supporting_components": [
+        {
+          "component_id": "yield_curve",
+          "component_type": "dimension_exposure",
+          "contribution": 0.721309119733493,
+          "input_value": 1.0304415996192757,
+          "reason": "ok",
+          "weight_or_exposure": 0.7
+        },
+        {
+          "component_id": "reflation",
+          "component_type": "regime_prior",
+          "contribution": 0.08618606456518874,
+          "input_value": 0.28728688188396245,
+          "reason": "ok",
+          "weight_or_exposure": 0.3
+        },
+        {
+          "component_id": "inflation_pressure",
+          "component_type": "dimension_exposure",
+          "contribution": 0.07492961968704974,
+          "input_value": 0.7492961968704973,
+          "reason": "ok",
+          "weight_or_exposure": 0.1
+        },
+        {
+          "component_id": "tightening",
+          "component_type": "regime_prior",
+          "contribution": 0.03885991492785462,
+          "input_value": 0.19429957463927308,
+          "reason": "ok",
+          "weight_or_exposure": 0.2
+        },
+        {
+          "component_id": "goldilocks",
+          "component_type": "regime_prior",
+          "contribution": 0.023079570278213616,
+          "input_value": 0.15386380185475745,
+          "reason": "ok",
+          "weight_or_exposure": 0.15
         }
       ]
     }
