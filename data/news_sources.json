@@ -1,6 +1,6 @@
 {
   "disclaimer": "News headlines are used as diagnostic inputs only, not republished.",
-  "generated_at": "2026-06-04T00:22:12.231969+00:00",
+  "generated_at": "2026-06-04T23:55:23.263271+00:00",
   "groups": [
     {
       "group": "consumer",
@@ -31,6 +31,10 @@
     {
       "group": "energy_commodities",
       "sources": [
+        {
+          "name": "cnbc_energy",
+          "url": "https://www.cnbc.com/id/19836768/device/rss/rss.html"
+        },
         {
           "name": "eia_energy",
           "url": "https://www.eia.gov/rss/todayinenergy.xml"
@@ -92,8 +96,21 @@
           "url": "http://feeds.marketwatch.com/marketwatch/topstories/"
         },
         {
+          "name": "marketwatch_pulse",
+          "url": "http://feeds.marketwatch.com/marketwatch/marketpulse/"
+        },
+        {
           "name": "nasdaq_markets",
           "url": "https://www.nasdaq.com/feed/rssoutbound?category=Markets"
+        }
+      ]
+    },
+    {
+      "group": "manufacturing_industrials",
+      "sources": [
+        {
+          "name": "cnbc_business",
+          "url": "https://www.cnbc.com/id/10001147/device/rss/rss.html"
         }
       ]
     },
@@ -117,5 +134,5 @@
     }
   ],
   "profile": "live_rss",
-  "source_count": 17
+  "source_count": 20
 }

@@ -1,19 +1,19 @@
 {
-  "computed_at": "2026-06-04T00:22:17.487483+00:00",
-  "confidence": 0.015523667252025008,
+  "computed_at": "2026-06-04T23:55:28.062656+00:00",
+  "confidence": 0.014412005650518428,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "goldilocks",
   "monitor_ready": false,
   "raw_dominant_regime": "goldilocks",
-  "raw_regime_probability": 0.2591424172749107,
+  "raw_regime_probability": 0.25236315343274646,
   "readiness_label": "insufficient_history",
-  "regime_probability": 0.2591424172749107,
-  "secular_theme_computed_at": "2026-06-04T00:22:16.438420+00:00",
+  "regime_probability": 0.25236315343274646,
+  "secular_theme_computed_at": "2026-06-04T23:55:27.091034+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.628125,
-      "avg_severity": 0.4,
-      "item_count": 16,
+      "avg_confidence": 0.6194444444444446,
+      "avg_severity": 0.38888888888888895,
+      "item_count": 18,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -24,31 +24,32 @@
           "score": 0.8542341250307223
         },
         {
-          "avg_confidence": 0.6772727272727272,
-          "item_count": 11,
+          "avg_confidence": 0.6576923076923078,
+          "item_count": 13,
           "period_start": "2026-06-01",
-          "score": 2.8725320979095734
+          "score": 3.2525320979095733
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.628125,
-          "item_count": 16,
+          "avg_confidence": 0.6194444444444446,
+          "item_count": 18,
           "period_start": "2026-04-01",
-          "score": 3.726766222940295
+          "score": 4.106766222940295
         }
       ],
-      "raw_score": 6.4,
-      "score": 3.726766222940295,
+      "raw_score": 7.000000000000001,
+      "score": 4.106766222940295,
       "source_mix": {
         "cnbc_finance": 3,
         "cnbc_tech": 1,
         "eia_energy": 1,
+        "housingwire": 1,
         "nasdaq_markets": 1,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "oilprice": 1,
-        "scmp": 1
+        "scmp": 2
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
@@ -100,7 +101,7 @@
           "title": "NVIDIA Vera CPU Is \u2018Packing a Heavy-Hitting Punch\u2019 Against Competition"
         }
       ],
-      "trend_30d": 3.726766222940295
+      "trend_30d": 4.106766222940295
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -162,32 +163,32 @@
       "trend_30d": 0.0
     },
     "energy_transition": {
-      "avg_confidence": 0.6333333333333333,
-      "avg_severity": 0.39999999999999997,
-      "item_count": 6,
+      "avg_confidence": 0.6,
+      "avg_severity": 0.3625,
+      "item_count": 8,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6333333333333333,
-          "item_count": 6,
+          "avg_confidence": 0.6,
+          "item_count": 8,
           "period_start": "2026-06-01",
-          "score": 1.3774978605223267
+          "score": 1.6274978605223267
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6333333333333333,
-          "item_count": 6,
+          "avg_confidence": 0.6,
+          "item_count": 8,
           "period_start": "2026-04-01",
-          "score": 1.3774978605223267
+          "score": 1.6274978605223267
         }
       ],
-      "raw_score": 2.4,
-      "score": 1.3774978605223267,
+      "raw_score": 2.9,
+      "score": 1.6274978605223267,
       "source_mix": {
         "eia_energy": 2,
-        "oilprice": 4
+        "oilprice": 6
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
@@ -195,7 +196,7 @@
         "news_8ec801f6b2902d21",
         "news_6e1acbeb56f9152f",
         "news_df737941e3ecbf78",
-        "news_ee04b3d133674982"
+        "news_d29dda19e6ea7bb2"
       ],
       "top_news_items": [
         {
@@ -231,15 +232,15 @@
           "title": "Electricity generation from solar could exceed coal in ERCOT for the first time in 2026"
         },
         {
-          "confidence": 0.7,
-          "news_id": "news_ee04b3d133674982",
-          "score_component": 0.1336778245474583,
-          "source": "eia_energy",
-          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67684",
-          "title": "The United States set record energy production in 2025, again"
+          "confidence": 0.5,
+          "news_id": "news_d29dda19e6ea7bb2",
+          "score_component": 0.15,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Brazil-Launches-World-First-Ethanol-Powered-Grid-Engine.html",
+          "title": "Brazil Launches World-First Ethanol-Powered Grid Engine"
         }
       ],
-      "trend_30d": 1.3774978605223263
+      "trend_30d": 1.6274978605223265
     },
     "glp1_metabolic": {
       "avg_confidence": null,
@@ -387,36 +388,90 @@
       "trend_30d": 0.7780781643442702
     },
     "quantum_computing": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.7,
+      "avg_severity": 0.5,
+      "item_count": 1,
       "label": "Quantum Computing",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.7,
+          "item_count": 1,
+          "period_start": "2026-06-01",
+          "score": 0.35
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.7,
+          "item_count": 1,
+          "period_start": "2026-04-01",
+          "score": 0.35
+        }
+      ],
+      "raw_score": 0.5,
+      "score": 0.35,
+      "source_mix": {
+        "nasdaq_markets": 1
+      },
       "theme_id": "quantum_computing",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_73725134879ae424"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.7,
+          "news_id": "news_73725134879ae424",
+          "score_component": 0.35,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/why-d-wave-quantum-stock-jumped-nearly-50-last-month",
+          "title": "Why D-Wave Quantum Stock Jumped Nearly 50% Last Month"
+        }
+      ],
+      "trend_30d": 0.35
     },
     "space_economy": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.6,
+      "avg_severity": 0.5,
+      "item_count": 1,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.6,
+          "item_count": 1,
+          "period_start": "2026-06-01",
+          "score": 0.3
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.6,
+          "item_count": 1,
+          "period_start": "2026-04-01",
+          "score": 0.3
+        }
+      ],
+      "raw_score": 0.5,
+      "score": 0.3,
+      "source_mix": {
+        "scmp": 1
+      },
       "theme_id": "space_economy",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_16b3f67465c27c05"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.6,
+          "news_id": "news_16b3f67465c27c05",
+          "score_component": 0.3,
+          "source": "scmp",
+          "source_url": "https://www.scmp.com/news/china/science/article/3355930/chinese-satellite-company-releases-images-nvidia-apple-hqs?utm_source=rss_feed",
+          "title": "Chinese satellite company releases images of Nvidia, Apple HQs"
+        }
+      ],
+      "trend_30d": 0.3
     }
   },
   "source_files": {
