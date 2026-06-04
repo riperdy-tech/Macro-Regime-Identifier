@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeout
 import os
 from typing import Any
 
@@ -13,6 +14,12 @@ from macro_engine.news.classify import (
 )
 from macro_engine.news.config import NewsAIConfig, NewsThemesConfig
 from macro_engine.news.schema import NewsItem
+
+# Reusable single-worker pool so a hung request can be abandoned without the
+# context manager blocking on the stuck thread (which dies on the read timeout).
+_POST_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="deepseek-post")
+# Extra wall-clock budget beyond the per-read timeout, as a hard ceiling.
+_HARD_TIMEOUT_BUFFER_SECONDS = 15
 
 
 class DeepSeekNewsClassifier:
@@ -57,6 +64,21 @@ class DeepSeekNewsClassifier:
         return self._post(payload)
 
     def _post(self, payload: dict[str, Any]) -> dict[str, Any]:
+        # Hard total deadline: requests' scalar timeout is per-read only, so a
+        # server that trickles bytes can hang forever. Run the call on a worker
+        # and abandon it past a wall-clock ceiling so the batch loop proceeds
+        # (a Timeout becomes a failed record upstream, not a frozen run).
+        hard_timeout = self.config.request_timeout_seconds + _HARD_TIMEOUT_BUFFER_SECONDS
+        future = _POST_EXECUTOR.submit(self._post_request, payload)
+        try:
+            return future.result(timeout=hard_timeout)
+        except FuturesTimeout as exc:
+            future.cancel()  # thread keeps running until its read timeout fires
+            raise requests.exceptions.Timeout(
+                f"deepseek request exceeded hard timeout {hard_timeout}s"
+            ) from exc
+
+    def _post_request(self, payload: dict[str, Any]) -> dict[str, Any]:
         api_key = os.getenv(self.config.api_key_env)
         if not api_key:
             raise ValueError(f"{self.config.api_key_env} is required for live AI classification")
@@ -67,7 +89,8 @@ class DeepSeekNewsClassifier:
                 "Content-Type": "application/json",
             },
             json=payload,
-            timeout=self.config.request_timeout_seconds,
+            # (connect, read) tuple so a slow connect also bounds quickly.
+            timeout=(15, self.config.request_timeout_seconds),
         )
         response.raise_for_status()
         data = response.json()

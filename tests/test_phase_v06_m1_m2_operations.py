@@ -72,6 +72,44 @@ def test_rss_source_parsing_with_mocked_feed(monkeypatch):
     assert items[0].raw_metadata["source_group"] == "macro_general"
 
 
+def test_rss_prefers_content_encoded_full_text(monkeypatch):
+    source = next(
+        source
+        for source in load_news_sources_config("config/news_sources.yaml").news_sources
+        if source.provider == "rss"
+    )
+    source.lookback_days = 0
+    feed = b"""<?xml version="1.0"?>
+<rss xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel>
+  <item>
+    <title>Inflation prints hot</title>
+    <description>Short summary blurb.</description>
+    <content:encoded>Full article body with many more words describing the inflation report in detail and what officials said about the rate path ahead.</content:encoded>
+    <link>https://example.invalid/cpi</link>
+    <pubDate>Tue, 05 May 2026 12:00:00 GMT</pubDate>
+  </item>
+</channel></rss>
+"""
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_):
+            return False
+
+        def read(self):
+            return feed
+
+    monkeypatch.setattr("macro_engine.news.ingest.urlopen", lambda *_args, **_kwargs: Response())
+
+    items = load_rss_source(source)
+    assert len(items) == 1
+    # content:encoded (fuller) is used as the body, not the short description.
+    assert "Full article body" in items[0].body
+    assert len(items[0].body.split()) > 10
+
+
 def test_atom_source_parsing_with_namespaced_fields(monkeypatch):
     source = next(
         source

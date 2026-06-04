@@ -1,0 +1,40 @@
+# Historical news backfill via GDELT DOC 2.0 (free, no API key).
+#
+# PROVISIONAL DATA: classifying old articles with today's LLM can leak
+# hindsight. Calibration fit on this is biased optimistic and must be
+# re-validated on live, forward-only calls before promotion. GDELT supplies
+# headlines only (no body); the headline is used as the body.
+#
+# Each query maps a GDELT search to a source_group (which the existing source
+# group rules map onward to sectors). Keep queries broad but topical.
+
+gdelt_backfill:
+  # ~14 months gives enough room for 3m-forward returns to resolve against the
+  # proxy price history (2020..present). Adjust as needed.
+  start_date: "2025-09-01"
+  end_date: "2025-12-01"
+  window_days: 7
+  max_records_per_window: 250
+  request_delay_seconds: 1.5
+
+  queries:
+    - source_group: inflation_rates
+      query: '(inflation OR "interest rate" OR "federal reserve") sourcelang:english'
+    - source_group: labor
+      query: '("jobs report" OR "unemployment rate" OR "labor market") sourcelang:english'
+    - source_group: energy_commodities
+      query: '("oil prices" OR "crude oil" OR "energy prices" OR OPEC) sourcelang:english'
+    - source_group: credit_financial_conditions
+      query: '("credit conditions" OR "bank lending" OR "financial conditions") sourcelang:english'
+    - source_group: real_estate
+      query: '("housing market" OR "mortgage rates" OR "home prices") sourcelang:english'
+    - source_group: consumer
+      query: '("consumer spending" OR "retail sales" OR "consumer confidence") sourcelang:english'
+    - source_group: manufacturing_industrials
+      query: '("manufacturing activity" OR "industrial production" OR "factory orders") sourcelang:english'
+    - source_group: technology_ai
+      query: '("technology stocks" OR "semiconductor" OR "artificial intelligence") sourcelang:english'
+    - source_group: healthcare
+      query: '("health care" OR pharmaceutical OR "drug pricing") sourcelang:english'
+    - source_group: geopolitical
+      query: '("trade war" OR sanctions OR "geopolitical tension") sourcelang:english'

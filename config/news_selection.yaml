@@ -5,7 +5,9 @@
 # news. This config drives a PURE (no LLM, no network) ranker that spends the
 # budget on the most important, broadest set instead.
 #
-# priority = source_authority * (1 + macro_keyword_hits) * freshness
+# priority = source_authority * capped_salience * freshness * novelty
+#   capped_salience = 1 + min(macro_keyword_hits, max_keyword_hits)
+#   novelty penalizes lexical near-duplicates of a higher-priority article
 # then per-group quotas guarantee breadth, and a min_priority threshold means
 # quiet days classify fewer items (cost scales with real signal).
 #
@@ -65,3 +67,13 @@ news_selection:
   # Quality gate (pure): drop likely non-news and too-short bodies before ranking.
   min_body_words: 25
   drop_likely_non_news: true
+
+  # Cap keyword salience so one keyword-stuffed macro article can't dominate.
+  max_keyword_hits: 6
+
+  # Lexical event-dedupe: within the candidate pool, the highest-priority
+  # article of a near-duplicate cluster keeps full weight; later duplicates are
+  # multiplied by novelty_penalty. Stops one crowded narrative filling the cap.
+  dedupe_near_duplicates: true
+  novelty_similarity_threshold: 0.6  # token-Jaccard >= this => same event
+  novelty_penalty: 0.4               # 0 = drop duplicate, 1 = no penalty

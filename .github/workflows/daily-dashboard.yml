@@ -147,12 +147,26 @@ jobs:
         run: python -m macro_engine.cli prune-news-history --max-age-days 150
         continue-on-error: true
 
+      - name: Ingest sector proxy prices (free stooq)
+        # Forward returns need future prices landing over time; without this the
+        # calibration ledger's calls never resolve.
+        run: python -m macro_engine.cli ingest-sector-proxy-prices
+        continue-on-error: true
+
       - name: Run sector validation (free stooq prices)
         run: python -m macro_engine.cli run-sector-validation
         continue-on-error: true
 
       - name: Write sector validation report
         run: python -m macro_engine.cli write-sector-validation-report
+        continue-on-error: true
+
+      - name: Refresh confidence calibration ledger (live, forward-only)
+        # Builds/accumulates the LIVE ledger (date_basis=classified_at) and the
+        # readiness artifact. Provisional backfill is a separate file and never
+        # feeds this. The valve stays identity until the artifact reports
+        # ready=true on this live data and a transform is fitted.
+        run: python -m macro_engine.cli run-news-confidence-calibration
         continue-on-error: true
 
       - name: Export dashboard data
@@ -171,10 +185,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f outputs/archive/**/daily_diagnostic_summary.json || true
+          # Durably persist the LIVE calibration ledger + artifact so months of
+          # accumulation survive even if the DuckDB cache is LRU-evicted. The
+          # ledger merges with this committed copy on each run.
+          git add -f outputs/confidence_calibration_ledger.parquet || true
+          git add -f outputs/confidence_calibration_artifact.json || true
+          git add -f outputs/confidence_calibration.json outputs/confidence_calibration.md || true
           if git diff --cached --quiet; then
             echo "No new run-audit snapshot to commit."
           else
-            git commit -m "chore(history): persist daily run-audit snapshot [skip ci]"
+            git commit -m "chore(history): persist daily run-audit snapshot + calibration ledger [skip ci]"
             git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
@@ -220,6 +240,9 @@ jobs:
             outputs/regime_status.json
             outputs/automation_run_summary.json
             outputs/automation_run_summary.md
+            outputs/confidence_calibration.json
+            outputs/confidence_calibration.md
+            outputs/confidence_calibration_artifact.json
             dashboard/public/data/manifest.json
             dashboard/public/data/history_index.json
           retention-days: 7

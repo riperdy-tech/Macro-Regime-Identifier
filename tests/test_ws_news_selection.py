@@ -9,6 +9,7 @@ import pandas as pd
 
 from macro_engine.news.config import NewsSelectionConfig
 from macro_engine.news.selection import (
+    assign_event_ids,
     rank_and_select,
     score_items,
     select_within_budget,
@@ -153,6 +154,117 @@ def test_empty_input_safe():
 
 
 # ---- integration with real lexicon -----------------------------------------
+
+
+# ---- keyword salience cap --------------------------------------------------
+
+
+def test_keyword_hits_are_capped():
+    # An article repeating every lexicon keyword cannot outscore the cap.
+    rows = [
+        _row("stuffed", source="cnbc_economy", group="macro_general",
+             title="inflation fed jobs oil rate inflation fed jobs oil rate",
+             body="inflation fed jobs oil rate inflation fed jobs oil rate and more words here", days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(max_keyword_hits=2), lexicon=LEX, now=NOW)
+    s = float(scored.loc[scored["news_id"] == "stuffed", "selection_score"].iloc[0])
+    # authority 1.0 * (1 + min(5, 2)) * fresh(1d, hl=4) = 3 * 0.5**0.25
+    assert s == 3 * (0.5 ** 0.25)
+
+
+# ---- novelty / event dedupe ------------------------------------------------
+
+
+def test_near_duplicates_are_penalized():
+    dup_body = "Federal Reserve officials warned inflation stays sticky and the rate path runs higher"
+    rows = [
+        _row("a", source="federal_reserve_press", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+        _row("b", source="cnbc_markets", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(), lexicon=LEX, now=NOW)
+    s = dict(zip(scored["news_id"], scored["selection_score"]))
+    # 'a' (higher authority) is canonical at full weight; 'b' penalized to 0.4x base.
+    assert s["a"] > s["b"]
+    assert s["b"] == s["a"] / 1.6 * 0.4  # b base = a base / authority ratio, * penalty
+
+
+def test_distinct_articles_keep_full_novelty():
+    rows = [
+        _row("a", source="cnbc_economy", group="macro_general",
+             title="Inflation cools as prices ease",
+             body="Consumer inflation cooled last month as goods prices eased broadly across the board", days_ago=1),
+        _row("b", source="bls_latest", group="labor",
+             title="Jobs report shows strong hiring",
+             body="The latest jobs report shows employers added many positions and hiring stayed strong", days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(), lexicon=LEX, now=NOW)
+    # Different narratives: neither penalized (both eligible, full base score).
+    assert all(scored["eligible"])
+
+
+def test_dedupe_disabled_keeps_duplicates_full():
+    dup_body = "Federal Reserve officials warned inflation stays sticky and the rate path runs higher"
+    rows = [
+        _row("a", source="cnbc_markets", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+        _row("b", source="cnbc_markets", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(dedupe_near_duplicates=False), lexicon=LEX, now=NOW)
+    s = dict(zip(scored["news_id"], scored["selection_score"]))
+    assert s["a"] == s["b"]  # identical, no penalty when disabled
+
+
+# ---- event_id plumbing -----------------------------------------------------
+
+
+def test_near_duplicates_share_event_id():
+    dup_body = "Federal Reserve officials warned inflation stays sticky and the rate path runs higher"
+    rows = [
+        _row("a", source="federal_reserve_press", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+        _row("b", source="cnbc_markets", group="macro_general",
+             title="Fed warns inflation sticky", body=dup_body, days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(), lexicon=LEX, now=NOW)
+    ev = dict(zip(scored["news_id"], scored["event_id"]))
+    # both collapse to the higher-priority canonical (a, fed press authority 1.6)
+    assert ev["a"] == ev["b"] == "a"
+
+
+def test_distinct_articles_have_own_event_id():
+    rows = [
+        _row("a", source="cnbc_economy", group="macro_general",
+             title="Inflation cools as prices ease",
+             body="Consumer inflation cooled last month as goods prices eased broadly across the board", days_ago=1),
+        _row("b", source="bls_latest", group="labor",
+             title="Jobs report shows strong hiring",
+             body="The latest jobs report shows employers added many positions and hiring stayed strong", days_ago=1),
+    ]
+    scored = score_items(_df(rows), config=_cfg(), lexicon=LEX, now=NOW)
+    ev = dict(zip(scored["news_id"], scored["event_id"]))
+    assert ev["a"] == "a" and ev["b"] == "b"
+
+
+def test_assign_event_ids_standalone_clusters_duplicates():
+    dup = "Federal Reserve officials warned inflation stays sticky and the rate path runs higher"
+    items = pd.DataFrame(
+        [
+            {"news_id": "a", "title": "Fed warns", "body": dup},
+            {"news_id": "b", "title": "Fed warns", "body": dup},
+            {"news_id": "c", "title": "Jobs report", "body": "employers added many positions and hiring stayed strong overall"},
+        ]
+    )
+    ev = assign_event_ids(items, similarity_threshold=0.6)
+    assert ev["a"] == ev["b"]            # near-duplicates clustered
+    assert ev["c"] == "c"               # distinct narrative own event
+    assert ev["a"] in {"a", "b"}        # canonical is a cluster member
+
+
+def test_assign_event_ids_empty_safe():
+    assert assign_event_ids(pd.DataFrame()) == {}
 
 
 def test_rank_and_select_uses_real_keyword_lexicon():

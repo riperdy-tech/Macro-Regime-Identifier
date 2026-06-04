@@ -57,6 +57,58 @@ def test_news_scoring_aggregation_components_and_caps():
     assert latest_energy["positive_item_count"] >= 1
 
 
+def test_event_cap_limits_duplicate_narrative(tmp_path: Path):
+    config = load_news_scoring_config("config/news_scoring.yaml")
+    config.max_single_item_contribution = 1.0
+    config.max_single_source_daily_contribution = 1.0
+    config.max_single_event_daily_contribution = 0.5
+    config.output_end_date = "2026-05-02"
+    config.output_start_date = "2026-05-02"
+
+    dup = "Oil supply disruption from a major outage lifted crude and energy prices sharply today"
+    items = pd.DataFrame(
+        [
+            {"news_id": "n1", "source": "src_a", "source_url": "x",
+             "title": "Oil supply outage", "body": dup,
+             "published_at": "2026-05-02T00:00:00Z", "ingested_at": "2026-05-02T01:00:00Z",
+             "provider": "local_csv", "raw_metadata": {}, "content_hash": "h1"},
+            {"news_id": "n2", "source": "src_b", "source_url": "y",
+             "title": "Oil supply outage", "body": dup,
+             "published_at": "2026-05-02T00:00:00Z", "ingested_at": "2026-05-02T01:00:00Z",
+             "provider": "local_csv", "raw_metadata": {}, "content_hash": "h2"},
+        ]
+    )
+    classes = pd.DataFrame(
+        [
+            {"classification_id": f"c{i}", "news_id": nid, "classified_at": "2026-05-02T02:00:00Z",
+             "ai_provider": "mock", "ai_model": "mock", "macro_themes": [], "sector_impacts": [],
+             "entities": [], "time_horizon": "short_term", "severity": 0.9, "confidence": 1.0,
+             "summary": "oil", "raw_ai_response": {}, "classification_status": "success",
+             "error_message": None}
+            for i, nid in enumerate(["n1", "n2"])
+        ]
+    )
+    impacts = pd.DataFrame(
+        [
+            {"news_id": "n1", "sector_id": "energy", "impact_direction": "tailwind",
+             "impact_score": 0.5, "confidence": 1.0, "rationale": ""},
+            {"news_id": "n2", "sector_id": "energy", "impact_direction": "tailwind",
+             "impact_score": 0.5, "confidence": 1.0, "rationale": ""},
+        ]
+    )
+
+    result = build_news_scores(
+        news_items=items, classifications=classes, theme_scores=pd.DataFrame(),
+        sector_impacts=impacts, config=config,
+    )
+    energy = result.daily_sector_scores[
+        result.daily_sector_scores["sector_id"] == "energy"
+    ].iloc[0]
+    # Two near-duplicate articles -> one event -> capped at 0.5 (not summed to ~1.0).
+    assert energy["adjusted_news_score"] <= 0.5 + 1e-9
+    assert energy["adjusted_news_score"] > 0.4  # event present, not zeroed
+
+
 def test_build_news_scores_cli_and_report(tmp_path: Path):
     db_path = tmp_path / "macro.duckdb"
     _seed_news_outputs(db_path)

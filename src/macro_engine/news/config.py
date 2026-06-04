@@ -238,6 +238,11 @@ class NewsScoringConfig(BaseModel):
     severity_weighting: bool = True
     max_single_item_contribution: float = Field(default=0.35, gt=0.0)
     max_single_source_daily_contribution: float = Field(default=0.75, gt=0.0)
+    # Event-level cap: total daily sector contribution from one lexical event
+    # (near-duplicate narrative cluster) is clipped here, so one crowded story
+    # carried by many articles/sources cannot dominate a sector score.
+    max_single_event_daily_contribution: float = Field(default=0.50, gt=0.0)
+    event_dedupe_similarity_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
     min_confidence: float = Field(default=0.10, ge=0.0, le=1.0)
     min_severity: float = Field(default=0.05, ge=0.0, le=1.0)
     neutral_score_threshold: float = Field(default=0.03, ge=0.0)
@@ -375,6 +380,18 @@ class NewsSelectionConfig(BaseModel):
     group_quota_weights: dict[str, float] = Field(default_factory=dict)
     min_body_words: int = Field(default=25, ge=0)
     drop_likely_non_news: bool = True
+    # Cap macro keyword hits so a single keyword-stuffed macro article cannot
+    # dominate selection. salience = 1 + min(hits, max_keyword_hits).
+    max_keyword_hits: int = Field(default=6, ge=1)
+    # Lexical near-duplicate (event) dedupe within the candidate pool. The
+    # highest-priority article in a near-duplicate cluster keeps full weight;
+    # later duplicates are multiplied by novelty_penalty so one crowded news
+    # theme cannot fill the budget with the same story.
+    dedupe_near_duplicates: bool = True
+    # Token-Jaccard similarity at/above which two articles are the same event.
+    novelty_similarity_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
+    # Multiplier applied to a near-duplicate's priority (0 = drop, 1 = no penalty).
+    novelty_penalty: float = Field(default=0.4, ge=0.0, le=1.0)
 
 
 def load_news_sources_config(path: str | Path = "config/news_sources.yaml") -> NewsSourcesConfig:

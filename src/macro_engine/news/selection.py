@@ -6,10 +6,13 @@ burst of trivial late-posted blurbs can evict the day's important macro news.
 This module ranks candidates so the budget goes to the most important, broadest
 set instead:
 
-    priority = source_authority * (1 + macro_keyword_hits) * freshness
+    priority = source_authority * capped_salience * freshness * novelty
 
-then per-group quotas guarantee breadth and a min_priority threshold drops weak
-items (so quiet days cost less). All scoring is deterministic and offline.
+where capped_salience = 1 + min(macro_keyword_hits, max_keyword_hits) and
+novelty penalizes lexical near-duplicates of a higher-priority article (event
+dedupe). Then per-group quotas guarantee breadth and a min_priority threshold
+drops weak items (so quiet days cost less). All scoring is deterministic and
+offline.
 """
 
 from __future__ import annotations
@@ -67,6 +70,20 @@ def _keyword_hits(text: str, lexicon: set[str]) -> int:
     return sum(1 for kw in lexicon if kw in text)
 
 
+def _token_set(text: str) -> set[str]:
+    """Word tokens for lexical near-duplicate detection (drop 1-char noise)."""
+    return {tok for tok in text.split() if len(tok) > 1}
+
+
+def _jaccard(a: set[str], b: set[str]) -> float:
+    if not a or not b:
+        return 0.0
+    inter = len(a & b)
+    if inter == 0:
+        return 0.0
+    return inter / len(a | b)
+
+
 def _is_short_body(body: str, min_words: int) -> bool:
     return len(str(body).split()) < min_words
 
@@ -86,7 +103,7 @@ def score_items(
     boolean `eligible` (passed the quality gate + min_priority threshold)."""
     if items.empty:
         result = items.copy()
-        for col in ("source_group", "selection_score", "eligible"):
+        for col in ("source_group", "selection_score", "eligible", "event_id"):
             result[col] = pd.Series(dtype="object")
         return result
 
@@ -94,9 +111,10 @@ def score_items(
     df = items.copy().reset_index(drop=True)
     published = pd.to_datetime(df.get("published_at"), errors="coerce", utc=True)
 
-    scores: list[float] = []
+    base_scores: list[float] = []
     groups: list[str] = []
-    eligible: list[bool] = []
+    bad_flags: list[bool] = []
+    tokens: list[set[str]] = []
     for i in range(len(df)):
         row = df.iloc[i]
         title = str(row.get("title") or "")
@@ -104,6 +122,7 @@ def score_items(
         text = f"{title} {body}".lower()
         group = _source_group(row.get("raw_metadata_json"))
         groups.append(group)
+        tokens.append(_token_set(text))
 
         # Quality gate
         bad = False
@@ -111,6 +130,7 @@ def score_items(
             bad = True
         if _is_short_body(body, config.min_body_words):
             bad = True
+        bad_flags.append(bad)
 
         ts = published.iloc[i]
         if pd.isna(ts):
@@ -121,15 +141,115 @@ def score_items(
             age_days, half_life_days=config.half_life_days, max_age_days=config.max_age_days
         )
         authority = config.source_authority.get(str(row.get("source") or ""), 1.0)
-        salience = 1 + _keyword_hits(text, lexicon)
-        priority = 0.0 if bad else authority * salience * fresh
-        scores.append(priority)
-        eligible.append((not bad) and priority >= config.min_priority)
+        # Cap keyword hits so a keyword-stuffed article cannot dominate.
+        salience = 1 + min(_keyword_hits(text, lexicon), config.max_keyword_hits)
+        base_scores.append(0.0 if bad else authority * salience * fresh)
+
+    news_ids = [str(df.iloc[i].get("news_id")) for i in range(len(df))]
+    novelty, event_ids = _assign_events_and_novelty(
+        base_scores, bad_flags, tokens, news_ids, config=config
+    )
+    scores = [base_scores[i] * novelty[i] for i in range(len(df))]
+    eligible = [
+        (not bad_flags[i]) and scores[i] >= config.min_priority for i in range(len(df))
+    ]
 
     df["source_group"] = groups
     df["selection_score"] = scores
     df["eligible"] = eligible
+    # event_id = news_id of the highest-priority article in the lexical cluster
+    # (the canonical representative of that narrative). Threaded downstream so
+    # event-level dedupe/caps survive into sector scoring.
+    df["event_id"] = event_ids
     return df
+
+
+def _assign_events_and_novelty(
+    base_scores: list[float],
+    bad_flags: list[bool],
+    tokens: list[set[str]],
+    news_ids: list[str],
+    *,
+    config: NewsSelectionConfig,
+) -> tuple[list[float], list[str]]:
+    """Lexical event clustering + novelty in one pass. Walk candidates by
+    descending base priority; an article near-duplicate of a higher-priority
+    canonical joins that canonical's event (and is penalized). Otherwise it
+    opens a new event with itself as canonical.
+
+    Returns (novelty_multipliers, event_ids). event_id is the canonical
+    article's news_id. With dedupe disabled, every article is its own event."""
+    mult = [1.0] * len(base_scores)
+    event_ids = list(news_ids)  # default: each article is its own event
+    if not config.dedupe_near_duplicates:
+        return mult, event_ids
+    order = sorted(
+        (i for i in range(len(base_scores)) if not bad_flags[i]),
+        key=lambda i: base_scores[i],
+        reverse=True,
+    )
+    canonical: list[int] = []
+    for i in order:
+        match = next(
+            (
+                c
+                for c in canonical
+                if _jaccard(tokens[i], tokens[c]) >= config.novelty_similarity_threshold
+            ),
+            None,
+        )
+        if match is not None:
+            mult[i] = config.novelty_penalty
+            event_ids[i] = news_ids[match]
+        else:
+            canonical.append(i)
+    return mult, event_ids
+
+
+def assign_event_ids(
+    items: pd.DataFrame,
+    *,
+    similarity_threshold: float = 0.6,
+) -> dict[str, str]:
+    """Map each news_id -> event_id (canonical news_id of its lexical cluster).
+
+    Standalone version of the intake clusterer for downstream consumers (sector
+    scoring) that only have stored news items, not the selection candidate pool.
+    Deterministic: articles are processed in news_id order, so the lexically
+    first member of a cluster becomes its canonical event_id. Articles with no
+    near-duplicate are their own event."""
+    if items is None or items.empty:
+        return {}
+    rows = items[["news_id"]].copy()
+    rows["news_id"] = rows["news_id"].astype(str)
+    titles = items.get("title")
+    bodies = items.get("body")
+    tokens: dict[str, set[str]] = {}
+    order: list[str] = []
+    for i, news_id in enumerate(rows["news_id"].tolist()):
+        title = str(titles.iloc[i]) if titles is not None else ""
+        body = str(bodies.iloc[i]) if bodies is not None else ""
+        tokens[news_id] = _token_set(f"{title} {body}".lower())
+        order.append(news_id)
+    order.sort()  # deterministic canonical selection independent of row order
+
+    event_of: dict[str, str] = {}
+    canonical: list[str] = []
+    for news_id in order:
+        match = next(
+            (
+                c
+                for c in canonical
+                if _jaccard(tokens[news_id], tokens[c]) >= similarity_threshold
+            ),
+            None,
+        )
+        if match is not None:
+            event_of[news_id] = match
+        else:
+            event_of[news_id] = news_id
+            canonical.append(news_id)
+    return event_of
 
 
 def select_within_budget(scored: pd.DataFrame, *, config: NewsSelectionConfig) -> pd.DataFrame:

@@ -1,0 +1,39 @@
+# Sector exposure guardrails (ANOMALY FLAGS ONLY - never override scores).
+#
+# A lightweight matrix of well-established macro-theme -> sector sign priors.
+# When the LLM emits a high-confidence sector impact that contradicts the
+# matrix, the checker raises an anomaly flag for human review. It does NOT
+# change any score. The LLM mapping remains the primary engine; this is a
+# sanity check / explanation-checking layer.
+#
+# Each expectation is the expected sector sign when the theme fires in its
+# POSITIVE direction. If the theme fires negative, the expectation flips.
+# Only directional themes (positive/negative) and directional impacts
+# (tailwind/headwind) are checked; mixed/neutral/unclear are ignored.
+
+sector_exposure_guardrails:
+  # Only flag contradictions at/above this LLM impact confidence.
+  min_confidence_to_flag: 0.6
+
+  expectations:
+    # Energy supply shock lifts energy, pressures fuel-sensitive sectors.
+    - {theme_id: energy_supply_shock, sector_id: energy, expected: positive}
+    - {theme_id: energy_supply_shock, sector_id: consumer_discretionary, expected: negative}
+    - {theme_id: energy_supply_shock, sector_id: industrials, expected: negative}
+
+    # Commodity pressure: producers benefit, downstream margins pressured.
+    - {theme_id: commodity_pressure, sector_id: materials, expected: positive}
+    - {theme_id: commodity_pressure, sector_id: consumer_discretionary, expected: negative}
+
+    # Monetary tightening pressures long-duration / rate-sensitive sectors.
+    - {theme_id: monetary_tightening, sector_id: real_estate, expected: negative}
+    - {theme_id: monetary_tightening, sector_id: utilities, expected: negative}
+    - {theme_id: monetary_tightening, sector_id: information_technology, expected: negative}
+
+    # Credit stress pressures lenders and rate-sensitive assets.
+    - {theme_id: credit_stress, sector_id: financials, expected: negative}
+    - {theme_id: credit_stress, sector_id: real_estate, expected: negative}
+
+    # Growth slowdown: cyclicals down, defensives relatively up.
+    - {theme_id: growth_slowdown, sector_id: consumer_discretionary, expected: negative}
+    - {theme_id: growth_slowdown, sector_id: consumer_staples, expected: positive}

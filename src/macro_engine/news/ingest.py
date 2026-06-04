@@ -450,7 +450,9 @@ def _rss_records(root: ET.Element, source: NewsSourceDefinition) -> list[dict[st
     for entry in entries:
         title = _entry_text(entry, "title")
         body = (
-            _entry_text(entry, "description")
+            # Prefer content:encoded - full article text when the feed carries it.
+            _entry_text(entry, "{http://purl.org/rss/1.0/modules/content/}encoded")
+            or _entry_text(entry, "description")
             or _entry_text(entry, "{http://www.w3.org/2005/Atom}summary")
             or _entry_text(entry, "{http://www.w3.org/2005/Atom}content")
         )

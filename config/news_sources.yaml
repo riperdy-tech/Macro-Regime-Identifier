@@ -301,6 +301,44 @@ news_sources:
     max_items: 10
     lookback_days: 3
 
+  # --- Added to widen live coverage -----------------------------------------
+  # Probed reachable + parse to title/body/date via load_rss_source. Bodies are
+  # SUMMARY-grade (~20-40 words), same as the other CNBC/MarketWatch feeds here
+  # - RSS does not carry full article text. cnbc_business fills the previously
+  # uncovered manufacturing_industrials group.
+  - source_id: cnbc_energy_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/19836768/device/rss/rss.html
+    source: cnbc_energy
+    source_group: energy_commodities
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: cnbc_business_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: https://www.cnbc.com/id/10001147/device/rss/rss.html
+    source: cnbc_business
+    source_group: manufacturing_industrials
+    max_items: 12
+    lookback_days: 3
+
+  - source_id: marketwatch_pulse_rss
+    provider: rss
+    enabled: false
+    profiles:
+      - live_rss
+    feed_url: http://feeds.marketwatch.com/marketwatch/marketpulse/
+    source: marketwatch_pulse
+    source_group: macro_general
+    max_items: 12
+    lookback_days: 3
+
   - source_id: manual_text_example
     provider: manual_text
     enabled: false

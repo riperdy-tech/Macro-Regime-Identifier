@@ -9,6 +9,7 @@ import uuid
 import pandas as pd
 
 from macro_engine.news.config import NewsScoringConfig, load_news_scoring_config
+from macro_engine.news.selection import assign_event_ids
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -138,8 +139,13 @@ def build_news_scores(
         sector_impacts=sector_impacts,
         config=config,
     )
+    # Lexical event clustering over the article corpus so one near-duplicate
+    # narrative (carried by many articles/sources) cannot dominate a sector.
+    event_map = assign_event_ids(
+        items, similarity_threshold=config.event_dedupe_similarity_threshold
+    )
     daily_theme = _aggregate_daily_theme(daily_components, config, completed_at)
-    daily_sector = _aggregate_daily_sector(daily_components, config, completed_at)
+    daily_sector = _aggregate_daily_sector(daily_components, config, completed_at, event_map)
     weekly_theme = _aggregate_weekly_theme(daily_theme, completed_at)
     weekly_sector = _aggregate_weekly_sector(daily_sector, completed_at)
     components = daily_components.drop(columns=["source"], errors="ignore")
@@ -364,13 +370,14 @@ def _aggregate_daily_sector(
     components: pd.DataFrame,
     config: NewsScoringConfig,
     created_at: datetime,
+    event_map: dict[str, str] | None = None,
 ) -> pd.DataFrame:
     if components.empty:
         return _daily_sector_frame()
     frame = components[components["component_type"] == "sector"].copy()
     if frame.empty:
         return _daily_sector_frame()
-    capped = _source_capped(frame, "sector_id", config)
+    capped = _sector_capped(frame, config, event_map or {})
     rows = []
     for (score_date, sector_id), group in capped.groupby(["score_date", "sector_id"]):
         original = frame[(frame["score_date"] == score_date) & (frame["sector_id"] == sector_id)]
@@ -447,6 +454,43 @@ def _aggregate_weekly_sector(daily: pd.DataFrame, created_at: datetime) -> pd.Da
             }
         )
     return pd.DataFrame(rows, columns=_weekly_sector_columns())
+
+
+def _sector_capped(
+    frame: pd.DataFrame,
+    config: NewsScoringConfig,
+    event_map: dict[str, str],
+) -> pd.DataFrame:
+    """Two-level cap for sector contributions: within each (date, sector,
+    event) cap per-source sums at max_single_source_daily_contribution, then
+    cap the event total at max_single_event_daily_contribution. Returns one
+    capped_component row per (date, sector, event); the caller sums per sector.
+
+    Event clustering stops one near-duplicate narrative - even spread across
+    many outlets - from dominating; the inner source cap still stops a single
+    outlet from dominating that event."""
+    work = frame.copy()
+    work["event_id"] = work["news_id"].map(event_map).fillna(work["news_id"])
+    rows = []
+    for (score_date, sector_id, event_id), group in work.groupby(
+        ["score_date", "sector_id", "event_id"], dropna=False
+    ):
+        per_source = group.groupby("source", dropna=False)["adjusted_component"].sum()
+        per_source = per_source.map(
+            lambda v: _clip(v, config.max_single_source_daily_contribution)
+        )
+        event_total = _clip(
+            float(per_source.sum()), config.max_single_event_daily_contribution
+        )
+        rows.append(
+            {
+                "score_date": score_date,
+                "sector_id": sector_id,
+                "event_id": event_id,
+                "capped_component": event_total,
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def _source_capped(frame: pd.DataFrame, key_column: str, config: NewsScoringConfig) -> pd.DataFrame:

@@ -51,6 +51,11 @@ from macro_engine.news.source_coverage import (
 from macro_engine.news.usage_report import (
     write_live_ai_usage_report as write_live_ai_usage_report_service,
 )
+from macro_engine.news.confidence_calibration import (
+    run_confidence_calibration as run_news_confidence_calibration,
+)
+from macro_engine.news.guardrails import run_sector_guardrail_check
+from macro_engine.news.gdelt_backfill import backfill_gdelt_news
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.outputs.json_writer import write_json
 from macro_engine.outputs.report import build_markdown_report, write_markdown_report
@@ -732,6 +737,65 @@ def run_sector_validation_cli(
             if not result.returns.empty
             else 0,
             "summary_rows": int(len(result.summary)),
+        }
+    )
+
+
+@app.command("backfill-gdelt-news")
+def backfill_gdelt_news_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/gdelt_backfill.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Fetch historical headlines from GDELT and upsert as news_items, to seed
+    the calibration ledger. PROVISIONAL: classify next, then run calibration
+    with --date-basis published_at. Hindsight leakage means the resulting
+    calibration must be re-validated on live calls."""
+    result = backfill_gdelt_news(config_path=config, db_path=db_path)
+    console.print_json(data=result)
+
+
+@app.command("run-news-confidence-calibration")
+def run_news_confidence_calibration_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_validation.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    output_dir: Annotated[str | None, typer.Option("--output-dir")] = None,
+    date_basis: Annotated[str, typer.Option("--date-basis")] = "classified_at",
+) -> None:
+    """Log LLM sector-confidence calls to an accumulating ledger and score each
+    confidence bucket by realized forward sector relative return.
+
+    --date-basis published_at runs BACKFILL mode (provisional, hindsight-biased).
+    """
+    result = run_news_confidence_calibration(
+        config_path=config, db_path=db_path, output_dir=output_dir, date_basis=date_basis
+    )
+    console.print_json(
+        data={
+            "ledger_rows": result.ledger_rows,
+            "ledger_path": str(result.ledger_path),
+            "json_path": str(result.json_path),
+            "markdown_path": str(result.markdown_path),
+        }
+    )
+
+
+@app.command("run-sector-exposure-guardrails")
+def run_sector_exposure_guardrails_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_exposure_guardrails.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs",
+) -> None:
+    """Flag LLM sector calls that contradict established macro-theme priors
+    (anomaly detection only - never overrides scores)."""
+    result = run_sector_guardrail_check(
+        config_path=config, db_path=db_path, output_dir=output_dir
+    )
+    console.print_json(
+        data={
+            "checked_sector_impacts": result.checked_pairs,
+            "anomaly_count": int(len(result.anomalies)),
+            "json_path": str(result.json_path),
+            "markdown_path": str(result.markdown_path),
         }
     )
 
