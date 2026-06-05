@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-06-04T23:55:27.091034+00:00",
+  "computed_at": "2026-06-05T23:56:17.083362+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,9 +11,9 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6194444444444446,
-      "avg_severity": 0.38888888888888895,
-      "item_count": 18,
+      "avg_confidence": 0.615909090909091,
+      "avg_severity": 0.38636363636363646,
+      "item_count": 22,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -21,43 +21,43 @@
           "avg_confidence": 0.52,
           "item_count": 5,
           "period_start": "2026-05-01",
-          "score": 0.8542341250307223
+          "score": 0.8427174016984903
         },
         {
-          "avg_confidence": 0.6576923076923078,
-          "item_count": 13,
+          "avg_confidence": 0.6441176470588235,
+          "item_count": 17,
           "period_start": "2026-06-01",
-          "score": 3.2525320979095733
+          "score": 4.180220206316746
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6194444444444446,
-          "item_count": 18,
+          "avg_confidence": 0.615909090909091,
+          "item_count": 22,
           "period_start": "2026-04-01",
-          "score": 4.106766222940295
+          "score": 5.022937608015236
         }
       ],
-      "raw_score": 7.000000000000001,
-      "score": 4.106766222940295,
+      "raw_score": 8.500000000000002,
+      "score": 5.022937608015236,
       "source_mix": {
         "cnbc_finance": 3,
-        "cnbc_tech": 1,
+        "cnbc_tech": 3,
         "eia_energy": 1,
         "housingwire": 1,
-        "nasdaq_markets": 1,
+        "nasdaq_markets": 2,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
-        "oilprice": 1,
+        "oilprice": 2,
         "scmp": 2
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
         "news_431d1d59c2e71ae2",
+        "news_4a7d7db18c56f12d",
         "news_58c05e040743df98",
         "news_7f69c19b67e59a6a",
-        "news_d0c7ec3a91bf60f8",
-        "news_e445d60b608d2600"
+        "news_d0c7ec3a91bf60f8"
       ],
       "top_news_items": [
         {
@@ -67,6 +67,14 @@
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/taiwan-ecosystem-ai-infrastructure/",
           "title": "Taiwan\u2019s Industry Titans Turbocharge World\u2019s AI Infrastructure Buildout With NVIDIA"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_4a7d7db18c56f12d",
+          "score_component": 0.35,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/stock-market-today-june-5-broadcom-falls-strong-ai-results-fail-lift-guidance",
+          "title": "Stock Market Today, June 5: Broadcom Falls as Strong AI Results Fail to Lift Guidance"
         },
         {
           "confidence": 0.8,
@@ -91,17 +99,9 @@
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67704",
           "title": "Data center server energy use grows across the commercial building stock"
-        },
-        {
-          "confidence": 0.9,
-          "news_id": "news_e445d60b608d2600",
-          "score_component": 0.35,
-          "source": "nvidia_blog",
-          "source_url": "https://blogs.nvidia.com/blog/vera-cpu-phoronix/",
-          "title": "NVIDIA Vera CPU Is \u2018Packing a Heavy-Hitting Punch\u2019 Against Competition"
         }
       ],
-      "trend_30d": 4.106766222940295
+      "trend_30d": 5.022937608015236
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -114,7 +114,7 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.10208005931410268
+          "score": 0.09974854753713452
         }
       ],
       "quarterly_scores": [
@@ -122,11 +122,11 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.10208005931410268
+          "score": 0.09974854753713452
         }
       ],
       "raw_score": 0.2,
-      "score": 0.10208005931410268,
+      "score": 0.09974854753713452,
       "source_mix": {
         "nvidia_blog": 1
       },
@@ -138,13 +138,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_af3cc173a30eee83",
-          "score_component": 0.10208005931410268,
+          "score_component": 0.09974854753713452,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/geforce-now-thursday-007-first-light-launch/",
           "title": "The Name\u2019s Gaming \u2026 Cloud Gaming: \u2018007 First Light\u2019 Launches on GeForce NOW"
         }
       ],
-      "trend_30d": 0.10208005931410268
+      "trend_30d": 0.09974854753713452
     },
     "cybersecurity": {
       "avg_confidence": null,
@@ -164,39 +164,40 @@
     },
     "energy_transition": {
       "avg_confidence": 0.6,
-      "avg_severity": 0.3625,
-      "item_count": 8,
+      "avg_severity": 0.3727272727272727,
+      "item_count": 11,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
           "avg_confidence": 0.6,
-          "item_count": 8,
+          "item_count": 11,
           "period_start": "2026-06-01",
-          "score": 1.6274978605223267
+          "score": 2.0265615470378826
         }
       ],
       "quarterly_scores": [
         {
           "avg_confidence": 0.6,
-          "item_count": 8,
+          "item_count": 11,
           "period_start": "2026-04-01",
-          "score": 1.6274978605223267
+          "score": 2.0265615470378826
         }
       ],
-      "raw_score": 2.9,
-      "score": 1.6274978605223267,
+      "raw_score": 4.1,
+      "score": 2.0265615470378826,
       "source_mix": {
         "eia_energy": 2,
-        "oilprice": 6
+        "oilprice": 8,
+        "scmp": 1
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
         "news_8911d0e843bfd3b3",
         "news_8ec801f6b2902d21",
+        "news_3ae25324d704db74",
         "news_6e1acbeb56f9152f",
-        "news_df737941e3ecbf78",
-        "news_d29dda19e6ea7bb2"
+        "news_702f144a582b2678"
       ],
       "top_news_items": [
         {
@@ -216,31 +217,31 @@
           "title": "The Next Stranded Asset Crisis Could Hit Utilities"
         },
         {
+          "confidence": 0.7,
+          "news_id": "news_3ae25324d704db74",
+          "score_component": 0.27999999999999997,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/UK-Conservatives-Blast-Labour-North-Sea-Ban-as-Utter-Madness.html",
+          "title": "UK Conservatives Blast Labour North Sea Ban as 'Utter Madness'"
+        },
+        {
           "confidence": 0.5,
           "news_id": "news_6e1acbeb56f9152f",
-          "score_component": 0.25,
+          "score_component": 0.24428999210856148,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/The-Next-Infrastructure-Supercycle-Could-Be-Worth-20-Trillion.html",
           "title": "The Next Infrastructure Supercycle Could Be Worth $20 Trillion"
         },
         {
-          "confidence": 0.7,
-          "news_id": "news_df737941e3ecbf78",
-          "score_component": 0.20051673682118745,
-          "source": "eia_energy",
-          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67685",
-          "title": "Electricity generation from solar could exceed coal in ERCOT for the first time in 2026"
-        },
-        {
-          "confidence": 0.5,
-          "news_id": "news_d29dda19e6ea7bb2",
-          "score_component": 0.15,
+          "confidence": 0.6,
+          "news_id": "news_702f144a582b2678",
+          "score_component": 0.24,
           "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/Brazil-Launches-World-First-Ethanol-Powered-Grid-Engine.html",
-          "title": "Brazil Launches World-First Ethanol-Powered Grid Engine"
+          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/India-Launches-85-Ethanol-Fuel-to-Cut-Oil-Import-Dependence.html",
+          "title": "India Launches 85% Ethanol Fuel to Cut Oil Import Dependence"
         }
       ],
-      "trend_30d": 1.6274978605223265
+      "trend_30d": 2.326313780110827
     },
     "glp1_metabolic": {
       "avg_confidence": null,
@@ -259,42 +260,52 @@
       "trend_30d": 0.0
     },
     "nuclear_renaissance": {
-      "avg_confidence": 0.6,
+      "avg_confidence": 0.6666666666666666,
       "avg_severity": 0.5,
-      "item_count": 2,
+      "item_count": 3,
       "label": "Nuclear Renaissance",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6,
-          "item_count": 2,
+          "avg_confidence": 0.6666666666666666,
+          "item_count": 3,
           "period_start": "2026-06-01",
-          "score": 0.573057887991316
+          "score": 0.90996922774059
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6,
-          "item_count": 2,
+          "avg_confidence": 0.6666666666666666,
+          "item_count": 3,
           "period_start": "2026-04-01",
-          "score": 0.573057887991316
+          "score": 0.90996922774059
         }
       ],
-      "raw_score": 1.0,
-      "score": 0.573057887991316,
+      "raw_score": 1.5,
+      "score": 0.90996922774059,
       "source_mix": {
+        "eia_energy": 1,
         "oilprice": 2
       },
       "theme_id": "nuclear_renaissance",
       "top_news_ids": [
+        "news_baa9a50267b7cfc2",
         "news_db7fc8902378bb8e",
         "news_629dce8e5cd8e858"
       ],
       "top_news_items": [
         {
+          "confidence": 0.8,
+          "news_id": "news_baa9a50267b7cfc2",
+          "score_component": 0.35,
+          "source": "eia_energy",
+          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67746",
+          "title": "China's nuclear power capacity nearly doubled since 2016"
+        },
+        {
           "confidence": 0.6,
           "news_id": "news_db7fc8902378bb8e",
-          "score_component": 0.29314799053027374,
+          "score_component": 0.28645248117312494,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Nuclear-Startups-Are-in-Advanced-Negotiations-to-Buy-Cold-War-Plutonium.html",
           "title": "Nuclear Startups Are in \"Advanced Negotiations\" to market-action term Cold War Plutonium"
@@ -302,13 +313,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_629dce8e5cd8e858",
-          "score_component": 0.2799098974610422,
+          "score_component": 0.27351674656746505,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Russias-16-Billion-Nuclear-Deal-With-Kazakhstan-Lacks-One-Critical-Detail.html",
           "title": "Russia's $16 Billion Nuclear Deal With Kazakhstan Lacks One Critical Detail"
         }
       ],
-      "trend_30d": 0.573057887991316
+      "trend_30d": 0.90996922774059
     },
     "physical_ai": {
       "avg_confidence": 0.625,
@@ -321,13 +332,13 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.06805337287606847
+          "score": 0.06649903169142303
         },
         {
           "avg_confidence": 0.7000000000000001,
           "item_count": 3,
           "period_start": "2026-06-01",
-          "score": 0.7100247914682019
+          "score": 0.6938078028186001
         }
       ],
       "quarterly_scores": [
@@ -335,11 +346,11 @@
           "avg_confidence": 0.625,
           "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.7780781643442702
+          "score": 0.7603068345100231
         }
       ],
       "raw_score": 1.3,
-      "score": 0.7780781643442702,
+      "score": 0.7603068345100231,
       "source_mix": {
         "nasdaq_markets": 1,
         "nvidia_blog": 3
@@ -355,7 +366,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_289dbe63e82c5920",
-          "score_component": 0.26124923763030605,
+          "score_component": 0.25528229679630066,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/factory-operations-fox-blueprint-ai-brain/",
           "title": "NVIDIA Factory Operations Blueprint Gives Factories a New AI Brain"
@@ -363,7 +374,7 @@
         {
           "confidence": 0.9,
           "news_id": "news_f0455ea7d9e8f728",
-          "score_component": 0.2578072330558125,
+          "score_component": 0.251918907714938,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/",
           "title": "NVIDIA Jetson Brings Agentic AI to the Physical World"
@@ -371,7 +382,7 @@
         {
           "confidence": 0.5,
           "news_id": "news_8f6b1d14a1926d78",
-          "score_component": 0.1909683207820833,
+          "score_component": 0.18660659830736148,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/heres-why-tesla-stock-soared-may-and-what-spacex-ipo-means-tesla-investors",
           "title": "Here's Why Tesla Stock Soared in May (And What the SpaceX IPO Means to Tesla Investors)"
@@ -379,13 +390,13 @@
         {
           "confidence": 0.4,
           "news_id": "news_1c0555523586f353",
-          "score_component": 0.06805337287606847,
+          "score_component": 0.06649903169142303,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/icra-research-robotics-simulation-to-real-world/",
           "title": "NVIDIA Research Advances Robotics From Simulation to the Real World"
         }
       ],
-      "trend_30d": 0.7780781643442702
+      "trend_30d": 0.7603068345100232
     },
     "quantum_computing": {
       "avg_confidence": 0.7,
@@ -398,7 +409,7 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 0.35
+          "score": 0.34200598895198603
         }
       ],
       "quarterly_scores": [
@@ -406,11 +417,11 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.35
+          "score": 0.34200598895198603
         }
       ],
       "raw_score": 0.5,
-      "score": 0.35,
+      "score": 0.34200598895198603,
       "source_mix": {
         "nasdaq_markets": 1
       },
@@ -422,56 +433,66 @@
         {
           "confidence": 0.7,
           "news_id": "news_73725134879ae424",
-          "score_component": 0.35,
+          "score_component": 0.34200598895198603,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/why-d-wave-quantum-stock-jumped-nearly-50-last-month",
           "title": "Why D-Wave Quantum Stock Jumped Nearly 50% Last Month"
         }
       ],
-      "trend_30d": 0.35
+      "trend_30d": 0.34200598895198603
     },
     "space_economy": {
       "avg_confidence": 0.6,
-      "avg_severity": 0.5,
-      "item_count": 1,
+      "avg_severity": 0.35,
+      "item_count": 2,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
           "avg_confidence": 0.6,
-          "item_count": 1,
+          "item_count": 2,
           "period_start": "2026-06-01",
-          "score": 0.3
+          "score": 0.41314799053027373
         }
       ],
       "quarterly_scores": [
         {
           "avg_confidence": 0.6,
-          "item_count": 1,
+          "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.3
+          "score": 0.41314799053027373
         }
       ],
-      "raw_score": 0.5,
-      "score": 0.3,
+      "raw_score": 0.7,
+      "score": 0.41314799053027373,
       "source_mix": {
+        "oilprice": 1,
         "scmp": 1
       },
       "theme_id": "space_economy",
       "top_news_ids": [
-        "news_16b3f67465c27c05"
+        "news_16b3f67465c27c05",
+        "news_8277bc23689946a8"
       ],
       "top_news_items": [
         {
           "confidence": 0.6,
           "news_id": "news_16b3f67465c27c05",
-          "score_component": 0.3,
+          "score_component": 0.29314799053027374,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/science/article/3355930/chinese-satellite-company-releases-images-nvidia-apple-hqs?utm_source=rss_feed",
           "title": "Chinese satellite company releases images of Nvidia, Apple HQs"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_8277bc23689946a8",
+          "score_component": 0.12,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Finance/the-Markets/SP-Rejects-Fast-Entry-for-SpaceX-Delaying-14B-in-Passive-Inflows.html",
+          "title": "S&P Rejects Fast Entry for SpaceX, Delaying $14B in Passive Inflows"
         }
       ],
-      "trend_30d": 0.3
+      "trend_30d": 0.41314799053027373
     }
   },
   "trend_window_days": 30,
