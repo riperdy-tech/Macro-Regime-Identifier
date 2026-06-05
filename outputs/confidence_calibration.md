@@ -1,6 +1,6 @@
 # LLM Confidence Calibration
 
-Ledger rows: 218  |  Directional calls: 164
+Ledger rows: 277  |  Directional calls: 201
 
 Diagnostic instrumentation only. No recalibration applied. Buckets are unreliable until directional calls are plentiful (target >= 200).
 
