@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-06-07T16:39:10.939390+00:00",
+  "computed_at": "2026-06-07T23:47:15.779445+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,9 +11,9 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6020833333333333,
-      "avg_severity": 0.39166666666666666,
-      "item_count": 24,
+      "avg_confidence": 0.61,
+      "avg_severity": 0.4,
+      "item_count": 25,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -24,28 +24,28 @@
           "score": 0.8204670741123594
         },
         {
-          "avg_confidence": 0.6236842105263157,
-          "item_count": 19,
+          "avg_confidence": 0.6325000000000001,
+          "item_count": 20,
           "period_start": "2026-06-01",
-          "score": 4.494669921023631
+          "score": 4.84466992102363
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6020833333333333,
-          "item_count": 24,
+          "avg_confidence": 0.61,
+          "item_count": 25,
           "period_start": "2026-04-01",
-          "score": 5.3151369951359895
+          "score": 5.66513699513599
         }
       ],
-      "raw_score": 9.4,
-      "score": 5.3151369951359895,
+      "raw_score": 10.0,
+      "score": 5.66513699513599,
       "source_mix": {
         "cnbc_finance": 3,
         "cnbc_tech": 3,
         "eia_energy": 1,
         "housingwire": 1,
-        "nasdaq_markets": 4,
+        "nasdaq_markets": 5,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "oilprice": 2,
@@ -101,7 +101,7 @@
           "title": "Data center server energy use grows across the commercial building stock"
         }
       ],
-      "trend_30d": 5.31513699513599
+      "trend_30d": 5.66513699513599
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -163,41 +163,41 @@
       "trend_30d": 0.0
     },
     "energy_transition": {
-      "avg_confidence": 0.6,
-      "avg_severity": 0.36666666666666664,
-      "item_count": 12,
+      "avg_confidence": 0.6153846153846153,
+      "avg_severity": 0.3846153846153845,
+      "item_count": 13,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6,
-          "item_count": 12,
+          "avg_confidence": 0.6153846153846153,
+          "item_count": 13,
           "period_start": "2026-06-01",
           "score": 2.002782872131202
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6,
-          "item_count": 12,
+          "avg_confidence": 0.6153846153846153,
+          "item_count": 13,
           "period_start": "2026-04-01",
           "score": 2.002782872131202
         }
       ],
-      "raw_score": 4.3999999999999995,
+      "raw_score": 4.999999999999999,
       "score": 2.002782872131202,
       "source_mix": {
         "eia_energy": 2,
-        "oilprice": 9,
+        "oilprice": 10,
         "scmp": 1
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
         "news_8911d0e843bfd3b3",
         "news_8ec801f6b2902d21",
+        "news_e28dbd6787eeebff",
         "news_3ae25324d704db74",
-        "news_6e1acbeb56f9152f",
-        "news_702f144a582b2678"
+        "news_6e1acbeb56f9152f"
       ],
       "top_news_items": [
         {
@@ -217,6 +217,14 @@
           "title": "The Next Stranded Asset Crisis Could Hit Utilities"
         },
         {
+          "confidence": 0.8,
+          "news_id": "news_e28dbd6787eeebff",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Britains-Net-Zero-Policy-Is-Killing-Its-Chemical-Industry.html",
+          "title": "Britain's Net Zero Policy Is Killing Its Chemical Industry"
+        },
+        {
           "confidence": 0.7,
           "news_id": "news_3ae25324d704db74",
           "score_component": 0.2673556490949166,
@@ -231,17 +239,9 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/The-Next-Infrastructure-Supercycle-Could-Be-Worth-20-Trillion.html",
           "title": "The Next Infrastructure Supercycle Could Be Worth $20 Trillion"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_702f144a582b2678",
-          "score_component": 0.22916198493849996,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/India-Launches-85-Ethanol-Fuel-to-Cut-Oil-Import-Dependence.html",
-          "title": "India Launches 85% Ethanol Fuel to Cut Oil Import Dependence"
         }
       ],
-      "trend_30d": 2.428760852580799
+      "trend_30d": 2.778760852580799
     },
     "glp1_metabolic": {
       "avg_confidence": 0.55,
