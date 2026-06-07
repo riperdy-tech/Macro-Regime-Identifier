@@ -27,9 +27,35 @@ export function formatScore(value: unknown): string {
   return numeric.toFixed(3);
 }
 
-// Trim a full ISO timestamp to a friendly "YYYY-MM-DD HH:MM UTC" (no seconds /
-// microseconds). Falls back to the raw value if it is not a parseable date.
-export function formatStamp(value: unknown, withTime = true): string {
+const TAIWAN_TIME_ZONE = "Asia/Taipei";
+
+function formatTaiwanDateParts(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: TAIWAN_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const byType = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${byType.year}-${byType.month}-${byType.day}`;
+}
+
+function timestampFromRunId(runId: unknown): Date | null {
+  if (typeof runId !== "string") {
+    return null;
+  }
+  const match = runId.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z/);
+  if (!match) {
+    return null;
+  }
+  const [, year, month, day, hour, minute, second] = match;
+  const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+// Render timestamps as Taiwan calendar dates only. This intentionally omits
+// HH:MM so runs near UTC midnight read naturally for Taiwan users.
+export function formatStamp(value: unknown): string {
   if (value === null || value === undefined || value === "") {
     return "Data unavailable";
   }
@@ -37,11 +63,15 @@ export function formatStamp(value: unknown, withTime = true): string {
   if (Number.isNaN(d.getTime())) {
     return String(value);
   }
-  const date = d.toISOString().slice(0, 10);
-  if (!withTime) {
-    return date;
+  return formatTaiwanDateParts(d);
+}
+
+export function formatRunDate(runDate: unknown, runId?: unknown): string {
+  const timestamp = timestampFromRunId(runId);
+  if (timestamp) {
+    return formatTaiwanDateParts(timestamp);
   }
-  return `${date} ${d.toISOString().slice(11, 16)} UTC`;
+  return formatStamp(runDate);
 }
 
 export function asArray<T>(value: unknown): T[] {

@@ -14,6 +14,7 @@ import {
   asArray,
   combinedRows,
   formatPct,
+  formatRunDate,
   formatScore,
   formatStamp,
   getNested,
@@ -877,7 +878,7 @@ function HistoryPanel({ data }: { data: DashboardData }) {
     <section className="grid two">
       <Metric label="History status" value={text(history.history_status, "empty")} />
       <Metric label="Recorded runs" value={text(history.total_runs, "0")} info={TOOLTIPS.recorded_runs} />
-      <Metric label="Latest run" value={text(latest?.run_date)} detail={text(latest?.run_id)} />
+      <Metric label="Latest run" value={formatRunDate(latest?.run_date, latest?.run_id)} detail={text(latest?.run_id)} />
       <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} info={TOOLTIPS.avg_confidence} />
       <Panel title="History Readiness" wide info={TOOLTIPS.history_readiness}>
         {rows.length < 2 ? (
@@ -936,7 +937,7 @@ function HistoryTable({ rows }: { rows: HistoryRun[] }) {
         {rows.map((row, index) => (
           <tr key={`${row.run_id}-${index}`}>
             <td>
-              <strong>{text(row.run_date)}</strong>
+              <strong>{formatRunDate(row.run_date, row.run_id)}</strong>
               <small className="block">{text(row.run_id)}</small>
             </td>
             <td>
