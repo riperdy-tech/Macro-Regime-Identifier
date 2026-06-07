@@ -36,6 +36,10 @@ DEFAULT_MIN_SOURCE_DIVERSITY = 3
 _THEME_ID_RE = re.compile(r"^[a-z][a-z0-9_]{2,39}$")
 
 
+class CandidateResponseError(ValueError):
+    """Raised when a theme-discovery model response fails strict validation."""
+
+
 @dataclass(frozen=True)
 class PromotionThresholds:
     """Anti-noise gate thresholds (priors, not measured)."""
@@ -150,8 +154,27 @@ def build_discovery_prompt(
     return system, user
 
 
+def decode_candidate_payload(text: str | dict[str, Any]) -> dict[str, Any]:
+    """Decode and validate the top-level candidate-response shape."""
+    payload = json.loads(text) if isinstance(text, str) else text
+    if not isinstance(payload, dict):
+        raise CandidateResponseError("response must be a JSON object")
+    candidates = payload.get("candidates")
+    if not isinstance(candidates, list):
+        raise CandidateResponseError("response must contain a candidates list")
+    for idx, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict):
+            raise CandidateResponseError(f"candidate {idx} must be an object")
+        article_indices = candidate.get("article_indices")
+        if article_indices is not None and not isinstance(article_indices, list):
+            raise CandidateResponseError(
+                f"candidate {idx} article_indices must be a list"
+            )
+    return payload
+
+
 def parse_candidate_response(
-    text: str,
+    text: str | dict[str, Any],
     items: pd.DataFrame,
     *,
     existing_theme_ids: set[str],

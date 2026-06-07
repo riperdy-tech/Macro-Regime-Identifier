@@ -11,8 +11,10 @@ import pytest
 
 from macro_engine.news.config import load_news_themes_config
 from macro_engine.news.theme_discovery import (
+    CandidateResponseError,
     ThemeCandidate,
     build_discovery_prompt,
+    decode_candidate_payload,
     evaluate_promotion,
     parse_candidate_response,
     promote_candidates,
@@ -63,6 +65,16 @@ def test_select_empty_classifications_returns_all():
 
 
 # ---- parse_candidate_response ---------------------------------------------
+
+
+def test_decode_candidate_payload_rejects_truncated_json():
+    with pytest.raises(json.JSONDecodeError):
+        decode_candidate_payload('{"candidates": [{"theme_id": "broken", "label": "unterminated}')
+
+
+def test_decode_candidate_payload_rejects_wrong_shape():
+    with pytest.raises(CandidateResponseError, match="candidates list"):
+        decode_candidate_payload('{"candidate": []}')
 
 
 def test_parse_computes_support_from_our_data_not_model():
