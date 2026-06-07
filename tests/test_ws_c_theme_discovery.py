@@ -77,6 +77,23 @@ def test_decode_candidate_payload_rejects_wrong_shape():
         decode_candidate_payload('{"candidate": []}')
 
 
+def test_decode_candidate_payload_rejects_bad_candidate_shape():
+    with pytest.raises(CandidateResponseError, match="article_indices"):
+        decode_candidate_payload(
+            json.dumps(
+                {
+                    "candidates": [
+                        {
+                            "theme_id": "valid_theme",
+                            "label": "Valid Theme",
+                            "description": "Missing support indices.",
+                        }
+                    ]
+                }
+            )
+        )
+
+
 def test_parse_computes_support_from_our_data_not_model():
     news = _news(10, start_day=1)
     text = json.dumps(

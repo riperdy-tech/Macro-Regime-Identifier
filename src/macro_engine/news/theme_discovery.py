@@ -165,10 +165,25 @@ def decode_candidate_payload(text: str | dict[str, Any]) -> dict[str, Any]:
     for idx, candidate in enumerate(candidates):
         if not isinstance(candidate, dict):
             raise CandidateResponseError(f"candidate {idx} must be an object")
+        for field_name in ("theme_id", "label", "description"):
+            value = candidate.get(field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise CandidateResponseError(
+                    f"candidate {idx} {field_name} must be a non-empty string"
+                )
+        theme_id = candidate["theme_id"].strip().lower()
+        if not _THEME_ID_RE.match(theme_id):
+            raise CandidateResponseError(
+                f"candidate {idx} theme_id must be lower_snake_case"
+            )
         article_indices = candidate.get("article_indices")
-        if article_indices is not None and not isinstance(article_indices, list):
+        if not isinstance(article_indices, list):
             raise CandidateResponseError(
                 f"candidate {idx} article_indices must be a list"
+            )
+        if not all(isinstance(item, int) for item in article_indices):
+            raise CandidateResponseError(
+                f"candidate {idx} article_indices must contain integers"
             )
     return payload
 
