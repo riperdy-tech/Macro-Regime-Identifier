@@ -107,7 +107,7 @@ environment, not the local development machine.
 ### Schedule Timing
 
 GitHub Actions cron is UTC and may be delayed during high load. The
-scheduled run time (Mon-Fri 22:37 UTC) is approximate, not guaranteed exact.
+scheduled run time (daily 22:37 UTC) is approximate, not guaranteed exact.
 
 ### Runner Environment Differences
 

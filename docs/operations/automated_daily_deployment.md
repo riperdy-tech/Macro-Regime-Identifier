@@ -17,7 +17,7 @@ The workflow runs in `.github/workflows/daily-dashboard.yml`.
 ## Schedule
 
 ```text
-Cron: 37 22 * * 1-5  (Mon-Fri at 22:37 UTC)
+Cron: 37 22 * * *  (daily at 22:37 UTC)
 ```
 
 GitHub cron is UTC. Adjust for your timezone expectation.

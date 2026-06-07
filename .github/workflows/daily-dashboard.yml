@@ -3,7 +3,7 @@ name: Daily Diagnostic + Dashboard Publish
 # Runs the full daily diagnostic pipeline, exports dashboard data,
 # builds the dashboard, and publishes to GitHub Pages.
 #
-# GitHub cron is UTC. "37 22 * * 1-5" = Mon-Fri ~22:37 UTC.
+# GitHub cron is UTC. "37 22 * * *" = daily ~22:37 UTC.
 # Adjust for your timezone.
 
 on:
@@ -29,8 +29,8 @@ on:
         default: ""
 
   schedule:
-    # Mon-Fri at 22:37 UTC (adjust cron for your timezone)
-    - cron: "37 22 * * 1-5"
+    # Daily at 22:37 UTC (adjust cron for your timezone)
+    - cron: "37 22 * * *"
 
 permissions:
   contents: write

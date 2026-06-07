@@ -123,7 +123,7 @@ machine that owns the API key.
 On Unix-like systems:
 
 ```cron
-30 7 * * 1-5 cd /path/to/project && ./scripts/run_daily_diagnostic.sh
+30 7 * * * cd /path/to/project && ./scripts/run_daily_diagnostic.sh
 ```
 
 ## Outputs And Archives

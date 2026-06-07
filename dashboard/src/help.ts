@@ -246,7 +246,7 @@ export const PIPELINE_DETAIL: { title: string; lines: string[] }[] = [
   {
     title: "7. Automation",
     lines: [
-      "A GitHub Actions cron runs the whole pipeline on a fresh machine each weekday, exports JSON, and publishes the site.",
+      "A GitHub Actions cron runs the whole pipeline on a fresh machine every day, exports JSON, and publishes the site.",
       "The database is cached between runs so news accumulates day over day; old raw AI responses are pruned at 150 days to stay bounded.",
       "Alerting opens a GitHub issue when the regime flips or a guardrail fails. A weekly job proposes new secular themes to a review branch.",
     ],

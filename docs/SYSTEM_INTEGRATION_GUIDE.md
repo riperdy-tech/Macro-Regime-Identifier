@@ -391,7 +391,7 @@ https://riperdy-tech.github.io/Macro-Regime-Identifier/data/
 
 ### 7.3 Data Freshness
 
-- **Generated**: Mon-Fri ~22:37 UTC by GitHub Actions
+- **Generated**: Daily ~22:37 UTC by GitHub Actions
 - **Macro data**: Usually 2-4 weeks behind (FRED release lag)
 - **News data**: As of last classification run
 - **Staleness**: If workflow fails, data freezes until next successful run
@@ -487,7 +487,7 @@ for sector in sectors:
 
 ```
 Workflow: .github/workflows/daily-dashboard.yml
-Schedule: Mon-Fri 22:37 UTC (cron: "37 22 * * 1-5")
+Schedule: Daily 22:37 UTC (cron: "37 22 * * *")
 Runtime:  ~8 minutes (mock mode)
 Secrets:  FRED_API_KEY, DEEPSEEK_API_KEY (optional)
 ```
