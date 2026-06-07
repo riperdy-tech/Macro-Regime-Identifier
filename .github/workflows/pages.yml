@@ -40,10 +40,24 @@ jobs:
           GITHUB_PAGES: "true"
         run: npm run build
 
+      - name: Guard against sample-only publish
+        id: publish_guard
+        shell: bash
+        run: |
+          if [ -f dashboard/dist/data/manifest.json ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+            echo "Exported dashboard data found; publishing Pages build."
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::dashboard/dist/data/manifest.json is missing; skipping Pages publish to avoid replacing live data with sample fixtures."
+          fi
+
       - name: Disable Jekyll processing
+        if: steps.publish_guard.outputs.publish == 'true'
         run: touch dashboard/dist/.nojekyll
 
       - name: Publish dashboard to gh-pages
+        if: steps.publish_guard.outputs.publish == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
