@@ -1,19 +1,19 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-06-10T00:05:56.886323+00:00",
+  "computed_at": "2026-06-11T00:14:40.283206+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
     "quarterly"
   ],
   "readiness_note": "diagnostic_overlay_only",
-  "scored_theme_count": 8,
+  "scored_theme_count": 9,
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6048387096774194,
-      "avg_severity": 0.3903225806451613,
-      "item_count": 31,
+      "avg_confidence": 0.6015151515151516,
+      "avg_severity": 0.37878787878787873,
+      "item_count": 33,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -21,29 +21,29 @@
           "avg_confidence": 0.52,
           "item_count": 5,
           "period_start": "2026-05-01",
-          "score": 0.7889613015786235
+          "score": 0.7789354115944234
         },
         {
-          "avg_confidence": 0.6211538461538461,
-          "item_count": 26,
+          "avg_confidence": 0.6160714285714286,
+          "item_count": 28,
           "period_start": "2026-06-01",
-          "score": 5.952859413765727
+          "score": 6.087829187240453
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6048387096774194,
-          "item_count": 31,
+          "avg_confidence": 0.6015151515151516,
+          "item_count": 33,
           "period_start": "2026-04-01",
-          "score": 6.74182071534435
+          "score": 6.866764598834877
         }
       ],
-      "raw_score": 12.1,
-      "score": 6.74182071534435,
+      "raw_score": 12.499999999999998,
+      "score": 6.866764598834877,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_finance": 3,
-        "cnbc_tech": 3,
+        "cnbc_tech": 4,
         "eia_energy": 1,
         "housingwire": 2,
         "marketwatch": 1,
@@ -51,7 +51,7 @@
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "oilprice": 4,
-        "scmp": 3
+        "scmp": 4
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
@@ -103,12 +103,12 @@
           "title": "Stock Market Today, June 2: Marvell Technology Surges After Nvidia CEO Highlights AI Infrastructure Role"
         }
       ],
-      "trend_30d": 6.741820715344348
+      "trend_30d": 6.866764598834875
     },
     "cloud_software": {
       "avg_confidence": 0.6,
-      "avg_severity": 0.2,
-      "item_count": 1,
+      "avg_severity": 0.25,
+      "item_count": 2,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -116,91 +116,134 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.08886585313719385
+          "score": 0.08683615424642269
+        },
+        {
+          "avg_confidence": 0.6,
+          "item_count": 1,
+          "period_start": "2026-06-01",
+          "score": 0.17588879431816426
         }
       ],
       "quarterly_scores": [
         {
           "avg_confidence": 0.6,
-          "item_count": 1,
+          "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.08886585313719385
+          "score": 0.26272494856458695
         }
       ],
-      "raw_score": 0.2,
-      "score": 0.08886585313719385,
+      "raw_score": 0.5,
+      "score": 0.26272494856458695,
       "source_mix": {
+        "housingwire": 1,
         "nvidia_blog": 1
       },
       "theme_id": "cloud_software",
       "top_news_ids": [
+        "news_f0430d212ddda487",
         "news_af3cc173a30eee83"
       ],
       "top_news_items": [
         {
           "confidence": 0.6,
+          "news_id": "news_f0430d212ddda487",
+          "score_component": 0.17588879431816426,
+          "source": "housingwire",
+          "source_url": "https://www.housingwire.com/articles/ai-erp-homebuilding-margin-leaks/",
+          "title": "Homebuilders are using AI-powered ERP to find margin leaks faster"
+        },
+        {
+          "confidence": 0.6,
           "news_id": "news_af3cc173a30eee83",
-          "score_component": 0.08886585313719385,
+          "score_component": 0.08683615424642269,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/geforce-now-thursday-007-first-light-launch/",
           "title": "The Name\u2019s Gaming \u2026 Cloud Gaming: \u2018007 First Light\u2019 Launches on GeForce NOW"
         }
       ],
-      "trend_30d": 0.08886585313719385
+      "trend_30d": 0.26272494856458695
     },
     "cybersecurity": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.9,
+      "avg_severity": 0.7,
+      "item_count": 1,
       "label": "Cybersecurity",
-      "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
-      "theme_id": "cybersecurity",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
-    },
-    "energy_transition": {
-      "avg_confidence": 0.623529411764706,
-      "avg_severity": 0.4176470588235294,
-      "item_count": 17,
-      "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.623529411764706,
-          "item_count": 17,
+          "avg_confidence": 0.9,
+          "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 2.1645450009648926
+          "score": 0.35
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.623529411764706,
-          "item_count": 17,
+          "avg_confidence": 0.9,
+          "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 2.1645450009648926
+          "score": 0.35
         }
       ],
-      "raw_score": 7.1000000000000005,
-      "score": 2.1645450009648926,
+      "raw_score": 0.7,
+      "score": 0.35,
       "source_mix": {
-        "eia_energy": 2,
-        "marketwatch": 1,
-        "oilprice": 13,
         "scmp": 1
+      },
+      "theme_id": "cybersecurity",
+      "top_news_ids": [
+        "news_d735353b8ab75d1e"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.9,
+          "news_id": "news_d735353b8ab75d1e",
+          "score_component": 0.35,
+          "source": "scmp",
+          "source_url": "https://www.scmp.com/news/us/diplomacy/article/3356681/fbi-disables-13-chinese-suspected-spying-websites-targeting-us-officials?utm_source=rss_feed",
+          "title": "FBI disables 13 Chinese suspected spying websites targeting US officials"
+        }
+      ],
+      "trend_30d": 0.35
+    },
+    "energy_transition": {
+      "avg_confidence": 0.6428571428571429,
+      "avg_severity": 0.4428571428571429,
+      "item_count": 21,
+      "label": "Energy Transition & Clean Tech",
+      "mock_contribution_ratio": 0.0,
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.6428571428571429,
+          "item_count": 21,
+          "period_start": "2026-06-01",
+          "score": 2.849366772165991
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.6428571428571429,
+          "item_count": 21,
+          "period_start": "2026-04-01",
+          "score": 2.849366772165991
+        }
+      ],
+      "raw_score": 9.3,
+      "score": 2.849366772165991,
+      "source_mix": {
+        "eia_energy": 3,
+        "marketwatch": 1,
+        "oilprice": 15,
+        "scmp": 2
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
         "news_16a2fc8e02f45b99",
         "news_351950900ea50d1e",
-        "news_e28dbd6787eeebff",
-        "news_8ec801f6b2902d21",
-        "news_8911d0e843bfd3b3"
+        "news_7b4473af7fa574d9",
+        "news_bdfffbfcea9961d8",
+        "news_e28dbd6787eeebff"
       ],
       "top_news_items": [
         {
@@ -220,31 +263,31 @@
           "title": "World's Largest Battery Maker Bets Big on Energy Storage"
         },
         {
+          "confidence": 0.9,
+          "news_id": "news_7b4473af7fa574d9",
+          "score_component": 0.35,
+          "source": "scmp",
+          "source_url": "https://www.scmp.com/business/china-business/article/3356667/byd-powers-past-geely-oil-shock-charges-global-ev-demand?utm_source=rss_feed",
+          "title": "BYD powers past Geely as oil shock charges up global EV demand"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_bdfffbfcea9961d8",
+          "score_component": 0.35,
+          "source": "eia_energy",
+          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67765",
+          "title": "Higher blending targets drive RIN prices close to record highs"
+        },
+        {
           "confidence": 0.8,
           "news_id": "news_e28dbd6787eeebff",
           "score_component": 0.35,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Britains-Net-Zero-Policy-Is-Killing-Its-Chemical-Industry.html",
           "title": "Britain's Net Zero Policy Is Killing Its Chemical Industry"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_8ec801f6b2902d21",
-          "score_component": 0.34114600646961896,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/The-Next-Stranded-Asset-Crisis-Could-Hit-Utilities.html",
-          "title": "The Next Stranded Asset Crisis Could Hit Utilities"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_8911d0e843bfd3b3",
-          "score_component": 0.3402668643803423,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/States-Take-Trump-to-Court-Over-Offshore-Wind-Cancelations.html",
-          "title": "States Take Trump to Court Over Offshore Wind Cancelations"
         }
       ],
-      "trend_30d": 3.832983765002269
+      "trend_30d": 5.0459447093388405
     },
     "glp1_metabolic": {
       "avg_confidence": 0.55,
@@ -257,7 +300,7 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-06-01",
-          "score": 0.40598197949220843
+          "score": 0.404703349313493
         }
       ],
       "quarterly_scores": [
@@ -265,11 +308,11 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.40598197949220843
+          "score": 0.404703349313493
         }
       ],
       "raw_score": 0.8,
-      "score": 0.40598197949220843,
+      "score": 0.404703349313493,
       "source_mix": {
         "marketwatch": 1,
         "nasdaq_markets": 1
@@ -291,53 +334,54 @@
         {
           "confidence": 0.3,
           "news_id": "news_eba191731c6d6671",
-          "score_component": 0.05598197949220844,
+          "score_component": 0.05470334931349301,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/lillys-foundayo-demonstrates-weight-loss-across-menopause-stages",
           "title": "Lilly's Foundayo Demonstrates Weight Loss Across Menopause Stages"
         }
       ],
-      "trend_30d": 0.40598197949220843
+      "trend_30d": 0.404703349313493
     },
     "nuclear_renaissance": {
-      "avg_confidence": 0.6666666666666666,
-      "avg_severity": 0.5,
-      "item_count": 3,
+      "avg_confidence": 0.575,
+      "avg_severity": 0.4,
+      "item_count": 4,
       "label": "Nuclear Renaissance",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6666666666666666,
-          "item_count": 3,
+          "avg_confidence": 0.575,
+          "item_count": 4,
           "period_start": "2026-06-01",
-          "score": 0.8488758671921274
+          "score": 0.8650165510095432
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6666666666666666,
-          "item_count": 3,
+          "avg_confidence": 0.575,
+          "item_count": 4,
           "period_start": "2026-04-01",
-          "score": 0.8488758671921274
+          "score": 0.8650165510095432
         }
       ],
-      "raw_score": 1.5,
-      "score": 0.8488758671921274,
+      "raw_score": 1.6,
+      "score": 0.8650165510095432,
       "source_mix": {
         "eia_energy": 1,
-        "oilprice": 2
+        "oilprice": 3
       },
       "theme_id": "nuclear_renaissance",
       "top_news_ids": [
         "news_baa9a50267b7cfc2",
         "news_db7fc8902378bb8e",
-        "news_629dce8e5cd8e858"
+        "news_629dce8e5cd8e858",
+        "news_1aaa0fcdec5f851e"
       ],
       "top_news_items": [
         {
           "confidence": 0.8,
           "news_id": "news_baa9a50267b7cfc2",
-          "score_component": 0.35,
+          "score_component": 0.34822022531844965,
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67746",
           "title": "China's nuclear power capacity nearly doubled since 2016"
@@ -345,7 +389,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_db7fc8902378bb8e",
-          "score_component": 0.2552001482852567,
+          "score_component": 0.2493713688428363,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Nuclear-Startups-Are-in-Advanced-Negotiations-to-Buy-Cold-War-Plutonium.html",
           "title": "Nuclear Startups Are in \"Advanced Negotiations\" to market-action term Cold War Plutonium"
@@ -353,13 +397,21 @@
         {
           "confidence": 0.6,
           "news_id": "news_629dce8e5cd8e858",
-          "score_component": 0.24367571890687068,
+          "score_component": 0.23811015779522993,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Russias-16-Billion-Nuclear-Deal-With-Kazakhstan-Lacks-One-Critical-Detail.html",
           "title": "Russia's $16 Billion Nuclear Deal With Kazakhstan Lacks One Critical Detail"
+        },
+        {
+          "confidence": 0.3,
+          "news_id": "news_1aaa0fcdec5f851e",
+          "score_component": 0.029314799053027377,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/China-Unveils-Nuclear-Powered-Floating-Hub-for-Zero-Emission-Shipping.html",
+          "title": "China Unveils Nuclear-Powered Floating Hub for Zero-Emission Shipping"
         }
       ],
-      "trend_30d": 0.8488758671921274
+      "trend_30d": 0.8650165510095432
     },
     "physical_ai": {
       "avg_confidence": 0.5416666666666666,
@@ -372,13 +424,13 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.059243902091462575
+          "score": 0.05789076949761514
         },
         {
           "avg_confidence": 0.5700000000000001,
           "item_count": 5,
           "period_start": "2026-06-01",
-          "score": 0.7855008625842625
+          "score": 0.7675599980879111
         }
       ],
       "quarterly_scores": [
@@ -386,11 +438,11 @@
           "avg_confidence": 0.5416666666666666,
           "item_count": 6,
           "period_start": "2026-04-01",
-          "score": 0.8447447646757251
+          "score": 0.8254507675855263
         }
       ],
       "raw_score": 1.75,
-      "score": 0.8447447646757251,
+      "score": 0.8254507675855263,
       "source_mix": {
         "housingwire": 1,
         "nasdaq_markets": 1,
@@ -409,7 +461,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_289dbe63e82c5920",
-          "score_component": 0.22743067097974595,
+          "score_component": 0.2222361472755479,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/factory-operations-fox-blueprint-ai-brain/",
           "title": "NVIDIA Factory Operations Blueprint Gives Factories a New AI Brain"
@@ -417,7 +469,7 @@
         {
           "confidence": 0.9,
           "news_id": "news_f0455ea7d9e8f728",
-          "score_component": 0.22443423195855272,
+          "score_component": 0.21930814701618362,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/",
           "title": "NVIDIA Jetson Brings Agentic AI to the Physical World"
@@ -425,7 +477,7 @@
         {
           "confidence": 0.5,
           "news_id": "news_8f6b1d14a1926d78",
-          "score_component": 0.16624757922855757,
+          "score_component": 0.16245047927124712,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/heres-why-tesla-stock-soared-may-and-what-spacex-ipo-means-tesla-investors",
           "title": "Here's Why Tesla Stock Soared in May (And What the SpaceX IPO Means to Tesla Investors)"
@@ -433,7 +485,7 @@
         {
           "confidence": 0.4,
           "news_id": "news_b0f29b93eb7d14c0",
-          "score_component": 0.1172591962121095,
+          "score_component": 0.11458099246924998,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Self-Driving-Cabs-Are-Coming-to-London.html",
           "title": "Self-Driving Cabs Are Coming to London"
@@ -441,13 +493,13 @@
         {
           "confidence": 0.4,
           "news_id": "news_1c0555523586f353",
-          "score_component": 0.059243902091462575,
+          "score_component": 0.05789076949761514,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/icra-research-robotics-simulation-to-real-world/",
           "title": "NVIDIA Research Advances Robotics From Simulation to the Real World"
         }
       ],
-      "trend_30d": 0.8447447646757251
+      "trend_30d": 0.8254507675855262
     },
     "quantum_computing": {
       "avg_confidence": 0.7,
@@ -460,7 +512,7 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 0.30469269715364344
+          "score": 0.2977335063327995
         }
       ],
       "quarterly_scores": [
@@ -468,11 +520,11 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.30469269715364344
+          "score": 0.2977335063327995
         }
       ],
       "raw_score": 0.5,
-      "score": 0.30469269715364344,
+      "score": 0.2977335063327995,
       "source_mix": {
         "nasdaq_markets": 1
       },
@@ -484,39 +536,40 @@
         {
           "confidence": 0.7,
           "news_id": "news_73725134879ae424",
-          "score_component": 0.30469269715364344,
+          "score_component": 0.2977335063327995,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/why-d-wave-quantum-stock-jumped-nearly-50-last-month",
           "title": "Why D-Wave Quantum Stock Jumped Nearly 50% Last Month"
         }
       ],
-      "trend_30d": 0.30469269715364344
+      "trend_30d": 0.2977335063327995
     },
     "space_economy": {
-      "avg_confidence": 0.5,
-      "avg_severity": 0.22499999999999998,
-      "item_count": 4,
+      "avg_confidence": 0.45999999999999996,
+      "avg_severity": 0.21999999999999997,
+      "item_count": 5,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.5,
-          "item_count": 4,
+          "avg_confidence": 0.45999999999999996,
+          "item_count": 5,
           "period_start": "2026-06-01",
-          "score": 0.44535307805946445
+          "score": 0.49381079780473536
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5,
-          "item_count": 4,
+          "avg_confidence": 0.45999999999999996,
+          "item_count": 5,
           "period_start": "2026-04-01",
-          "score": 0.44535307805946445
+          "score": 0.49381079780473536
         }
       ],
-      "raw_score": 0.8999999999999999,
-      "score": 0.44535307805946445,
+      "raw_score": 1.0999999999999999,
+      "score": 0.49381079780473536,
       "source_mix": {
+        "cnbc_tech": 1,
         "marketwatch": 1,
         "oilprice": 1,
         "scmp": 2
@@ -525,6 +578,7 @@
       "top_news_ids": [
         "news_16b3f67465c27c05",
         "news_8277bc23689946a8",
+        "news_7da4024f749df2a8",
         "news_27c25ba3f8de9d61",
         "news_fbd488c5f5cfad4d"
       ],
@@ -532,7 +586,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_16b3f67465c27c05",
-          "score_component": 0.26116516898883724,
+          "score_component": 0.2552001482852567,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/science/article/3355930/chinese-satellite-company-releases-images-nvidia-apple-hqs?utm_source=rss_feed",
           "title": "Chinese satellite company releases images of Nvidia, Apple HQs"
@@ -540,15 +594,23 @@
         {
           "confidence": 0.6,
           "news_id": "news_8277bc23689946a8",
-          "score_component": 0.10690784617684071,
+          "score_component": 0.1044660675955349,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Finance/the-Markets/SP-Rejects-Fast-Entry-for-SpaceX-Delaying-14B-in-Passive-Inflows.html",
           "title": "S&P Rejects Fast Entry for SpaceX, Delaying $14B in Passive Inflows"
         },
         {
+          "confidence": 0.3,
+          "news_id": "news_7da4024f749df2a8",
+          "score_component": 0.05862959810605475,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/06/10/spacex-ipo-primed-for-double-digit-pop-on-first-day-perpetual-futures.html",
+          "title": "SpaceX primed for double-digit pop on first day, if 'perps' trading is any guide"
+        },
+        {
           "confidence": 0.4,
           "news_id": "news_27c25ba3f8de9d61",
-          "score_component": 0.03908639873736985,
+          "score_component": 0.038193664156416667,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/world/united-states-canada/article/3356551/nasa-reveals-artemis-iii-astronauts-next-step-towards-moon-landing?utm_source=rss_feed",
           "title": "Nasa reveals Artemis III astronauts in next step towards moon landing"
@@ -556,13 +618,13 @@
         {
           "confidence": 0.4,
           "news_id": "news_fbd488c5f5cfad4d",
-          "score_component": 0.038193664156416667,
+          "score_component": 0.037321319661472306,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/elon-musk-says-spacex-doesnt-need-magic-to-put-ai-data-centers-up-in-space-30f2d564?mod=mw_rss_topstories",
           "title": "Elon Musk says SpaceX doesn\u2019t need \u2018magic\u2019 to put AI data centers up in space"
         }
       ],
-      "trend_30d": 0.44535307805946445
+      "trend_30d": 0.49381079780473536
     }
   },
   "trend_window_days": 30,
