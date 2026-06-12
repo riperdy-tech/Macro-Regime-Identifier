@@ -1,11 +1,11 @@
 {
   "combined_experimental_ranking": [
     {
-      "combined_score": 1.7226235303841124,
+      "combined_score": 1.7476728533244217,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 1.7226235303841124,
+          "component_value": 1.7476728533244217,
           "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -22,22 +22,22 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.10556884313742443,
+      "diagnostic_confidence": 0.1074986847488889,
       "macro_component_weight": 1.0,
       "news_component_weight": 0.0,
       "news_confidence": 0.0,
       "news_item_count": 0,
       "rank": 1,
-      "sector_id": "oil_gas_ep",
-      "sector_macro_score": 1.7226235303841124,
+      "sector_id": "homebuilders",
+      "sector_macro_score": 1.7476728533244217,
       "sector_news_score": 0.0
     },
     {
-      "combined_score": 1.6060186177693916,
+      "combined_score": 1.3575770664006122,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 1.6060186177693916,
+          "component_value": 1.3575770664006122,
           "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -54,22 +54,22 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.10556884313742443,
+      "diagnostic_confidence": 0.1074986847488889,
       "macro_component_weight": 1.0,
       "news_component_weight": 0.0,
       "news_confidence": 0.0,
       "news_item_count": 0,
       "rank": 2,
-      "sector_id": "homebuilders",
-      "sector_macro_score": 1.6060186177693916,
+      "sector_id": "oil_gas_ep",
+      "sector_macro_score": 1.3575770664006122,
       "sector_news_score": 0.0
     },
     {
-      "combined_score": 1.3117680320319884,
+      "combined_score": 1.0804469916901753,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 1.6046907093759848,
+          "component_value": 1.2960721793964243,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -81,27 +81,27 @@
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.016749999999999998,
+          "component_value": 0.016607142857142855,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.24542663235306833,
+      "diagnostic_confidence": 0.2475882992759524,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
-      "news_confidence": 0.665,
-      "news_item_count": 100,
+      "news_confidence": 0.6678571428571429,
+      "news_item_count": 112,
       "rank": 3,
       "sector_id": "energy",
-      "sector_macro_score": 1.6046907093759848,
+      "sector_macro_score": 1.2960721793964243,
       "sector_news_score": 0.5
     },
     {
-      "combined_score": 1.2304039821316695,
+      "combined_score": 0.9367458680397124,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 1.5049830872866705,
+          "component_value": 1.113786157386283,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -113,27 +113,91 @@
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.023333333333333334,
+          "component_value": 0.023593750000000004,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.21250996568640165,
+      "diagnostic_confidence": 0.21265526356166667,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
-      "news_confidence": 0.5333333333333333,
-      "news_item_count": 30,
+      "news_confidence": 0.528125,
+      "news_item_count": 32,
       "rank": 4,
       "sector_id": "materials",
-      "sector_macro_score": 1.5049830872866705,
+      "sector_macro_score": 1.113786157386283,
       "sector_news_score": 0.5
     },
     {
-      "combined_score": 0.02315551253642393,
+      "combined_score": 0.33120087402505016,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.10245931661810143,
+          "component_value": 0.4703846168252279,
+          "component_weight": 0.75,
+          "rationale": "Cross-sectional normalized sector macro score."
+        },
+        {
+          "component_name": "bounded_sector_news_score",
+          "component_value": 0.02014964562451682,
+          "component_weight": 0.25,
+          "rationale": "bounded news overlay applied."
+        },
+        {
+          "component_name": "news_uncertainty_penalty",
+          "component_value": 0.026625,
+          "component_weight": 1.0,
+          "rationale": "Penalty applied when news confidence is low and news contributes."
+        }
+      ],
+      "diagnostic_confidence": 0.19749901356166666,
+      "macro_component_weight": 0.75,
+      "news_component_weight": 0.25,
+      "news_confidence": 0.46749999999999997,
+      "news_item_count": 40,
+      "rank": 5,
+      "sector_id": "real_estate",
+      "sector_macro_score": 0.4703846168252279,
+      "sector_news_score": 0.02014964562451682
+    },
+    {
+      "combined_score": 0.13072476219589774,
+      "components": [
+        {
+          "component_name": "normalized_sector_macro_score",
+          "component_value": 0.03791873054691127,
+          "component_weight": 0.75,
+          "rationale": "Cross-sectional normalized sector macro score."
+        },
+        {
+          "component_name": "bounded_sector_news_score",
+          "component_value": 0.5,
+          "component_weight": 0.25,
+          "rationale": "bounded news overlay applied."
+        },
+        {
+          "component_name": "news_uncertainty_penalty",
+          "component_value": 0.022714285714285715,
+          "component_weight": 1.0,
+          "rationale": "Penalty applied when news confidence is low and news contributes."
+        }
+      ],
+      "diagnostic_confidence": 0.2170525849902381,
+      "macro_component_weight": 0.75,
+      "news_component_weight": 0.25,
+      "news_confidence": 0.5457142857142857,
+      "news_item_count": 35,
+      "rank": 6,
+      "sector_id": "utilities",
+      "sector_macro_score": 0.03791873054691127,
+      "sector_news_score": 0.5
+    },
+    {
+      "combined_score": 0.09540720139022471,
+      "components": [
+        {
+          "component_name": "normalized_sector_macro_score",
+          "component_value": -0.006123731479700372,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -150,54 +214,54 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.20417663235306832,
+      "diagnostic_confidence": 0.20562401356166668,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
       "news_confidence": 0.5,
       "news_item_count": 13,
-      "rank": 5,
+      "rank": 7,
       "sector_id": "health_care",
-      "sector_macro_score": -0.10245931661810143,
+      "sector_macro_score": -0.006123731479700372,
       "sector_news_score": 0.5
     },
     {
-      "combined_score": -0.015539469707416625,
+      "combined_score": 0.05830585835825424,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 0.18053070705677784,
-          "component_weight": 0.75,
+          "component_value": 0.05830585835825424,
+          "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
         {
           "component_name": "bounded_sector_news_score",
-          "component_value": -0.5,
-          "component_weight": 0.25,
-          "rationale": "bounded news overlay applied."
+          "component_value": 0.0,
+          "component_weight": 0.0,
+          "rationale": "no_recent_news; macro-only diagnostic."
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.025937500000000002,
+          "component_value": 0.0,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.1994891323530683,
-      "macro_component_weight": 0.75,
-      "news_component_weight": 0.25,
-      "news_confidence": 0.48124999999999996,
-      "news_item_count": 32,
-      "rank": 6,
-      "sector_id": "real_estate",
-      "sector_macro_score": 0.18053070705677784,
-      "sector_news_score": -0.5
+      "diagnostic_confidence": 0.1074986847488889,
+      "macro_component_weight": 1.0,
+      "news_component_weight": 0.0,
+      "news_confidence": 0.0,
+      "news_item_count": 0,
+      "rank": 8,
+      "sector_id": "software",
+      "sector_macro_score": 0.05830585835825424,
+      "sector_news_score": 0.0
     },
     {
-      "combined_score": -0.01631973473857669,
+      "combined_score": 0.030546171717844503,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": 0.17690702034856443,
+          "component_value": 0.23939489562379268,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -214,54 +278,22 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.2091766323530683,
+      "diagnostic_confidence": 0.21062401356166666,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
       "news_confidence": 0.5199999999999999,
       "news_item_count": 10,
-      "rank": 7,
+      "rank": 9,
       "sector_id": "consumer_staples",
-      "sector_macro_score": 0.17690702034856443,
+      "sector_macro_score": 0.23939489562379268,
       "sector_news_score": -0.5
     },
     {
-      "combined_score": -0.05263926865202674,
+      "combined_score": -0.10545700327380648,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.08261779171744997,
-          "component_weight": 0.75,
-          "rationale": "Cross-sectional normalized sector macro score."
-        },
-        {
-          "component_name": "bounded_sector_news_score",
-          "component_value": 0.13889630054424293,
-          "component_weight": 0.25,
-          "rationale": "bounded news overlay applied."
-        },
-        {
-          "component_name": "news_uncertainty_penalty",
-          "component_value": 0.025400000000000002,
-          "component_weight": 1.0,
-          "rationale": "Penalty applied when news confidence is low and news contributes."
-        }
-      ],
-      "diagnostic_confidence": 0.20217663235306832,
-      "macro_component_weight": 0.75,
-      "news_component_weight": 0.25,
-      "news_confidence": 0.49200000000000005,
-      "news_item_count": 75,
-      "rank": 8,
-      "sector_id": "industrials",
-      "sector_macro_score": -0.08261779171744997,
-      "sector_news_score": 0.13889630054424293
-    },
-    {
-      "combined_score": -0.21645502132532116,
-      "components": [
-        {
-          "component_name": "normalized_sector_macro_score",
-          "component_value": -0.4247357273584927,
+          "component_value": -0.27923367632274726,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -273,27 +305,59 @@
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.022903225806451617,
+          "component_value": 0.02103174603174603,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.21466050332081024,
+      "diagnostic_confidence": 0.22546528340293653,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
-      "news_confidence": 0.5419354838709677,
-      "news_item_count": 31,
-      "rank": 9,
-      "sector_id": "utilities",
-      "sector_macro_score": -0.4247357273584927,
+      "news_confidence": 0.5793650793650794,
+      "news_item_count": 63,
+      "rank": 10,
+      "sector_id": "information_technology",
+      "sector_macro_score": -0.27923367632274726,
       "sector_news_score": 0.5
     },
     {
-      "combined_score": -0.2685088759220886,
+      "combined_score": -0.1546498700340877,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.2685088759220886,
+          "component_value": -0.33914556314622546,
+          "component_weight": 0.75,
+          "rationale": "Cross-sectional normalized sector macro score."
+        },
+        {
+          "component_name": "bounded_sector_news_score",
+          "component_value": 0.5,
+          "component_weight": 0.25,
+          "rationale": "bounded news overlay applied."
+        },
+        {
+          "component_name": "news_uncertainty_penalty",
+          "component_value": 0.025290697674418605,
+          "component_weight": 1.0,
+          "rationale": "Penalty applied when news confidence is low and news contributes."
+        }
+      ],
+      "diagnostic_confidence": 0.20417052518957365,
+      "macro_component_weight": 0.75,
+      "news_component_weight": 0.25,
+      "news_confidence": 0.4941860465116279,
+      "news_item_count": 86,
+      "rank": 11,
+      "sector_id": "industrials",
+      "sector_macro_score": -0.33914556314622546,
+      "sector_news_score": 0.5
+    },
+    {
+      "combined_score": -0.22100267648292424,
+      "components": [
+        {
+          "component_name": "normalized_sector_macro_score",
+          "component_value": -0.22100267648292424,
           "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -310,60 +374,60 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.10556884313742443,
+      "diagnostic_confidence": 0.1074986847488889,
       "macro_component_weight": 1.0,
       "news_component_weight": 0.0,
       "news_confidence": 0.0,
       "news_item_count": 0,
-      "rank": 10,
-      "sector_id": "software",
-      "sector_macro_score": -0.2685088759220886,
+      "rank": 12,
+      "sector_id": "biotech",
+      "sector_macro_score": -0.22100267648292424,
       "sector_news_score": 0.0
     },
     {
-      "combined_score": -0.301974029322122,
+      "combined_score": -0.3173843107234586,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.541560610524734,
-          "component_weight": 0.75,
+          "component_value": -0.3173843107234586,
+          "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
         {
           "component_name": "bounded_sector_news_score",
-          "component_value": 0.5,
-          "component_weight": 0.25,
-          "rationale": "bounded news overlay applied."
+          "component_value": 0.0,
+          "component_weight": 0.0,
+          "rationale": "no_recent_news; macro-only diagnostic."
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.020803571428571435,
+          "component_value": 0.0,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.22515877521021116,
-      "macro_component_weight": 0.75,
-      "news_component_weight": 0.25,
-      "news_confidence": 0.5839285714285714,
-      "news_item_count": 56,
-      "rank": 11,
-      "sector_id": "information_technology",
-      "sector_macro_score": -0.541560610524734,
-      "sector_news_score": 0.5
+      "diagnostic_confidence": 0.1074986847488889,
+      "macro_component_weight": 1.0,
+      "news_component_weight": 0.0,
+      "news_confidence": 0.0,
+      "news_item_count": 0,
+      "rank": 13,
+      "sector_id": "semiconductors",
+      "sector_macro_score": -0.3173843107234586,
+      "sector_news_score": 0.0
     },
     {
-      "combined_score": -0.4527753266170601,
+      "combined_score": -0.3473782460670215,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -0.4310867514289151,
+          "component_value": -0.30368815180212533,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
         {
           "component_name": "bounded_sector_news_score",
-          "component_value": -0.417841052181495,
+          "component_value": -0.3784485288617099,
           "component_weight": 0.25,
           "rationale": "bounded news overlay applied."
         },
@@ -374,86 +438,22 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.20417663235306832,
+      "diagnostic_confidence": 0.20562401356166668,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
       "news_confidence": 0.5,
       "news_item_count": 5,
-      "rank": 12,
-      "sector_id": "communication_services",
-      "sector_macro_score": -0.4310867514289151,
-      "sector_news_score": -0.417841052181495
-    },
-    {
-      "combined_score": -0.5103142196284122,
-      "components": [
-        {
-          "component_name": "normalized_sector_macro_score",
-          "component_value": -0.5103142196284122,
-          "component_weight": 1.0,
-          "rationale": "Cross-sectional normalized sector macro score."
-        },
-        {
-          "component_name": "bounded_sector_news_score",
-          "component_value": 0.0,
-          "component_weight": 0.0,
-          "rationale": "no_recent_news; macro-only diagnostic."
-        },
-        {
-          "component_name": "news_uncertainty_penalty",
-          "component_value": 0.0,
-          "component_weight": 1.0,
-          "rationale": "Penalty applied when news confidence is low and news contributes."
-        }
-      ],
-      "diagnostic_confidence": 0.10556884313742443,
-      "macro_component_weight": 1.0,
-      "news_component_weight": 0.0,
-      "news_confidence": 0.0,
-      "news_item_count": 0,
-      "rank": 13,
-      "sector_id": "semiconductors",
-      "sector_macro_score": -0.5103142196284122,
-      "sector_news_score": 0.0
-    },
-    {
-      "combined_score": -0.5147854124544254,
-      "components": [
-        {
-          "component_name": "normalized_sector_macro_score",
-          "component_value": -0.5147854124544254,
-          "component_weight": 1.0,
-          "rationale": "Cross-sectional normalized sector macro score."
-        },
-        {
-          "component_name": "bounded_sector_news_score",
-          "component_value": 0.0,
-          "component_weight": 0.0,
-          "rationale": "no_recent_news; macro-only diagnostic."
-        },
-        {
-          "component_name": "news_uncertainty_penalty",
-          "component_value": 0.0,
-          "component_weight": 1.0,
-          "rationale": "Penalty applied when news confidence is low and news contributes."
-        }
-      ],
-      "diagnostic_confidence": 0.10556884313742443,
-      "macro_component_weight": 1.0,
-      "news_component_weight": 0.0,
-      "news_confidence": 0.0,
-      "news_item_count": 0,
       "rank": 14,
-      "sector_id": "biotech",
-      "sector_macro_score": -0.5147854124544254,
-      "sector_news_score": 0.0
+      "sector_id": "communication_services",
+      "sector_macro_score": -0.30368815180212533,
+      "sector_news_score": -0.3784485288617099
     },
     {
-      "combined_score": -0.9208842321234645,
+      "combined_score": -0.9098278974312415,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -1.0279626018956136,
+          "component_value": -1.013208029908322,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -465,59 +465,59 @@
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.024912280701754386,
+          "component_value": 0.024921875,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.2046152288442964,
+      "diagnostic_confidence": 0.20601463856166669,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
-      "news_confidence": 0.5017543859649123,
-      "news_item_count": 57,
+      "news_confidence": 0.5015625,
+      "news_item_count": 64,
       "rank": 15,
       "sector_id": "consumer_discretionary",
-      "sector_macro_score": -1.0279626018956136,
+      "sector_macro_score": -1.013208029908322,
       "sector_news_score": -0.5
     },
     {
-      "combined_score": -0.9918552606515991,
+      "combined_score": -1.3183297168901644,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -1.3093456581577911,
+          "component_value": -1.748067923424044,
           "component_weight": 0.75,
           "rationale": "Cross-sectional normalized sector macro score."
         },
         {
           "component_name": "bounded_sector_news_score",
-          "component_value": 0.0751257357885457,
+          "component_value": 0.08615762998420196,
           "component_weight": 0.25,
           "rationale": "bounded news overlay applied."
         },
         {
           "component_name": "news_uncertainty_penalty",
-          "component_value": 0.028627450980392155,
+          "component_value": 0.028818181818181823,
           "component_weight": 1.0,
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.18603937745110755,
+      "diagnostic_confidence": 0.1865331044707576,
       "macro_component_weight": 0.75,
       "news_component_weight": 0.25,
-      "news_confidence": 0.4274509803921569,
-      "news_item_count": 51,
+      "news_confidence": 0.42363636363636364,
+      "news_item_count": 55,
       "rank": 16,
       "sector_id": "financials",
-      "sector_macro_score": -1.3093456581577911,
-      "sector_news_score": 0.0751257357885457
+      "sector_macro_score": -1.748067923424044,
+      "sector_news_score": 0.08615762998420196
     },
     {
-      "combined_score": -1.5823767065154783,
+      "combined_score": -2.0932582945723808,
       "components": [
         {
           "component_name": "normalized_sector_macro_score",
-          "component_value": -1.5823767065154783,
+          "component_value": -2.0932582945723808,
           "component_weight": 1.0,
           "rationale": "Cross-sectional normalized sector macro score."
         },
@@ -534,165 +534,165 @@
           "rationale": "Penalty applied when news confidence is low and news contributes."
         }
       ],
-      "diagnostic_confidence": 0.10556884313742443,
+      "diagnostic_confidence": 0.1074986847488889,
       "macro_component_weight": 1.0,
       "news_component_weight": 0.0,
       "news_confidence": 0.0,
       "news_item_count": 0,
       "rank": 17,
       "sector_id": "banks",
-      "sector_macro_score": -1.5823767065154783,
+      "sector_macro_score": -2.0932582945723808,
       "sector_news_score": 0.0
     }
   ],
-  "diagnostic_date": "2026-06-11",
+  "diagnostic_date": "2026-06-12",
   "disclaimer": "This is an experimental diagnostic overlay, not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "macro_context": {
-    "macro_confidence": 0.10556884313742443,
-    "raw_dominant_regime": "reflation",
-    "reported_regime": "reflation"
+    "macro_confidence": 0.1074986847488889,
+    "raw_dominant_regime": "tightening",
+    "reported_regime": "tightening"
   },
   "sector_macro_ranking": [
     {
-      "confidence_adjusted_score": 0.5060146942547149,
+      "confidence_adjusted_score": 0.6010226938804646,
       "rank": 1,
-      "sector_id": "oil_gas_ep"
-    },
-    {
-      "confidence_adjusted_score": 0.470751828531216,
-      "rank": 2,
       "sector_id": "homebuilders"
     },
     {
-      "confidence_adjusted_score": 0.4703502514936813,
+      "confidence_adjusted_score": 0.46687676306838305,
+      "rank": 2,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "confidence_adjusted_score": 0.4457264953822567,
       "rank": 3,
       "sector_id": "energy"
     },
     {
-      "confidence_adjusted_score": 0.44019734960898843,
+      "confidence_adjusted_score": 0.3830420755134568,
       "rank": 4,
       "sector_id": "materials"
     },
     {
-      "confidence_adjusted_score": 0.03966545610693769,
+      "confidence_adjusted_score": 0.1617894974604995,
       "rank": 5,
       "sector_id": "real_estate"
     },
     {
-      "confidence_adjusted_score": 0.03856960538375275,
+      "confidence_adjusted_score": 0.08235687553207624,
       "rank": 6,
       "sector_id": "consumer_staples"
     },
     {
-      "confidence_adjusted_score": -0.03991412565799431,
+      "confidence_adjusted_score": 0.02008407413780236,
       "rank": 7,
-      "sector_id": "industrials"
-    },
-    {
-      "confidence_adjusted_score": -0.04591446486010785,
-      "rank": 8,
-      "sector_id": "health_care"
-    },
-    {
-      "confidence_adjusted_score": -0.09613004482053109,
-      "rank": 9,
       "sector_id": "software"
     },
     {
-      "confidence_adjusted_score": -0.14337510818085,
-      "rank": 10,
+      "confidence_adjusted_score": 0.013073359517160672,
+      "rank": 8,
       "sector_id": "utilities"
     },
     {
-      "confidence_adjusted_score": -0.14529574174576673,
-      "rank": 11,
-      "sector_id": "communication_services"
+      "confidence_adjusted_score": -0.0020719387963776393,
+      "rank": 9,
+      "sector_id": "health_care"
     },
     {
-      "confidence_adjusted_score": -0.16925517458684022,
-      "rank": 12,
-      "sector_id": "semiconductors"
-    },
-    {
-      "confidence_adjusted_score": -0.17060732235413487,
-      "rank": 13,
+      "confidence_adjusted_score": -0.07596439561238892,
+      "rank": 10,
       "sector_id": "biotech"
     },
     {
-      "confidence_adjusted_score": -0.17870449590455853,
-      "rank": 14,
+      "confidence_adjusted_score": -0.09598884072939529,
+      "rank": 11,
       "sector_id": "information_technology"
     },
     {
-      "confidence_adjusted_score": -0.325798882622434,
+      "confidence_adjusted_score": -0.10439823269328005,
+      "rank": 12,
+      "sector_id": "communication_services"
+    },
+    {
+      "confidence_adjusted_score": -0.10910806050644556,
+      "rank": 13,
+      "sector_id": "semiconductors"
+    },
+    {
+      "confidence_adjusted_score": -0.11659130836438483,
+      "rank": 14,
+      "sector_id": "industrials"
+    },
+    {
+      "confidence_adjusted_score": -0.34838754933980925,
       "rank": 15,
       "sector_id": "consumer_discretionary"
     },
     {
-      "confidence_adjusted_score": -0.41089283541862404,
+      "confidence_adjusted_score": -0.601090776948333,
       "rank": 16,
       "sector_id": "financials"
     },
     {
-      "confidence_adjusted_score": -0.4934610307089467,
+      "confidence_adjusted_score": -0.7197946573727213,
       "rank": 17,
       "sector_id": "banks"
     }
   ],
   "sector_news_ranking": [
     {
-      "adjusted_news_score": 12.039888826821528,
-      "item_count": 100,
+      "adjusted_news_score": 12.711691136604042,
+      "item_count": 112,
       "sector_id": "energy"
     },
     {
-      "adjusted_news_score": 3.3675134396513267,
-      "item_count": 56,
+      "adjusted_news_score": 4.281922138733673,
+      "item_count": 63,
       "sector_id": "information_technology"
     },
     {
-      "adjusted_news_score": 1.7938045058214995,
-      "item_count": 30,
+      "adjusted_news_score": 1.9533734898693766,
+      "item_count": 32,
       "sector_id": "materials"
     },
     {
-      "adjusted_news_score": 1.3269041226625757,
-      "item_count": 31,
+      "adjusted_news_score": 1.943040460329291,
+      "item_count": 86,
+      "sector_id": "industrials"
+    },
+    {
+      "adjusted_news_score": 0.8975474463150247,
+      "item_count": 35,
       "sector_id": "utilities"
     },
     {
-      "adjusted_news_score": 0.8224430901187372,
+      "adjusted_news_score": 0.7449061692308732,
       "item_count": 13,
       "sector_id": "health_care"
     },
     {
-      "adjusted_news_score": 0.13889630054424293,
-      "item_count": 75,
-      "sector_id": "industrials"
-    },
-    {
-      "adjusted_news_score": 0.0751257357885457,
-      "item_count": 51,
+      "adjusted_news_score": 0.08615762998420196,
+      "item_count": 55,
       "sector_id": "financials"
     },
     {
-      "adjusted_news_score": -0.417841052181495,
+      "adjusted_news_score": 0.02014964562451682,
+      "item_count": 40,
+      "sector_id": "real_estate"
+    },
+    {
+      "adjusted_news_score": -0.3784485288617099,
       "item_count": 5,
       "sector_id": "communication_services"
     },
     {
-      "adjusted_news_score": -0.6006156471333961,
-      "item_count": 32,
-      "sector_id": "real_estate"
-    },
-    {
-      "adjusted_news_score": -0.8327077714446407,
+      "adjusted_news_score": -0.7542031340138716,
       "item_count": 10,
       "sector_id": "consumer_staples"
     },
     {
-      "adjusted_news_score": -2.5153680465936397,
-      "item_count": 57,
+      "adjusted_news_score": -1.7010566542052188,
+      "item_count": 64,
       "sector_id": "consumer_discretionary"
     }
   ],
