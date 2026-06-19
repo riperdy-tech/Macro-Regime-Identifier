@@ -1,19 +1,19 @@
 {
-  "computed_at": "2026-06-19T00:24:12.120356+00:00",
-  "confidence": 0.15124962027543165,
+  "computed_at": "2026-06-19T23:54:27.825907+00:00",
+  "confidence": 0.1511256034286892,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "tightening",
   "monitor_ready": false,
   "raw_dominant_regime": "tightening",
-  "raw_regime_probability": 0.42848800800530484,
+  "raw_regime_probability": 0.42749008700234187,
   "readiness_label": "early_history",
-  "regime_probability": 0.42848800800530484,
-  "secular_theme_computed_at": "2026-06-19T00:24:11.047019+00:00",
+  "regime_probability": 0.42749008700234187,
+  "secular_theme_computed_at": "2026-06-19T23:54:26.690116+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.599074074074074,
-      "avg_severity": 0.3962962962962964,
-      "item_count": 54,
+      "avg_confidence": 0.599090909090909,
+      "avg_severity": 0.40000000000000013,
+      "item_count": 55,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -24,21 +24,21 @@
           "score": 0.6666959249640887
         },
         {
-          "avg_confidence": 0.6071428571428571,
-          "item_count": 49,
+          "avg_confidence": 0.607,
+          "item_count": 50,
           "period_start": "2026-06-01",
           "score": 8.051806815474071
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.599074074074074,
-          "item_count": 54,
+          "avg_confidence": 0.599090909090909,
+          "item_count": 55,
           "period_start": "2026-04-01",
           "score": 8.71850274043816
         }
       ],
-      "raw_score": 21.400000000000006,
+      "raw_score": 22.000000000000007,
       "score": 8.71850274043816,
       "source_mix": {
         "bbc_world": 1,
@@ -51,18 +51,26 @@
         "nasdaq_markets": 7,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
-        "oilprice": 13,
+        "oilprice": 14,
         "scmp": 7
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_215c352c7ca1749b",
         "news_27b659f72ec41e51",
         "news_624cc10365053495",
         "news_80d8c66a54957014",
-        "news_d79fc908f51979a9",
-        "news_e18e1b727cf54bc9"
+        "news_d79fc908f51979a9"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.6,
+          "news_id": "news_215c352c7ca1749b",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/Beijing-Steps-Up-Scrutiny-of-Indium-Exports-as-AI-Chip-Demand-Soars.html",
+          "title": "Beijing Steps Up Scrutiny of Indium Exports as AI Chip Demand Soars"
+        },
         {
           "confidence": 0.7,
           "news_id": "news_27b659f72ec41e51",
@@ -94,17 +102,9 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/AI-Wars-Why-Microsoft-Google-and-Amazon-Are-All-Fighting-Over-Power.html",
           "title": "AI Wars: Why Microsoft, Google and Amazon Are All Fighting Over Power"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_e18e1b727cf54bc9",
-          "score_component": 0.35,
-          "source": "nasdaq_markets",
-          "source_url": "https://www.nasdaq.com/articles/did-anthropic-and-google-just-give-investors-22-billion-reasons-buy-spacex-ipo",
-          "title": "Did Anthropic and Google Just Give Investors 2.2 Billion Reasons to market-action term the SpaceX IPO?"
         }
       ],
-      "trend_30d": 10.770514428572817
+      "trend_30d": 11.120514428572816
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -166,35 +166,37 @@
       "trend_30d": 0.2183869335090494
     },
     "cybersecurity": {
-      "avg_confidence": 0.9,
-      "avg_severity": 0.7,
-      "item_count": 1,
+      "avg_confidence": 0.8500000000000001,
+      "avg_severity": 0.5,
+      "item_count": 2,
       "label": "Cybersecurity",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.9,
-          "item_count": 1,
+          "avg_confidence": 0.8500000000000001,
+          "item_count": 2,
           "period_start": "2026-06-01",
-          "score": 0.35
+          "score": 0.59
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.9,
-          "item_count": 1,
+          "avg_confidence": 0.8500000000000001,
+          "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.35
+          "score": 0.59
         }
       ],
-      "raw_score": 0.7,
-      "score": 0.35,
+      "raw_score": 1.0,
+      "score": 0.59,
       "source_mix": {
+        "housingwire": 1,
         "scmp": 1
       },
       "theme_id": "cybersecurity",
       "top_news_ids": [
-        "news_d735353b8ab75d1e"
+        "news_d735353b8ab75d1e",
+        "news_7f8c01236ff76add"
       ],
       "top_news_items": [
         {
@@ -204,38 +206,46 @@
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/us/diplomacy/article/3356681/fbi-disables-13-chinese-suspected-spying-websites-targeting-us-officials?utm_source=rss_feed",
           "title": "FBI disables 13 Chinese suspected spying websites targeting US officials"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_7f8c01236ff76add",
+          "score_component": 0.24,
+          "source": "housingwire",
+          "source_url": "https://www.housingwire.com/articles/ice-claude-mythos-cybersecurity/",
+          "title": "ICE executives detail AI cybersecurity efforts through Project Glasswing"
         }
       ],
-      "trend_30d": 0.35
+      "trend_30d": 0.59
     },
     "energy_transition": {
-      "avg_confidence": 0.6633333333333336,
-      "avg_severity": 0.4933333333333333,
-      "item_count": 30,
+      "avg_confidence": 0.6580645161290325,
+      "avg_severity": 0.4935483870967742,
+      "item_count": 31,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6633333333333336,
-          "item_count": 30,
+          "avg_confidence": 0.6580645161290325,
+          "item_count": 31,
           "period_start": "2026-06-01",
           "score": 2.6807115331702667
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6633333333333336,
-          "item_count": 30,
+          "avg_confidence": 0.6580645161290325,
+          "item_count": 31,
           "period_start": "2026-04-01",
           "score": 2.6807115331702667
         }
       ],
-      "raw_score": 14.799999999999999,
+      "raw_score": 15.299999999999999,
       "score": 2.6807115331702667,
       "source_mix": {
         "eia_energy": 3,
         "marketwatch": 1,
-        "oilprice": 24,
+        "oilprice": 25,
         "scmp": 2
       },
       "theme_id": "energy_transition",
@@ -288,7 +298,7 @@
           "title": "BYD powers past Geely as oil shock charges up global EV demand"
         }
       ],
-      "trend_30d": 7.429435643977634
+      "trend_30d": 7.679435643977634
     },
     "glp1_metabolic": {
       "avg_confidence": 0.55,
@@ -557,33 +567,33 @@
     },
     "space_economy": {
       "avg_confidence": 0.4999999999999999,
-      "avg_severity": 0.22142857142857147,
-      "item_count": 14,
+      "avg_severity": 0.22000000000000006,
+      "item_count": 15,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
           "avg_confidence": 0.4999999999999999,
-          "item_count": 14,
+          "item_count": 15,
           "period_start": "2026-06-01",
-          "score": 1.377523552800953
+          "score": 1.4775235528009532
         }
       ],
       "quarterly_scores": [
         {
           "avg_confidence": 0.4999999999999999,
-          "item_count": 14,
+          "item_count": 15,
           "period_start": "2026-04-01",
-          "score": 1.377523552800953
+          "score": 1.4775235528009532
         }
       ],
-      "raw_score": 3.1000000000000005,
-      "score": 1.377523552800953,
+      "raw_score": 3.3000000000000007,
+      "score": 1.4775235528009532,
       "source_mix": {
         "cnbc_finance": 3,
         "cnbc_tech": 3,
         "marketwatch": 2,
-        "oilprice": 2,
+        "oilprice": 3,
         "scmp": 4
       },
       "theme_id": "space_economy",
@@ -636,7 +646,7 @@
           "title": "From startup to $1.8 trillion: The investors who took a chance on SpaceX now reap the rewards"
         }
       ],
-      "trend_30d": 1.3775235528009533
+      "trend_30d": 1.4775235528009534
     }
   },
   "source_files": {
