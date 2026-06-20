@@ -1,39 +1,33 @@
 {
-  "classification_success_rate": 0.9986376021798365,
+  "classification_success_rate": 0.9986754966887417,
   "combined_rank_change_history": [
     {
-      "diagnostic_date": "2026-06-10",
-      "max_rank_change": 2,
-      "news_item_count": 456,
-      "thin_news_warning": true
-    },
-    {
       "diagnostic_date": "2026-06-11",
-      "max_rank_change": 2,
+      "max_rank_change": 5,
       "news_item_count": 508,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-06-12",
-      "max_rank_change": 2,
+      "max_rank_change": 5,
       "news_item_count": 558,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-06-13",
-      "max_rank_change": 2,
+      "max_rank_change": 5,
       "news_item_count": 580,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-06-14",
-      "max_rank_change": 2,
+      "max_rank_change": 5,
       "news_item_count": 600,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-06-15",
-      "max_rank_change": 3,
+      "max_rank_change": 4,
       "news_item_count": 642,
       "thin_news_warning": true
     },
@@ -51,14 +45,20 @@
     },
     {
       "diagnostic_date": "2026-06-18",
-      "max_rank_change": 3,
+      "max_rank_change": 5,
       "news_item_count": 803,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-06-19",
-      "max_rank_change": 3,
+      "max_rank_change": 5,
       "news_item_count": 836,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-06-20",
+      "max_rank_change": 4,
+      "news_item_count": 857,
       "thin_news_warning": true
     }
   ],
@@ -89,9 +89,10 @@
     "2026-06-16": 93,
     "2026-06-17": 104,
     "2026-06-18": 100,
-    "2026-06-19": 75
+    "2026-06-19": 76,
+    "2026-06-20": 54
   },
-  "date_end": "2026-06-19T23:35:07",
+  "date_end": "2026-06-20T23:39:00",
   "date_start": "2026-05-20T13:15:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -101,20 +102,20 @@
     "validation_candidate": "60+ run dates with stable source coverage"
   },
   "latest_run": {
-    "classified_items": 733,
-    "created_at": "2026-06-19T23:54:23.506877",
-    "date_max": "2026-06-19T23:35:07",
+    "classified_items": 754,
+    "created_at": "2026-06-20T23:56:06.152325",
+    "date_max": "2026-06-20T23:39:00",
     "date_min": "2026-05-20T13:15:00",
     "duplicate_items": 0,
     "failed_items": 1,
-    "new_unique_items": 1685,
+    "new_unique_items": 1740,
     "quality_status": "ok",
-    "raw_item_count": 1685,
-    "run_date": "2026-06-19T00:00:00",
-    "run_id": "20260619T235423Z-98433a83",
+    "raw_item_count": 1740,
+    "run_date": "2026-06-20T00:00:00",
+    "run_id": "20260620T235606Z-9eea4f52",
     "source_count": 21,
     "source_group_count": 11,
-    "success_rate": 0.9986376021798365,
+    "success_rate": 0.9986754966887417,
     "warning_json": "[]"
   },
   "readiness_label": "early_history",
@@ -122,7 +123,7 @@
   "source_group_count": 11,
   "top_recurring_macro_themes": [
     {
-      "count": 25,
+      "count": 26,
       "id": "growth_acceleration"
     },
     {
@@ -130,11 +131,11 @@
       "id": "commodity_pressure"
     },
     {
-      "count": 19,
+      "count": 20,
       "id": "geopolitical_risk"
     },
     {
-      "count": 19,
+      "count": 20,
       "id": "inflation_pressure"
     },
     {
@@ -144,19 +145,19 @@
   ],
   "top_recurring_sector_headwinds": [
     {
-      "count": 20,
+      "count": 21,
       "id": "consumer_discretionary"
     },
     {
-      "count": 19,
+      "count": 20,
       "id": "consumer_staples"
     },
     {
-      "count": 12,
+      "count": 13,
       "id": "real_estate"
     },
     {
-      "count": 11,
+      "count": 12,
       "id": "communication_services"
     },
     {
@@ -166,11 +167,11 @@
   ],
   "top_recurring_sector_tailwinds": [
     {
-      "count": 25,
+      "count": 26,
       "id": "information_technology"
     },
     {
-      "count": 24,
+      "count": 25,
       "id": "energy"
     },
     {
@@ -178,16 +179,16 @@
       "id": "health_care"
     },
     {
-      "count": 17,
+      "count": 18,
       "id": "industrials"
     },
     {
-      "count": 16,
+      "count": 17,
       "id": "materials"
     }
   ],
-  "total_accumulated_news_items": 1685,
-  "total_classified_items": 733,
+  "total_accumulated_news_items": 1740,
+  "total_classified_items": 754,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
 }
