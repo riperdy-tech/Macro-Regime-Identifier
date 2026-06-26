@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-06-26T00:08:34.225902+00:00",
+  "computed_at": "2026-06-26T23:55:44.621703+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,9 +11,9 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6007462686567164,
-      "avg_severity": 0.4029850746268657,
-      "item_count": 67,
+      "avg_confidence": 0.5937499999999999,
+      "avg_severity": 0.4027777777777778,
+      "item_count": 72,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -24,31 +24,32 @@
           "score": 0.567136329706706
         },
         {
-          "avg_confidence": 0.607258064516129,
-          "item_count": 62,
+          "avg_confidence": 0.5992537313432835,
+          "item_count": 67,
           "period_start": "2026-06-01",
-          "score": 8.376064268542102
+          "score": 9.386064268542102
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6007462686567164,
-          "item_count": 67,
+          "avg_confidence": 0.5937499999999999,
+          "item_count": 72,
           "period_start": "2026-04-01",
-          "score": 8.943200598248808
+          "score": 9.953200598248808
         }
       ],
-      "raw_score": 27.000000000000004,
-      "score": 8.943200598248808,
+      "raw_score": 29.0,
+      "score": 9.953200598248808,
       "source_mix": {
         "bbc_world": 1,
-        "cnbc_finance": 3,
+        "cnbc_business": 1,
+        "cnbc_finance": 4,
         "cnbc_retail": 1,
         "cnbc_tech": 10,
         "eia_energy": 1,
         "housingwire": 3,
-        "marketwatch": 3,
-        "nasdaq_markets": 8,
+        "marketwatch": 5,
+        "nasdaq_markets": 9,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "oilprice": 20,
@@ -58,9 +59,9 @@
       "top_news_ids": [
         "news_05970081e11981f6",
         "news_27b659f72ec41e51",
+        "news_60e887c488ef300e",
         "news_624cc10365053495",
-        "news_b880b4820eb79d52",
-        "news_d79fc908f51979a9"
+        "news_b880b4820eb79d52"
       ],
       "top_news_items": [
         {
@@ -80,6 +81,14 @@
           "title": "The Invisible Energy Crisis Threatening to Derail the AI Boom"
         },
         {
+          "confidence": 0.7,
+          "news_id": "news_60e887c488ef300e",
+          "score_component": 0.35,
+          "source": "marketwatch",
+          "source_url": "https://www.marketwatch.com/story/spacexs-new-bonds-are-flashing-a-warning-sign-as-investors-pump-the-brakes-on-ai-frenzy-752ad44b?mod=mw_rss_topstories",
+          "title": "SpaceX\u2019s new bonds are flashing a warning sign, as investors pump the brakes on AI frenzy"
+        },
+        {
           "confidence": 0.8,
           "news_id": "news_624cc10365053495",
           "score_component": 0.35,
@@ -94,17 +103,9 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/AI-Boom-Forces-Tennessee-to-Plan-Massive-Natural-Gas-Expansion.html",
           "title": "AI Boom Forces Tennessee to Plan Massive Natural Gas Expansion"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_d79fc908f51979a9",
-          "score_component": 0.35,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/AI-Wars-Why-Microsoft-Google-and-Amazon-Are-All-Fighting-Over-Power.html",
-          "title": "AI Wars: Why Microsoft, Google and Amazon Are All Fighting Over Power"
         }
       ],
-      "trend_30d": 11.691511817455835
+      "trend_30d": 12.361511817455835
     },
     "cloud_software": {
       "avg_confidence": 0.6,
