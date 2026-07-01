@@ -1,19 +1,19 @@
 {
-  "computed_at": "2026-06-29T23:49:59.699283+00:00",
-  "confidence": 0.23158930222784824,
+  "computed_at": "2026-06-30T23:59:49.868560+00:00",
+  "confidence": 0.23077603444440542,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "tightening",
   "monitor_ready": true,
   "raw_dominant_regime": "tightening",
-  "raw_regime_probability": 0.3791697400813684,
+  "raw_regime_probability": 0.3788929764553009,
   "readiness_label": "monitor_ready",
-  "regime_probability": 0.3791697400813684,
-  "secular_theme_computed_at": "2026-06-29T23:49:58.557583+00:00",
+  "regime_probability": 0.3788929764553009,
+  "secular_theme_computed_at": "2026-06-30T23:59:48.697440+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.5967948717948717,
-      "avg_severity": 0.40641025641025647,
-      "item_count": 78,
+      "avg_confidence": 0.6030487804878049,
+      "avg_severity": 0.4146341463414634,
+      "item_count": 82,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -21,25 +21,25 @@
           "avg_confidence": 0.52,
           "item_count": 5,
           "period_start": "2026-05-01",
-          "score": 0.5291569063154531
+          "score": 0.5170709458719713
         },
         {
-          "avg_confidence": 0.6020547945205479,
-          "item_count": 73,
+          "avg_confidence": 0.6084415584415583,
+          "item_count": 77,
           "period_start": "2026-06-01",
-          "score": 9.225736067243176
+          "score": 9.984399486507435
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5967948717948717,
-          "item_count": 78,
+          "avg_confidence": 0.6030487804878049,
+          "item_count": 82,
           "period_start": "2026-04-01",
-          "score": 9.75489297355863
+          "score": 10.501470432379406
         }
       ],
-      "raw_score": 31.700000000000003,
-      "score": 9.75489297355863,
+      "raw_score": 34.0,
+      "score": 10.501470432379406,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_business": 1,
@@ -47,23 +47,31 @@
         "cnbc_retail": 1,
         "cnbc_tech": 11,
         "eia_energy": 1,
-        "housingwire": 4,
-        "marketwatch": 5,
-        "nasdaq_markets": 10,
+        "housingwire": 5,
+        "marketwatch": 6,
+        "nasdaq_markets": 11,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
         "oilprice": 23,
-        "scmp": 9
+        "scmp": 10
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_04c725e5114bbe8a",
         "news_05970081e11981f6",
         "news_27b659f72ec41e51",
-        "news_55cc7cc5f337c0c6",
-        "news_58d85123df07f586",
-        "news_60e887c488ef300e"
+        "news_4702bb9cc36eb520",
+        "news_55cc7cc5f337c0c6"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.8,
+          "news_id": "news_04c725e5114bbe8a",
+          "score_component": 0.35,
+          "source": "housingwire",
+          "source_url": "https://www.housingwire.com/articles/fed-president-beth-hammack-more-rate-hikes/",
+          "title": "Why Fed President Beth Hammack wants more rate hikes"
+        },
         {
           "confidence": 0.7,
           "news_id": "news_05970081e11981f6",
@@ -82,30 +90,22 @@
         },
         {
           "confidence": 0.8,
+          "news_id": "news_4702bb9cc36eb520",
+          "score_component": 0.35,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/aws-launches-1-bln-ai-engineering-unit-speed-enterprise-ai-adoption",
+          "title": "AWS Launches $1 Bln AI Engineering Unit To Speed Enterprise AI Adoption"
+        },
+        {
+          "confidence": 0.8,
           "news_id": "news_55cc7cc5f337c0c6",
           "score_component": 0.35,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/The-7-Trillion-AI-Boom-Is-Turning-Into-The-Energy-Trade-of-the-Century.html",
           "title": "The $7 Trillion AI Boom Is Turning Into The Energy market-action term of the Century"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_58d85123df07f586",
-          "score_component": 0.35,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/06/29/baidu-kunlunxin-hong-kong-ipo-50-billion-ai-chips.html",
-          "title": "Baidu shares jump 7% as AI chip arm Kunlunxin said to target $50 billion Hong Kong IPO"
-        },
-        {
-          "confidence": 0.7,
-          "news_id": "news_60e887c488ef300e",
-          "score_component": 0.35,
-          "source": "marketwatch",
-          "source_url": "https://www.marketwatch.com/story/spacexs-new-bonds-are-flashing-a-warning-sign-as-investors-pump-the-brakes-on-ai-frenzy-752ad44b?mod=mw_rss_topstories",
-          "title": "SpaceX\u2019s new bonds are flashing a warning sign, as investors pump the brakes on AI frenzy"
         }
       ],
-      "trend_30d": 13.091359864627572
+      "trend_30d": 14.151643508498646
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -118,13 +118,13 @@
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.057290496234624996
+          "score": 0.05598197949220844
         },
         {
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 0.11604332775956211
+          "score": 0.11339289449053858
         }
       ],
       "quarterly_scores": [
@@ -132,11 +132,11 @@
           "avg_confidence": 0.6,
           "item_count": 2,
           "period_start": "2026-04-01",
-          "score": 0.17333382399418712
+          "score": 0.16937487398274703
         }
       ],
       "raw_score": 0.5,
-      "score": 0.17333382399418712,
+      "score": 0.16937487398274703,
       "source_mix": {
         "housingwire": 1,
         "nvidia_blog": 1
@@ -150,7 +150,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_f0430d212ddda487",
-          "score_component": 0.11604332775956211,
+          "score_component": 0.11339289449053858,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/ai-erp-homebuilding-margin-leaks/",
           "title": "Homebuilders are using AI-powered ERP to find margin leaks faster"
@@ -158,13 +158,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_af3cc173a30eee83",
-          "score_component": 0.057290496234624996,
+          "score_component": 0.05598197949220844,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/geforce-now-thursday-007-first-light-launch/",
           "title": "The Name\u2019s Gaming \u2026 Cloud Gaming: \u2018007 First Light\u2019 Launches on GeForce NOW"
         }
       ],
-      "trend_30d": 0.05875283152493711
+      "trend_30d": 0.057410914998330134
     },
     "cybersecurity": {
       "avg_confidence": 0.7000000000000001,
@@ -177,7 +177,7 @@
           "avg_confidence": 0.7000000000000001,
           "item_count": 3,
           "period_start": "2026-06-01",
-          "score": 0.6134259253208413
+          "score": 0.6074092688712753
         }
       ],
       "quarterly_scores": [
@@ -185,11 +185,11 @@
           "avg_confidence": 0.7000000000000001,
           "item_count": 3,
           "period_start": "2026-04-01",
-          "score": 0.6134259253208413
+          "score": 0.6074092688712753
         }
       ],
       "raw_score": 1.2,
-      "score": 0.6134259253208413,
+      "score": 0.6074092688712753,
       "source_mix": {
         "housingwire": 2,
         "scmp": 1
@@ -212,7 +212,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_7f8c01236ff76add",
-          "score_component": 0.19048812623618394,
+          "score_component": 0.18613737142004816,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/ice-claude-mythos-cybersecurity/",
           "title": "ICE executives detail AI cybersecurity efforts through Project Glasswing"
@@ -220,43 +220,43 @@
         {
           "confidence": 0.4,
           "news_id": "news_d3de180cc5f96002",
-          "score_component": 0.07293779908465736,
+          "score_component": 0.07127189745122715,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/qualia-expands-wire-fraud-protection-platform-for-title-and-escrow/",
           "title": "Qualia expands wire fraud protection platform for title and escrow"
         }
       ],
-      "trend_30d": 0.6134259253208413
+      "trend_30d": 0.6074092688712753
     },
     "energy_transition": {
-      "avg_confidence": 0.6481481481481481,
-      "avg_severity": 0.4907407407407408,
-      "item_count": 54,
+      "avg_confidence": 0.639655172413793,
+      "avg_severity": 0.4793103448275863,
+      "item_count": 58,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6481481481481481,
-          "item_count": 54,
+          "avg_confidence": 0.639655172413793,
+          "item_count": 58,
           "period_start": "2026-06-01",
-          "score": 2.9440770789580686
+          "score": 2.9190883239392984
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6481481481481481,
-          "item_count": 54,
+          "avg_confidence": 0.639655172413793,
+          "item_count": 58,
           "period_start": "2026-04-01",
-          "score": 2.9440770789580686
+          "score": 2.9190883239392984
         }
       ],
-      "raw_score": 26.500000000000004,
-      "score": 2.9440770789580686,
+      "raw_score": 27.800000000000004,
+      "score": 2.9190883239392984,
       "source_mix": {
         "eia_energy": 3,
         "marketwatch": 1,
         "nasdaq_markets": 1,
-        "oilprice": 45,
+        "oilprice": 49,
         "scmp": 4
       },
       "theme_id": "energy_transition",
@@ -265,7 +265,7 @@
         "news_14f6e82a325c2563",
         "news_26391ef41f368f68",
         "news_4db6e49b35d2fbdd",
-        "news_79f366868655d572"
+        "news_58a68bba38a99db2"
       ],
       "top_news_items": [
         {
@@ -301,58 +301,75 @@
           "title": "How the Hormuz Crisis Turned Southeast Asia Into a Solar Powerhouse"
         },
         {
-          "confidence": 0.7,
-          "news_id": "news_79f366868655d572",
+          "confidence": 0.8,
+          "news_id": "news_58a68bba38a99db2",
           "score_component": 0.35,
           "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Coal/Chinas-Coal-Habit-Is-Outpacing-Its-Clean-Energy-Boom.html",
-          "title": "China's Coal Habit Is Outpacing Its Clean Energy Boom"
+          "source_url": "https://oilprice.com/Energy/Energy-General/Chinas-Energy-Future-Runs-on-Coal-and-Solar.html",
+          "title": "China's Energy Future Runs on Coal and Solar"
         }
       ],
-      "trend_30d": 12.606059503649904
+      "trend_30d": 13.087196733526877
     },
     "glp1_metabolic": {
-      "avg_confidence": 0.625,
-      "avg_severity": 0.4,
-      "item_count": 4,
+      "avg_confidence": 0.6833333333333332,
+      "avg_severity": 0.45,
+      "item_count": 6,
       "label": "GLP-1 / Metabolic Health",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.625,
-          "item_count": 4,
+          "avg_confidence": 0.6833333333333332,
+          "item_count": 6,
           "period_start": "2026-06-01",
-          "score": 0.8720263420653492
+          "score": 1.5521092328864075
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.625,
-          "item_count": 4,
+          "avg_confidence": 0.6833333333333332,
+          "item_count": 6,
           "period_start": "2026-04-01",
-          "score": 0.8720263420653492
+          "score": 1.5521092328864075
         }
       ],
-      "raw_score": 1.6,
-      "score": 0.8720263420653492,
+      "raw_score": 2.7,
+      "score": 1.5521092328864075,
       "source_mix": {
-        "cnbc_business": 1,
-        "cnbc_health": 1,
+        "cnbc_business": 2,
+        "cnbc_health": 2,
         "marketwatch": 1,
         "nasdaq_markets": 1
       },
       "theme_id": "glp1_metabolic",
       "top_news_ids": [
+        "news_ae7f5b2d3357e8dc",
+        "news_fa0ef1a20c0a5c49",
         "news_7c28d97ea9c7f82a",
         "news_a2f3fed9c4963ba6",
-        "news_f469761271d83a02",
-        "news_eba191731c6d6671"
+        "news_f469761271d83a02"
       ],
       "top_news_items": [
         {
           "confidence": 0.8,
+          "news_id": "news_ae7f5b2d3357e8dc",
+          "score_component": 0.35,
+          "source": "cnbc_business",
+          "source_url": "https://www.cnbc.com/2026/06/30/medicare-obesity-drug-glp-1-coverage-starting-july-1.html",
+          "title": "Medicare will start covering obesity drugs for the first time. Here's what patients should know"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_fa0ef1a20c0a5c49",
+          "score_component": 0.35,
+          "source": "cnbc_health",
+          "source_url": "https://www.cnbc.com/2026/06/30/medicare-obesity-drug-glp-1-coverage-starting-july-1.html",
+          "title": "Medicare will start covering obesity drugs for the first time. Here's what patients should know"
+        },
+        {
+          "confidence": 0.8,
           "news_id": "news_7c28d97ea9c7f82a",
-          "score_component": 0.3126911898989588,
+          "score_component": 0.30554931325133333,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/06/28/medicare-will-soon-cover-obesity-drugs-but-many-seniors-may-not-know.html",
           "title": "Seniors in Medicare are about to get landmark obesity drug coverage \u2014 but many may not know it yet"
@@ -360,7 +377,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_a2f3fed9c4963ba6",
-          "score_component": 0.288726008659708,
+          "score_component": 0.2821314975080661,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/tired-of-nausea-or-taking-a-glp-1-pill-every-day-these-experimental-drugs-could-be-better-than-zepbound-and-wegovy-587bf648?mod=mw_rss_topstories",
           "title": "A new wave of weight-loss therapies aims to be better than today\u2019s GLP-1s"
@@ -368,21 +385,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_f469761271d83a02",
-          "score_component": 0.234518392424219,
+          "score_component": 0.22916198493849996,
           "source": "cnbc_business",
           "source_url": "https://www.cnbc.com/2026/06/28/medicare-will-soon-cover-obesity-drugs-but-many-seniors-may-not-know.html",
           "title": "Seniors in Medicare are about to get landmark obesity drug coverage \u2014 but many may not know it yet"
-        },
-        {
-          "confidence": 0.3,
-          "news_id": "news_eba191731c6d6671",
-          "score_component": 0.0360907510824635,
-          "source": "nasdaq_markets",
-          "source_url": "https://www.nasdaq.com/articles/lillys-foundayo-demonstrates-weight-loss-across-menopause-stages",
-          "title": "Lilly's Foundayo Demonstrates Weight Loss Across Menopause Stages"
         }
       ],
-      "trend_30d": 0.8720263420653492
+      "trend_30d": 1.5521092328864077
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.6333333333333333,
@@ -395,7 +404,7 @@
           "avg_confidence": 0.6333333333333333,
           "item_count": 15,
           "period_start": "2026-06-01",
-          "score": 1.729739670999407
+          "score": 1.7244924096618746
         }
       ],
       "quarterly_scores": [
@@ -403,11 +412,11 @@
           "avg_confidence": 0.6333333333333333,
           "item_count": 15,
           "period_start": "2026-04-01",
-          "score": 1.729739670999407
+          "score": 1.7244924096618746
         }
       ],
       "raw_score": 7.199999999999999,
-      "score": 1.729739670999407,
+      "score": 1.7244924096618746,
       "source_mix": {
         "eia_energy": 1,
         "oilprice": 14
@@ -456,13 +465,13 @@
         {
           "confidence": 0.7,
           "news_id": "news_41677bedb5281e84",
-          "score_component": 0.34200598895198603,
+          "score_component": 0.3341945613686458,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/The-World-Is-Racing-to-Develop-New-Nuclear-Fuels.html",
           "title": "The World Is Racing to Develop New Nuclear Fuels"
         }
       ],
-      "trend_30d": 3.4894116757272378
+      "trend_30d": 3.441689447099773
     },
     "physical_ai": {
       "avg_confidence": 0.5722222222222222,
@@ -475,13 +484,13 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-05-01",
-          "score": 0.03819366415641667
+          "score": 0.037321319661472306
         },
         {
           "avg_confidence": 0.59375,
           "item_count": 8,
           "period_start": "2026-06-01",
-          "score": 1.2676510986259033
+          "score": 1.2386979075189248
         }
       ],
       "quarterly_scores": [
@@ -489,11 +498,11 @@
           "avg_confidence": 0.5722222222222222,
           "item_count": 9,
           "period_start": "2026-04-01",
-          "score": 1.30584476278232
+          "score": 1.2760192271803972
         }
       ],
       "raw_score": 3.25,
-      "score": 1.30584476278232,
+      "score": 1.2760192271803972,
       "source_mix": {
         "housingwire": 1,
         "marketwatch": 1,
@@ -514,7 +523,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_26995164171ab660",
-          "score_component": 0.2835734886953199,
+          "score_component": 0.27709666126230775,
           "source": "scmp",
           "source_url": "https://www.scmp.com/week-asia/economics/article/3356685/how-nvidias-south-korean-ai-deals-could-fuel-next-industrial-revolution?utm_source=rss_feed",
           "title": "How Nvidia\u2019s South Korean AI deals could fuel \u2018the next industrial revolution\u2019"
@@ -522,7 +531,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_35cb075ca0c1986e",
-          "score_component": 0.27351674656746505,
+          "score_component": 0.26726961544210176,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/military/article/3358331/us-banning-drones-china-until-it-can-make-better-ones-itself?utm_source=rss_feed",
           "title": "Is the US banning drones from China until it can make better ones itself?"
@@ -530,7 +539,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_729cd3698c6f9723",
-          "score_component": 0.20416011862820535,
+          "score_component": 0.19949709507426905,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/caterpillars-stock-hits-a-milestone-as-roaring-industrials-rally-sweeps-up-wall-street-391057f7?mod=mw_rss_topstories",
           "title": "Caterpillar\u2019s stock hits a milestone as AI-fueled industrials rally sweeps up Wall Street"
@@ -538,7 +547,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_289dbe63e82c5920",
-          "score_component": 0.14662117719488774,
+          "score_component": 0.14327234487954849,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/factory-operations-fox-blueprint-ai-brain/",
           "title": "NVIDIA Factory Operations Blueprint Gives Factories a New AI Brain"
@@ -546,13 +555,13 @@
         {
           "confidence": 0.9,
           "news_id": "news_f0455ea7d9e8f728",
-          "score_component": 0.14468941744239958,
+          "score_component": 0.1413847065807846,
           "source": "nvidia_blog",
           "source_url": "https://blogs.nvidia.com/blog/jetson-agentic-ai-physical-world/",
           "title": "NVIDIA Jetson Brings Agentic AI to the Physical World"
         }
       ],
-      "trend_30d": 1.2294574344694866
+      "trend_30d": 1.2013765878574525
     },
     "quantum_computing": {
       "avg_confidence": 0.7,
@@ -565,7 +574,7 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-06-01",
-          "score": 0.19643085845414027
+          "score": 0.19194437144655951
         }
       ],
       "quarterly_scores": [
@@ -573,11 +582,11 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-04-01",
-          "score": 0.19643085845414027
+          "score": 0.19194437144655951
         }
       ],
       "raw_score": 0.5,
-      "score": 0.19643085845414027,
+      "score": 0.19194437144655951,
       "source_mix": {
         "nasdaq_markets": 1
       },
@@ -589,41 +598,41 @@
         {
           "confidence": 0.7,
           "news_id": "news_73725134879ae424",
-          "score_component": 0.19643085845414027,
+          "score_component": 0.19194437144655951,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/why-d-wave-quantum-stock-jumped-nearly-50-last-month",
           "title": "Why D-Wave Quantum Stock Jumped Nearly 50% Last Month"
         }
       ],
-      "trend_30d": 0.19643085845414027
+      "trend_30d": 0.19194437144655951
     },
     "space_economy": {
-      "avg_confidence": 0.5047619047619047,
-      "avg_severity": 0.22380952380952382,
-      "item_count": 21,
+      "avg_confidence": 0.4954545454545455,
+      "avg_severity": 0.21818181818181817,
+      "item_count": 22,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.5047619047619047,
-          "item_count": 21,
+          "avg_confidence": 0.4954545454545455,
+          "item_count": 22,
           "period_start": "2026-06-01",
-          "score": 1.8706903515491213
+          "score": 1.8579637248699876
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5047619047619047,
-          "item_count": 21,
+          "avg_confidence": 0.4954545454545455,
+          "item_count": 22,
           "period_start": "2026-04-01",
-          "score": 1.8706903515491213
+          "score": 1.8579637248699876
         }
       ],
-      "raw_score": 4.7,
-      "score": 1.8706903515491213,
+      "raw_score": 4.8,
+      "score": 1.8579637248699876,
       "source_mix": {
         "cnbc_finance": 4,
-        "cnbc_tech": 3,
+        "cnbc_tech": 4,
         "marketwatch": 3,
         "nasdaq_markets": 2,
         "oilprice": 5,
@@ -641,7 +650,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_4c73608ed40a180c",
-          "score_component": 0.2025524919252285,
+          "score_component": 0.1979261866159341,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/how-elon-musk-nailed-the-spacex-ipo-im-not-sure-that-this-could-have-gone-much-better-8149d479?mod=mw_rss_topstories",
           "title": "How Elon Musk nailed the SpaceX IPO: \u2018I\u2019m not sure that this could have gone much better\u2019"
@@ -649,7 +658,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_d50e14a579933f39",
-          "score_component": 0.18,
+          "score_component": 0.17588879431816426,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/charter-may-be-making-frenemies-with-spacex-and-its-stock-is-soaring-e300eb21?mod=mw_rss_topstories",
           "title": "Charter may be making \u2018frenemies\u2019 with SpaceX, and its stock is soaring"
@@ -657,7 +666,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_16b3f67465c27c05",
-          "score_component": 0.16836930724640595,
+          "score_component": 0.1645237469541939,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/science/article/3355930/chinese-satellite-company-releases-images-nvidia-apple-hqs?utm_source=rss_feed",
           "title": "Chinese satellite company releases images of Nvidia, Apple HQs"
@@ -665,7 +674,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_8e110c50256dfc87",
-          "score_component": 0.164110047940479,
+          "score_component": 0.16036176926526105,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Latest-Energy-News/World-News/SpaceX-Wants-to-Fuel-Its-Mars-Ambitions-With-Its-Own-Gas-Pipeline.html",
           "title": "SpaceX Wants to Fuel Its Mars Ambitions With Its Own Gas Pipeline"
@@ -673,13 +682,13 @@
         {
           "confidence": 0.7,
           "news_id": "news_af840bbceb9d516d",
-          "score_component": 0.13854833063115388,
+          "score_component": 0.1353838823861558,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/world/united-states-canada/article/3356821/spacex-prices-record-ipo-could-make-musk-trillionaire?utm_source=rss_feed",
           "title": "SpaceX prices record IPO that could make Musk a trillionaire"
         }
       ],
-      "trend_30d": 1.8706903515491213
+      "trend_30d": 1.8579637248699874
     }
   },
   "source_files": {
