@@ -1,0 +1,165 @@
+{
+  "archive_path": "outputs/archive/2026-07-08/20260708T234502Z-9350b821",
+  "combined_top": [
+    {
+      "combined_score": 1.679144592571897,
+      "news_item_count": 0,
+      "rank": 1,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "combined_score": 1.2923476913272283,
+      "news_item_count": 0,
+      "rank": 2,
+      "sector_id": "software"
+    },
+    {
+      "combined_score": 1.23391620645146,
+      "news_item_count": 233,
+      "rank": 3,
+      "sector_id": "energy"
+    },
+    {
+      "combined_score": 1.2153957992987472,
+      "news_item_count": 0,
+      "rank": 4,
+      "sector_id": "biotech"
+    },
+    {
+      "combined_score": 0.7626198095803739,
+      "news_item_count": 0,
+      "rank": 5,
+      "sector_id": "semiconductors"
+    }
+  ],
+  "disclaimer": "This daily package is a diagnostic research artifact. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "errors": [],
+  "generated_artifacts": [
+    "outputs/current_sector_ranking.json",
+    "outputs/current_sector_ranking.md",
+    "outputs/news_classification_report.json",
+    "outputs/news_classification_report.md",
+    "outputs/news_score_report.json",
+    "outputs/news_score_report.md",
+    "outputs/combined_sector_diagnostic.json",
+    "outputs/combined_sector_diagnostic.md",
+    "outputs/news_monitoring_report.json",
+    "outputs/news_monitoring_report.md"
+  ],
+  "macro": {
+    "confidence": 0.1308529069369766,
+    "date": "2026-07-01",
+    "raw_dominant_regime": "tightening",
+    "reported_regime": "tightening"
+  },
+  "monitoring": {
+    "max_rank_change": 4,
+    "repair_rate": 0.0007132667617689016,
+    "retry_rate": 0.020684736091298145,
+    "success_rate": 0.9992867332382311,
+    "warning_count": 1
+  },
+  "news": {
+    "top_sector_headwinds": [
+      {
+        "id": "consumer_discretionary",
+        "score": -1.258004728020845
+      },
+      {
+        "id": "real_estate",
+        "score": -0.8001142656322581
+      },
+      {
+        "id": "consumer_staples",
+        "score": -0.5401408786827717
+      }
+    ],
+    "top_sector_tailwinds": [
+      {
+        "id": "energy",
+        "score": 11.755442151941118
+      },
+      {
+        "id": "industrials",
+        "score": 5.335021979551303
+      },
+      {
+        "id": "utilities",
+        "score": 4.0324501899588405
+      },
+      {
+        "id": "materials",
+        "score": 1.747021026858153
+      },
+      {
+        "id": "financials",
+        "score": 1.2459822094631554
+      }
+    ],
+    "top_themes": [
+      {
+        "id": "growth_acceleration",
+        "score": 4.501635139825179
+      },
+      {
+        "id": "geopolitical_risk",
+        "score": 3.9897603525789846
+      },
+      {
+        "id": "inflation_pressure",
+        "score": 3.392149023971433
+      },
+      {
+        "id": "fiscal_expansion",
+        "score": 2.2727446593268894
+      },
+      {
+        "id": "energy_supply_shock",
+        "score": 2.2218294389257602
+      }
+    ]
+  },
+  "run_date": "2026-07-08",
+  "run_id": "20260708T234502Z-9350b821",
+  "sector_macro_top": [
+    {
+      "confidence_adjusted_score": 0.6627244656303908,
+      "rank": 1,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "confidence_adjusted_score": 0.597230580205192,
+      "rank": 2,
+      "sector_id": "energy"
+    },
+    {
+      "confidence_adjusted_score": 0.5191824857453101,
+      "rank": 3,
+      "sector_id": "software"
+    },
+    {
+      "confidence_adjusted_score": 0.49062531038499335,
+      "rank": 4,
+      "sector_id": "biotech"
+    },
+    {
+      "confidence_adjusted_score": 0.32259820934187716,
+      "rank": 5,
+      "sector_id": "semiconductors"
+    }
+  ],
+  "status": "success",
+  "step_statuses": {
+    "combined_status": "success",
+    "guardrail_status": "passed",
+    "macro_status": "success",
+    "monitoring_status": "success",
+    "news_classification_status": "success",
+    "news_ingestion_status": "success",
+    "news_report_status": "success",
+    "news_score_report_status": "success",
+    "news_scoring_status": "success",
+    "sector_status": "success"
+  },
+  "warnings": []
+}
