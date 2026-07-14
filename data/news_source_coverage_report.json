@@ -69,37 +69,37 @@
     "ai_compute": 26,
     "consumer": 42,
     "credit_financial_conditions": 184,
-    "energy_commodities": 595,
-    "geopolitical": 880,
+    "energy_commodities": 597,
+    "geopolitical": 883,
     "healthcare": 53,
     "labor": 48,
-    "macro_general": 1040,
+    "macro_general": 1054,
     "manufacturing_industrials": 135,
     "real_estate": 320,
-    "technology_ai": 333
+    "technology_ai": 334
   },
   "latest_date_by_group": {
     "ai_compute": "2026-06-02T02:00:40+00:00",
     "consumer": "2026-07-11T13:41:13+00:00",
     "credit_financial_conditions": "2026-07-14T15:39:29+00:00",
-    "energy_commodities": "2026-07-14T15:41:03+00:00",
-    "geopolitical": "2026-07-14T15:36:26+00:00",
+    "energy_commodities": "2026-07-14T16:00:00+00:00",
+    "geopolitical": "2026-07-14T16:03:41+00:00",
     "healthcare": "2026-07-11T12:00:01+00:00",
     "labor": "2026-07-14T12:30:11+00:00",
-    "macro_general": "2026-07-14T15:43:40+00:00",
+    "macro_general": "2026-07-14T16:00:00+00:00",
     "manufacturing_industrials": "2026-07-14T15:36:24+00:00",
     "real_estate": "2026-07-14T14:53:46+00:00",
-    "technology_ai": "2026-07-14T15:15:08+00:00"
+    "technology_ai": "2026-07-14T15:51:01+00:00"
   },
   "latest_item_count_by_group": {
     "credit_financial_conditions": 5,
-    "energy_commodities": 17,
-    "geopolitical": 18,
+    "energy_commodities": 19,
+    "geopolitical": 21,
     "labor": 1,
-    "macro_general": 23,
+    "macro_general": 37,
     "manufacturing_industrials": 5,
     "real_estate": 9,
-    "technology_ai": 7
+    "technology_ai": 8
   },
   "missing_configured_groups": [],
   "missing_data_groups": [
@@ -108,7 +108,13 @@
   ],
   "old_item_count": 0,
   "old_item_pct": 0.0,
-  "overrepresented_groups": [],
+  "overrepresented_groups": [
+    {
+      "item_count": 37,
+      "share": 0.3523809523809524,
+      "source_group": "macro_general"
+    }
+  ],
   "required_source_groups": [
     "ai_compute",
     "consumer",
@@ -128,7 +134,7 @@
   "stale_groups": [
     "ai_compute"
   ],
-  "stored_item_count": 3656,
+  "stored_item_count": 3676,
   "suggested_groups_needing_more_coverage": [
     "ai_compute",
     "defensive_sectors",
@@ -139,6 +145,7 @@
   "valid": true,
   "warnings": [
     "some enabled source groups have no stored items",
-    "some source groups have stale stored items"
+    "some source groups have stale stored items",
+    "latest stored items are concentrated in a small number of source groups"
   ]
 }
