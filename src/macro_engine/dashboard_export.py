@@ -22,6 +22,7 @@ DASHBOARD_OUTPUT_FILES = [
     "news_sources.json",
     "sector_validation.json",
     "automation_run_summary.json",
+    "nber_benchmark.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"
 

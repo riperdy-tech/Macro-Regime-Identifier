@@ -1,0 +1,32 @@
+# NBER U.S. business-cycle reference dates (public record), used only by the
+# diagnostic benchmark command `run-nber-benchmark`.
+#
+# Convention here: `start` is the NBER peak month and `end` the trough month;
+# every month from start through end inclusive is treated as a recession
+# month. This approximates the USREC monthly indicator closely enough for a
+# diagnostic hit/false-positive comparison.
+#
+# Update this list if NBER announces a new recession or revises dates:
+# https://www.nber.org/research/business-cycle-dating
+nber_recessions:
+  - start: "1990-07"
+    end: "1991-03"
+  - start: "2001-03"
+    end: "2001-11"
+  - start: "2007-12"
+    end: "2009-06"
+  - start: "2020-02"
+    end: "2020-04"
+
+benchmark:
+  # Regime ids whose probabilities are summed into "recession probability".
+  recession_regime_ids:
+    - recession
+  # Thresholds reported in the hit/false-positive table.
+  probability_thresholds: [0.20, 0.25, 0.30, 0.35]
+  # Threshold used for per-recession detection timing.
+  detection_threshold: 0.25
+  # Months before an NBER start in which an early signal still counts as
+  # detecting that recession (rather than a standalone false positive).
+  lead_lag_window_months: 9
+  output_dir: outputs
