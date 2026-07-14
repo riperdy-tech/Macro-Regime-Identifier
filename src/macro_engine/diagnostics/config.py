@@ -17,6 +17,12 @@ class DiagnosticSmoothingConfig(BaseModel):
 class TransitionFilterConfig(BaseModel):
     enabled: bool = False
     min_confidence_to_switch: float = Field(default=0.0, ge=0, le=1)
+    # A reported switch must be confirmed by this many consecutive months of
+    # the same raw leader. 1 keeps the old immediate-switch behavior.
+    confirmation_months: int = Field(default=1, ge=1)
+    # If set, confirmation only applies to switches below this confidence;
+    # higher-confidence switches (for example crisis flips) stay immediate.
+    only_when_confidence_below: float | None = Field(default=None, gt=0, le=1)
 
 
 class HistoricalDiagnosticConfig(BaseModel):

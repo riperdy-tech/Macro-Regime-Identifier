@@ -96,7 +96,23 @@ inflation episodes). Reported regime changes in 47 of 439 months.
 The 10y window improves recession-month coverage materially at roughly
 unchanged false-positive share.
 
-## Candidate promotion decisions (not applied)
+## Promotion results (applied after review)
+
+Candidates 1 and 2 were approved and promoted together: two-month
+confirmation for switches below confidence 0.15 (higher-confidence switches
+stay immediate) and `rolling_z_10y` for both inflation features. Combined
+effect on the same clean, lag-aware data:
+
+| metric | before | after promotion |
+| --- | --- | --- |
+| reported switches (1990-2026) | 32 | 24 |
+| mean regime spell | ~13.7 months | ~17.6 months |
+| AUROC | 0.873 | 0.888 |
+| reported label = recession in NBER months | 55.0% | 80.0% |
+| reported label = recession in expansion months | 24.1% | 28.6% |
+| detection lead, 1990 / 2001 / 2008 / 2020 | -6 / -3 / -4 / -4 | -6 / -9 / -4 / -5 |
+
+## Candidate promotion decisions (original list)
 
 Per experiment policy, production config is unchanged. Candidates for a
 promotion review, in order of evidence strength:

@@ -105,6 +105,122 @@ def test_current_report_includes_raw_and_reported_regime_information():
     assert "Reported regime" in markdown
 
 
+def test_low_confidence_switch_requires_two_month_confirmation():
+    config = _confirmation_config()
+    scores = pd.DataFrame(
+        [
+            _score_row("2026-01-01", "goldilocks", 0.60, 1),
+            _score_row("2026-01-01", "tightening", 0.30, 2),
+            _score_row("2026-02-01", "tightening", 0.51, 1),
+            _score_row("2026-02-01", "goldilocks", 0.49, 2),
+            _score_row("2026-03-01", "tightening", 0.52, 1),
+            _score_row("2026-03-01", "goldilocks", 0.48, 2),
+        ]
+    )
+    health = pd.DataFrame(
+        [
+            _health_row("2026-01-01", "goldilocks", 0.60, 0.30),
+            _health_row("2026-02-01", "tightening", 0.51, 0.10),
+            _health_row("2026-03-01", "tightening", 0.52, 0.10),
+        ]
+    )
+    result = run_historical_diagnostic(scores, health, config)
+    timeline = result.timeline.set_index("date")
+
+    feb = timeline.loc[pd.Timestamp("2026-02-01").date()]
+    assert feb["reported_regime"] == "goldilocks"
+    assert feb["raw_dominant_regime"] == "tightening"
+    assert feb["transition_filter_reason"] == "awaiting_confirmation"
+
+    march = timeline.loc[pd.Timestamp("2026-03-01").date()]
+    assert march["reported_regime"] == "tightening"
+    assert march["transition_filter_reason"] == "switch_confirmed"
+    assert len(result.transitions) == 1
+
+
+def test_high_confidence_switch_stays_immediate_with_confirmation_enabled():
+    config = _confirmation_config()
+    scores = pd.DataFrame(
+        [
+            _score_row("2026-01-01", "goldilocks", 0.60, 1),
+            _score_row("2026-01-01", "recession", 0.30, 2),
+            _score_row("2026-02-01", "recession", 0.91, 1),
+            _score_row("2026-02-01", "goldilocks", 0.08, 2),
+        ]
+    )
+    health = pd.DataFrame(
+        [
+            _health_row("2026-01-01", "goldilocks", 0.60, 0.30),
+            _health_row("2026-02-01", "recession", 0.91, 0.83),
+        ]
+    )
+    result = run_historical_diagnostic(scores, health, config)
+    feb = result.timeline.set_index("date").loc[pd.Timestamp("2026-02-01").date()]
+
+    assert feb["reported_regime"] == "recession"
+    assert feb["transition_filter_reason"] == "switch_confirmed"
+
+
+def test_pending_confirmation_resets_when_raw_leader_reverts():
+    config = _confirmation_config(end_date="2026-04-01")
+    scores = pd.DataFrame(
+        [
+            _score_row("2026-01-01", "goldilocks", 0.60, 1),
+            _score_row("2026-01-01", "tightening", 0.30, 2),
+            _score_row("2026-02-01", "tightening", 0.51, 1),
+            _score_row("2026-02-01", "goldilocks", 0.49, 2),
+            _score_row("2026-03-01", "goldilocks", 0.55, 1),
+            _score_row("2026-03-01", "tightening", 0.45, 2),
+            _score_row("2026-04-01", "tightening", 0.52, 1),
+            _score_row("2026-04-01", "goldilocks", 0.48, 2),
+        ]
+    )
+    health = pd.DataFrame(
+        [
+            _health_row("2026-01-01", "goldilocks", 0.60, 0.30),
+            _health_row("2026-02-01", "tightening", 0.51, 0.10),
+            _health_row("2026-03-01", "goldilocks", 0.55, 0.12),
+            _health_row("2026-04-01", "tightening", 0.52, 0.10),
+        ]
+    )
+    result = run_historical_diagnostic(scores, health, config)
+    timeline = result.timeline.set_index("date")
+
+    # The interrupted February attempt must not carry over to April.
+    april = timeline.loc[pd.Timestamp("2026-04-01").date()]
+    assert april["reported_regime"] == "goldilocks"
+    assert april["transition_filter_reason"] == "awaiting_confirmation"
+    assert result.transitions.empty
+
+
+def test_production_config_enables_two_month_confirmation_below_015():
+    from macro_engine.diagnostics.config import load_historical_diagnostic_config
+
+    config = load_historical_diagnostic_config("config/phase_b_sources.yaml")
+    assert config.transition_filter.confirmation_months == 2
+    assert config.transition_filter.only_when_confidence_below == 0.15
+    assert config.transition_filter.min_confidence_to_switch == 0.08
+
+
+def _confirmation_config(
+    start_date: str = "2026-01-01",
+    end_date: str = "2026-03-01",
+) -> HistoricalDiagnosticConfig:
+    return HistoricalDiagnosticConfig(
+        start_date=start_date,
+        end_date=end_date,
+        mode="revised_data",
+        min_valid_regimes=2,
+        low_confidence_threshold=0.05,
+        transition_filter={
+            "enabled": True,
+            "min_confidence_to_switch": 0.02,
+            "confirmation_months": 2,
+            "only_when_confidence_below": 0.15,
+        },
+    )
+
+
 def _filter_config(
     start_date: str = "2026-01-01",
     end_date: str = "2026-02-01",
