@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, model_validator
 import yaml
 
+from macro_engine.news.fulltext import FulltextEnrichmentConfig
 from macro_engine.news.schema import (
     ALLOWED_IMPACT_DIRECTIONS,
     ALLOWED_THEME_DIRECTIONS,
@@ -32,7 +33,7 @@ REQUIRED_NEWS_SOURCE_GROUPS = {
 
 class NewsSourceDefinition(BaseModel):
     source_id: str
-    provider: Literal["local_csv", "local_json", "manual_text", "rss"]
+    provider: Literal["local_csv", "local_json", "manual_text", "rss", "gdelt", "finnhub"]
     enabled: bool = True
     profiles: list[str] = Field(default_factory=list)
     path: str | None = None
@@ -42,6 +43,12 @@ class NewsSourceDefinition(BaseModel):
     max_items: int = Field(default=50, ge=1)
     lookback_days: int = Field(default=7, ge=0)
     items: list[dict[str, Any]] = Field(default_factory=list)
+    # gdelt provider: DOC 2.0 full-text query and rolling window.
+    query: str | None = None
+    timespan_hours: int = Field(default=48, ge=1, le=24 * 90)
+    # finnhub provider: news category and the env var holding the API key.
+    category: str = "general"
+    api_key_env: str = "FINNHUB_API_KEY"
 
     @model_validator(mode="after")
     def validate_provider_fields(self):
@@ -51,6 +58,10 @@ class NewsSourceDefinition(BaseModel):
             raise ValueError(f"manual_text source {self.source_id} requires items")
         if self.provider == "rss" and not self.feed_url:
             raise ValueError(f"rss source {self.source_id} requires feed_url")
+        if self.provider == "gdelt" and not self.query:
+            raise ValueError(f"gdelt source {self.source_id} requires query")
+        if self.provider in {"gdelt", "finnhub"} and not self.source_group:
+            raise ValueError(f"{self.provider} source {self.source_id} requires source_group")
         if self.source_group and self.source_group not in REQUIRED_NEWS_SOURCE_GROUPS:
             raise ValueError(f"unknown source_group {self.source_group}")
         return self
@@ -79,6 +90,9 @@ class NewsSourceGroupRule(BaseModel):
 class NewsSourcesConfig(BaseModel):
     news_sources: list[NewsSourceDefinition]
     source_group_rules: list[NewsSourceGroupRule] = Field(default_factory=list)
+    fulltext_enrichment: "FulltextEnrichmentConfig" = Field(
+        default_factory=lambda: FulltextEnrichmentConfig()
+    )
 
     @model_validator(mode="after")
     def validate_source_group_rules(self):

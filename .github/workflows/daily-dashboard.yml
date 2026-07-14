@@ -129,6 +129,9 @@ jobs:
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          # Optional: Finnhub market-news source group. The finnhub source is
+          # skipped gracefully when this secret is not configured.
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
         run: |
           SOURCE_PROFILE="${{ inputs.source_profile || steps.mode.outputs.default_source_profile }}"
           python -m macro_engine.cli run-daily-diagnostic \

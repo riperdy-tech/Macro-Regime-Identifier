@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import hashlib
 import json
+import os
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from urllib.error import URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
@@ -22,6 +24,12 @@ from macro_engine.news.schema import NewsItem
 
 
 REQUIRED_NEWS_COLUMNS = {"title", "body", "source", "source_url", "published_at"}
+
+GDELT_DOC_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
+FINNHUB_NEWS_URL = "https://finnhub.io/api/v1/news"
+
+# Takes a fully-formed URL and returns the raw response text (injectable for tests).
+HttpFetchFn = Callable[[str], str]
 
 
 def load_news_items_from_config(
@@ -42,6 +50,10 @@ def load_news_items_from_config(
                 items.extend(load_manual_text_source(source, rules=config.source_group_rules))
             elif source.provider == "rss":
                 items.extend(load_rss_source(source, rules=config.source_group_rules))
+            elif source.provider == "gdelt":
+                items.extend(load_gdelt_source(source, rules=config.source_group_rules))
+            elif source.provider == "finnhub":
+                items.extend(load_finnhub_source(source, rules=config.source_group_rules))
             else:
                 raise ValueError(f"unsupported news provider {source.provider}")
         except Exception as exc:  # noqa: BLE001 - one bad source must not abort the run
@@ -260,6 +272,142 @@ def load_rss_source(
     return filtered[: source.max_items]
 
 
+def load_gdelt_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+    fetch: HttpFetchFn | None = None,
+) -> list[NewsItem]:
+    """Load recent articles from the free key-less GDELT DOC 2.0 API.
+
+    GDELT returns headline + URL + seendate only; the body starts as the
+    headline and the full-text enrichment step upgrades it from the URL.
+    """
+    if not source.query:
+        raise ValueError(f"gdelt source {source.source_id} requires query")
+    params = {
+        "query": source.query,
+        "mode": "ArtList",
+        "format": "json",
+        "maxrecords": str(source.max_items),
+        "sort": "DateDesc",
+        "timespan": f"{source.timespan_hours}h",
+    }
+    raw = (fetch or _default_http_fetch)(f"{GDELT_DOC_URL}?{urlencode(params)}")
+    try:
+        payload = json.loads(raw or "{}")
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"gdelt source {source.source_id} returned non-JSON content") from exc
+    articles = payload.get("articles", []) if isinstance(payload, dict) else []
+    items: list[NewsItem] = []
+    for article in articles:
+        if not isinstance(article, dict):
+            continue
+        title = str(article.get("title", "")).strip()
+        url = str(article.get("url", "")).strip()
+        if not title or not url:
+            continue
+        record = {
+            "title": title,
+            # Headline-as-body until fulltext enrichment fetches the article.
+            "body": title,
+            "source": str(article.get("domain") or source.source or source.source_id),
+            "source_url": url,
+            "published_at": _parse_gdelt_seendate(article.get("seendate")),
+            "source_group": source.source_group,
+            "gdelt_query": source.query,
+            "language": article.get("language"),
+        }
+        items.append(
+            _news_item_from_mapping(
+                _with_source_group_mapping(record, source, rules or []),
+                provider="gdelt",
+                fallback_source_id=source.source_id,
+            )
+        )
+    return items[: source.max_items]
+
+
+def load_finnhub_source(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+    fetch: HttpFetchFn | None = None,
+) -> list[NewsItem]:
+    """Load market news from the Finnhub free tier (requires FINNHUB_API_KEY)."""
+    api_key = os.getenv(source.api_key_env, "").strip()
+    if not api_key:
+        raise ValueError(
+            f"finnhub source {source.source_id} skipped: {source.api_key_env} is not set"
+        )
+    url = f"{FINNHUB_NEWS_URL}?{urlencode({'category': source.category, 'token': api_key})}"
+    try:
+        raw = (fetch or _default_http_fetch)(url)
+    except Exception as exc:  # noqa: BLE001 - never leak the token-bearing URL
+        raise ValueError(
+            f"finnhub source {source.source_id} request failed: {type(exc).__name__}"
+        ) from None
+    try:
+        payload = json.loads(raw or "[]")
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"finnhub source {source.source_id} returned non-JSON content") from exc
+    if not isinstance(payload, list):
+        raise ValueError(f"finnhub source {source.source_id} returned unexpected payload")
+    cutoff = None
+    if source.lookback_days:
+        cutoff = datetime.now(UTC) - pd.Timedelta(days=source.lookback_days).to_pytimedelta()
+    items: list[NewsItem] = []
+    for entry in payload:
+        if not isinstance(entry, dict):
+            continue
+        title = str(entry.get("headline", "")).strip()
+        if not title:
+            continue
+        published_at = None
+        if isinstance(entry.get("datetime"), (int, float)) and entry["datetime"] > 0:
+            published_at = datetime.fromtimestamp(float(entry["datetime"]), tz=UTC)
+        if cutoff is not None and published_at is not None and published_at < cutoff:
+            continue
+        body = str(entry.get("summary", "")).strip() or title
+        record = {
+            "title": title,
+            "body": body,
+            "source": str(entry.get("source") or source.source or source.source_id),
+            "source_url": str(entry.get("url", "")).strip() or None,
+            "published_at": None if published_at is None else published_at.isoformat(),
+            "source_group": source.source_group,
+            "finnhub_category": source.category,
+        }
+        items.append(
+            _news_item_from_mapping(
+                _with_source_group_mapping(record, source, rules or []),
+                provider="finnhub",
+                fallback_source_id=source.source_id,
+            )
+        )
+    return items[: source.max_items]
+
+
+def _default_http_fetch(url: str) -> str:
+    request = Request(
+        url,
+        headers={"User-Agent": "macro-engine-news-pilot/1.0 (+local diagnostics)"},
+    )
+    with urlopen(request, timeout=20) as response:
+        charset = response.headers.get_content_charset() or "utf-8"
+        return response.read().decode(charset, errors="replace")
+
+
+def _parse_gdelt_seendate(value: Any) -> str | None:
+    if not value:
+        return None
+    text = str(value).strip()
+    try:
+        return datetime.strptime(text, "%Y%m%dT%H%M%SZ").replace(tzinfo=UTC).isoformat()
+    except ValueError:
+        return text
+
+
 def dedupe_news_items(items: list[NewsItem]) -> list[NewsItem]:
     seen: set[str] = set()
     deduped: list[NewsItem] = []
@@ -363,7 +511,8 @@ def _load_source_for_validation(
         return load_local_json_source(source, rules=rules)
     if source.provider == "manual_text":
         return load_manual_text_source(source, rules=rules)
-    if source.provider == "rss":
+    if source.provider in {"rss", "gdelt", "finnhub"}:
+        # Network providers are validated at ingestion time, not config time.
         return []
     raise ValueError(f"unsupported news provider {source.provider}")
 

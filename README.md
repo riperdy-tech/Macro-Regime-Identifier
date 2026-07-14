@@ -466,6 +466,23 @@ Replay interpretation:
 - Real replay data under `data/news_pilot/`, generated replay outputs, archives,
   and exported dashboard data should remain local-only.
 
+### Live News Sources
+
+The `live_rss` profile combines three provider types:
+
+- `rss`: curated public feeds (headline + summary snippets).
+- `gdelt`: key-less GDELT DOC 2.0 discovery queries that fill source groups
+  RSS leaves thin (healthcare, technology_ai, consumer, defensive_sectors,
+  manufacturing_industrials).
+- `finnhub`: market news from the Finnhub free tier. Requires a
+  `FINNHUB_API_KEY` secret/env var; the source is skipped gracefully when it
+  is absent.
+
+Items whose body is only a headline or short snippet are upgraded by the
+`fulltext_enrichment` step, which fetches the article URL and extracts the
+main article text with trafilatura (bounded per run, failures keep the
+original snippet). Configuration lives in `config/news_sources.yaml`.
+
 For a balanced real-news pilot, place a local file at:
 
 ```text

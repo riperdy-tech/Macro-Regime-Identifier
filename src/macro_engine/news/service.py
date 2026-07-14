@@ -18,6 +18,8 @@ from macro_engine.news.config import (
     load_news_selection_config,
     load_news_themes_config,
 )
+from macro_engine.news.config import load_news_sources_config
+from macro_engine.news.fulltext import enrich_items_with_fulltext
 from macro_engine.news.ingest import load_news_items_from_config
 from macro_engine.news.selection import rank_and_select
 from macro_engine.news.providers.openai_classifier import DeepSeekNewsClassifier
@@ -35,6 +37,8 @@ def ingest_stored_news(
     profile: str | None = None,
 ) -> pd.DataFrame:
     items = load_news_items_from_config(config_path, profile=profile)
+    sources_config = load_news_sources_config(config_path)
+    items = enrich_items_with_fulltext(items, sources_config.fulltext_enrichment)
     store = DuckDBStore(db_path)
     store.initialize()
     frame = pd.DataFrame([item.model_dump() for item in items])
