@@ -45,7 +45,16 @@ def build_features_from_raw(
             continue
 
         source_rows = raw[raw["series_id"] == feature.series_id].copy()
-        source_rows = source_rows.dropna(subset=["date"]).sort_values("date")
+        source_rows = source_rows.dropna(subset=["date"])
+        # Databases written before the (series_id, date) upsert fix can hold
+        # duplicate vintages of the same observation; keep the latest fetch
+        # per date so positional transforms and rolling windows stay correct.
+        sort_columns = (
+            ["date", "fetched_at"] if "fetched_at" in source_rows.columns else ["date"]
+        )
+        source_rows = source_rows.sort_values(sort_columns).drop_duplicates(
+            subset=["date"], keep="last"
+        )
         if source_rows.empty:
             rows.append(_invalid_feature_row(feature, "missing_source_data"))
             continue
