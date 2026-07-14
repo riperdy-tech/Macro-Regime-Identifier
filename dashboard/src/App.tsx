@@ -17,6 +17,8 @@ import {
   formatRunDate,
   formatScore,
   formatStamp,
+  formatCount,
+  formatSigned,
   getNested,
   getObject,
   historyRuns,
@@ -62,13 +64,15 @@ export function App() {
 
   const status = useMemo(() => dataStatus(data), [data]);
   const hero = useMemo(() => {
-    const macro = getObject(getObject(data?.daily).macro);
+    const daily = getObject(data?.daily);
+    const macro = getObject(daily.macro);
     return {
       regime: typeof macro.reported_regime === "string" ? macro.reported_regime : null,
       rawRegime:
         typeof macro.raw_dominant_regime === "string" ? macro.raw_dominant_regime : null,
       confidence: typeof macro.confidence === "number" ? macro.confidence : null,
       date: typeof macro.date === "string" ? macro.date : null,
+      updated: formatRunDate(daily.run_date, daily.run_id),
     };
   }, [data]);
 
@@ -121,6 +125,7 @@ type ShellHero = {
   rawRegime: string | null;
   confidence: number | null;
   date: string | null;
+  updated: string;
 };
 
 function Shell({
@@ -171,6 +176,11 @@ function Shell({
                   <strong className="hero-value">{hero.rawRegime.replaceAll("_", " ")}</strong>
                 </div>
               ) : null}
+              <div className="hero-cell">
+                <span className="hero-label">Updated</span>
+                <strong className="hero-value">{hero.updated}</strong>
+                <span className="hero-note">refreshes daily ~07:35 Taipei</span>
+              </div>
             </div>
           ) : null}
           <div className="header-actions">
@@ -365,11 +375,22 @@ function Overview({ data }: { data: DashboardData }) {
   const monitoring = getObject(data.monitoring);
   const classification = getObject(monitoring.classification_quality);
   const missingFiles = data.manifest?.missing_files ?? [];
+  const macroDate = text(macro.date, "latest macro month");
+  const newsDate = text(getNested(data.newsScores, "latest_news_scoring_date"), "latest run");
+  const combinedDate = text(
+    getObject(data.combined).diagnostic_date ??
+      getNested(data.monitoring, "overlay_monitoring", "diagnostic_date"),
+    "latest run",
+  );
   return (
     <section className="grid two">
-      <Metric label="Run status" value={text(daily.status)} detail={text(daily.run_id, "No run id")} />
-      <Metric label="Archive path" value={text(daily.archive_path)} />
-      <Metric label="Exported at" value={formatStamp(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
+      <Metric
+        label="Last run (Taipei)"
+        value={formatRunDate(daily.run_date, daily.run_id)}
+        detail={`status ${text(daily.status)} · refreshes daily ~07:35 Taipei`}
+      />
+      <Metric label="Run id" value={text(daily.run_id, "No run id")} detail={text(daily.archive_path)} />
+      <Metric label="Dashboard data exported" value={formatStamp(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
       <Metric
         label="Macro regime"
         value={text(macro.reported_regime)}
@@ -408,20 +429,36 @@ function Overview({ data }: { data: DashboardData }) {
           }
         />
       </Panel>
-      <Panel title="Top Sector Diagnostics" info={TOOLTIPS.confidence_adjusted_score}>
+      <Panel
+        title="Top Sector Diagnostics"
+        info={TOOLTIPS.confidence_adjusted_score}
+        sub={`Macro-only scores from macro month ${macroDate}. Recomputed on every daily run; no news input.`}
+      >
         <RankingTable rows={sectorRows(data.sectors).slice(0, 5)} scoreKey="confidence_adjusted_score" />
       </Panel>
-      <Panel title="Top News Themes" info={TOOLTIPS.news_themes}>
+      <Panel
+        title="Top News Themes"
+        info={TOOLTIPS.news_themes}
+        sub={`Decay-weighted news theme scores (7-day half-life, 21-day window) as of ${newsDate}.`}
+      >
         <ScoreList items={scoreItems(getNested(data.newsScores, "top_positive_macro_themes")).slice(0, 5)} />
       </Panel>
-      <Panel title="Combined Top Sectors" info={TOOLTIPS.combined_overlay}>
+      <Panel
+        title="Combined Top Sectors"
+        info={TOOLTIPS.combined_overlay}
+        sub={`75% macro (month ${macroDate}) + 25% bounded news overlay, as of ${combinedDate}.`}
+      >
         <RankingTable
           rows={combinedRows(data.combined).slice(0, 5)}
           scoreKey="combined_score"
           labels={sectorLabelById(data.sectors)}
         />
       </Panel>
-      <Panel title="Coverage Warnings" info={TOOLTIPS.coverage_warnings}>
+      <Panel
+        title="Coverage Warnings"
+        info={TOOLTIPS.coverage_warnings}
+        sub="From the latest stored news inventory (150-day retention)."
+      >
         <WarningList items={asArray<string>(getObject(data.coverage).warnings)} />
       </Panel>
     </section>
@@ -441,22 +478,41 @@ function MacroPanel({ data }: { data: DashboardData }) {
       <Metric label="Reported regime" value={regimeLabel} info={TOOLTIPS.regime} />
       <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} info={TOOLTIPS.reported_vs_raw} />
       <Metric label="Confidence" value={formatPct(confidence)} info={TOOLTIPS.confidence} />
-      <Metric label="Macro date" value={text(dailyMacro.date ?? sectorPayload.date)} info={TOOLTIPS.macro_date} />
+      <Metric
+        label="Macro month evaluated"
+        value={text(dailyMacro.date ?? sectorPayload.date)}
+        detail="monthly cadence; publication lags applied"
+        info={TOOLTIPS.macro_date}
+      />
       {note ? (
         <Panel title="Reading this confidence" wide info={TOOLTIPS.confidence}>
           <p className="conf-note" style={{ margin: 0 }}>{note}</p>
         </Panel>
       ) : null}
-      <Panel title="Regime Timeline (1990 to present)" wide info={TOOLTIPS.regime_timeline}>
+      <Panel
+        title="Regime Timeline (1990 to present)"
+        wide
+        info={TOOLTIPS.regime_timeline}
+        sub="Monthly regime probabilities on revised data with publication lags; rebuilt on every daily run."
+      >
         <RegimeTimeline data={data} />
       </Panel>
-      <Panel title="Macro Indicators by Dimension" wide info={TOOLTIPS.macro_indicators}>
+      <Panel
+        title="Macro Indicators by Dimension"
+        wide
+        info={TOOLTIPS.macro_indicators}
+        sub={`Monthly indicator z-scores through macro month ${text(dailyMacro.date ?? sectorPayload.date, "latest")}.`}
+      >
         <MacroIndicators data={data} />
       </Panel>
-      <Panel title="Regime Probabilities" info={TOOLTIPS.regime_probabilities}>
-        <KeyValueTable values={probabilities} />
+      <Panel
+        title="Regime Probabilities"
+        info={TOOLTIPS.regime_probabilities}
+        sub={`Raw softmax probabilities for macro month ${text(dailyMacro.date ?? sectorPayload.date, "latest")}, before the transition filter.`}
+      >
+        <KeyValueTable values={probabilities} format={formatPct} prettifyKeys sortByValue />
       </Panel>
-      <Panel title="Warnings">
+      <Panel title="Warnings" sub="From the latest daily pipeline run.">
         <WarningList items={asArray<string>(getObject(data.daily).warnings)} />
       </Panel>
     </section>
@@ -745,11 +801,26 @@ function SectorPanel({ data }: { data: DashboardData }) {
   const rows = sectorRows(data.sectors);
   const top = rows[0];
   const bottom = rows[rows.length - 1];
+  const sectorPayload = getObject(data.sectors);
+  const macroMonth = text(sectorPayload.date, "latest");
+  const sectorName = (row?: RankedSector) =>
+    row?.label ?? (row?.sector_id ? prettySectorId(row.sector_id) : "Data unavailable");
   return (
     <section className="grid two">
-      <Metric label="Top sector" value={text(top?.sector_id)} detail={formatScore(top?.confidence_adjusted_score)} info={TOOLTIPS.confidence_adjusted_score} />
-      <Metric label="Lowest sector" value={text(bottom?.sector_id)} detail={formatScore(bottom?.confidence_adjusted_score)} info={TOOLTIPS.confidence_adjusted_score} />
-      <Panel title="Sector Ranking" wide info={TOOLTIPS.sector_ranking}>
+      <Metric
+        label="Macro month used"
+        value={macroMonth}
+        detail={`regime ${text(sectorPayload.reported_macro_regime, "n/a")} · recomputed daily`}
+        info={TOOLTIPS.macro_date}
+      />
+      <Metric label="Top sector" value={sectorName(top)} detail={`score ${formatScore(top?.confidence_adjusted_score)}`} info={TOOLTIPS.confidence_adjusted_score} />
+      <Metric label="Lowest sector" value={sectorName(bottom)} detail={`score ${formatScore(bottom?.confidence_adjusted_score)}`} info={TOOLTIPS.confidence_adjusted_score} />
+      <Panel
+        title="Sector Ranking"
+        wide
+        info={TOOLTIPS.sector_ranking}
+        sub={`Macro-only tailwind/headwind scores for macro month ${macroMonth}. Positive = macro backdrop supportive, negative = headwind; not a return forecast.`}
+      >
         <RankingTable rows={rows} scoreKey="confidence_adjusted_score" />
       </Panel>
       <Panel title="Top Sector Components" info={TOOLTIPS.sector_components}>
@@ -817,22 +888,44 @@ function NewsPanel({ data }: { data: DashboardData }) {
   const report = getObject(data.newsScores);
   const monitoring = getObject(data.monitoring);
   const classification = getObject(monitoring.classification_quality);
+  const newsWindow = "7-day half-life, 21-day window";
+  const newsDate = text(report.latest_news_scoring_date, "latest run");
   return (
     <section className="grid two">
-      <Metric label="News score date" value={text(report.latest_news_scoring_date)} />
+      <Metric
+        label="News scores as of"
+        value={newsDate}
+        detail={`daily aggregation · ${newsWindow}`}
+      />
       <Metric label="Classification success" value={formatPct(classification.success_rate)} info={TOOLTIPS.classification_success} />
       <Metric label="Retry rate" value={formatPct(classification.retry_rate)} info={TOOLTIPS.retry_rate} />
       <Metric label="Repair rate" value={formatPct(classification.repair_rate)} info={TOOLTIPS.repair_rate} />
-      <Panel title="Positive Macro Themes" info={TOOLTIPS.news_themes}>
+      <Panel
+        title="Positive Macro Themes"
+        info={TOOLTIPS.news_themes}
+        sub={`Theme scores over the trailing window (${newsWindow}) as of ${newsDate}.`}
+      >
         <ScoreList items={scoreItems(report.top_positive_macro_themes)} />
       </Panel>
-      <Panel title="Negative Macro Themes" info={TOOLTIPS.news_themes}>
+      <Panel
+        title="Negative Macro Themes"
+        info={TOOLTIPS.news_themes}
+        sub={`Theme scores over the trailing window (${newsWindow}) as of ${newsDate}.`}
+      >
         <ScoreList items={scoreItems(report.top_negative_macro_themes)} />
       </Panel>
-      <Panel title="Sector Diagnostic Tailwinds" info={TOOLTIPS.news_themes}>
+      <Panel
+        title="Sector Diagnostic Tailwinds"
+        info={TOOLTIPS.news_themes}
+        sub={`News-derived sector scores as of ${newsDate}; separate from the macro sector ranking.`}
+      >
         <ScoreList items={scoreItems(report.top_sector_news_tailwinds)} />
       </Panel>
-      <Panel title="Sector Diagnostic Headwinds" info={TOOLTIPS.news_themes}>
+      <Panel
+        title="Sector Diagnostic Headwinds"
+        info={TOOLTIPS.news_themes}
+        sub={`News-derived sector scores as of ${newsDate}; separate from the macro sector ranking.`}
+      >
         <ScoreList items={scoreItems(report.top_sector_news_headwinds)} />
       </Panel>
       <Panel title="Low Confidence Items" wide info={TOOLTIPS.low_confidence_items}>
@@ -876,27 +969,45 @@ function CombinedPanel({ data }: { data: DashboardData }) {
   const combined = getObject(data.combined);
   const monitoring = getObject(data.monitoring);
   const overlay = getObject(monitoring.overlay_monitoring);
+  const diagnosticDate = text(combined.diagnostic_date ?? overlay.diagnostic_date, "latest run");
   return (
     <section className="grid two">
-      <Metric label="Diagnostic date" value={text(combined.diagnostic_date ?? overlay.diagnostic_date)} />
-      <Metric label="Max rank change" value={text(overlay.max_rank_change, "0")} info={TOOLTIPS.overlay_rank_change} />
-      <Metric label="News item count" value={text(overlay.news_item_count, "0")} info={TOOLTIPS.news_item_count} />
+      <Metric
+        label="Diagnostic as of"
+        value={diagnosticDate}
+        detail="recomputed on every daily run"
+      />
+      <Metric label="Max rank change" value={formatSigned(overlay.max_rank_change)} info={TOOLTIPS.overlay_rank_change} />
+      <Metric label="News items in overlay" value={formatCount(overlay.news_item_count)} info={TOOLTIPS.news_item_count} />
       <Metric label="Overlay status" value={text(overlay.overlay_status)} info={TOOLTIPS.combined_overlay} />
-      <Panel title="Combined Ranking" wide info={TOOLTIPS.combined_overlay}>
+      <Panel
+        title="Combined Ranking"
+        wide
+        info={TOOLTIPS.combined_overlay}
+        sub={`75% macro + 25% bounded news overlay, as of ${diagnosticDate}. Sectors with no recent news fall back to macro-only.`}
+      >
         <RankingTable
           rows={combinedRows(data.combined)}
           scoreKey="combined_score"
           labels={sectorLabelById(data.sectors)}
         />
       </Panel>
-      <Panel title="Macro-only Top Sectors" info={TOOLTIPS.confidence_adjusted_score}>
+      <Panel
+        title="Macro-only Top Sectors"
+        info={TOOLTIPS.confidence_adjusted_score}
+        sub="Same date, before the news overlay — compare against the combined ranking."
+      >
         <RankingTable
           rows={asArray<RankedSector>(overlay.macro_only_top_sectors_json)}
           scoreKey="confidence_adjusted_score"
           labels={sectorLabelById(data.sectors)}
         />
       </Panel>
-      <Panel title="Rank Changes From News Overlay" info={TOOLTIPS.overlay_rank_change}>
+      <Panel
+        title="Rank Changes From News Overlay"
+        info={TOOLTIPS.overlay_rank_change}
+        sub={`Positions moved by news vs the macro-only ranking, as of ${diagnosticDate}.`}
+      >
         <ChangeList items={asArray<Record<string, unknown>>(overlay.sectors_changed_by_news_json)} />
       </Panel>
     </section>
@@ -921,14 +1032,32 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
       <Metric label="Old item share" value={formatPct(coverage.old_item_pct)} info={TOOLTIPS.old_item_share} />
       <Metric label="Input quality" value={text(inputQuality.quality_status)} info={TOOLTIPS.input_quality} />
       <Metric label="Guardrail status" value={text(getNested(data.daily, "step_statuses", "guardrail_status"))} info={TOOLTIPS.guardrail} />
-      <Panel title="Missing Groups" info={TOOLTIPS.coverage_warnings}>
+      <Panel
+        title="Missing Groups"
+        info={TOOLTIPS.coverage_warnings}
+        sub="Configured source groups with no stored items in the current inventory."
+      >
         <WarningList items={asArray<string>(coverage.missing_data_groups)} />
       </Panel>
-      <Panel title="Coverage Warnings" info={TOOLTIPS.coverage_warnings}>
+      <Panel
+        title="Coverage Warnings"
+        info={TOOLTIPS.coverage_warnings}
+        sub="From the latest stored news inventory (150-day retention)."
+      >
         <WarningList items={asArray<string>(coverage.warnings)} />
       </Panel>
-      <Panel title="Source Group Counts" wide info={TOOLTIPS.coverage_warnings}>
-        <KeyValueTable values={getObject(coverage.item_count_by_group)} />
+      <Panel
+        title="Source Group Counts"
+        wide
+        info={TOOLTIPS.coverage_warnings}
+        sub="Stored news items per source group, accumulated over the 150-day retention window (not per-day counts)."
+      >
+        <KeyValueTable
+          values={getObject(coverage.item_count_by_group)}
+          format={formatCount}
+          prettifyKeys
+          sortByValue
+        />
       </Panel>
     </section>
   );
@@ -961,7 +1090,11 @@ function HistoryPanel({ data }: { data: DashboardData }) {
           <TrendCards rows={rows} />
         )}
       </Panel>
-      <Panel title="Recent Daily Runs" wide>
+      <Panel
+        title="Recent Daily Runs"
+        wide
+        sub="One row per archived daily run (Taipei dates). Replay rows are simulated historical dates, not live runs."
+      >
         <HistoryTable rows={rows} />
       </Panel>
     </section>
@@ -1044,11 +1177,13 @@ function Panel({
   title,
   wide = false,
   info,
+  sub,
 }: {
   children: React.ReactNode;
   title: string;
   wide?: boolean;
   info?: string;
+  sub?: string;
 }) {
   return (
     <section className={wide ? "panel wide" : "panel"}>
@@ -1056,6 +1191,7 @@ function Panel({
         {title}
         {info ? <InfoTip text={info} /> : null}
       </h2>
+      {sub ? <p className="panel-sub">{sub}</p> : null}
       {children}
     </section>
   );
@@ -1134,9 +1270,9 @@ function ScoreList({ items }: { items: { id?: string; score?: number; item_count
     <ul className="score-list">
       {items.map((item, index) => (
         <li key={`${item.id}-${index}`}>
-          <span>{item.id}</span>
+          <span>{prettySectorId(item.id ?? "unknown")}</span>
           <strong>{formatScore(item.score)}</strong>
-          <small>{item.item_count ?? 0} items</small>
+          <small>{formatCount(item.item_count ?? 0)} items</small>
         </li>
       ))}
     </ul>
@@ -1210,8 +1346,12 @@ function ChangeList({ items }: { items: Record<string, unknown>[] }) {
     <ul className="compact-list">
       {items.map((item, index) => (
         <li key={`${item.sector_id}-${index}`}>
-          <span>{text(item.sector_id)}</span>
-          <strong>{text(item.rank_change)}</strong>
+          <span>{prettySectorId(text(item.sector_id, "unknown"))}</span>
+          <strong>
+            {typeof item.rank_change === "number"
+              ? `${formatSigned(item.rank_change)} ranks`
+              : text(item.rank_change)}
+          </strong>
         </li>
       ))}
     </ul>
@@ -1231,18 +1371,35 @@ function WarningList({ items }: { items: string[] }) {
   );
 }
 
-function KeyValueTable({ values }: { values: Record<string, unknown> }) {
-  const entries = Object.entries(values);
+function KeyValueTable({
+  values,
+  format = formatScore,
+  prettifyKeys = false,
+  sortByValue = false,
+}: {
+  values: Record<string, unknown>;
+  format?: (value: unknown) => string;
+  prettifyKeys?: boolean;
+  sortByValue?: boolean;
+}) {
+  let entries = Object.entries(values);
   if (!entries.length) {
     return <p className="muted">Data unavailable.</p>;
+  }
+  if (sortByValue) {
+    entries = entries.sort(
+      ([, a], [, b]) =>
+        (typeof b === "number" ? b : Number.NEGATIVE_INFINITY) -
+        (typeof a === "number" ? a : Number.NEGATIVE_INFINITY),
+    );
   }
   return (
     <table>
       <tbody>
         {entries.map(([key, value]) => (
           <tr key={key}>
-            <td>{key}</td>
-            <td>{typeof value === "number" ? formatScore(value) : text(value)}</td>
+            <td>{prettifyKeys ? prettySectorId(key) : key}</td>
+            <td>{typeof value === "number" ? format(value) : text(value)}</td>
           </tr>
         ))}
       </tbody>
