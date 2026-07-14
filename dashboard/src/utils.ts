@@ -112,6 +112,27 @@ export function scoreItems(value: unknown): ScoredItem[] {
   return asArray<ScoredItem>(value);
 }
 
+export function sectorLabelById(
+  ...payloads: (Record<string, unknown> | null)[]
+): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const payload of payloads) {
+    for (const row of sectorRows(payload)) {
+      if (row.sector_id && row.label) {
+        labels[row.sector_id] = row.label;
+      }
+    }
+  }
+  return labels;
+}
+
+export function prettySectorId(sectorId: string): string {
+  return sectorId
+    .split("_")
+    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+    .join(" ");
+}
+
 export function historyRuns(payload: Record<string, unknown> | null): HistoryRun[] {
   if (!payload) {
     return [];

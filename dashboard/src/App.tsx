@@ -20,7 +20,9 @@ import {
   getNested,
   getObject,
   historyRuns,
+  prettySectorId,
   scoreItems,
+  sectorLabelById,
   sectorRows,
   text,
 } from "./utils";
@@ -355,7 +357,11 @@ function Overview({ data }: { data: DashboardData }) {
         <ScoreList items={scoreItems(getNested(data.newsScores, "top_positive_macro_themes")).slice(0, 5)} />
       </Panel>
       <Panel title="Combined Top Sectors" info={TOOLTIPS.combined_overlay}>
-        <RankingTable rows={combinedRows(data.combined).slice(0, 5)} scoreKey="combined_score" />
+        <RankingTable
+          rows={combinedRows(data.combined).slice(0, 5)}
+          scoreKey="combined_score"
+          labels={sectorLabelById(data.sectors)}
+        />
       </Panel>
       <Panel title="Coverage Warnings" info={TOOLTIPS.coverage_warnings}>
         <WarningList items={asArray<string>(getObject(data.coverage).warnings)} />
@@ -817,12 +823,17 @@ function CombinedPanel({ data }: { data: DashboardData }) {
       <Metric label="News item count" value={text(overlay.news_item_count, "0")} info={TOOLTIPS.news_item_count} />
       <Metric label="Overlay status" value={text(overlay.overlay_status)} info={TOOLTIPS.combined_overlay} />
       <Panel title="Combined Ranking" wide info={TOOLTIPS.combined_overlay}>
-        <RankingTable rows={combinedRows(data.combined)} scoreKey="combined_score" />
+        <RankingTable
+          rows={combinedRows(data.combined)}
+          scoreKey="combined_score"
+          labels={sectorLabelById(data.sectors)}
+        />
       </Panel>
       <Panel title="Macro-only Top Sectors" info={TOOLTIPS.confidence_adjusted_score}>
         <RankingTable
           rows={asArray<RankedSector>(overlay.macro_only_top_sectors_json)}
           scoreKey="confidence_adjusted_score"
+          labels={sectorLabelById(data.sectors)}
         />
       </Panel>
       <Panel title="Rank Changes From News Overlay" info={TOOLTIPS.overlay_rank_change}>
@@ -1016,13 +1027,21 @@ function Metric({
 function RankingTable({
   rows,
   scoreKey,
+  labels,
 }: {
   rows: RankedSector[];
   scoreKey: keyof RankedSector;
+  labels?: Record<string, string>;
 }) {
   if (!rows.length) {
     return <p className="muted">Data unavailable.</p>;
   }
+  // Macro-only rankings carry no news counts; hide the column instead of
+  // rendering a wall of "n/a".
+  const hasNewsCounts = rows.some((row) => row.news_item_count != null);
+  const sectorName = (row: RankedSector) =>
+    row.label ??
+    (row.sector_id ? labels?.[row.sector_id] ?? prettySectorId(row.sector_id) : "unknown");
   return (
     <table>
       <thead>
@@ -1030,16 +1049,16 @@ function RankingTable({
           <th>Rank</th>
           <th>Sector</th>
           <th>Score</th>
-          <th>News Items</th>
+          {hasNewsCounts ? <th>News Items</th> : null}
         </tr>
       </thead>
       <tbody>
         {rows.map((row, index) => (
           <tr key={`${row.sector_id}-${index}`}>
             <td>{row.rank ?? index + 1}</td>
-            <td>{row.label ?? row.sector_id}</td>
+            <td>{sectorName(row)}</td>
             <td>{formatScore(row[scoreKey])}</td>
-            <td>{row.news_item_count ?? "n/a"}</td>
+            {hasNewsCounts ? <td>{row.news_item_count ?? 0}</td> : null}
           </tr>
         ))}
       </tbody>
