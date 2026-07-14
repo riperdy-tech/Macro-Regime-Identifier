@@ -1,0 +1,121 @@
+{
+  "auroc": 0.8894110275689223,
+  "disclaimer": "This NBER benchmark is a revised-data diagnostic comparison against public NBER business-cycle dates. It is not a point-in-time backtest, not evidence of predictive value, and not investment advice.",
+  "expansion_month_count": 399,
+  "generated_at": "2026-07-14T15:48:42.475043+00:00",
+  "label": "revised-data NBER benchmark, not a point-in-time backtest",
+  "label_metrics": {
+    "raw_dominant": {
+      "expansion_flag_rate": 0.2556390977443609,
+      "expansion_flags": 102,
+      "expansion_months": 399,
+      "recession_hit_rate": 0.8,
+      "recession_hits": 32,
+      "recession_months": 40
+    },
+    "reported": {
+      "expansion_flag_rate": 0.2832080200501253,
+      "expansion_flags": 113,
+      "expansion_months": 399,
+      "recession_hit_rate": 0.8,
+      "recession_hits": 32,
+      "recession_months": 40
+    }
+  },
+  "month_count": 439,
+  "nber_recession_month_count": 40,
+  "nber_recessions": [
+    {
+      "end": "1991-03",
+      "start": "1990-07"
+    },
+    {
+      "end": "2001-11",
+      "start": "2001-03"
+    },
+    {
+      "end": "2009-06",
+      "start": "2007-12"
+    },
+    {
+      "end": "2020-04",
+      "start": "2020-02"
+    }
+  ],
+  "recession_detection": [
+    {
+      "detected_month": "1990-01",
+      "detection_threshold": 0.25,
+      "end": "1991-03",
+      "lead_lag_months": -6,
+      "start": "1990-07",
+      "window_months_before_start": 9
+    },
+    {
+      "detected_month": "2000-06",
+      "detection_threshold": 0.25,
+      "end": "2001-11",
+      "lead_lag_months": -9,
+      "start": "2001-03",
+      "window_months_before_start": 9
+    },
+    {
+      "detected_month": "2007-08",
+      "detection_threshold": 0.25,
+      "end": "2009-06",
+      "lead_lag_months": -4,
+      "start": "2007-12",
+      "window_months_before_start": 9
+    },
+    {
+      "detected_month": "2019-09",
+      "detection_threshold": 0.25,
+      "end": "2020-04",
+      "lead_lag_months": -5,
+      "start": "2020-02",
+      "window_months_before_start": 9
+    }
+  ],
+  "recession_regime_ids": [
+    "recession"
+  ],
+  "status": "ok",
+  "threshold_metrics": [
+    {
+      "expansion_flag_rate": 0.39598997493734334,
+      "expansion_flags": 158,
+      "expansion_months": 399,
+      "recession_hit_rate": 1.0,
+      "recession_hits": 40,
+      "recession_months": 40,
+      "threshold": 0.2
+    },
+    {
+      "expansion_flag_rate": 0.3082706766917293,
+      "expansion_flags": 123,
+      "expansion_months": 399,
+      "recession_hit_rate": 0.975,
+      "recession_hits": 39,
+      "recession_months": 40,
+      "threshold": 0.25
+    },
+    {
+      "expansion_flag_rate": 0.2531328320802005,
+      "expansion_flags": 101,
+      "expansion_months": 399,
+      "recession_hit_rate": 0.975,
+      "recession_hits": 39,
+      "recession_months": 40,
+      "threshold": 0.3
+    },
+    {
+      "expansion_flag_rate": 0.20802005012531327,
+      "expansion_flags": 83,
+      "expansion_months": 399,
+      "recession_hit_rate": 0.85,
+      "recession_hits": 34,
+      "recession_months": 40,
+      "threshold": 0.35
+    }
+  ]
+}
