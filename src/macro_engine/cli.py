@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 import json
 from typing import Annotated
 
@@ -14,7 +13,6 @@ from macro_engine.accumulation import (
     write_news_accumulation_report,
 )
 from macro_engine.automation import write_automation_summary
-from macro_engine.config.loader import load_all_configs
 from macro_engine.daily import run_daily_diagnostic
 from macro_engine.daily_health import daily_health_check as daily_health_check_service
 from macro_engine.dashboard_export import export_dashboard_data as export_dashboard_data_service
@@ -24,7 +22,10 @@ from macro_engine.evaluation.service import (
     build_stored_asof_features,
     build_stored_evaluation_calendar,
 )
+from macro_engine.diagnostics.config import load_historical_diagnostic_config
+from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.experiments.runner import run_calibration_experiments
+from macro_engine.features.config import load_feature_config
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
 from macro_engine.ingest.service import run_fred_ingestion
@@ -57,13 +58,12 @@ from macro_engine.news.confidence_calibration import (
 from macro_engine.news.guardrails import run_sector_guardrail_check
 from macro_engine.news.gdelt_backfill import backfill_gdelt_news
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
-from macro_engine.outputs.json_writer import write_json
-from macro_engine.outputs.report import build_markdown_report, write_markdown_report
-from macro_engine.pipeline import classify_observations
 from macro_engine.pipeline_runner import run_pipeline as run_full_pipeline
+from macro_engine.regimes.config import load_regime_config
 from macro_engine.regimes.service import build_stored_regimes
 from macro_engine.regime_status import write_regime_status
 from macro_engine.replay import replay_news_history
+from macro_engine.reports.config import load_report_config
 from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
     write_historical_diagnostic_report as write_historical_diagnostic_report_service,
@@ -77,40 +77,41 @@ from macro_engine.sectors.validation import (
 )
 from macro_engine.sectors.validation_report import write_sector_validation_report
 from macro_engine.storage.duckdb_store import DuckDBStore
-from macro_engine.toy_data import build_toy_observations
 
 app = typer.Typer(help="Macro Regime Intelligence Engine")
 console = Console()
 
 
 @app.command()
-def validate_config(config_dir: str = "config") -> None:
-    """Validate the Phase A config contract."""
-    config = load_all_configs(config_dir)
-    console.print(
-        f"[green]Config valid[/green]: {len(config.sources)} sources, "
-        f"{len(config.dimensions)} dimensions, {len(config.regimes)} regimes"
-    )
-
-
-@app.command()
-def run_toy(
-    as_of: str = "2026-05-08",
-    config_dir: str = "config",
-    output_dir: str = "data/outputs",
+def validate_config(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
 ) -> None:
-    """Run the tiny offline Phase A classification path."""
-    config = load_all_configs(config_dir)
-    result = classify_observations(build_toy_observations(), config, as_of)
-    output_path = Path(output_dir)
-    json_path = output_path / f"toy_regime_{as_of}.json"
-    markdown_path = output_path / f"toy_regime_{as_of}.md"
-    write_json(result["payload"], json_path)
-    report = build_markdown_report(result["payload"])
-    write_markdown_report(report, markdown_path)
-    console.print(report)
-    console.print(f"[green]Wrote[/green] {json_path}")
-    console.print(f"[green]Wrote[/green] {markdown_path}")
+    """Validate the production pipeline config used by run-pipeline and the daily workflow."""
+    try:
+        feature_config = load_feature_config(config)
+        regime_config = load_regime_config(config)
+        evaluation_config = load_evaluation_config(config)
+        diagnostic_config = load_historical_diagnostic_config(config)
+        load_report_config(config)
+    except Exception as exc:
+        console.print(f"[red]Config invalid[/red]: {config}")
+        console.print(str(exc))
+        raise typer.Exit(code=1) from exc
+    enabled_sources = [source for source in feature_config.sources if source.enabled]
+    enabled_features = [feature for feature in feature_config.features if feature.enabled]
+    enabled_dimensions = [
+        dimension for dimension in regime_config.dimensions if dimension.enabled
+    ]
+    enabled_regimes = [regime for regime in regime_config.regimes if regime.enabled]
+    console.print(
+        f"[green]Config valid[/green]: {config} — "
+        f"{len(enabled_sources)} sources, {len(enabled_features)} features, "
+        f"{len(enabled_dimensions)} dimensions, {len(enabled_regimes)} regimes, "
+        f"scoring_mode={evaluation_config.scoring_mode}, "
+        f"softmax_temperature={regime_config.scoring.softmax_temperature}, "
+        f"transition_filter="
+        f"{'enabled' if diagnostic_config.transition_filter.enabled else 'disabled'}"
+    )
 
 
 @app.command()
