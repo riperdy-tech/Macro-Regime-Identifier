@@ -8,6 +8,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 45
 
   - series_id: PAYEMS
     name: All Employees, Total Nonfarm
@@ -18,6 +19,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 35
 
   - series_id: UNRATE
     name: Unemployment Rate
@@ -28,6 +30,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 35
 
   - series_id: CPIAUCSL
     name: Consumer Price Index for All Urban Consumers
@@ -38,6 +41,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 44
 
   - series_id: PCEPI
     name: Personal Consumption Expenditures Price Index
@@ -48,6 +52,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 58
 
   - series_id: FEDFUNDS
     name: Effective Federal Funds Rate
@@ -58,6 +63,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 32
 
   - series_id: DGS10
     name: 10-Year Treasury Constant Maturity Rate
@@ -68,6 +74,7 @@ sources:
     enabled: true
     stale_after_days: 5
     unusable_after_days: 15
+    publication_lag_days: 1
 
   - series_id: BAA10Y
     name: Moody's Seasoned Baa Corporate Bond Yield Relative to 10-Year Treasury
@@ -78,6 +85,7 @@ sources:
     enabled: true
     stale_after_days: 5
     unusable_after_days: 15
+    publication_lag_days: 1
 
   - series_id: NFCI
     name: Chicago Fed National Financial Conditions Index
@@ -88,6 +96,7 @@ sources:
     enabled: true
     stale_after_days: 14
     unusable_after_days: 35
+    publication_lag_days: 5
 
   - series_id: T10Y2Y
     name: 10-Year Treasury Minus 2-Year Treasury Spread
@@ -98,6 +107,7 @@ sources:
     enabled: true
     stale_after_days: 5
     unusable_after_days: 15
+    publication_lag_days: 1
 
   - series_id: USSLIND
     name: Leading Index for the United States
@@ -119,6 +129,7 @@ sources:
     enabled: true
     stale_after_days: 14
     unusable_after_days: 35
+    publication_lag_days: 5
 
   - series_id: BAMLH0A0HYM2
     name: ICE BofA US High Yield Index Option-Adjusted Spread
@@ -129,6 +140,7 @@ sources:
     enabled: true
     stale_after_days: 5
     unusable_after_days: 15
+    publication_lag_days: 1
 
   # --- WS-B additive series (NOT part of regime classification) -------------
   # Both have full 1990+ FRED history. Wired into NEW non-regime dimensions
@@ -143,6 +155,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 55
 
   - series_id: HOUST
     name: Housing Starts, Total New Privately Owned
@@ -153,6 +166,7 @@ sources:
     enabled: true
     stale_after_days: 45
     unusable_after_days: 120
+    publication_lag_days: 47
 
 features:
   - feature_id: industrial_production_yoy_z

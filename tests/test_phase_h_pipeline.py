@@ -12,6 +12,26 @@ from macro_engine.storage.duckdb_store import DuckDBStore
 from tests.test_phase_c_features import _raw_monthly
 
 
+def _raw_sub_monthly(series_id: str, freq: str, frequency_label: str) -> pd.DataFrame:
+    # Daily/weekly series must be mocked at their real frequency: with
+    # publication lags applied, a month-start-dated "daily" observation would
+    # look one month stale at every evaluation date.
+    dates = pd.date_range("2018-01-01", "2031-08-01", freq=freq)
+    return pd.DataFrame(
+        {
+            "series_id": series_id,
+            "date": dates,
+            "value": [float(index % 251 + 1) for index in range(len(dates))],
+            "realtime_start": [pd.Timestamp("2026-05-12").date()] * len(dates),
+            "realtime_end": [pd.Timestamp("9999-12-31").date()] * len(dates),
+            "source": ["FRED"] * len(dates),
+            "fetched_at": [pd.Timestamp("2026-05-12")] * len(dates),
+            "frequency": [frequency_label] * len(dates),
+            "units": ["Index"] * len(dates),
+        }
+    )
+
+
 def _mock_ingest(config_path, start, end, db_path, parquet_dir):
     store = DuckDBStore(db_path)
     store.initialize()
@@ -23,10 +43,10 @@ def _mock_ingest(config_path, start, end, db_path, parquet_dir):
             _raw_monthly("CPIAUCSL", 140),
             _raw_monthly("PCEPI", 140),
             _raw_monthly("FEDFUNDS", 140),
-            _raw_monthly("DGS10", 140),
-            _raw_monthly("BAA10Y", 140),
-            _raw_monthly("NFCI", 140),
-            _raw_monthly("T10Y2Y", 140),
+            _raw_sub_monthly("DGS10", "B", "daily"),
+            _raw_sub_monthly("BAA10Y", "B", "daily"),
+            _raw_sub_monthly("NFCI", "W-FRI", "weekly"),
+            _raw_sub_monthly("T10Y2Y", "B", "daily"),
         ],
         ignore_index=True,
     )

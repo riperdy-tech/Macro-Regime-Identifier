@@ -49,6 +49,7 @@ def build_asof_feature_values(
         return pd.DataFrame(rows, columns=_asof_columns())
 
     source_frequency = {source.series_id: source.frequency for source in sources}
+    publication_lag = {source.series_id: source.publication_lag_days for source in sources}
     feature_frame = features.copy()
     if feature_frame.empty:
         feature_frame = pd.DataFrame(columns=["feature_id", "date"])
@@ -92,11 +93,18 @@ def build_asof_feature_values(
                 )
                 continue
 
-            usable = frame[
+            observed = frame[
                 (frame["date"] <= evaluation_date)
                 & frame["valid"].fillna(False)
                 & frame["normalized_value"].notna()
             ]
+            # An observation only becomes visible publication_lag_days after
+            # its observation date; drop observations not yet released as of
+            # the evaluation date.
+            available_cutoff = evaluation_date - pd.Timedelta(
+                days=int(publication_lag.get(feature.series_id, 0))
+            )
+            usable = observed[observed["date"] <= available_cutoff]
             if usable.empty:
                 rows.append(
                     _asof_row(
@@ -107,7 +115,9 @@ def build_asof_feature_values(
                         normalized_value=None,
                         lag_days=None,
                         valid=False,
-                        reason="no_prior_valid_feature",
+                        reason="not_yet_published"
+                        if not observed.empty
+                        else "no_prior_valid_feature",
                     )
                 )
                 continue

@@ -18,6 +18,12 @@ class IngestionSource(BaseModel):
     reason_disabled: str | None = None
     stale_after_days: int = Field(gt=0)
     unusable_after_days: int = Field(gt=0)
+    # Approximate days between a FRED observation date and its first public
+    # release. Used by calendar as-of alignment so an evaluation date cannot
+    # see observations that had not been published yet. 0 keeps the old
+    # observation-date-only behavior. This is a fixed approximation, not
+    # ALFRED vintage data.
+    publication_lag_days: int = Field(default=0, ge=0)
 
     @model_validator(mode="after")
     def validate_staleness(self) -> IngestionSource:
