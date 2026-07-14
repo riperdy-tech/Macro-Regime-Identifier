@@ -351,6 +351,80 @@ news_sources:
         source_url:
         published_at: "2026-05-01T12:00:00Z"
 
+  # --- GDELT DOC 2.0 discovery (free, no key) --------------------------------
+  # Fills source groups that RSS feeds leave empty. GDELT returns headline +
+  # URL only; the fulltext_enrichment step below fetches the article body.
+  - source_id: gdelt_healthcare
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '(healthcare OR pharmaceutical OR "drug pricing" OR FDA) sourcelang:english'
+    source_group: healthcare
+    max_items: 8
+    timespan_hours: 36
+
+  - source_id: gdelt_technology_ai
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '("artificial intelligence" OR semiconductor OR "chip maker") sourcelang:english'
+    source_group: technology_ai
+    max_items: 8
+    timespan_hours: 36
+
+  - source_id: gdelt_consumer
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '("consumer spending" OR "retail sales" OR "consumer confidence") sourcelang:english'
+    source_group: consumer
+    max_items: 8
+    timespan_hours: 36
+
+  - source_id: gdelt_defensive_sectors
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '(utilities OR "consumer staples" OR "dividend stocks") sourcelang:english'
+    source_group: defensive_sectors
+    max_items: 8
+    timespan_hours: 36
+
+  - source_id: gdelt_manufacturing_industrials
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '(manufacturing OR "industrial production" OR "factory orders" OR PMI) sourcelang:english'
+    source_group: manufacturing_industrials
+    max_items: 8
+    timespan_hours: 36
+
+  # --- Finnhub market news (free tier, needs FINNHUB_API_KEY) ----------------
+  # Skipped gracefully when the key is not set.
+  - source_id: finnhub_market_news
+    provider: finnhub
+    enabled: false
+    profiles:
+      - live_rss
+    category: general
+    source_group: macro_general
+    max_items: 15
+    lookback_days: 2
+
+# Fetch full article text for items whose RSS/GDELT body is only a headline
+# or short snippet. Bounded per run; failures keep the original snippet.
+fulltext_enrichment:
+  enabled: true
+  min_body_chars: 400
+  max_items_per_run: 40
+  max_body_chars: 8000
+  request_timeout_seconds: 12
+
 source_group_rules:
   - rule_id: expanded_inflation_rates_terms
     source_group: inflation_rates
