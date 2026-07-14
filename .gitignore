@@ -19,10 +19,12 @@ outputs/*.md
 outputs/**/*.json
 outputs/**/*.md
 outputs/**/*.yaml
+outputs/**/*.parquet
 !outputs/.gitkeep
-# Persist per-run audit snapshots so history_index accumulates across CI runs.
-# Only the small daily summary JSON is tracked, not the full archive payload.
-!outputs/archive/**/daily_diagnostic_summary.json
+# Run-audit snapshots + the calibration ledger live on the run-history branch,
+# not master. The daily workflow restores and re-persists them there.
+# Also ignore the workflow's temporary run-history worktree directory.
+.run-history/
 logs/
 *.egg-info/
 # ds-codex:start

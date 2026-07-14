@@ -49,6 +49,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Restore run history (run-history branch)
+        # Run-audit snapshots and the calibration ledger live on the dedicated
+        # run-history branch (not master) so daily bot commits do not pollute
+        # code history. Restore them into the working tree: history_index
+        # derives from outputs/archive/, and the calibration ledger merges
+        # with the restored copy each run.
+        run: |
+          git fetch origin run-history || true
+          if git show-ref --quiet refs/remotes/origin/run-history; then
+            git checkout origin/run-history -- outputs
+            git reset -q -- outputs
+            echo "Restored run history from run-history branch."
+          else
+            echo "No run-history branch yet; starting fresh."
+          fi
+
       - name: Restore accumulated database
         # Persist the DuckDB across runs so news accumulates (readiness advances,
         # classify-only-unclassified avoids re-paying DeepSeek). Rolling key:
@@ -88,12 +104,7 @@ jobs:
         run: python -m ruff check .
 
       - name: Run tests
-        run: python -m pytest --tb=short --ignore=tests/test_phase_v12_m1_github_automation.py
-        continue-on-error: true
-
-      - name: Run v1.2 automation tests
-        run: python -m pytest tests/test_phase_v12_m1_github_automation.py --tb=short -v
-        continue-on-error: true
+        run: python -m pytest --tb=short
 
       - name: Set run mode
         id: mode
@@ -178,25 +189,35 @@ jobs:
       - name: Export dashboard data with automation summary
         run: python -m macro_engine.cli export-dashboard-data
 
-      - name: Persist run-audit snapshot
-        # Commit this run's daily summary back so history_index accumulates
-        # across runs (the archive dir is otherwise gitignored + ephemeral).
+      - name: Persist run-audit snapshot (run-history branch)
+        # Commit this run's daily summary + calibration ledger to the dedicated
+        # run-history branch so history_index accumulates across runs without
+        # polluting master's commit history. The ledger + artifact survive even
+        # if the DuckDB cache is LRU-evicted; the ledger merges with the
+        # restored copy on each run.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add -f outputs/archive/**/daily_diagnostic_summary.json || true
-          # Durably persist the LIVE calibration ledger + artifact so months of
-          # accumulation survive even if the DuckDB cache is LRU-evicted. The
-          # ledger merges with this committed copy on each run.
-          git add -f outputs/confidence_calibration_ledger.parquet || true
-          git add -f outputs/confidence_calibration_artifact.json || true
-          git add -f outputs/confidence_calibration.json outputs/confidence_calibration.md || true
+          git fetch origin run-history || true
+          if git show-ref --quiet refs/remotes/origin/run-history; then
+            git worktree add .run-history origin/run-history
+          else
+            git worktree add --detach .run-history
+            git -C .run-history checkout --orphan run-history
+            git -C .run-history rm -rfq . || true
+          fi
+          mkdir -p .run-history/outputs/archive
+          (cd outputs/archive 2>/dev/null && find . -name daily_diagnostic_summary.json -exec install -D {} ../../.run-history/outputs/archive/{} \;) || true
+          cp outputs/confidence_calibration_ledger.parquet .run-history/outputs/ 2>/dev/null || true
+          cp outputs/confidence_calibration_artifact.json .run-history/outputs/ 2>/dev/null || true
+          cp outputs/confidence_calibration.json outputs/confidence_calibration.md .run-history/outputs/ 2>/dev/null || true
+          cd .run-history
+          git add -A outputs
           if git diff --cached --quiet; then
             echo "No new run-audit snapshot to commit."
           else
-            git commit -m "chore(history): persist daily run-audit snapshot + calibration ledger [skip ci]"
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            git commit -m "chore(history): persist daily run-audit snapshot + calibration ledger"
+            git push origin HEAD:run-history
           fi
 
       - name: Alert on regime change or guardrail failure
