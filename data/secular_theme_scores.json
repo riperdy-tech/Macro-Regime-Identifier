@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-07-14T16:41:14.469461+00:00",
+  "computed_at": "2026-07-14T23:48:09.069248+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,9 +11,9 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6058558558558556,
-      "avg_severity": 0.4189189189189189,
-      "item_count": 111,
+      "avg_confidence": 0.615040650406504,
+      "avg_severity": 0.43089430894308944,
+      "item_count": 123,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -30,10 +30,10 @@
           "score": 8.48984082615435
         },
         {
-          "avg_confidence": 0.6137931034482759,
-          "item_count": 29,
+          "avg_confidence": 0.6390243902439025,
+          "item_count": 41,
           "period_start": "2026-07-01",
-          "score": 5.3042793013004745
+          "score": 7.141581165248187
         }
       ],
       "quarterly_scores": [
@@ -44,39 +44,47 @@
           "score": 8.8640112629217
         },
         {
-          "avg_confidence": 0.6137931034482759,
-          "item_count": 29,
+          "avg_confidence": 0.6390243902439025,
+          "item_count": 41,
           "period_start": "2026-07-01",
-          "score": 5.3042793013004745
+          "score": 7.141581165248187
         }
       ],
-      "raw_score": 46.5,
-      "score": 14.168290564222172,
+      "raw_score": 53.0,
+      "score": 16.005592428169887,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_business": 1,
-        "cnbc_finance": 6,
-        "cnbc_markets": 1,
+        "cnbc_finance": 8,
+        "cnbc_markets": 2,
         "cnbc_retail": 1,
-        "cnbc_tech": 18,
+        "cnbc_tech": 23,
         "eia_energy": 1,
         "housingwire": 7,
         "marketwatch": 7,
-        "nasdaq_markets": 14,
+        "nasdaq_markets": 16,
         "nvidia_blog": 5,
         "nvidia_developer_blog": 3,
-        "oilprice": 32,
-        "scmp": 14
+        "oilprice": 33,
+        "scmp": 15
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_012b99663b978feb",
         "news_016a6b2261827ff4",
         "news_0eeee6dead4a438f",
-        "news_33028f3516b2c2ba",
-        "news_397d1af39e69d725",
-        "news_4702bb9cc36eb520"
+        "news_1971b879c87d708c",
+        "news_33028f3516b2c2ba"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.9,
+          "news_id": "news_012b99663b978feb",
+          "score_component": 0.35,
+          "source": "cnbc_finance",
+          "source_url": "https://www.cnbc.com/2026/07/14/goldman-sachs-and-jpmorgan-chase-are-emerging-as-ai-winners.html",
+          "title": "The AI boom just found two new winners: Goldman Sachs and JPMorgan Chase"
+        },
         {
           "confidence": 0.8,
           "news_id": "news_016a6b2261827ff4",
@@ -95,30 +103,22 @@
         },
         {
           "confidence": 0.8,
+          "news_id": "news_1971b879c87d708c",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/14/new-york-ai-data-center-ban.html",
+          "title": "New York becomes first U.S. state to impose AI data center ban"
+        },
+        {
+          "confidence": 0.8,
           "news_id": "news_33028f3516b2c2ba",
           "score_component": 0.35,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/nvidia-stock-what-investors-need-know-after-its-most-recent-ai-deal",
           "title": "Nvidia Stock: What Investors Need to Know After Its Most Recent AI Deal"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_397d1af39e69d725",
-          "score_component": 0.35,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/Power-Prices-Triple-on-PJM-as-Heat-Wave-and-Data-Centers-Collide.html",
-          "title": "Power Prices Triple on PJM as Heat Wave and Data Centers Collide"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_4702bb9cc36eb520",
-          "score_component": 0.35,
-          "source": "nasdaq_markets",
-          "source_url": "https://www.nasdaq.com/articles/aws-launches-1-bln-ai-engineering-unit-speed-enterprise-ai-adoption",
-          "title": "AWS Launches $1 Bln AI Engineering Unit To Speed Enterprise AI Adoption"
         }
       ],
-      "trend_30d": 9.194932900272324
+      "trend_30d": 12.314932900272328
     },
     "cloud_software": {
       "avg_confidence": 0.6,
@@ -180,9 +180,9 @@
       "trend_30d": -0.1225655223552852
     },
     "cybersecurity": {
-      "avg_confidence": 0.7000000000000001,
-      "avg_severity": 0.39999999999999997,
-      "item_count": 3,
+      "avg_confidence": 0.7,
+      "avg_severity": 0.4,
+      "item_count": 4,
       "label": "Cybersecurity",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -191,6 +191,12 @@
           "item_count": 3,
           "period_start": "2026-06-01",
           "score": 0.4734628420305462
+        },
+        {
+          "avg_confidence": 0.7,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.27999999999999997
         }
       ],
       "quarterly_scores": [
@@ -199,17 +205,25 @@
           "item_count": 3,
           "period_start": "2026-04-01",
           "score": 0.4734628420305462
+        },
+        {
+          "avg_confidence": 0.7,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.27999999999999997
         }
       ],
-      "raw_score": 1.2,
-      "score": 0.4734628420305462,
+      "raw_score": 1.6,
+      "score": 0.7534628420305463,
       "source_mix": {
+        "cnbc_tech": 1,
         "housingwire": 2,
         "scmp": 1
       },
       "theme_id": "cybersecurity",
       "top_news_ids": [
         "news_d735353b8ab75d1e",
+        "news_dd8d8d2ba6e8ed32",
         "news_7f8c01236ff76add",
         "news_d3de180cc5f96002"
       ],
@@ -221,6 +235,14 @@
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/us/diplomacy/article/3356681/fbi-disables-13-chinese-suspected-spying-websites-targeting-us-officials?utm_source=rss_feed",
           "title": "FBI disables 13 Chinese suspected spying websites targeting US officials"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_dd8d8d2ba6e8ed32",
+          "score_component": 0.27999999999999997,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/14/cybersecurity-stocks-ai-spending-mythos.html",
+          "title": "Cybersecurity stocks rally on AI spending change comments from IBM's Krishna"
         },
         {
           "confidence": 0.8,
@@ -239,12 +261,12 @@
           "title": "Qualia expands wire fraud protection platform for title and escrow"
         }
       ],
-      "trend_30d": -0.10092232576113036
+      "trend_30d": 0.1790776742388696
     },
     "energy_transition": {
-      "avg_confidence": 0.6174418604651162,
-      "avg_severity": 0.4674418604651163,
-      "item_count": 86,
+      "avg_confidence": 0.6159090909090909,
+      "avg_severity": 0.4693181818181818,
+      "item_count": 88,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -255,8 +277,8 @@
           "score": 2.609521198625271
         },
         {
-          "avg_confidence": 0.5714285714285714,
-          "item_count": 28,
+          "avg_confidence": 0.5700000000000001,
+          "item_count": 30,
           "period_start": "2026-07-01",
           "score": 2.0758564813302103
         }
@@ -269,13 +291,13 @@
           "score": 2.609521198625271
         },
         {
-          "avg_confidence": 0.5714285714285714,
-          "item_count": 28,
+          "avg_confidence": 0.5700000000000001,
+          "item_count": 30,
           "period_start": "2026-07-01",
           "score": 2.0758564813302103
         }
       ],
-      "raw_score": 40.2,
+      "raw_score": 41.3,
       "score": 4.685377679955481,
       "source_mix": {
         "cnbc_energy": 1,
@@ -283,7 +305,7 @@
         "finanznachrichten.de": 1,
         "marketwatch": 1,
         "nasdaq_markets": 2,
-        "oilprice": 72,
+        "oilprice": 74,
         "prnewswire.com": 1,
         "scmp": 5
       },
@@ -292,8 +314,8 @@
         "news_03c38d0e987aac85",
         "news_2bd89ffe31e930c3",
         "news_4db6e49b35d2fbdd",
-        "news_6b5feb208ec32d9f",
-        "news_7a16de54a531fcbe"
+        "news_59527ab71c3144d0",
+        "news_6b5feb208ec32d9f"
       ],
       "top_news_items": [
         {
@@ -321,23 +343,23 @@
           "title": "How the Hormuz Crisis Turned Southeast Asia Into a Solar Powerhouse"
         },
         {
+          "confidence": 0.6,
+          "news_id": "news_59527ab71c3144d0",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Crude-Oil/Trumps-Hormuz-Toll-Could-Upend-Global-Energy-Trade.html",
+          "title": "Trump\u2019s Hormuz Toll Could Upend Global Energy market-action term"
+        },
+        {
           "confidence": 0.8,
           "news_id": "news_6b5feb208ec32d9f",
           "score_component": 0.35,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Solar-Energy/Indias-100-Billion-Grid-Bet-Is-Accelerating-A-Solar-Manufacturing-Boom.html",
           "title": "India\u2019s $100 Billion Grid Bet Is Accelerating A Solar Manufacturing Boom"
-        },
-        {
-          "confidence": 0.7,
-          "news_id": "news_7a16de54a531fcbe",
-          "score_component": 0.35,
-          "source": "cnbc_energy",
-          "source_url": "https://www.cnbc.com/2026/07/09/clean-power-comeback-dont-count-out-renewable-energy-and-this-one-stock-in-particular.html",
-          "title": "Clean power comeback? Don't count out renewable energy and this one stock in particular"
         }
       ],
-      "trend_30d": 9.45506015297341
+      "trend_30d": 9.95506015297341
     },
     "glp1_metabolic": {
       "avg_confidence": 0.6875,
@@ -434,9 +456,9 @@
       "trend_30d": 1.1807177788734702
     },
     "nuclear_renaissance": {
-      "avg_confidence": 0.6318181818181818,
-      "avg_severity": 0.4636363636363636,
-      "item_count": 22,
+      "avg_confidence": 0.6347826086956522,
+      "avg_severity": 0.4652173913043478,
+      "item_count": 23,
       "label": "Nuclear Renaissance",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -447,8 +469,8 @@
           "score": 1.6624504792712471
         },
         {
-          "avg_confidence": 0.6285714285714287,
-          "item_count": 7,
+          "avg_confidence": 0.6375,
+          "item_count": 8,
           "period_start": "2026-07-01",
           "score": 1.5
         }
@@ -461,25 +483,25 @@
           "score": 1.6624504792712471
         },
         {
-          "avg_confidence": 0.6285714285714287,
-          "item_count": 7,
+          "avg_confidence": 0.6375,
+          "item_count": 8,
           "period_start": "2026-07-01",
           "score": 1.5
         }
       ],
-      "raw_score": 10.2,
+      "raw_score": 10.7,
       "score": 3.1624504792712473,
       "source_mix": {
         "eia_energy": 1,
-        "oilprice": 21
+        "oilprice": 22
       },
       "theme_id": "nuclear_renaissance",
       "top_news_ids": [
         "news_240e54538aedee1d",
+        "news_d4abada02974dd0d",
         "news_fdc850949dcef0db",
         "news_772654bc44aee72b",
-        "news_4516bc28ee34abd6",
-        "news_f707ccf1305c0ca0"
+        "news_4516bc28ee34abd6"
       ],
       "top_news_items": [
         {
@@ -489,6 +511,14 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/AI-Demand-War-and-Climate-Pressure-Push-World-Back-To-Nuclear.html",
           "title": "AI Demand, War, and Climate Pressure Push World Back To Nuclear"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_d4abada02974dd0d",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Bangladeshs-Nuclear-Power-Play-Is-a-Test-for-Emerging-Economies.html",
+          "title": "Bangladesh's Nuclear Power Play Is a Test for Emerging Economies"
         },
         {
           "confidence": 0.8,
@@ -513,22 +543,14 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Canada-Building-Wests-First-Grid-Scale-SMR.html",
           "title": "Canada Building West\u2019s First Grid-Scale SMR"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_f707ccf1305c0ca0",
-          "score_component": 0.29175119633862945,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/Indias-State-Nuclear-Firm-In-Search-of-Global-Uranium-Assets.html",
-          "title": "India\u2019s State Nuclear Firm In Search of Global Uranium Assets"
         }
       ],
-      "trend_30d": 3.380613689162132
+      "trend_30d": 3.7306136891621318
     },
     "physical_ai": {
-      "avg_confidence": 0.5807692307692307,
-      "avg_severity": 0.38846153846153847,
-      "item_count": 13,
+      "avg_confidence": 0.5678571428571428,
+      "avg_severity": 0.3678571428571428,
+      "item_count": 14,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -545,10 +567,10 @@
           "score": 0.8963646880169531
         },
         {
-          "avg_confidence": 0.6000000000000001,
-          "item_count": 4,
+          "avg_confidence": 0.56,
+          "item_count": 5,
           "period_start": "2026-07-01",
-          "score": 1.0084164649678127
+          "score": 1.0484164649678127
         }
       ],
       "quarterly_scores": [
@@ -559,17 +581,17 @@
           "score": 0.923371686940317
         },
         {
-          "avg_confidence": 0.6000000000000001,
-          "item_count": 4,
+          "avg_confidence": 0.56,
+          "item_count": 5,
           "period_start": "2026-07-01",
-          "score": 1.0084164649678127
+          "score": 1.0484164649678127
         }
       ],
-      "raw_score": 5.05,
-      "score": 1.9317881519081297,
+      "raw_score": 5.1499999999999995,
+      "score": 1.9717881519081297,
       "source_mix": {
         "cnbc_finance": 1,
-        "cnbc_tech": 1,
+        "cnbc_tech": 2,
         "housingwire": 2,
         "marketwatch": 1,
         "nasdaq_markets": 1,
@@ -627,7 +649,7 @@
           "title": "Is the US banning drones from China until it can make better ones itself?"
         }
       ],
-      "trend_30d": 0.7605818792190775
+      "trend_30d": 0.8005818792190775
     },
     "quantum_computing": {
       "avg_confidence": 0.7,
