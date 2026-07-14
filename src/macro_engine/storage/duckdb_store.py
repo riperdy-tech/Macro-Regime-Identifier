@@ -774,6 +774,11 @@ class DuckDBStore:
             )
 
     def upsert_raw_observations(self, observations: pd.DataFrame) -> None:
+        # One row per (series_id, date): the latest fetch wins. FRED stamps
+        # realtime_start with the fetch date, so keying the delete on the
+        # realtime columns would let repeated ingests of the same observation
+        # accumulate as duplicates (which corrupts rolling-window features on
+        # a database persisted across daily runs).
         if observations.empty:
             return
         with self._connect() as con:
@@ -784,8 +789,6 @@ class DuckDBStore:
                 USING raw_frame
                 WHERE raw_observations.series_id = raw_frame.series_id
                   AND raw_observations.date = raw_frame.date
-                  AND raw_observations.realtime_start = raw_frame.realtime_start
-                  AND raw_observations.realtime_end = raw_frame.realtime_end
                 """
             )
             con.execute(
