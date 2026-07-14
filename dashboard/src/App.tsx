@@ -61,6 +61,16 @@ export function App() {
   }, []);
 
   const status = useMemo(() => dataStatus(data), [data]);
+  const hero = useMemo(() => {
+    const macro = getObject(getObject(data?.daily).macro);
+    return {
+      regime: typeof macro.reported_regime === "string" ? macro.reported_regime : null,
+      rawRegime:
+        typeof macro.raw_dominant_regime === "string" ? macro.raw_dominant_regime : null,
+      confidence: typeof macro.confidence === "number" ? macro.confidence : null,
+      date: typeof macro.date === "string" ? macro.date : null,
+    };
+  }, [data]);
 
   if (loading) {
     return <Shell status="Loading data">Loading dashboard data...</Shell>;
@@ -79,7 +89,7 @@ export function App() {
   }
 
   return (
-    <Shell status={status}>
+    <Shell status={status} hero={hero}>
       <div className="tabbar" role="tablist" aria-label="Dashboard sections">
         {TABS.map((tab) => (
           <button
@@ -106,21 +116,69 @@ export function App() {
   );
 }
 
-function Shell({ children, status }: { children: React.ReactNode; status: string }) {
+type ShellHero = {
+  regime: string | null;
+  rawRegime: string | null;
+  confidence: number | null;
+  date: string | null;
+};
+
+function Shell({
+  children,
+  status,
+  hero,
+}: {
+  children: React.ReactNode;
+  status: string;
+  hero?: ShellHero;
+}) {
   const [showSummary, setShowSummary] = useState(false);
 
   return (
     <div className="app">
       <header className="masthead">
-        <div>
-          <p className="eyebrow">Read-only backend output viewer</p>
-          <h1>Macro Diagnostic Dashboard</h1>
-        </div>
-        <div className="header-actions">
-          <button type="button" className="summary-button" onClick={() => setShowSummary(true)}>
-            How it works
-          </button>
-          <div className="status-pill">{status}</div>
+        <div className="masthead-inner">
+          <div className="masthead-title">
+            <p className="eyebrow">Read-only backend output viewer</p>
+            <h1>Macro Regime Dashboard</h1>
+          </div>
+          {hero?.regime ? (
+            <div className="hero-regime" aria-label="Current reported regime">
+              <span
+                className="hero-swatch"
+                style={{ background: regimeColor(hero.regime) }}
+                aria-hidden="true"
+              />
+              <div className="hero-cell">
+                <span className="hero-label">Reported regime</span>
+                <strong className="hero-value">{hero.regime.replaceAll("_", " ")}</strong>
+              </div>
+              {hero.confidence !== null ? (
+                <div className="hero-cell">
+                  <span className="hero-label">Confidence</span>
+                  <strong className="hero-value">{(hero.confidence * 100).toFixed(1)}%</strong>
+                </div>
+              ) : null}
+              {hero.date ? (
+                <div className="hero-cell">
+                  <span className="hero-label">Macro data as of</span>
+                  <strong className="hero-value">{hero.date}</strong>
+                </div>
+              ) : null}
+              {hero.rawRegime && hero.rawRegime !== hero.regime ? (
+                <div className="hero-cell">
+                  <span className="hero-label">Raw monthly leader</span>
+                  <strong className="hero-value">{hero.rawRegime.replaceAll("_", " ")}</strong>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          <div className="header-actions">
+            <button type="button" className="summary-button" onClick={() => setShowSummary(true)}>
+              How it works
+            </button>
+            <div className="status-pill">{status}</div>
+          </div>
         </div>
       </header>
       {showSummary ? <ProgramSummary onClose={() => setShowSummary(false)} /> : null}
@@ -405,12 +463,14 @@ function MacroPanel({ data }: { data: DashboardData }) {
   );
 }
 
+// Categorical regime palette, validated (lightness band, chroma floor, CVD
+// separation, >=3:1 contrast on the chart surface) in light mode.
 const REGIME_COLORS: Record<string, string> = {
-  goldilocks: "#34a853",
-  reflation: "#4285f4",
-  stagflation: "#ea4335",
-  recession: "#8e44ec",
-  tightening: "#f59e0b",
+  goldilocks: "#188038",
+  reflation: "#3b74db",
+  stagflation: "#d93025",
+  recession: "#7c3aed",
+  tightening: "#b45309",
 };
 
 function regimeColor(regime?: string | null): string {
@@ -569,7 +629,7 @@ function RegimeTimeline({ data }: { data: DashboardData }) {
   );
 }
 
-const FEATURE_LINE_COLORS = ["#1565c0", "#ef6c00", "#2e7d32", "#8e24aa", "#00838f", "#c62828"];
+const FEATURE_LINE_COLORS = ["#1565c0", "#ef6c00", "#2e7d32", "#8e24aa", "#0891b2", "#c62828"];
 
 function prettyDimension(id: string): string {
   return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
