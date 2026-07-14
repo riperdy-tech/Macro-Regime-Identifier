@@ -695,6 +695,30 @@ All production model settings live in `config/phase_b_sources.yaml`. There is
 no separate model/dimension/regime config file; `validate-config` validates
 that production pipeline config directly.
 
+### Publication Lags
+
+Each source declares `publication_lag_days`, the approximate delay between a
+FRED observation date and its first public release (for example June CPI is
+dated `2026-06-01` but only published in mid-July). Calendar as-of alignment
+excludes observations that had not been released yet as of each evaluation
+date, so the historical timeline no longer sees data before its real-world
+publication. These are fixed approximations, not ALFRED vintage data:
+revisions are still reflected at their original observation dates.
+
+### NBER Benchmark
+
+Compare the stored regime timeline against public NBER recession dates:
+
+```powershell
+python -m macro_engine.cli run-nber-benchmark
+```
+
+This writes `outputs/nber_benchmark.json` and `outputs/nber_benchmark.md`
+with AUROC, threshold hit/false-positive rates, dominant-label agreement,
+and per-recession detection lead/lag. NBER reference dates live in
+`config/nber_recessions.yaml`. The benchmark is a revised-data sanity check,
+not a point-in-time backtest and not evidence of predictive value.
+
 The current regime set is:
 
 ```text

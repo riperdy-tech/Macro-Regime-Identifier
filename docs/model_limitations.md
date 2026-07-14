@@ -387,8 +387,19 @@ as `insufficient_history` should be treated literally.
 
 FRED series have different frequencies, release lags, revision policies, and
 occasional availability issues. The engine has source-health checks and
-calendar-as-of alignment, but it does not yet model real publication-time
-availability.
+calendar-as-of alignment.
+
+As-of alignment applies a fixed `publication_lag_days` per source so an
+evaluation date cannot see observations that had not been publicly released
+yet. This removes the most obvious release-timing look-ahead, but it is an
+approximation: actual release dates move around the calendar, and revised
+values are still used at their original observation dates. A true
+point-in-time study still requires ALFRED vintage data.
+
+The NBER benchmark (`run-nber-benchmark`) compares the stored timeline with
+public NBER recession dates. Because the timeline uses revised data, that
+comparison is a sanity check of the configured formulas, not a point-in-time
+performance claim.
 
 Transient FRED API errors can occur. The local ingestion layer is idempotent, so
 rerunning the pipeline can fill missing series when the API recovers.
