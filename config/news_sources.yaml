@@ -404,6 +404,16 @@ news_sources:
     max_items: 8
     timespan_hours: 36
 
+  - source_id: gdelt_inflation_rates
+    provider: gdelt
+    enabled: false
+    profiles:
+      - live_rss
+    query: '(inflation OR "consumer price index" OR "interest rate decision" OR "central bank") sourcelang:english'
+    source_group: inflation_rates
+    max_items: 8
+    timespan_hours: 36
+
   # --- Finnhub market news (free tier, needs FINNHUB_API_KEY) ----------------
   # Skipped gracefully when the key is not set.
   - source_id: finnhub_market_news

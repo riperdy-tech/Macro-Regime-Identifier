@@ -293,7 +293,13 @@ def load_gdelt_source(
         "sort": "DateDesc",
         "timespan": f"{source.timespan_hours}h",
     }
-    raw = (fetch or _default_http_fetch)(f"{GDELT_DOC_URL}?{urlencode(params)}")
+    url = f"{GDELT_DOC_URL}?{urlencode(params)}"
+    if fetch is None:
+        # GDELT rate-limits bursty callers (HTTP 429). Space out real requests
+        # and retry once with a backoff; injected fetches (tests) skip this.
+        raw = _polite_gdelt_fetch(url, source.source_id)
+    else:
+        raw = fetch(url)
     try:
         payload = json.loads(raw or "{}")
     except json.JSONDecodeError as exc:
@@ -386,6 +392,28 @@ def load_finnhub_source(
             )
         )
     return items[: source.max_items]
+
+
+GDELT_POLITE_DELAY_SECONDS = 5.0
+GDELT_RETRY_BACKOFF_SECONDS = 20.0
+
+
+def _polite_gdelt_fetch(url: str, source_id: str) -> str:
+    import time
+    from urllib.error import HTTPError
+
+    time.sleep(GDELT_POLITE_DELAY_SECONDS)
+    try:
+        return _default_http_fetch(url)
+    except HTTPError as exc:
+        if exc.code != 429:
+            raise
+        print(
+            f"WARN gdelt source {source_id} rate-limited (429); retrying once",
+            file=sys.stderr,
+        )
+        time.sleep(GDELT_RETRY_BACKOFF_SECONDS)
+        return _default_http_fetch(url)
 
 
 def _default_http_fetch(url: str) -> str:
