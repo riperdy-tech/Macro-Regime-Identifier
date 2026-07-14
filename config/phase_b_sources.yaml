@@ -201,10 +201,14 @@ features:
     enabled: true
     min_observations: 24
 
+  # Inflation features use a 10y window (promoted from the Phase 2 inflation
+  # window experiment): a 5y window recenters during long inflation episodes,
+  # reading persistent high inflation as normal. 10y improved NBER AUROC
+  # 0.873 -> 0.888 at an unchanged false-positive share.
   - feature_id: headline_cpi_yoy_z
     series_id: CPIAUCSL
     transform: yoy_pct_change
-    normalization: rolling_z_5y
+    normalization: rolling_z_10y
     direction: higher_is_inflationary
     enabled: true
     min_observations: 24
@@ -212,7 +216,7 @@ features:
   - feature_id: pce_price_yoy_z
     series_id: PCEPI
     transform: yoy_pct_change
-    normalization: rolling_z_5y
+    normalization: rolling_z_10y
     direction: higher_is_inflationary
     enabled: true
     min_observations: 24
@@ -421,10 +425,16 @@ historical_diagnostic:
   # genuinely mixed backdrops without crying wolf on every modest plurality.
   low_confidence_threshold: 0.10
   # Raw monthly probabilities remain unsmoothed; a reported-regime switch
-  # requires modest peakedness (~p25 of the new scale).
+  # requires modest peakedness (~p25 of the new scale). Promoted from the
+  # phase2_hysteresis experiment: low-confidence switches additionally need
+  # two consecutive months of the same raw leader (32 -> 27 switches over
+  # 1990-2026), while switches at confidence >= 0.15 stay immediate so
+  # crisis flips are not delayed.
   transition_filter:
     enabled: true
     min_confidence_to_switch: 0.08
+    confirmation_months: 2
+    only_when_confidence_below: 0.15
   smoothing:
     enabled: false
     min_months_before_switch: 2

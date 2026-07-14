@@ -262,7 +262,10 @@ def _apply_transition_filter(
 ) -> pd.DataFrame:
     rows: list[dict] = []
     current_regime = None
-    threshold = config.transition_filter.min_confidence_to_switch
+    pending_regime = None
+    pending_count = 0
+    filter_config = config.transition_filter
+    threshold = filter_config.min_confidence_to_switch
     scores = regime_scores.copy()
     scores["date"] = pd.to_datetime(scores["date"], errors="coerce")
 
@@ -278,13 +281,27 @@ def _apply_transition_filter(
         raw_confidence = float(row.get("raw_confidence") or 0.0)
         if current_regime is None:
             current_regime = raw_regime
+            pending_regime = None
+            pending_count = 0
             filtered["transition_filter_reason"] = "initial_state"
         elif raw_regime == current_regime:
+            pending_regime = None
+            pending_count = 0
             filtered["transition_filter_reason"] = "raw_signal_confirmed"
         elif raw_confidence >= threshold:
-            current_regime = raw_regime
-            filtered["transition_filter_reason"] = "switch_confirmed"
+            required_months = _required_confirmation_months(raw_confidence, filter_config)
+            pending_count = pending_count + 1 if pending_regime == raw_regime else 1
+            pending_regime = raw_regime
+            if pending_count >= required_months:
+                current_regime = raw_regime
+                pending_regime = None
+                pending_count = 0
+                filtered["transition_filter_reason"] = "switch_confirmed"
+            else:
+                filtered["transition_filter_reason"] = "awaiting_confirmation"
         else:
+            pending_regime = None
+            pending_count = 0
             filtered["transition_filter_reason"] = "held_below_min_confidence"
 
         date = pd.Timestamp(row["date"])
@@ -303,6 +320,17 @@ def _apply_transition_filter(
         rows.append(filtered)
 
     return pd.DataFrame(rows, columns=_timeline_columns())
+
+
+def _required_confirmation_months(
+    confidence: float,
+    filter_config,
+) -> int:
+    if filter_config.only_when_confidence_below is None:
+        return filter_config.confirmation_months
+    if confidence < filter_config.only_when_confidence_below:
+        return filter_config.confirmation_months
+    return 1
 
 
 def _probability_for_regime(
