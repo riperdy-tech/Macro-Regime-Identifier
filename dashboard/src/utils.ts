@@ -24,7 +24,30 @@ export function formatScore(value: unknown): string {
   if (numeric === null) {
     return "n/a";
   }
-  return numeric.toFixed(3);
+  return numeric.toFixed(2);
+}
+
+export function formatCount(value: unknown): string {
+  const numeric = numberValue(value);
+  if (numeric === null) {
+    return "n/a";
+  }
+  return Math.round(numeric).toLocaleString("en-US");
+}
+
+export function formatSigned(value: unknown, digits = 0): string {
+  const numeric = numberValue(value);
+  if (numeric === null) {
+    return "n/a";
+  }
+  const formatted = Math.abs(numeric).toFixed(digits);
+  if (numeric > 0) {
+    return `+${formatted}`;
+  }
+  if (numeric < 0) {
+    return `−${formatted}`;
+  }
+  return digits === 0 ? "0" : numeric.toFixed(digits);
 }
 
 const TAIWAN_TIME_ZONE = "Asia/Taipei";
