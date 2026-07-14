@@ -1,0 +1,40 @@
+experiment:
+  name: phase2_hysteresis
+  output_dir: outputs/experiments/phase2_hysteresis
+  base_config: config/phase_b_sources.yaml
+
+# Production formulas throughout; only the reported-transition filter varies.
+# Confidence scale is the normalized-peakedness metric (production switch
+# threshold 0.08, low-confidence threshold 0.10).
+variants:
+  - variant_id: no_filter
+    description: Raw monthly leader reported directly, no transition filter.
+    softmax_temperature: 0.6
+
+  - variant_id: gap_0_08_production
+    description: Current production filter, switch requires confidence >= 0.08.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.08
+
+  - variant_id: gap_0_10
+    description: Stricter confidence gate at the low-confidence threshold 0.10.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.10
+
+  - variant_id: gap_0_08_two_month_confirmation
+    description: Production gate plus two-month confirmation for switches below confidence 0.15.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.08
+      confirmation_months: 2
+      only_when_confidence_below: 0.15
+
+  - variant_id: gap_0_08_two_month_confirmation_all
+    description: Production gate plus unconditional two-month confirmation.
+    softmax_temperature: 0.6
+    transition_filter:
+      min_confidence_to_switch: 0.08
+      confirmation_months: 2
+      only_when_confidence_below: 1.00
