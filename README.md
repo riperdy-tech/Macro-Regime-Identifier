@@ -61,6 +61,12 @@ publishing, and workflow artifacts for debugging. The dashboard remains
 static and read-only — no API keys, backend calls, or scoring logic in the
 browser. Published dashboard data is public.
 
+Continuous integration runs on every push and pull request
+(`.github/workflows/ci.yml`): lint, production config validation, the full
+test suite, and a dashboard build — all hard-fail. Daily run-audit snapshots
+and the confidence-calibration ledger are persisted on the dedicated
+`run-history` branch, not master, so code history stays readable.
+
 ## What It Does
 
 The engine fetches a controlled U.S. macro source set, stores raw observations,
@@ -154,13 +160,18 @@ Never commit `.env`.
 
 ## Quick Start
 
-Run the standard release checks:
+Run the standard release checks (CI runs the same checks on every push and
+pull request):
 
 ```powershell
 python -m pytest
 python -m ruff check .
 python -m macro_engine.cli validate-config
 ```
+
+`validate-config` validates the production pipeline config
+(`config/phase_b_sources.yaml` by default; pass `--config` for another
+pipeline config).
 
 Run the macro pipeline:
 
@@ -674,10 +685,15 @@ regime_scoring:
 
 historical_diagnostic:
   mode: revised_data
+  low_confidence_threshold: 0.10
   transition_filter:
     enabled: true
-    min_confidence_to_switch: 0.02
+    min_confidence_to_switch: 0.08
 ```
+
+All production model settings live in `config/phase_b_sources.yaml`. There is
+no separate model/dimension/regime config file; `validate-config` validates
+that production pipeline config directly.
 
 The current regime set is:
 

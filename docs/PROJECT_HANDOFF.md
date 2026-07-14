@@ -163,9 +163,7 @@ src/macro_engine/storage/duckdb_store.py Local database storage
 Core config files:
 
 ```text
-config/phase_b_sources.yaml             Macro source configuration
-config/dimensions.yaml                  Macro dimensions
-config/regimes.yaml                     Macro regimes
+config/phase_b_sources.yaml             Macro sources, features, dimensions, regimes
 config/sectors.yaml                     Sector taxonomy
 config/sector_exposures.yaml            Sector assumptions
 config/sector_regime_priors.yaml        Sector regime priors
