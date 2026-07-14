@@ -154,6 +154,12 @@ jobs:
       - name: Write regime status
         run: python -m macro_engine.cli write-regime-status
 
+      - name: Run NBER benchmark
+        # Diagnostic comparison of the stored regime timeline against NBER
+        # recession dates. Enrichment only — never blocks the dashboard.
+        run: python -m macro_engine.cli run-nber-benchmark
+        continue-on-error: true
+
       - name: Prune old raw AI responses (bound the DB)
         run: python -m macro_engine.cli prune-news-history --max-age-days 150
         continue-on-error: true
@@ -259,6 +265,8 @@ jobs:
             outputs/secular_theme_scores.json
             outputs/secular_theme_tracker_*.md
             outputs/regime_status.json
+            outputs/nber_benchmark.json
+            outputs/nber_benchmark.md
             outputs/automation_run_summary.json
             outputs/automation_run_summary.md
             outputs/confidence_calibration.json

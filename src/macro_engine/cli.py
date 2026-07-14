@@ -24,6 +24,7 @@ from macro_engine.evaluation.service import (
 )
 from macro_engine.diagnostics.config import load_historical_diagnostic_config
 from macro_engine.evaluation.config import load_evaluation_config
+from macro_engine.evaluation.nber import run_stored_nber_benchmark
 from macro_engine.experiments.runner import run_calibration_experiments
 from macro_engine.features.config import load_feature_config
 from macro_engine.features.service import build_stored_features
@@ -463,6 +464,21 @@ def run_historical_diagnostic(
         parquet_dir=parquet_dir,
     )
     console.print_json(data=result.summary)
+
+
+@app.command()
+def run_nber_benchmark(
+    benchmark_config: Annotated[
+        str, typer.Option("--benchmark-config")
+    ] = "config/nber_recessions.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Compare the stored regime timeline against NBER recession dates (diagnostic only)."""
+    summary = run_stored_nber_benchmark(
+        benchmark_config_path=benchmark_config,
+        db_path=db_path,
+    )
+    console.print_json(data=summary)
 
 
 @app.command()
