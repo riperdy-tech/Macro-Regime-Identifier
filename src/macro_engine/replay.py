@@ -58,6 +58,7 @@ def replay_news_history(
     only_unclassified: bool = True,
     persist_replay_db: bool = False,
     export_dashboard: bool = True,
+    dashboard_data_dir: str | Path = "dashboard/public/data",
     services: dict[str, Callable] | None = None,
 ) -> ReplayResult:
     output_path = Path(output_dir)
@@ -138,7 +139,7 @@ def replay_news_history(
         )
 
     if export_dashboard:
-        export_dashboard_data()
+        export_dashboard_data(dashboard_data_dir=dashboard_data_dir)
 
     payload = _summary_payload(
         news_file=news_path,

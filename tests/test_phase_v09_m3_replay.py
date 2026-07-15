@@ -75,6 +75,7 @@ def test_replay_mock_path_archives_by_replay_date_and_updates_history(tmp_path: 
         archive=True,
         include_prior_items=False,
         max_items_per_replay_day=10,
+        dashboard_data_dir=tmp_path / "replay_dashboard_data",
         services=_daily_services(tmp_path),
     )
 
@@ -140,6 +141,7 @@ def test_replay_persist_replay_db_updates_central_accumulation_inputs(tmp_path: 
         include_prior_items=False,
         max_items_per_replay_day=10,
         persist_replay_db=True,
+        dashboard_data_dir=tmp_path / "replay_dashboard_data",
         services=_daily_services(tmp_path),
     )
 
@@ -190,6 +192,8 @@ def test_replay_cli_accepts_persist_replay_db_flag(tmp_path: Path):
             str(tmp_path / "replay"),
             "--db-path",
             str(tmp_path / "central.duckdb"),
+            "--dashboard-data-dir",
+            str(tmp_path / "replay_dashboard_data"),
             "--same-day-only",
             "--persist-replay-db",
         ],

@@ -1417,6 +1417,10 @@ def replay_news_history_cli(
     ] = False,
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs/replay",
+    dashboard_data_dir: Annotated[
+        str,
+        typer.Option("--dashboard-data-dir"),
+    ] = "dashboard/public/data",
 ) -> None:
     """v0.9-M3: replay historical news dates as daily diagnostic runs."""
     result = replay_news_history(
@@ -1433,6 +1437,7 @@ def replay_news_history_cli(
         mock_ai=mock_ai,
         only_unclassified=only_unclassified,
         persist_replay_db=persist_replay_db,
+        dashboard_data_dir=dashboard_data_dir,
     )
     console.print_json(
         data={
