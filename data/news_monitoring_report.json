@@ -10,25 +10,25 @@
     "model": "deepseek-v4-flash",
     "provider": "deepseek",
     "quality_status": "ok",
-    "repair_rate": 0.00020429009193054137,
+    "repair_rate": 0.00020132876988121604,
     "repaired_count": 1,
-    "retry_count": 3,
-    "retry_rate": 0.0006128702757916241,
-    "run_at": "2026-07-28T00:00:35.673677",
-    "run_id": "20260728T000035Z-d2c2e8de",
-    "success_count": 4895,
+    "retry_count": 5,
+    "retry_rate": 0.0010066438494060802,
+    "run_at": "2026-07-28T23:55:48.515246",
+    "run_id": "20260728T235548Z-956e646e",
+    "success_count": 4967,
     "success_rate": 1.0,
     "top_failure_modes_json": [
       {
-        "count": 2,
+        "count": 3,
         "failure_mode": "1 validation error for NewsClassificationPayload"
       },
       {
-        "count": 1,
+        "count": 2,
         "failure_mode": "unknown news theme ids: ['energy_transition']"
       }
     ],
-    "total_items": 4895
+    "total_items": 4967
   },
   "disclaimer": "This is a diagnostic operating-quality report for news inputs, AI classifications, and the experimental combined overlay. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "input_quality": {
@@ -51,8 +51,8 @@
     "profile": "live_rss",
     "quality_status": "warning",
     "raw_item_count": 0,
-    "run_at": "2026-07-28T00:00:35.500217",
-    "run_id": "20260728T000035Z-d2c2e8de",
+    "run_at": "2026-07-28T23:55:48.409804",
+    "run_id": "20260728T235548Z-956e646e",
     "short_body_count": 0,
     "source_count": 0,
     "unique_item_count": 0,
@@ -62,37 +62,37 @@
     "avg_abs_rank_change": 1.0,
     "combined_top_sectors_json": [
       {
-        "combined_score": 1.7086640854873318,
+        "combined_score": 1.708552997267889,
         "news_item_count": 0,
         "rank": 1,
         "sector_id": "oil_gas_ep"
       },
       {
-        "combined_score": 1.4119711291067625,
-        "news_item_count": 326,
+        "combined_score": 1.411591914269917,
+        "news_item_count": 327,
         "rank": 2,
         "sector_id": "energy"
       },
       {
-        "combined_score": 0.7075673244527445,
-        "news_item_count": 1,
+        "combined_score": 0.8737055275564676,
+        "news_item_count": 4,
         "rank": 3,
         "sector_id": "consumer_staples"
       },
       {
-        "combined_score": 0.611998413925732,
-        "news_item_count": 4,
+        "combined_score": 0.6159857794435735,
+        "news_item_count": 6,
         "rank": 4,
         "sector_id": "health_care"
       },
       {
-        "combined_score": 0.6083464047225499,
-        "news_item_count": 6,
+        "combined_score": 0.6079421160226466,
+        "news_item_count": 9,
         "rank": 5,
         "sector_id": "utilities"
       }
     ],
-    "diagnostic_date": "2026-07-27T00:00:00",
+    "diagnostic_date": "2026-07-28T00:00:00",
     "macro_only_top_sectors_json": [
       {
         "confidence_adjusted_score": 0.15749990840165692,
@@ -121,10 +121,10 @@
       }
     ],
     "max_rank_change": 1,
-    "news_item_count": 748,
+    "news_item_count": 805,
     "overlay_status": "warning",
-    "run_at": "2026-07-28T00:00:35.788919",
-    "run_id": "20260728T000035Z-d2c2e8de",
+    "run_at": "2026-07-28T23:55:48.625292",
+    "run_id": "20260728T235548Z-956e646e",
     "sectors_changed_by_news_json": [
       {
         "combined_rank": 2,
@@ -139,12 +139,6 @@
         "sector_id": "financials"
       },
       {
-        "combined_rank": 11,
-        "macro_rank": 12,
-        "rank_change": 1,
-        "sector_id": "information_technology"
-      },
-      {
         "combined_rank": 1,
         "macro_rank": 2,
         "rank_change": 1,
@@ -155,84 +149,78 @@
         "macro_rank": 14,
         "rank_change": -1,
         "sector_id": "real_estate"
-      },
-      {
-        "combined_rank": 12,
-        "macro_rank": 11,
-        "rank_change": -1,
-        "sector_id": "semiconductors"
       }
     ],
     "thin_news_warning": true,
     "top_news_themes_json": [
       {
         "id": "monetary_tightening",
-        "item_count": 349,
-        "score": 14.263687539843282
+        "item_count": 337,
+        "score": 13.623418443126408
       },
       {
         "id": "commodity_pressure",
-        "item_count": 316,
-        "score": 11.950843261011553
+        "item_count": 314,
+        "score": 11.67264857103184
       },
       {
         "id": "growth_acceleration",
-        "item_count": 8,
-        "score": 1.89
+        "item_count": 17,
+        "score": 2.7212118169725223
       },
       {
         "id": "inflation_pressure",
-        "item_count": 6,
-        "score": 1.214540849523208
+        "item_count": 10,
+        "score": 1.7930351061359904
       },
       {
         "id": "geopolitical_risk",
-        "item_count": 26,
-        "score": 0.6799999999999999
+        "item_count": 49,
+        "score": 1.6277440763543078
       }
     ],
     "top_sector_headwinds_json": [
       {
         "id": "real_estate",
-        "item_count": 358,
-        "score": -31.887239877495254
+        "item_count": 352,
+        "score": -29.1043613174859
+      },
+      {
+        "id": "information_technology",
+        "item_count": 37,
+        "score": -0.8517219458476595
       },
       {
         "id": "consumer_discretionary",
-        "item_count": 10,
-        "score": -0.7684919768841172
-      },
-      {
-        "id": "consumer_staples",
-        "item_count": 1,
-        "score": -0.15
+        "item_count": 21,
+        "score": -0.3590380867685288
       }
     ],
     "top_sector_tailwinds_json": [
       {
         "id": "energy",
-        "item_count": 326,
-        "score": 38.40969131012728
+        "item_count": 327,
+        "score": 35.51923168088125
       },
       {
         "id": "industrials",
-        "item_count": 13,
-        "score": 0.832339635918625
-      },
-      {
-        "id": "communication_services",
-        "item_count": 2,
-        "score": 0.6299999999999999
+        "item_count": 25,
+        "score": 1.1368664224639358
       },
       {
         "id": "utilities",
-        "item_count": 6,
-        "score": 0.56
+        "item_count": 9,
+        "score": 1.0972052519877877
       },
       {
         "id": "health_care",
-        "item_count": 4,
-        "score": 0.49688048544183305
+        "item_count": 6,
+        "score": 0.9300364139756058
+      },
+      {
+        "id": "financials",
+        "item_count": 17,
+        "score": 0.7339174592663187
       }
     ]
   },
