@@ -1,30 +1,96 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-07-27T20:08:23.794221+00:00",
+  "computed_at": "2026-07-28T00:00:41.478168+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
     "quarterly"
   ],
   "readiness_note": "diagnostic_overlay_only",
-  "scored_theme_count": 0,
+  "scored_theme_count": 4,
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.5153846153846154,
+      "avg_severity": 0.43076923076923074,
+      "item_count": 13,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.5153846153846154,
+          "item_count": 13,
+          "period_start": "2026-07-01",
+          "score": 2.7099007722221367
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.5153846153846154,
+          "item_count": 13,
+          "period_start": "2026-07-01",
+          "score": 2.7099007722221367
+        }
+      ],
+      "raw_score": 5.6,
+      "score": 2.7099007722221367,
+      "source_mix": {
+        "cnbc_health": 1,
+        "cnbc_tech": 7,
+        "nasdaq_markets": 2,
+        "oilprice": 3
+      },
       "theme_id": "ai_compute",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_1023924d4f073965",
+        "news_c80652c3dcf87619",
+        "news_8199baada4517438",
+        "news_26caeb146f05d35b",
+        "news_51857e46c79a0683"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.9,
+          "news_id": "news_1023924d4f073965",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/27/nvidia-and-openai-in-talks-for-up-to-250-billion-dollar-ai-backstop.html",
+          "title": "Nvidia and OpenAI in talks for up to $250 billion backstop to fund AI infrastructure plans"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_c80652c3dcf87619",
+          "score_component": 0.35,
+          "source": "cnbc_health",
+          "source_url": "https://www.cnbc.com/2026/07/25/here-are-4-forces-that-drove-a-tough-week-for-stocks.html",
+          "title": "Here are 4 forces that drove a tough week for stocks"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_8199baada4517438",
+          "score_component": 0.34200598895198603,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/27/altman-trump-china-open-weight-ai.html",
+          "title": "Sam Altman to meet with Trump administration, senators this week. Here's what he plans to say"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_26caeb146f05d35b",
+          "score_component": 0.29314799053027374,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/27/5-things-to-know-before-the-stock-market-opens.html",
+          "title": "Oil prices cool, AI's 'distillation' debate, Ford's 'Nike shoe drop' and more in Morning Squawk"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_51857e46c79a0683",
+          "score_component": 0.29314799053027374,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Nvidias-250-Billion-OpenAI-Guarantee-Puts-AI-Capex-Concerns-Back-in-Focus.html",
+          "title": "Nvidia's $250 Billion OpenAI Guarantee Puts AI Capex Concerns Back in Focus"
+        }
+      ],
+      "trend_30d": 2.859523530239683
     },
     "cloud_software": {
       "avg_confidence": null,
@@ -59,36 +125,128 @@
       "trend_30d": 0.0
     },
     "energy_transition": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.64,
+      "avg_severity": 0.39999999999999997,
+      "item_count": 5,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.64,
+          "item_count": 5,
+          "period_start": "2026-07-01",
+          "score": 1.2001291725377938
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.64,
+          "item_count": 5,
+          "period_start": "2026-07-01",
+          "score": 1.2001291725377938
+        }
+      ],
+      "raw_score": 1.9999999999999998,
+      "score": 1.2001291725377938,
+      "source_mix": {
+        "eia_energy": 1,
+        "oilprice": 3,
+        "scmp": 1
+      },
       "theme_id": "energy_transition",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_2b532f64ca742571",
+        "news_bb080b8f38772376",
+        "news_ee7d7009c222e088",
+        "news_761f8b9b0f9c959f",
+        "news_0bce35c66b5bf1d1"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.8,
+          "news_id": "news_2b532f64ca742571",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Leaked-UK-Grid-Report-Warns-Net-Zero-Push-Raises-Blackout-Risks.html",
+          "title": "Leaked UK Grid Report Warns Net Zero Push Raises Blackout Risks"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_bb080b8f38772376",
+          "score_component": 0.3126911898989588,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/TotalEnergies-to-Appeal-Court-Order-to-Adapt-Business-to-Climate-Goals.html",
+          "title": "TotalEnergies to Appeal Court Order to Adapt Business to Climate Goals"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_ee7d7009c222e088",
+          "score_component": 0.29314799053027374,
+          "source": "scmp",
+          "source_url": "https://www.scmp.com/news/world/europe/article/3362048/france-and-spain-race-curb-wildfires-new-heatwave-arrives?utm_source=rss_feed",
+          "title": "France and Spain race to curb wildfires before new heatwave arrives"
+        },
+        {
+          "confidence": 0.5,
+          "news_id": "news_761f8b9b0f9c959f",
+          "score_component": 0.14657399526513687,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/What-If-the-Most-Valuable-Part-of-an-EV-Isnt-the-Car.html",
+          "title": "What If the Most Valuable Part of an EV Isn't the Car?"
+        },
+        {
+          "confidence": 0.5,
+          "news_id": "news_0bce35c66b5bf1d1",
+          "score_component": 0.0977159968434246,
+          "source": "eia_energy",
+          "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=67885",
+          "title": "Hybrid sales rise while battery electric sales remain lower after tax credit expiration"
+        }
+      ],
+      "trend_30d": 1.200129172537794
     },
     "glp1_metabolic": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.8,
+      "avg_severity": 0.3,
+      "item_count": 1,
       "label": "GLP-1 / Metabolic Health",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.8,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.234518392424219
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.8,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.234518392424219
+        }
+      ],
+      "raw_score": 0.3,
+      "score": 0.234518392424219,
+      "source_mix": {
+        "cnbc_health": 1
+      },
       "theme_id": "glp1_metabolic",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_6e6474881be75006"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.8,
+          "news_id": "news_6e6474881be75006",
+          "score_component": 0.234518392424219,
+          "source": "cnbc_health",
+          "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
+          "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
+        }
+      ],
+      "trend_30d": 0.234518392424219
     },
     "nuclear_renaissance": {
       "avg_confidence": null,
@@ -139,20 +297,47 @@
       "trend_30d": 0.0
     },
     "space_economy": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.8,
+      "avg_severity": 0.5,
+      "item_count": 1,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.8,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.35
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.8,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.35
+        }
+      ],
+      "raw_score": 0.5,
+      "score": 0.35,
+      "source_mix": {
+        "cnbc_tech": 1
+      },
       "theme_id": "space_economy",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_d18eae07a6cd8265"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.8,
+          "news_id": "news_d18eae07a6cd8265",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/07/27/amazon-satellite-internet-network.html",
+          "title": "Amazon seeks federal approval to launch 5,105 satellites for direct-to-device network"
+        }
+      ],
+      "trend_30d": 0.35
     }
   },
   "trend_window_days": 30,
