@@ -1,66 +1,58 @@
 {
-  "computed_at": "2026-07-28T23:55:55.632156+00:00",
-  "confidence": 0.030027666157680377,
+  "computed_at": "2026-07-29T23:58:46.769206+00:00",
+  "confidence": 0.0300091716395694,
   "disclaimer": "This is a diagnostic macro-regime status snapshot. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "dominant_regime": "tightening",
   "monitor_ready": false,
   "raw_dominant_regime": "tightening",
-  "raw_regime_probability": 0.25265203181105855,
+  "raw_regime_probability": 0.2527432017360504,
   "readiness_label": "insufficient_history",
-  "regime_probability": 0.25265203181105855,
-  "secular_theme_computed_at": "2026-07-28T23:55:54.597255+00:00",
+  "regime_probability": 0.2527432017360504,
+  "secular_theme_computed_at": "2026-07-29T23:58:45.660186+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.5884615384615385,
-      "avg_severity": 0.4269230769230769,
-      "item_count": 26,
+      "avg_confidence": 0.6273809523809524,
+      "avg_severity": 0.43809523809523804,
+      "item_count": 42,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.5884615384615385,
-          "item_count": 26,
+          "avg_confidence": 0.6273809523809524,
+          "item_count": 42,
           "period_start": "2026-07-01",
-          "score": 4.289900772222136
+          "score": 5.96158139944618
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5884615384615385,
-          "item_count": 26,
+          "avg_confidence": 0.6273809523809524,
+          "item_count": 42,
           "period_start": "2026-07-01",
-          "score": 4.289900772222136
+          "score": 5.96158139944618
         }
       ],
-      "raw_score": 11.1,
-      "score": 4.289900772222136,
+      "raw_score": 18.4,
+      "score": 5.96158139944618,
       "source_mix": {
-        "cnbc_finance": 2,
+        "cnbc_finance": 3,
         "cnbc_health": 1,
-        "cnbc_markets": 3,
-        "cnbc_tech": 13,
-        "housingwire": 1,
+        "cnbc_markets": 7,
+        "cnbc_tech": 22,
+        "housingwire": 2,
         "nasdaq_markets": 2,
-        "oilprice": 3,
+        "oilprice": 4,
         "scmp": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
-        "news_05f6b5a8b56c8bc9",
         "news_1023924d4f073965",
         "news_1915e626ba1da80a",
+        "news_3137b661c13637ed",
         "news_47ad57fc46dcbdef",
-        "news_66c4f3a6b264ffa0"
+        "news_5786c3ef9f8025c8"
       ],
       "top_news_items": [
-        {
-          "confidence": 0.7,
-          "news_id": "news_05f6b5a8b56c8bc9",
-          "score_component": 0.35,
-          "source": "cnbc_markets",
-          "source_url": "https://www.cnbc.com/2026/07/28/hyperscalers-face-higher-capex-scrutiny-after-alphabet-report-panned.html",
-          "title": "Amazon, Meta and Microsoft face skeptical investors this week after Google report sparked market-action term-off"
-        },
         {
           "confidence": 0.9,
           "news_id": "news_1023924d4f073965",
@@ -79,6 +71,14 @@
         },
         {
           "confidence": 0.7,
+          "news_id": "news_3137b661c13637ed",
+          "score_component": 0.35,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/07/29/meta-q2-earnings-report-2026.html",
+          "title": "Meta's stock drops on disappointing guidance, dwindling free cash flow"
+        },
+        {
+          "confidence": 0.7,
           "news_id": "news_47ad57fc46dcbdef",
           "score_component": 0.35,
           "source": "scmp",
@@ -87,30 +87,57 @@
         },
         {
           "confidence": 0.7,
-          "news_id": "news_66c4f3a6b264ffa0",
+          "news_id": "news_5786c3ef9f8025c8",
           "score_component": 0.35,
           "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/07/28/corning-glw-stock-optical-ai.html",
-          "title": "Corning tumbles 12% after earnings, leading rout in optical stocks"
+          "source_url": "https://www.cnbc.com/2026/07/29/tim-cooks-last-earnings-call-comes-at-momentous-time-for-apple-.html",
+          "title": "Tim Cook\u2019s last earnings call comes at momentous time for Apple with stock at record"
         }
       ],
-      "trend_30d": 6.109523530239683
+      "trend_30d": 10.43593989729339
     },
     "cloud_software": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
+      "avg_confidence": 0.4,
+      "avg_severity": 0.2,
+      "item_count": 1,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.4,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.08000000000000002
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.4,
+          "item_count": 1,
+          "period_start": "2026-07-01",
+          "score": 0.08000000000000002
+        }
+      ],
+      "raw_score": 0.2,
+      "score": 0.08000000000000002,
+      "source_mix": {
+        "housingwire": 1
+      },
       "theme_id": "cloud_software",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
+      "top_news_ids": [
+        "news_ba6b9d73335aaad9"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.4,
+          "news_id": "news_ba6b9d73335aaad9",
+          "score_component": 0.08000000000000002,
+          "source": "housingwire",
+          "source_url": "https://www.housingwire.com/articles/lpt-aperture-acquires-speculo/",
+          "title": "LPT Aperture Holdings acquires Speculo AI platform"
+        }
+      ],
+      "trend_30d": 0.08000000000000002
     },
     "cybersecurity": {
       "avg_confidence": null,
@@ -129,41 +156,41 @@
       "trend_30d": 0.0
     },
     "energy_transition": {
-      "avg_confidence": 0.5888888888888889,
-      "avg_severity": 0.38888888888888884,
-      "item_count": 9,
+      "avg_confidence": 0.6083333333333333,
+      "avg_severity": 0.44166666666666665,
+      "item_count": 12,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.5888888888888889,
-          "item_count": 9,
+          "avg_confidence": 0.6083333333333333,
+          "item_count": 12,
           "period_start": "2026-07-01",
-          "score": 2.010129172537794
+          "score": 2.4262266336727283
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5888888888888889,
-          "item_count": 9,
+          "avg_confidence": 0.6083333333333333,
+          "item_count": 12,
           "period_start": "2026-07-01",
-          "score": 2.010129172537794
+          "score": 2.4262266336727283
         }
       ],
-      "raw_score": 3.4999999999999996,
-      "score": 2.010129172537794,
+      "raw_score": 5.3,
+      "score": 2.4262266336727283,
       "source_mix": {
         "eia_energy": 1,
-        "oilprice": 6,
-        "scmp": 2
+        "oilprice": 8,
+        "scmp": 3
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
         "news_2b532f64ca742571",
+        "news_95419b02c4d76fda",
+        "news_c1a325710b6c439e",
         "news_bb080b8f38772376",
-        "news_2c2586888e633d97",
-        "news_ee7d7009c222e088",
-        "news_1ab0431d55bee42e"
+        "news_299ba6ed746944ef"
       ],
       "top_news_items": [
         {
@@ -175,39 +202,39 @@
           "title": "Leaked UK Grid Report Warns Net Zero Push Raises Blackout Risks"
         },
         {
+          "confidence": 0.7,
+          "news_id": "news_95419b02c4d76fda",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Metals/Commodities/US-Backs-Madagascars-Rare-Earths-Project.html",
+          "title": "U.S. Backs Madagascar\u2019s Rare Earths Project"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_c1a325710b6c439e",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Natural-Gas/Low-Gas-Storage-and-Diesel-Shortages-Threaten-Europes-Winter-Supply.html",
+          "title": "Low Gas Storage and Diesel Shortages Threaten Europe\u2019s Winter Supply"
+        },
+        {
           "confidence": 0.8,
           "news_id": "news_bb080b8f38772376",
-          "score_component": 0.3126911898989588,
+          "score_component": 0.30554931325133333,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Latest-Energy-News/World-News/TotalEnergies-to-Appeal-Court-Order-to-Adapt-Business-to-Climate-Goals.html",
           "title": "TotalEnergies to Appeal Court Order to Adapt Business to Climate Goals"
         },
         {
           "confidence": 0.6,
-          "news_id": "news_2c2586888e633d97",
+          "news_id": "news_299ba6ed746944ef",
           "score_component": 0.3,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Latest-Energy-News/World-News/Hitting-EU-Renewables-Targets-Could-Slash-Gas-Demand-a-Quarter-by-2030.html",
-          "title": "Hitting EU Renewables Targets Could Slash Gas Demand a Quarter by 2030"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_ee7d7009c222e088",
-          "score_component": 0.29314799053027374,
           "source": "scmp",
-          "source_url": "https://www.scmp.com/news/world/europe/article/3362048/france-and-spain-race-curb-wildfires-new-heatwave-arrives?utm_source=rss_feed",
-          "title": "France and Spain race to curb wildfires before new heatwave arrives"
-        },
-        {
-          "confidence": 0.5,
-          "news_id": "news_1ab0431d55bee42e",
-          "score_component": 0.25,
-          "source": "scmp",
-          "source_url": "https://www.scmp.com/economy/global-economy/article/3362129/can-china-and-indonesias-strong-financial-ties-withstand-resource-nationalism?utm_source=rss_feed",
-          "title": "Can China and Indonesia\u2019s strong financial ties withstand \u2018resource nationalism\u2019?"
+          "source_url": "https://www.scmp.com/news/china/diplomacy/article/3362313/can-chinas-ev-boom-give-it-decisive-edge-geopolitical-tech-war?utm_source=rss_feed",
+          "title": "Can China\u2019s EV boom give it decisive edge in geopolitical tech war?"
         }
       ],
-      "trend_30d": 2.010129172537794
+      "trend_30d": 2.9722117698338013
     },
     "glp1_metabolic": {
       "avg_confidence": 0.55,
@@ -220,7 +247,7 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.26451839242421904
+          "score": 0.25847678399152735
         }
       ],
       "quarterly_scores": [
@@ -228,11 +255,11 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.26451839242421904
+          "score": 0.25847678399152735
         }
       ],
       "raw_score": 0.4,
-      "score": 0.26451839242421904,
+      "score": 0.25847678399152735,
       "source_mix": {
         "cnbc_health": 2
       },
@@ -245,7 +272,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_6e6474881be75006",
-          "score_component": 0.234518392424219,
+          "score_component": 0.22916198493849996,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
@@ -253,60 +280,89 @@
         {
           "confidence": 0.3,
           "news_id": "news_e68cd44ae88809d3",
-          "score_component": 0.03,
+          "score_component": 0.029314799053027377,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
         }
       ],
-      "trend_30d": 0.26451839242421904
+      "trend_30d": 0.25847678399152735
     },
     "nuclear_renaissance": {
-      "avg_confidence": null,
-      "avg_severity": null,
-      "item_count": 0,
-      "label": "Nuclear Renaissance",
-      "mock_contribution_ratio": 0.0,
-      "monthly_scores": [],
-      "quarterly_scores": [],
-      "raw_score": 0.0,
-      "score": 0.0,
-      "source_mix": {},
-      "theme_id": "nuclear_renaissance",
-      "top_news_ids": [],
-      "top_news_items": [],
-      "trend_30d": 0.0
-    },
-    "physical_ai": {
-      "avg_confidence": 0.8,
-      "avg_severity": 0.5,
+      "avg_confidence": 0.7,
+      "avg_severity": 0.4,
       "item_count": 1,
-      "label": "Physical AI / Robotics",
+      "label": "Nuclear Renaissance",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.8,
+          "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.35
+          "score": 0.27999999999999997
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.8,
+          "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.35
+          "score": 0.27999999999999997
         }
       ],
-      "raw_score": 0.5,
-      "score": 0.35,
+      "raw_score": 0.4,
+      "score": 0.27999999999999997,
       "source_mix": {
+        "oilprice": 1
+      },
+      "theme_id": "nuclear_renaissance",
+      "top_news_ids": [
+        "news_8ad77b5e672b4ea0"
+      ],
+      "top_news_items": [
+        {
+          "confidence": 0.7,
+          "news_id": "news_8ad77b5e672b4ea0",
+          "score_component": 0.27999999999999997,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Trump-Administration-Picks-Five-States-for-Nuclear-Fuel-Cycle-Hubs.html",
+          "title": "Trump Administration Picks Five States for Nuclear Fuel-Cycle Hubs"
+        }
+      ],
+      "trend_30d": 0.27999999999999997
+    },
+    "physical_ai": {
+      "avg_confidence": 0.55,
+      "avg_severity": 0.35,
+      "item_count": 2,
+      "label": "Physical AI / Robotics",
+      "mock_contribution_ratio": 0.0,
+      "monthly_scores": [
+        {
+          "avg_confidence": 0.55,
+          "item_count": 2,
+          "period_start": "2026-07-01",
+          "score": 0.41
+        }
+      ],
+      "quarterly_scores": [
+        {
+          "avg_confidence": 0.55,
+          "item_count": 2,
+          "period_start": "2026-07-01",
+          "score": 0.41
+        }
+      ],
+      "raw_score": 0.7,
+      "score": 0.41,
+      "source_mix": {
+        "cnbc_markets": 1,
         "scmp": 1
       },
       "theme_id": "physical_ai",
       "top_news_ids": [
-        "news_36e6ff1661633c7a"
+        "news_36e6ff1661633c7a",
+        "news_cbd046adaa700075"
       ],
       "top_news_items": [
         {
@@ -316,9 +372,17 @@
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/diplomacy/article/3362185/us-bans-new-chinese-robots-power-inverters-latest-tech-crackdown?utm_source=rss_feed",
           "title": "US bans new Chinese robots, power inverters in latest tech crackdown"
+        },
+        {
+          "confidence": 0.3,
+          "news_id": "news_cbd046adaa700075",
+          "score_component": 0.06,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/07/29/metas-reality-labs-lost-over-4point6-billion-in-second-quarter.html",
+          "title": "Meta\u2019s Reality Labs lost over $4.6 billion in second quarter"
         }
       ],
-      "trend_30d": 0.35
+      "trend_30d": 0.41
     },
     "quantum_computing": {
       "avg_confidence": null,
