@@ -69,7 +69,15 @@ jobs:
         # Persist the DuckDB across runs so news accumulates (readiness advances,
         # classify-only-unclassified avoids re-paying DeepSeek). Rolling key:
         # restores the most recent cache, saves a fresh one at job end.
-        uses: actions/cache@v4
+        #
+        # Split restore/save on purpose. actions/cache@v4 saves in an implicit post
+        # step, and post steps are SKIPPED when a job is cancelled -- which is what a
+        # timeout-minutes kill is. Between 2026-07-31 and 2026-08-09 that discarded
+        # every run's classifications (60-90 items/run, already committed to DuckDB
+        # per item) and pinned every run to the 2026-07-30 snapshot, so no run could
+        # make partial progress and the backlog never drained. The explicit save step
+        # below runs with if: always(), which does fire on cancellation.
+        uses: actions/cache/restore@v4
         with:
           path: data/macro_engine.duckdb
           key: mgi-duckdb-${{ github.run_id }}
@@ -229,6 +237,18 @@ jobs:
             git push origin HEAD:run-history
           fi
 
+      - name: Persist accumulated database
+        # Deliberately first among the always() steps: on a cancellation the runner
+        # allows a short grace window, so the most valuable artifact goes up first.
+        # Classifications are committed to DuckDB per item (news/service.py), so even
+        # a run killed at item 63/77 ratchets 63 items forward and the next run only
+        # pays for the remainder. This is what makes the pipeline self-healing.
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/macro_engine.duckdb
+          key: mgi-duckdb-${{ github.run_id }}
+
       - name: Alert on regime change or guardrail failure
         if: always()
         env:
@@ -288,3 +308,51 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: dashboard/dist
+
+      - name: Report run failure
+        # The existing check_alert.py guard reads archived run SUMMARIES, so a run
+        # that dies before writing one has nothing to alert on -- it printed
+        # "No alert." on ten consecutive killed runs. This guard watches the JOB
+        # instead, so silence and health stop being indistinguishable.
+        #
+        # if: failure() would NOT fire here: a timeout-minutes kill reports job
+        # status "cancelled", not "failure". always() + an explicit status check is
+        # the only condition that catches both.
+        if: ${{ always() && job.status != 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.workflow }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -u
+          gh label create mgi-run-failure \
+            --repo "$REPO" \
+            --color b60205 \
+            --description "A scheduled workflow run did not succeed" >/dev/null 2>&1 || true
+
+          BODY=$(printf '%s\n' \
+            "Workflow **$WORKFLOW** finished with status \`$JOB_STATUS\`." \
+            "" \
+            "Run: $RUN_URL" \
+            "" \
+            "A \`cancelled\` status on this workflow means the job hit its \`timeout-minutes\`" \
+            "ceiling, not a manual cancel. Check the last \`classify-news: item N/M\` line in" \
+            "the log to see how far it got." \
+            "" \
+            "_Automated - posted by the run-failure guard._")
+
+          # One rolling issue per workflow: comment on the open one if it exists,
+          # otherwise open it. Daily cadence makes create-every-time pure spam.
+          EXISTING=$(gh issue list --repo "$REPO" --label mgi-run-failure --state open \
+            --search "$WORKFLOW in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY" || true
+          else
+            gh issue create --repo "$REPO" \
+              --title "MGI run failure: $WORKFLOW" \
+              --body "$BODY" \
+              --label mgi-run-failure || true
+          fi

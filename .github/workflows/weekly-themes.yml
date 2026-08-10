@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: write
+  # Needed by the run-failure guard below, which opens/updates a GitHub Issue.
+  issues: write
 
 concurrency:
   group: "weekly-themes"
@@ -78,4 +80,44 @@ jobs:
             git commit -m "chore(themes): weekly secular-theme proposals for review [skip ci]"
             git push --force origin "$BRANCH"
             echo "Pushed proposals to $BRANCH - open a PR to review/merge."
+          fi
+
+      - name: Report run failure
+        # This workflow had no alerting path at all: it exited 1 on 2026-08-02 and
+        # 2026-08-09 (empty DeepSeek discovery response, response_length=0 on every
+        # attempt) and nothing surfaced it.
+        if: ${{ always() && job.status != 'success' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.workflow }}
+          JOB_STATUS: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -u
+          gh label create mgi-run-failure \
+            --repo "$REPO" \
+            --color b60205 \
+            --description "A scheduled workflow run did not succeed" >/dev/null 2>&1 || true
+
+          BODY=$(printf '%s\n' \
+            "Workflow **$WORKFLOW** finished with status \`$JOB_STATUS\`." \
+            "" \
+            "Run: $RUN_URL" \
+            "" \
+            "If discovery failed, the \`weekly-theme-discovery-output\` artifact holds" \
+            "\`theme_discovery_error.json\` with the per-attempt diagnostics." \
+            "" \
+            "_Automated - posted by the run-failure guard._")
+
+          EXISTING=$(gh issue list --repo "$REPO" --label mgi-run-failure --state open \
+            --search "$WORKFLOW in:title" --json number --jq '.[0].number' 2>/dev/null || true)
+
+          if [ -n "${EXISTING:-}" ]; then
+            gh issue comment "$EXISTING" --repo "$REPO" --body "$BODY" || true
+          else
+            gh issue create --repo "$REPO" \
+              --title "MGI run failure: $WORKFLOW" \
+              --body "$BODY" \
+              --label mgi-run-failure || true
           fi
