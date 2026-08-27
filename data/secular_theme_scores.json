@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-08-23T23:12:34.188611+00:00",
+  "computed_at": "2026-08-27T03:59:42.385015+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,9 +11,9 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6211956521739131,
-      "avg_severity": 0.4206521739130435,
-      "item_count": 92,
+      "avg_confidence": 0.6186868686868687,
+      "avg_severity": 0.41515151515151516,
+      "item_count": 99,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -21,42 +21,43 @@
           "avg_confidence": 0.6460784313725491,
           "item_count": 51,
           "period_start": "2026-07-01",
-          "score": 4.940971540739012
+          "score": 4.769627403343248
         },
         {
-          "avg_confidence": 0.5902439024390245,
-          "item_count": 41,
+          "avg_confidence": 0.5895833333333332,
+          "item_count": 48,
           "period_start": "2026-08-01",
-          "score": 6.404073162748898
+          "score": 7.339682094696873
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6211956521739131,
-          "item_count": 92,
+          "avg_confidence": 0.6186868686868687,
+          "item_count": 99,
           "period_start": "2026-07-01",
-          "score": 11.345044703487911
+          "score": 12.109309498040123
         }
       ],
-      "raw_score": 38.7,
-      "score": 11.345044703487911,
+      "raw_score": 41.1,
+      "score": 12.109309498040123,
       "source_mix": {
-        "cnbc_finance": 6,
+        "cnbc_finance": 8,
         "cnbc_health": 1,
-        "cnbc_markets": 19,
+        "cnbc_markets": 21,
         "cnbc_tech": 42,
         "housingwire": 5,
         "marketwatch": 3,
-        "nasdaq_markets": 5,
-        "oilprice": 8,
-        "scmp": 3
+        "nasdaq_markets": 6,
+        "oilprice": 9,
+        "scmp": 3,
+        "zerohedge.com": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
         "news_0e1336dd7eb8db1f",
         "news_1023924d4f073965",
+        "news_1b542b97be12ba9e",
         "news_1c577216cb3b9b48",
-        "news_53cdce2cf07202f3",
         "news_634c6b0e28afe26b"
       ],
       "top_news_items": [
@@ -77,20 +78,20 @@
           "title": "Nvidia and OpenAI in talks for up to $250 billion backstop to fund AI infrastructure plans"
         },
         {
+          "confidence": 0.9,
+          "news_id": "news_1b542b97be12ba9e",
+          "score_component": 0.35,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/26/nvidia-wows-wall-street-with-a-strong-quarter-eye-popping-sales-forecast.html",
+          "title": "Nvidia wows Wall Street with a strong quarter and an eye-popping sales forecast"
+        },
+        {
           "confidence": 0.7,
           "news_id": "news_1c577216cb3b9b48",
           "score_component": 0.35,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/what-can-the-government-do-to-lower-mortgage-rates/",
           "title": "What can the government do to lower mortgage rates?"
-        },
-        {
-          "confidence": 0.7,
-          "news_id": "news_53cdce2cf07202f3",
-          "score_component": 0.35,
-          "source": "marketwatch",
-          "source_url": "https://www.marketwatch.com/story/micron-sandisk-and-other-chip-stocks-climb-as-investors-are-more-confident-about-ai-spending-128374fa?mod=mw_rss_topstories",
-          "title": "Micron, Sandisk and other chip stocks climb as investors get more confident about AI spending"
         },
         {
           "confidence": 0.7,
@@ -101,12 +102,12 @@
           "title": "Does housing have an AI problem?"
         }
       ],
-      "trend_30d": 17.461845716625707
+      "trend_30d": 14.130179738594242
     },
     "cloud_software": {
-      "avg_confidence": 0.4,
-      "avg_severity": 0.2,
-      "item_count": 1,
+      "avg_confidence": 0.5333333333333333,
+      "avg_severity": 0.20000000000000004,
+      "item_count": 3,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -114,42 +115,67 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.04489848193237493
+          "score": 0.04093495567987101
+        },
+        {
+          "avg_confidence": 0.6,
+          "item_count": 2,
+          "period_start": "2026-08-01",
+          "score": 0.24
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.4,
-          "item_count": 1,
+          "avg_confidence": 0.5333333333333333,
+          "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.04489848193237493
+          "score": 0.280934955679871
         }
       ],
-      "raw_score": 0.2,
-      "score": 0.04489848193237493,
+      "raw_score": 0.6000000000000001,
+      "score": 0.280934955679871,
       "source_mix": {
+        "cnbc_markets": 2,
         "housingwire": 1
       },
       "theme_id": "cloud_software",
       "top_news_ids": [
+        "news_185a130bc1af8a35",
+        "news_d4185c56344f6dc3",
         "news_ba6b9d73335aaad9"
       ],
       "top_news_items": [
         {
+          "confidence": 0.6,
+          "news_id": "news_185a130bc1af8a35",
+          "score_component": 0.12,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/26/salesforce-crm-q2-earnings-report-2027.html",
+          "title": "Salesforce stock jumps 12% on AI growth and Anthropic investment gain"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_d4185c56344f6dc3",
+          "score_component": 0.12,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/26/were-raising-our-price-target-on-salesforce-after-results-defy-saaspocalypse.html",
+          "title": "We're raising our price target on Salesforce after results defy 'SaaSpocalypse'"
+        },
+        {
           "confidence": 0.4,
           "news_id": "news_ba6b9d73335aaad9",
-          "score_component": 0.04489848193237493,
+          "score_component": 0.04093495567987101,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/lpt-aperture-acquires-speculo/",
           "title": "LPT Aperture Holdings acquires Speculo AI platform"
         }
       ],
-      "trend_30d": 0.04489848193237493
+      "trend_30d": 0.28093495567987103
     },
     "cybersecurity": {
-      "avg_confidence": 0.7,
-      "avg_severity": 0.44999999999999996,
-      "item_count": 2,
+      "avg_confidence": 0.6799999999999999,
+      "avg_severity": 0.33999999999999997,
+      "item_count": 5,
       "label": "Cybersecurity",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -157,52 +183,81 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.27568760519928837
+          "score": 0.2513505894769504
         },
         {
-          "avg_confidence": 0.6,
-          "item_count": 1,
+          "avg_confidence": 0.6499999999999999,
+          "item_count": 4,
           "period_start": "2026-08-01",
-          "score": 0.18
+          "score": 0.708628440364698
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.7,
-          "item_count": 2,
+          "avg_confidence": 0.6799999999999999,
+          "item_count": 5,
           "period_start": "2026-07-01",
-          "score": 0.45568760519928836
+          "score": 0.9599790298416484
         }
       ],
-      "raw_score": 0.8999999999999999,
-      "score": 0.45568760519928836,
+      "raw_score": 1.7,
+      "score": 0.9599790298416484,
       "source_mix": {
-        "cnbc_tech": 2
+        "cnbc_markets": 2,
+        "cnbc_tech": 2,
+        "marketwatch": 1
       },
       "theme_id": "cybersecurity",
       "top_news_ids": [
         "news_d609c4dc3d72e6e6",
-        "news_470a02b3d8738d41"
+        "news_6dc3443ff6b5c9d0",
+        "news_c5e404734ac5e85f",
+        "news_470a02b3d8738d41",
+        "news_6714f76c4bf9fe03"
       ],
       "top_news_items": [
         {
           "confidence": 0.8,
           "news_id": "news_d609c4dc3d72e6e6",
-          "score_component": 0.27568760519928837,
+          "score_component": 0.2513505894769504,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/07/30/anthropic-says-claude-gained-unauthorized-access-to-others-systems.html",
           "title": "Anthropic says its Claude models 'gained unauthorized access' to other organizations' systems"
         },
         {
+          "confidence": 0.8,
+          "news_id": "news_6dc3443ff6b5c9d0",
+          "score_component": 0.234518392424219,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/26/crowdstrike-crwd-earnings-q2-2027.html",
+          "title": "CrowdStrike jumps 11% on record second quarter as 'Mythos moment' drives AI cyber wave"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_c5e404734ac5e85f",
+          "score_component": 0.21,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/26/crowdstrikes-shows-ai-is-a-cybersecurity-tailwind-not-a-threat.html",
+          "title": "CrowdStrike's quarter shows AI is a cybersecurity tailwind, not a threat"
+        },
+        {
           "confidence": 0.6,
           "news_id": "news_470a02b3d8738d41",
-          "score_component": 0.18,
+          "score_component": 0.164110047940479,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/08/23/small-uk-power-plant-shut-down-after-iran-linked-cyberattack-report.html",
           "title": "Small UK power generator shut down after cyberattack linked to Iran: Telegraph"
+        },
+        {
+          "confidence": 0.5,
+          "news_id": "news_6714f76c4bf9fe03",
+          "score_component": 0.1,
+          "source": "marketwatch",
+          "source_url": "https://www.marketwatch.com/story/crowdstrikes-stock-soars-after-ai-fuels-the-cybersecurity-companys-best-quarter-ever-6aeae1d5?mod=mw_rss_topstories",
+          "title": "CrowdStrike\u2019s stock soars after AI fuels the cybersecurity company\u2019s \u2018best quarter in history\u2019"
         }
       ],
-      "trend_30d": 0.45568760519928836
+      "trend_30d": 0.9599790298416484
     },
     "energy_transition": {
       "avg_confidence": 0.5758620689655172,
@@ -215,13 +270,13 @@
           "avg_confidence": 0.6071428571428571,
           "item_count": 14,
           "period_start": "2026-07-01",
-          "score": 2.065775056415374
+          "score": 1.9350747728281152
         },
         {
           "avg_confidence": 0.5466666666666666,
           "item_count": 15,
           "period_start": "2026-08-01",
-          "score": 1.8046926971536434
+          "score": 1.777795184094435
         }
       ],
       "quarterly_scores": [
@@ -229,11 +284,11 @@
           "avg_confidence": 0.5758620689655172,
           "item_count": 29,
           "period_start": "2026-07-01",
-          "score": 3.8704677535690175
+          "score": 3.71286995692255
         }
       ],
       "raw_score": 11.799999999999999,
-      "score": 3.8704677535690175,
+      "score": 3.71286995692255,
       "source_mix": {
         "cnbc_markets": 1,
         "eia_energy": 2,
@@ -268,7 +323,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_ce06daebe86f92a9",
-          "score_component": 0.34200598895198603,
+          "score_component": 0.31181455134911873,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Clean-Energy-Spending-Tracking-Toward-Record-180-Billion-in-2026.html",
           "title": "Clean Energy Spending Tracking Toward Record $180 Billion in 2026"
@@ -276,7 +331,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_1f3bfeee3ec298d1",
-          "score_component": 0.3265615470378826,
+          "score_component": 0.2977335063327995,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Solar-Energy/How-Solar-Panel-Prices-Fell-90-Percent-In-15-Years.html",
           "title": "How Solar Panel Prices Fell 90 Percent In 15 Years"
@@ -284,13 +339,13 @@
         {
           "confidence": 0.7,
           "news_id": "news_c1a325710b6c439e",
-          "score_component": 0.3142893735266244,
+          "score_component": 0.28654468975909697,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Natural-Gas/Low-Gas-Storage-and-Diesel-Shortages-Threaten-Europes-Winter-Supply.html",
           "title": "Low Gas Storage and Diesel Shortages Threaten Europe\u2019s Winter Supply"
         }
       ],
-      "trend_30d": 5.237014676290768
+      "trend_30d": 3.5173323539067383
     },
     "glp1_metabolic": {
       "avg_confidence": 0.5666666666666668,
@@ -303,13 +358,13 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.14506519019977454
+          "score": 0.13225919621210952
         },
         {
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-08-01",
-          "score": 0.21381569235368142
+          "score": 0.19494057512549653
         }
       ],
       "quarterly_scores": [
@@ -317,11 +372,11 @@
           "avg_confidence": 0.5666666666666668,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.35888088255345596
+          "score": 0.327199771337606
         }
       ],
       "raw_score": 0.8,
-      "score": 0.35888088255345596,
+      "score": 0.327199771337606,
       "source_mix": {
         "cnbc_health": 3
       },
@@ -335,7 +390,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_c6a26b02555fd211",
-          "score_component": 0.21381569235368142,
+          "score_component": 0.19494057512549653,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/08/18/hims-hers-ceo-andrew-dudum-ftc-lawsuit-glp-1s-ai.html",
           "title": "Hims & Hers CEO says FTC lawsuit misunderstands how the company works"
@@ -343,7 +398,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_6e6474881be75006",
-          "score_component": 0.12861281550435516,
+          "score_component": 0.1172591962121095,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
@@ -351,13 +406,13 @@
         {
           "confidence": 0.3,
           "news_id": "news_e68cd44ae88809d3",
-          "score_component": 0.016452374695419388,
+          "score_component": 0.015,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
         }
       ],
-      "trend_30d": 0.35888088255345596
+      "trend_30d": 0.09268137891338701
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.6,
@@ -370,13 +425,13 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.1571446867633122
+          "score": 0.14327234487954849
         },
         {
           "avg_confidence": 0.5,
           "item_count": 1,
           "period_start": "2026-08-01",
-          "score": 0.08908987181403394
+          "score": 0.08122523963562356
         }
       ],
       "quarterly_scores": [
@@ -384,11 +439,11 @@
           "avg_confidence": 0.6,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.24623455857734614
+          "score": 0.22449758451517204
         }
       ],
       "raw_score": 0.6000000000000001,
-      "score": 0.24623455857734614,
+      "score": 0.22449758451517204,
       "source_mix": {
         "oilprice": 2
       },
@@ -401,7 +456,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_8ad77b5e672b4ea0",
-          "score_component": 0.1571446867633122,
+          "score_component": 0.14327234487954849,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Trump-Administration-Picks-Five-States-for-Nuclear-Fuel-Cycle-Hubs.html",
           "title": "Trump Administration Picks Five States for Nuclear Fuel-Cycle Hubs"
@@ -409,18 +464,18 @@
         {
           "confidence": 0.5,
           "news_id": "news_6e82fafa549eb978",
-          "score_component": 0.08908987181403394,
+          "score_component": 0.08122523963562356,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Russia-Pushes-Ahead-With-Uzbekistan-Nuclear-Plans-Despite-Money-Troubles.html",
           "title": "Russia Pushes Ahead With Uzbekistan Nuclear Plans Despite Money Troubles"
         }
       ],
-      "trend_30d": 0.24623455857734614
+      "trend_30d": 0.22449758451517204
     },
     "physical_ai": {
-      "avg_confidence": 0.5599999999999999,
-      "avg_severity": 0.37999999999999995,
-      "item_count": 5,
+      "avg_confidence": 0.5499999999999999,
+      "avg_severity": 0.3499999999999999,
+      "item_count": 6,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -428,28 +483,28 @@
           "avg_confidence": 0.6,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.4942655119375837
+          "score": 0.4506329825522349
         },
         {
           "avg_confidence": 0.5,
-          "item_count": 2,
+          "item_count": 3,
           "period_start": "2026-08-01",
-          "score": 0.28531946350390314
+          "score": 0.35561633169091555
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5599999999999999,
-          "item_count": 5,
+          "avg_confidence": 0.5499999999999999,
+          "item_count": 6,
           "period_start": "2026-07-01",
-          "score": 0.7795849754414869
+          "score": 0.8062493142431505
         }
       ],
-      "raw_score": 1.8999999999999997,
-      "score": 0.7795849754414869,
+      "raw_score": 2.0999999999999996,
+      "score": 0.8062493142431505,
       "source_mix": {
         "cnbc_finance": 2,
-        "cnbc_markets": 1,
+        "cnbc_markets": 2,
         "oilprice": 1,
         "scmp": 1
       },
@@ -458,14 +513,14 @@
         "news_b4af05d426028f40",
         "news_36e6ff1661633c7a",
         "news_0e624803876d9e29",
-        "news_32df092b4161acd1",
-        "news_cbd046adaa700075"
+        "news_c58556328ab5f78d",
+        "news_32df092b4161acd1"
       ],
       "top_news_items": [
         {
           "confidence": 0.7,
           "news_id": "news_b4af05d426028f40",
-          "score_component": 0.2412266545493773,
+          "score_component": 0.21993176579233162,
           "source": "cnbc_finance",
           "source_url": "https://www.cnbc.com/2026/07/30/china-us-robot-humanoid-ban-trump-visit.html",
           "title": "China threatens retaliation against U.S. humanoid robot ban, says it 'severely damages' relations"
@@ -473,7 +528,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_36e6ff1661633c7a",
-          "score_component": 0.2193649959389252,
+          "score_component": 0.2,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/diplomacy/article/3362185/us-bans-new-chinese-robots-power-inverters-latest-tech-crackdown?utm_source=rss_feed",
           "title": "US bans new Chinese robots, power inverters in latest tech crackdown"
@@ -481,29 +536,29 @@
         {
           "confidence": 0.6,
           "news_id": "news_0e624803876d9e29",
-          "score_component": 0.2089321351910698,
+          "score_component": 0.19048812623618394,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Automation-Could-Start-Eating-Into-US-Diesel-Demand.html",
           "title": "Automation Could Start Eating Into U.S. Diesel Demand"
         },
         {
+          "confidence": 0.5,
+          "news_id": "news_c58556328ab5f78d",
+          "score_component": 0.09548416039104166,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/08/25/xpeng-shares-robot-valuation-china.html",
+          "title": "Xpeng shares sink as weak delivery forecast overshadows $6.3 billion robot unit valuation"
+        },
+        {
           "confidence": 0.4,
           "news_id": "news_32df092b4161acd1",
-          "score_component": 0.07638732831283333,
+          "score_component": 0.06964404506368994,
           "source": "cnbc_finance",
           "source_url": "https://www.cnbc.com/2026/08/21/chinese-humanoid-robots-face-challenge-of-their-own-capabilities.html",
           "title": "Chinese humanoid robots' biggest obstacle: Humans are still (mostly) better"
-        },
-        {
-          "confidence": 0.3,
-          "news_id": "news_cbd046adaa700075",
-          "score_component": 0.03367386144928119,
-          "source": "cnbc_markets",
-          "source_url": "https://www.cnbc.com/2026/07/29/metas-reality-labs-lost-over-4point6-billion-in-second-quarter.html",
-          "title": "Meta\u2019s Reality Labs lost over $4.6 billion in second quarter"
         }
       ],
-      "trend_30d": 0.7795849754414867
+      "trend_30d": 0.8062493142431504
     },
     "quantum_computing": {
       "avg_confidence": null,
@@ -532,13 +587,13 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.21435469250725864
+          "score": 0.1954319936868492
         },
         {
           "avg_confidence": 0.35,
           "item_count": 2,
           "period_start": "2026-08-01",
-          "score": 0.09699571972043644
+          "score": 0.08843317896301163
         }
       ],
       "quarterly_scores": [
@@ -546,11 +601,11 @@
           "avg_confidence": 0.5000000000000001,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.3113504122276951
+          "score": 0.28386517264986083
         }
       ],
       "raw_score": 0.7999999999999999,
-      "score": 0.3113504122276951,
+      "score": 0.28386517264986083,
       "source_mix": {
         "cnbc_tech": 1,
         "scmp": 2
@@ -565,7 +620,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_d18eae07a6cd8265",
-          "score_component": 0.21435469250725864,
+          "score_component": 0.1954319936868492,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/07/27/amazon-satellite-internet-network.html",
           "title": "Amazon seeks federal approval to launch 5,105 satellites for direct-to-device network"
@@ -573,7 +628,7 @@
         {
           "confidence": 0.4,
           "news_id": "news_3f060458882b3010",
-          "score_component": 0.06964404506368994,
+          "score_component": 0.063496042078728,
           "source": "scmp",
           "source_url": "https://www.scmp.com/opinion/china-opinion/article/3364147/chinas-space-race-has-new-problem-finding-room-failure?utm_source=rss_feed",
           "title": "China\u2019s space race has a new problem: finding room for failure"
@@ -581,13 +636,13 @@
         {
           "confidence": 0.3,
           "news_id": "news_3452032aafdacdef",
-          "score_component": 0.027351674656746504,
+          "score_component": 0.02493713688428363,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/world/united-states-canada/article/3364617/rescue-mission-ageing-nasa-space-telescope-fails?utm_source=rss_feed",
           "title": "Rescue mission for ageing Nasa space telescope fails"
         }
       ],
-      "trend_30d": 0.31135041222769505
+      "trend_30d": -0.10699881472383756
     }
   },
   "trend_window_days": 30,
