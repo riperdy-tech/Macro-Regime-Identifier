@@ -6,7 +6,7 @@ so scheduled workflows have a simple artifact to inspect.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 import os
@@ -22,7 +22,8 @@ def build_automation_summary(
     outputs_dir = Path(outputs_dir)
     dashboard_data_dir = Path(dashboard_data_dir)
 
-    now = datetime.now(UTC).isoformat()
+    generated_at = datetime.now(UTC)
+    now = generated_at.isoformat()
 
     summary: dict[str, Any] = {
         "generated_at": now,
@@ -31,12 +32,31 @@ def build_automation_summary(
         "github_sha": os.environ.get("GITHUB_SHA"),
     }
 
+    # Dashboard manifest
+    manifest: dict[str, Any] = {}
+    manifest_path = dashboard_data_dir / "manifest.json"
+    if manifest_path.exists():
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        summary["dashboard"] = {
+            "data_status": manifest.get("data_status"),
+            "missing_files": manifest.get("missing_files"),
+            "latest_macro_date": manifest.get("latest_macro_date"),
+            "latest_news_score_date": manifest.get("latest_news_score_date"),
+        }
+    else:
+        summary["dashboard"] = {"status": "missing"}
+
     # Macro regime
     regime_path = outputs_dir / "current_regime.json"
     if regime_path.exists():
         regime = json.loads(regime_path.read_text(encoding="utf-8"))
+        macro_date = _summary_macro_date(
+            regime.get("date"),
+            fallback=manifest.get("latest_macro_date"),
+            today=generated_at.date(),
+        )
         summary["macro"] = {
-            "date": regime.get("date"),
+            "date": macro_date,
             "regime": regime.get("reported_regime"),
             "confidence": regime.get("reported_confidence"),
             "valid": regime.get("valid"),
@@ -55,19 +75,6 @@ def build_automation_summary(
         summary["sector"] = {"top3": top3, "valid": sector.get("valid")}
     else:
         summary["sector"] = {"status": "missing"}
-
-    # Dashboard manifest
-    manifest_path = dashboard_data_dir / "manifest.json"
-    if manifest_path.exists():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        summary["dashboard"] = {
-            "data_status": manifest.get("data_status"),
-            "missing_files": manifest.get("missing_files"),
-            "latest_macro_date": manifest.get("latest_macro_date"),
-            "latest_news_score_date": manifest.get("latest_news_score_date"),
-        }
-    else:
-        summary["dashboard"] = {"status": "missing"}
 
     # Accumulation
     accum_path = outputs_dir / "news_accumulation_report.json"
@@ -110,6 +117,35 @@ def build_automation_summary(
         summary["secular_themes"] = {"status": "missing"}
 
     return summary
+
+
+def _summary_macro_date(value: Any, *, fallback: Any = None, today: date | None = None) -> Any:
+    """Return a non-future macro date for automation-facing summaries."""
+    today = today or datetime.now(UTC).date()
+    value_date = _coerce_date(value)
+    if value_date is not None and value_date <= today:
+        return value
+
+    fallback_date = _coerce_date(fallback)
+    if fallback_date is not None and fallback_date <= today:
+        return fallback
+
+    return None
+
+
+def _coerce_date(value: Any) -> date | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00")).date()
+    except ValueError:
+        try:
+            return datetime.fromisoformat(text[:10]).date()
+        except ValueError:
+            return None
 
 
 def write_automation_summary(

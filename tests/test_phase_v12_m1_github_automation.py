@@ -36,6 +36,37 @@ class TestAutomationSummary:
             summary = build_automation_summary(outputs_dir=tmp, dashboard_data_dir=tmp)
             assert summary["dashboard"]["data_status"] == "complete"
 
+    def test_future_current_regime_date_uses_manifest_macro_date(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            regime = {
+                "date": "2999-08-01 00:00:00",
+                "reported_regime": "reflation",
+                "reported_confidence": 0.03,
+                "valid": True,
+            }
+            manifest = {
+                "data_status": "complete",
+                "missing_files": [],
+                "latest_macro_date": "2000-05-01",
+                "latest_news_score_date": "2000-05-21",
+            }
+            Path(tmp, "current_regime.json").write_text(json.dumps(regime))
+            Path(tmp, "manifest.json").write_text(json.dumps(manifest))
+            summary = build_automation_summary(outputs_dir=tmp, dashboard_data_dir=tmp)
+            assert summary["macro"]["date"] == "2000-05-01"
+
+    def test_future_current_regime_date_without_safe_fallback_is_hidden(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            regime = {
+                "date": "2999-08-01 00:00:00",
+                "reported_regime": "reflation",
+                "reported_confidence": 0.03,
+                "valid": True,
+            }
+            Path(tmp, "current_regime.json").write_text(json.dumps(regime))
+            summary = build_automation_summary(outputs_dir=tmp, dashboard_data_dir=tmp)
+            assert summary["macro"]["date"] is None
+
     def test_write_automation_summary(self):
         with tempfile.TemporaryDirectory() as tmp:
             json_path, md_path = write_automation_summary(outputs_dir=tmp)
@@ -145,6 +176,13 @@ class TestGitHubWorkflowConfig:
         assert "write-news-source-coverage-report" in content
         assert "outputs/news_source_coverage_report.json" in content
         assert "outputs/news_source_coverage_report.md" in content
+
+    def test_alert_step_reuses_open_mgi_alert_issue(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        assert "issues?state=open&labels=mgi-alert&per_page=1" in content
+        assert "/issues/$ISSUE_NUMBER/comments" in content
+        assert "'title': 'MGI alert'" in content
 
     def test_workflow_passes_live_ai_flag_when_selected(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")

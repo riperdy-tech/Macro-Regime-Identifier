@@ -238,11 +238,25 @@ jobs:
           MSG=$(python scripts/check_alert.py) || true
           if [ -n "$MSG" ]; then
             echo "ALERT: $MSG"
-            BODY=$(python -c "import json,sys;print(json.dumps({'title':'MGI alert: '+sys.argv[1],'body':sys.argv[1]+chr(10)+chr(10)+'Automated alert from the daily diagnostic run.','labels':['mgi-alert']}))" "$MSG")
-            curl -s -X POST \
+            export ALERT_MSG="$MSG"
+            BODY=$(python -c "import json, os; msg = os.environ['ALERT_MSG']; print(json.dumps({'title': 'MGI alert', 'body': msg + '\n\nAutomated alert from the daily diagnostic run.', 'labels': ['mgi-alert']}))")
+            ISSUES=$(curl -s \
               -H "Authorization: token $GH_TOKEN" \
               -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/$REPO/issues" -d "$BODY" >/dev/null
+              "https://api.github.com/repos/$REPO/issues?state=open&labels=mgi-alert&per_page=1")
+            ISSUE_NUMBER=$(printf '%s' "$ISSUES" | python -c "import json,sys; data=json.load(sys.stdin); print(data[0].get('number', '')) if isinstance(data, list) and data else None")
+            if [ -n "$ISSUE_NUMBER" ]; then
+              COMMENT=$(python -c "import json, os; msg = os.environ['ALERT_MSG']; print(json.dumps({'body': msg + '\n\nAutomated alert from the daily diagnostic run.'}))")
+              curl -s -X POST \
+                -H "Authorization: token $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments" -d "$COMMENT" >/dev/null
+            else
+              curl -s -X POST \
+                -H "Authorization: token $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/issues" -d "$BODY" >/dev/null
+            fi
           else
             echo "No alert."
           fi
