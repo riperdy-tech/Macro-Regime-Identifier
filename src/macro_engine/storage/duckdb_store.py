@@ -60,6 +60,43 @@ class DuckDBStore:
                 )
                 """
             )
+            # ALFRED vintages live in their OWN table rather than alongside the
+            # revisioned observations above. `upsert_raw_observations` deletes on
+            # (series_id, date) by design (latest fetch wins), so the daily ingest
+            # would delete every stored vintage of a period it touches. Keeping the
+            # two apart makes point-in-time history additive and unreachable from the
+            # daily path, which is what makes this change non-breaking by construction.
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS raw_observation_vintages (
+                    series_id TEXT,
+                    date DATE,
+                    value DOUBLE,
+                    realtime_start DATE,
+                    realtime_end DATE,
+                    source TEXT,
+                    fetched_at TIMESTAMP,
+                    frequency TEXT,
+                    units TEXT,
+                    PRIMARY KEY(series_id, date, realtime_start, realtime_end)
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS anchor_runs (
+                    run_id TEXT PRIMARY KEY,
+                    built_at TIMESTAMP,
+                    as_of DATE,
+                    scoring_mode TEXT,
+                    cost_of_capital_json JSON,
+                    long_run_growth_json JSON,
+                    sector_multiple_bands_json JSON,
+                    degraded BOOLEAN,
+                    degradation_reasons JSON
+                )
+                """
+            )
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS source_health (
@@ -760,6 +797,31 @@ class DuckDBStore:
                 """
             )
 
+    def upsert_anchor_run(self, record: dict[str, Any]) -> None:
+        """Persist one anchor build. Idempotent on run_id (build date + scoring mode)."""
+        payload = dict(record)
+        for key in (
+            "cost_of_capital_json",
+            "long_run_growth_json",
+            "sector_multiple_bands_json",
+            "degradation_reasons",
+        ):
+            value = payload.get(key)
+            payload[key] = json.dumps(value if value is not None else ([] if key == "degradation_reasons" else {}))
+        frame = pd.DataFrame([payload])
+        with self._connect() as con:
+            con.register("anchor_run_frame", frame)
+            con.execute(
+                """
+                INSERT OR REPLACE INTO anchor_runs
+                SELECT * FROM anchor_run_frame
+                """
+            )
+
+    def read_anchor_runs(self) -> pd.DataFrame:
+        with self._connect() as con:
+            return con.execute("SELECT * FROM anchor_runs ORDER BY as_of").fetchdf()
+
     def upsert_series_metadata(self, metadata: list[dict[str, Any]]) -> None:
         if not metadata:
             return
@@ -1075,6 +1137,17 @@ class DuckDBStore:
                 )
 
     def upsert_sector_proxy_prices(self, prices: pd.DataFrame) -> None:
+        """Replace the stored history for every ticker present in `prices`.
+
+        The delete is scoped by TICKER, not by (ticker, date). The ingest always delivers a
+        full history per ticker (`load_proxy_prices` reads the whole CSV or fetches from the
+        configured start date), so a per-date delete left every row the new panel did not
+        cover. That is not a harmless leftover: refreshing a synthetic panel with real prices
+        produced a stitched series carrying the OLD values on market holidays -- the days the
+        new source has no row for. The result was SPY printing +83% on Juneteenth 2022, and an
+        annualised volatility of 62% against a true ~19%. A price series that is not any real
+        instrument is worse than no series, so a refresh is now authoritative.
+        """
         if prices.empty:
             return
         with self._connect() as con:
@@ -1082,9 +1155,7 @@ class DuckDBStore:
             con.execute(
                 """
                 DELETE FROM sector_proxy_prices
-                USING sector_price_frame
-                WHERE sector_proxy_prices.ticker = sector_price_frame.ticker
-                  AND sector_proxy_prices.date = sector_price_frame.date
+                WHERE ticker IN (SELECT DISTINCT ticker FROM sector_price_frame)
                 """
             )
             con.execute(
@@ -1537,6 +1608,54 @@ class DuckDBStore:
                     [series_id],
                 ).fetchdf()
             return con.execute("SELECT * FROM raw_observations ORDER BY series_id, date").fetchdf()
+
+    def upsert_raw_observation_vintages(self, observations: pd.DataFrame) -> None:
+        """Idempotent upsert of ALFRED vintages, keyed on the FULL vintage key.
+
+        Deliberately NOT the same delete scope as `upsert_raw_observations`: that
+        path keys on (series_id, date) because the daily revisioned ingest must let
+        the newest fetch win. A vintage store cannot do that -- several vintages of
+        the same (series_id, date) are the entire point -- so this deletes on
+        (series_id, date, realtime_start, realtime_end), which is the table's real
+        primary key, and repeated backfills of the same vintage are no-ops.
+        """
+        if observations.empty:
+            return
+        with self._connect() as con:
+            con.register("vintage_frame", observations)
+            con.execute(
+                """
+                DELETE FROM raw_observation_vintages
+                USING vintage_frame
+                WHERE raw_observation_vintages.series_id = vintage_frame.series_id
+                  AND raw_observation_vintages.date = vintage_frame.date
+                  AND raw_observation_vintages.realtime_start = vintage_frame.realtime_start
+                  AND raw_observation_vintages.realtime_end = vintage_frame.realtime_end
+                """
+            )
+            con.execute(
+                """
+                INSERT INTO raw_observation_vintages
+                SELECT series_id, date, value, realtime_start, realtime_end,
+                       source, fetched_at, frequency, units
+                FROM vintage_frame
+                """
+            )
+
+    def read_raw_observation_vintages(self, series_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if series_id:
+                return con.execute(
+                    """
+                    SELECT * FROM raw_observation_vintages
+                    WHERE series_id = ?
+                    ORDER BY date, realtime_start
+                    """,
+                    [series_id],
+                ).fetchdf()
+            return con.execute(
+                "SELECT * FROM raw_observation_vintages ORDER BY series_id, date, realtime_start"
+            ).fetchdf()
 
     def read_features(self, feature_id: str | None = None) -> pd.DataFrame:
         with self._connect() as con:

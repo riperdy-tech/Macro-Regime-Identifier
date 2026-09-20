@@ -46,6 +46,25 @@ class DailyCombinedConfig(BaseModel):
     config_path: str = "config/sector_news_integration.yaml"
 
 
+class DailyAdvisoryBlockConfig(BaseModel):
+    enabled: bool = True
+    # Non-fatal by default: the advisory block is an additive artifact and must never
+    # be able to fail the daily diagnostic.
+    required: bool = False
+    config_path: str = "config/sector_news_integration.yaml"
+
+
+class DailyAnchorsConfig(BaseModel):
+    """Capital-market anchors (v0.2) — additive artifacts, never a pipeline blocker."""
+
+    enabled: bool = True
+    required: bool = False
+    config_path: str = "config/anchors.yaml"
+    macro_config_path: str = "config/phase_b_sources.yaml"
+    sector_config_path: str = "config/sectors.yaml"
+    advisory_block: DailyAdvisoryBlockConfig = Field(default_factory=DailyAdvisoryBlockConfig)
+
+
 class DailyMonitoringConfig(BaseModel):
     enabled: bool = True
     config_path: str = "config/news_monitoring.yaml"
@@ -75,6 +94,7 @@ class DailyPipelineConfig(BaseModel):
     news: DailyNewsConfig = Field(default_factory=DailyNewsConfig)
     live_ai_safety: DailyLiveAISafetyConfig = Field(default_factory=DailyLiveAISafetyConfig)
     combined: DailyCombinedConfig = Field(default_factory=DailyCombinedConfig)
+    anchors: DailyAnchorsConfig = Field(default_factory=DailyAnchorsConfig)
     monitoring: DailyMonitoringConfig = Field(default_factory=DailyMonitoringConfig)
     outputs: DailyOutputsConfig = Field(default_factory=DailyOutputsConfig)
     safety: DailySafetyConfig = Field(default_factory=DailySafetyConfig)

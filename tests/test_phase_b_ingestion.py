@@ -72,7 +72,7 @@ def test_load_production_controlled_source_set():
     sources = load_ingestion_sources("config/phase_b_sources.yaml")
     selected = select_sources(sources)
 
-    assert len(selected) == 14
+    assert len(selected) == 20
     assert {source.series_id for source in selected} == {
         "INDPRO",
         "PAYEMS",
@@ -89,6 +89,17 @@ def test_load_production_controlled_source_set():
         # WS-B additive non-regime series (sector exposures only)
         "M2SL",
         "HOUST",
+        # Capital-market anchor inputs (anchors/ layer only; referenced by no
+        # dimension and no regime, so they cannot move the regime classification).
+        # IDs verified against the live FRED API 2026-09-20: the NY Fed ACM term
+        # premium is not published on FRED, so THREEFYTP10 (Kim-Wright) is the
+        # observed term-premium source.
+        "DFII10",
+        "T10YIE",
+        "T5YIFR",
+        "DTB3",
+        "GDPPOT",
+        "THREEFYTP10",
     }
 
 

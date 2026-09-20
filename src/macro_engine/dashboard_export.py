@@ -24,6 +24,24 @@ DASHBOARD_OUTPUT_FILES = [
     "automation_run_summary.json",
     "nber_benchmark.json",
 ]
+
+# Additive artifacts. Copied to the dashboard data dir and reported in the manifest,
+# but EXCLUDED from `_data_status()` by construction.
+#
+# Why this list has to exist rather than just appending to DASHBOARD_OUTPUT_FILES: any
+# missing entry in that list flips data_status to "partial", and the documented
+# downstream contract treats anything other than "complete" as an error. Appending the
+# anchors there would have broken every compliant client the moment an anchor was not
+# yet built. Keeping them separate makes the new surface non-breaking by construction
+# rather than by discipline, so an anchor can ship, degrade, or be absent without
+# touching any existing consumer.
+OPTIONAL_OUTPUT_FILES = [
+    "cost_of_capital_anchor.json",
+    "long_run_growth_anchor.json",
+    "sector_multiple_bands.json",
+    "rs2_repair_package.json",
+    "news_advisory_block.json",
+]
 HISTORY_INDEX_FILE = "history_index.json"
 
 
@@ -46,18 +64,32 @@ def export_dashboard_data(
         else:
             missing_files.append(filename)
 
+    optional_available: list[str] = []
+    optional_missing: list[str] = []
+    for filename in OPTIONAL_OUTPUT_FILES:
+        source = source_dir / filename
+        if source.exists():
+            shutil.copy2(source, target_dir / filename)
+            optional_available.append(filename)
+        else:
+            optional_missing.append(filename)
+
     history_index = _build_history_index(source_dir)
     (target_dir / HISTORY_INDEX_FILE).write_text(
         json.dumps(history_index, indent=2, sort_keys=True),
         encoding="utf-8",
     )
 
-    snapshots = {name: _read_json(target_dir / name) for name in available_files}
+    snapshots = {
+        name: _read_json(target_dir / name) for name in [*available_files, *optional_available]
+    }
     manifest_available_files = [*available_files, HISTORY_INDEX_FILE]
     manifest = {
         "generated_at": datetime.now(UTC).isoformat(),
         "available_files": manifest_available_files,
         "missing_files": missing_files,
+        "optional_available_files": optional_available,
+        "optional_missing_files": optional_missing,
         "latest_run_date": _nested_get(snapshots, "daily_diagnostic_summary.json", "run_date"),
         "latest_macro_date": (
             _nested_get(snapshots, "daily_diagnostic_summary.json", "macro", "date")
@@ -68,6 +100,7 @@ def export_dashboard_data(
             "news_score_report.json",
             "latest_news_scoring_date",
         ),
+        # Required files only. Optional artifacts cannot influence this value.
         "data_status": _data_status(available_files, missing_files),
     }
     (target_dir / "manifest.json").write_text(

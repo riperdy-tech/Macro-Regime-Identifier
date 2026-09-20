@@ -14,6 +14,13 @@ data/**/*.csv
 data/news_pilot/
 data/outputs/*.json
 data/outputs/*.md
+# Anchor inputs are DERIVED data, rebuilt from committed scripts rather than checked in:
+#   scripts/fetch_erp_history.py        -> data/anchors/erp_history.csv
+#   scripts/build_valuation_panel.py    -> data/anchors/sector_multiple_panel.csv (+ .meta.json)
+#   scripts/build_equity_aggregate.py   -> data/anchors/equity_aggregate.json
+# The panel alone is 13 MB, and every one of them is reproducible, so tracking them would put
+# generated bulk in the repo for no gain. A fresh clone rebuilds them before `build-anchors`.
+data/anchors/
 outputs/*.json
 outputs/*.md
 outputs/**/*.json

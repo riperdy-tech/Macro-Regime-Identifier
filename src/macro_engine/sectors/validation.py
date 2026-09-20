@@ -14,9 +14,109 @@ from macro_engine.storage.duckdb_store import DuckDBStore
 
 MAX_PRICE_LOOKAHEAD_DAYS = 7
 
+# ── Price-panel provenance gate ───────────────────────────────────────────────
+# Validation statistics computed on a panel that is not market data are not weak evidence,
+# they are fabricated evidence, and the report has no way to know unless it checks. The
+# `source` column cannot decide this on its own -- a legitimate CSV load and a generated
+# sample both arrive as "csv" -- so the test is FALSIFICATION on the data itself: numbers
+# that fail these bounds cannot be a broad equity index.
+#
+# Measured basis for the bounds (SPY, daily, 1998-2026): realised annualised volatility runs
+# ~12-30% depending on window; the 2008 and 2020 drawdowns exceed -30%; and no real multi-year
+# equity benchmark window is monotone. The synthetic panel this gate was written for showed
+# 5.1% volatility, SPY RISING through March 2020, and an XLE/SPY correlation of -0.12.
+PANEL_MIN_ANNUAL_VOL = 0.08
+PANEL_MAX_ANNUAL_VOL = 0.45
+PANEL_MIN_DRAWDOWN = -0.15
+PANEL_MIN_OBSERVATIONS = 250
+
+
+@dataclass(frozen=True)
+class PanelAssessment:
+    market_observed: bool
+    checks: dict[str, Any]
+    reasons: list[str]
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "market_observed": self.market_observed,
+            "checks": self.checks,
+            "reasons": self.reasons,
+        }
+
+
+def assess_price_panel(
+    prices: pd.DataFrame,
+    *,
+    benchmark_ticker: str = "SPY",
+) -> PanelAssessment:
+    """Decide whether a price panel can be market data, by trying to falsify it.
+
+    Returns an assessment carrying the measured checks, so a `False` verdict is auditable
+    rather than an opaque refusal.
+    """
+    checks: dict[str, Any] = {
+        "benchmark_ticker": benchmark_ticker,
+        "sources": [],
+        "observations": 0,
+    }
+    reasons: list[str] = []
+    if prices.empty:
+        return PanelAssessment(False, checks, ["no price rows"])
+
+    frame = prices.copy()
+    if "source" in frame.columns:
+        checks["sources"] = sorted({str(v) for v in frame["source"].dropna().unique()})
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
+    frame = frame.dropna(subset=["ticker", "date", "close"])
+    checks["observations"] = int(len(frame))
+
+    benchmark = frame[frame["ticker"] == benchmark_ticker].sort_values("date")
+    if benchmark.empty:
+        return PanelAssessment(False, checks, [f"benchmark {benchmark_ticker} absent from the panel"])
+    if len(benchmark) < PANEL_MIN_OBSERVATIONS:
+        reasons.append(
+            f"benchmark has {len(benchmark)} observations; {PANEL_MIN_OBSERVATIONS} required"
+        )
+
+    closes = benchmark["close"].astype(float)
+    returns = closes.pct_change().dropna()
+    checks["annual_vol"] = None if returns.empty else round(float(returns.std() * (252 ** 0.5)), 4)
+    running_max = closes.cummax()
+    checks["max_drawdown"] = round(float((closes / running_max - 1.0).min()), 4)
+    checks["distinct_returns"] = int(returns.round(6).nunique())
+    checks["start"] = str(benchmark["date"].min().date())
+    checks["end"] = str(benchmark["date"].max().date())
+
+    vol = checks["annual_vol"]
+    if vol is None:
+        reasons.append("benchmark has no returns")
+    elif not PANEL_MIN_ANNUAL_VOL <= vol <= PANEL_MAX_ANNUAL_VOL:
+        reasons.append(
+            f"benchmark annualised volatility {vol:.1%} is outside "
+            f"[{PANEL_MIN_ANNUAL_VOL:.0%}, {PANEL_MAX_ANNUAL_VOL:.0%}] -- not a broad equity index"
+        )
+    drawdown = checks["max_drawdown"]
+    if drawdown is not None and drawdown > PANEL_MIN_DRAWDOWN:
+        reasons.append(
+            f"benchmark worst drawdown {drawdown:.1%} is shallower than "
+            f"{PANEL_MIN_DRAWDOWN:.0%} -- no real multi-year equity window is that smooth"
+        )
+    if checks["distinct_returns"] < 20:
+        reasons.append(
+            f"benchmark has only {checks['distinct_returns']} distinct returns -- degenerate series"
+        )
+
+    return PanelAssessment(not reasons, checks, reasons)
+
 
 class PriceProviderConfig(BaseModel):
-    provider: Literal["csv", "stooq"] = "csv"
+    # `stooq` remains the shipped default. It is currently JavaScript-bot-challenged on every
+    # endpoint (2026-09-20), so `ingest-sector-proxy-prices` fails loudly rather than degrading
+    # silently — correct, but it leaves CI without a working source until an operator picks one.
+    # `yahoo` is a tested, key-free alternative; switching is a one-line config change.
+    provider: Literal["csv", "stooq", "yahoo"] = "csv"
     csv_path: str = "data/validation/sector_proxy_prices.csv"
     start_date: str = "1998-12-22"
     end_date: str | None = None
@@ -48,6 +148,8 @@ def load_sector_validation_config(path: str | Path = "config/sector_validation.y
 def load_proxy_prices(config: SectorValidationConfig) -> pd.DataFrame:
     if config.price_provider.provider == "stooq":
         return load_stooq_prices(config)
+    if config.price_provider.provider == "yahoo":
+        return load_yahoo_prices(config)
     if config.price_provider.provider != "csv":
         raise ValueError(f"unsupported price provider {config.price_provider.provider}")
     path = Path(config.price_provider.csv_path)
@@ -58,6 +160,79 @@ def load_proxy_prices(config: SectorValidationConfig) -> pd.DataFrame:
         )
     frame = pd.read_csv(path)
     return normalize_price_frame(frame, source="csv")
+
+
+def load_yahoo_prices(config: SectorValidationConfig) -> pd.DataFrame:
+    """Sector ETF history from Yahoo's public chart endpoint (no API key).
+
+    A first-class provider rather than a script-only workaround so `provider: yahoo` is a
+    config switch and the daily/CI path exercises the same code the operator would. Raises when
+    no ticker returns data, exactly like the stooq path: a provider that cannot fetch must fail
+    loudly, because a stale panel on disk reads as measured market data.
+    """
+    frames: list[pd.DataFrame] = []
+    failed: list[tuple[str, str]] = []
+    session = requests.Session()
+    session.headers.update({"User-Agent": YAHOO_USER_AGENT, "Accept": "application/json"})
+    tickers = sorted(set(config.proxies.values()) | {config.benchmark_ticker})
+    for ticker in tickers:
+        try:
+            frame = _fetch_yahoo_ticker(session, ticker, start=config.price_provider.start_date)
+        except requests.RequestException as exc:
+            failed.append((ticker, str(exc)[:80]))
+            continue
+        if frame.empty:
+            failed.append((ticker, "no rows returned"))
+            continue
+        frames.append(frame)
+    if not frames:
+        raise ValueError(
+            "Yahoo provider returned no price data for any ticker. "
+            f"Failures: {failed[:5]}"
+        )
+    return normalize_price_frame(pd.concat(frames, ignore_index=True), source="yahoo")
+
+
+YAHOO_CHART_URL = "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+YAHOO_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/125 Safari/537.36"
+)
+
+
+def _fetch_yahoo_ticker(
+    session: requests.Session,
+    ticker: str,
+    *,
+    start: str,
+    end: str | None = None,
+) -> pd.DataFrame:
+    """Daily closes for one ticker. Empty frame (not an exception) when unavailable."""
+    period1 = int(pd.Timestamp(start).timestamp())
+    period2 = int(pd.Timestamp(end).timestamp()) if end else int(pd.Timestamp.now("UTC").timestamp())
+    response = session.get(
+        YAHOO_CHART_URL.format(symbol=ticker),
+        params={"period1": period1, "period2": period2, "interval": "1d"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    payload = response.json()
+    results = ((payload.get("chart") or {}).get("result")) or []
+    if not results:
+        return pd.DataFrame(columns=["ticker", "date", "close"])
+    result = results[0]
+    timestamps = result.get("timestamp") or []
+    closes = ((result.get("indicators") or {}).get("quote") or [{}])[0].get("close") or []
+    if not timestamps or not closes:
+        return pd.DataFrame(columns=["ticker", "date", "close"])
+    frame = pd.DataFrame(
+        {
+            "ticker": ticker,
+            "date": pd.to_datetime(timestamps, unit="s", utc=True).tz_convert(None).normalize(),
+            "close": closes,
+        }
+    )
+    return frame.dropna(subset=["close"])
 
 
 def load_stooq_prices(config: SectorValidationConfig) -> pd.DataFrame:

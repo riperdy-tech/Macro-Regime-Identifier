@@ -90,11 +90,23 @@ def build_combined_sector_diagnostics(
                 news_confidence=news_confidence,
                 has_news=not news_row.empty,
             )
-            combined = (macro_weight * macro_score) + (news_weight * news_score) - penalty
+            if config.advisory_block.mode == "advisory":
+                # News is published as its own attributable block instead of entering
+                # this score. Suppressing the overlay is the point of the mode: a
+                # consultative layer that still moved the number would not be separate.
+                combined = macro_score
+                diagnostics_news_weight = 0.0
+                news_reason = (
+                    "advisory_mode: news is published in the advisory block and is NOT "
+                    "blended into the combined score."
+                )
+            else:
+                combined = (macro_weight * macro_score) + (news_weight * news_score) - penalty
+                diagnostics_news_weight = news_weight
             diagnostic_confidence = _diagnostic_confidence(
                 macro_confidence=_optional_float(row.get("macro_confidence")),
                 news_confidence=news_confidence,
-                news_weight=news_weight,
+                news_weight=diagnostics_news_weight,
             )
             date_rows.append(
                 {
@@ -103,8 +115,8 @@ def build_combined_sector_diagnostics(
                     "sector_macro_score": macro_score,
                     "sector_news_score": news_score,
                     "combined_score": combined,
-                    "macro_component_weight": macro_weight,
-                    "news_component_weight": news_weight,
+                    "macro_component_weight": 1.0 - diagnostics_news_weight,
+                    "news_component_weight": diagnostics_news_weight,
                     "news_item_count": news_item_count,
                     "news_confidence": news_confidence,
                     "diagnostic_confidence": diagnostic_confidence,
@@ -119,7 +131,7 @@ def build_combined_sector_diagnostics(
                         sector_id,
                         "normalized_sector_macro_score",
                         macro_score,
-                        macro_weight,
+                        1.0 - diagnostics_news_weight,
                         "Cross-sectional normalized sector macro score.",
                     ),
                     _component(
@@ -127,14 +139,14 @@ def build_combined_sector_diagnostics(
                         sector_id,
                         "bounded_sector_news_score",
                         news_score,
-                        news_weight,
+                        diagnostics_news_weight,
                         news_reason,
                     ),
                     _component(
                         news_date,
                         sector_id,
                         "news_uncertainty_penalty",
-                        penalty,
+                        penalty if config.advisory_block.mode == "overlay" else 0.0,
                         1.0,
                         "Penalty applied when news confidence is low and news contributes.",
                     ),

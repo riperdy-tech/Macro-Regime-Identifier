@@ -33,6 +33,22 @@ daily_pipeline:
     enabled: true
     config_path: config/sector_news_integration.yaml
 
+  # Capital-market anchors (v0.2). Additive artifact layer: it reads the same stored
+  # DuckDB state and writes three extra JSON/MD artifacts. `required: false` is
+  # deliberate — a missing anchor input (e.g. an equity aggregate MRI does not hold)
+  # must degrade LOUDLY inside the anchor payload, never fail the daily diagnostic.
+  anchors:
+    enabled: true
+    required: false
+    config_path: config/anchors.yaml
+    macro_config_path: config/phase_b_sources.yaml
+    sector_config_path: config/sectors.yaml
+    # News as an independent, separately attributable advisory block.
+    advisory_block:
+      enabled: true
+      required: false
+      config_path: config/sector_news_integration.yaml
+
   monitoring:
     enabled: true
     config_path: config/news_monitoring.yaml

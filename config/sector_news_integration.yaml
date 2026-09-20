@@ -10,3 +10,14 @@ sector_news_integration:
   require_recent_news: false
   output_label: experimental_combined_sector_diagnostic
   output_dir: outputs
+
+  # News layer placement.
+  #   overlay  = news enters combined_score at news_sector_weight (existing behaviour)
+  #   advisory = news does NOT enter combined_score; it is published as a separate,
+  #              separately attributable block in news_advisory_block.json
+  # Default stays `overlay` so the shipped diagnostic is byte-identical to before.
+  advisory_block:
+    mode: overlay
+    output_file: news_advisory_block.json
+    min_direction_score: 0.05
+    min_items_for_direction: 2

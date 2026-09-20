@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -66,13 +67,31 @@ def _failing_ingest(config_path, start, end, db_path, parquet_dir):
     raise RuntimeError("mock hard failure")
 
 
-def test_run_pipeline_works_against_temp_mock_data(tmp_path):
-    db_path = tmp_path / "macro.duckdb"
+def _redirected_config(tmp_path) -> Path:
+    """The production config with `output_dir` pointed at tmp_path.
+
+    Any test that runs the pipeline to COMPLETION must use this. The pipeline writes reports to
+    a cwd-relative `outputs/`, so a test that passes the real config publishes a synthetic world
+    straight over the live artifacts. That is not hypothetical: two tests here ran the pipeline
+    on mock data dated to 2031 and overwrote `outputs/current_regime.json` with
+    `date: 2031-08-01`, which then read as a current regime to anything consuming `outputs/`.
+    Redirecting the output directory is the difference between testing the pipeline and
+    publishing from it.
+    """
     output_dir = tmp_path / "outputs"
     config_path = tmp_path / "pipeline_config.yaml"
     source_config = open("config/phase_b_sources.yaml", encoding="utf-8").read()
-    source_config = source_config.replace("output_dir: outputs", f"output_dir: {output_dir.as_posix()}")
-    config_path.write_text(source_config, encoding="utf-8")
+    config_path.write_text(
+        source_config.replace("output_dir: outputs", f"output_dir: {output_dir.as_posix()}"),
+        encoding="utf-8",
+    )
+    return config_path
+
+
+def test_run_pipeline_works_against_temp_mock_data(tmp_path):
+    db_path = tmp_path / "macro.duckdb"
+    output_dir = tmp_path / "outputs"
+    config_path = _redirected_config(tmp_path)
 
     summary = run_pipeline(
         config_path=config_path,
@@ -99,7 +118,7 @@ def test_run_pipeline_records_failed_step_on_hard_failure(tmp_path):
 
     with pytest.raises(RuntimeError, match="mock hard failure"):
         run_pipeline(
-            config_path="config/phase_b_sources.yaml",
+            config_path=_redirected_config(tmp_path),
             db_path=db_path,
             parquet_dir=tmp_path / "fred",
             mode="mock",
@@ -116,7 +135,7 @@ def test_live_pipeline_requires_fred_api_key(tmp_path, monkeypatch):
 
     with pytest.raises(FredError, match="FRED_API_KEY is required"):
         run_pipeline(
-            config_path="config/phase_b_sources.yaml",
+            config_path=_redirected_config(tmp_path),
             db_path=tmp_path / "macro.duckdb",
             parquet_dir=tmp_path / "fred",
             mode="live",
@@ -128,7 +147,7 @@ def test_live_pipeline_requires_fred_api_key(tmp_path, monkeypatch):
 def test_live_pipeline_can_be_invoked_when_key_is_present_with_mock_runner(tmp_path, monkeypatch):
     monkeypatch.setenv("FRED_API_KEY", "test-key")
     summary = run_pipeline(
-        config_path="config/phase_b_sources.yaml",
+        config_path=_redirected_config(tmp_path),
         db_path=tmp_path / "macro.duckdb",
         parquet_dir=tmp_path / "fred",
         mode="live",
@@ -140,7 +159,7 @@ def test_live_pipeline_can_be_invoked_when_key_is_present_with_mock_runner(tmp_p
 
 def test_pipeline_summary_is_deterministic_shape(tmp_path):
     summary = run_pipeline(
-        config_path="config/phase_b_sources.yaml",
+        config_path=_redirected_config(tmp_path),
         db_path=tmp_path / "macro.duckdb",
         parquet_dir=tmp_path / "fred",
         mode="mock",

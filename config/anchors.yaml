@@ -1,0 +1,224 @@
+# Capital-market anchors (MRI v0.2) — declarative rules for the anchors/ capability layer.
+#
+# Three monthly, point-in-time anchors are published for downstream underwriting
+# systems (RS2 Local) to replace hardcoded valuation constants:
+#
+#   1. cost_of_capital_anchor.json  -> equity cost-of-capital LEVEL (never a firm WACC)
+#   2. long_run_growth_anchor.json  -> long-run nominal growth / terminal-g anchor
+#   3. sector_multiple_bands.json   -> regime-conditional justified-multiple bands
+#
+# Honesty contract (see docs/ANCHOR_METHODOLOGY.md):
+#   Every leg is tagged with the source it actually came from. A leg whose input
+#   is absent degrades LOUDLY (degraded: true + degradation_reasons) and its value
+#   is written as null. No leg is ever back-filled with a plausible-looking number.
+
+anchors:
+  output_dir: outputs
+  # The as-of rule is NOT duplicated here. `scoring_mode` in
+  # config/phase_b_sources.yaml is the single global switch (calendar_asof |
+  # point_in_time); one source of truth, so the anchors can never disagree with the
+  # diagnostics about what an evaluation date was allowed to see.
+  report_disclaimer: >-
+    Diagnostic macro capital-market anchors derived from published interest-rate,
+    inflation and growth series. Not investment advice, market action guidance,
+    execution guidance, or instructions for changing holdings.
+
+cost_of_capital:
+  # --- Risk-free decomposition: every leg is an OBSERVED FRED series -------------
+  # `units` declares the quoting convention of the SOURCE. FRED quotes yields and
+  # spreads in percent; this package works in decimal fractions throughout (the
+  # consumer's constants are decimal: TERMINAL_G = 0.025). Declaring it per series is
+  # what makes a unit mismatch impossible to introduce silently.
+  risk_free:
+    nominal_10y: {series: DGS10, units: percent}
+    real_10y: {series: DFII10, units: percent}
+    breakeven_10y: {series: T10YIE, units: percent}
+    # Internal consistency of the decomposition. Three legs quoted on different days are not
+    # a decomposition of one curve, and the payload must not imply that they are. This is not
+    # hypothetical: a partial ingest left DGS10 four months stale while DFII10/T10YIE were
+    # current, producing nominal - real = 1.84% against a published 2.33% breakeven. Both
+    # checks would have caught it.
+    consistency:
+      max_leg_date_spread_days: 7
+      # FRED's breakeven is fitted from the TIPS curve, so a few bp of timing/liquidity noise
+      # against nominal-minus-real is normal. A wider gap means the legs disagree.
+      breakeven_tolerance: 0.0025
+    # Term premium: preferred first, then the documented fallback, then a computed
+    # proxy. `term_premium_source` in the payload always names which one was used.
+    #
+    # VERIFIED against the live FRED API 2026-09-20. The NY Fed ACM term premium is NOT
+    # published on FRED (searched: "term premium", "ACM term premium", "Adrian Crump
+    # Moench" — zero hits; an earlier `ACMTP10` entry here was an unverified guess and
+    # resolved to HTTP 400). The Kim-Wright fitted term premium IS available, daily and
+    # current, so it is the observed source.
+    term_premium_candidates:
+      - {series: THREEFYTP10, units: percent}  # Kim-Wright 10y fitted term premium
+    term_premium_proxy:
+      # Fallback proxy: nominal 10y minus the 3m bill (constant-short-rate
+      # expectations benchmark). Crude by construction and labelled as such.
+      nominal_series: {series: DGS10, units: percent}
+      short_series: {series: DTB3, units: percent}
+  inflation:
+    cpi: CPIAUCSL
+    pce: PCEPI
+    yoy_periods: 12
+
+  # --- Equity risk premium -------------------------------------------------------
+  # MRI holds NO equity aggregates. The implied ERP (solve r such that an aggregate
+  # DCF equals aggregate market capitalisation) therefore needs an equity-side input
+  # file. Without it the anchor publishes the risk-free curve plus a
+  # regime-conditional percentile band from a documented, versioned ERP history, and
+  # marks market_implied_erp as unavailable.
+  erp:
+    method: implied                 # implied | regime_estimate | unavailable
+    # Equity aggregate for the implied solve. Built by scripts/build_equity_aggregate.py from
+    # the screener corpus: 1,676 constituents covering 76.9% of the collapsed universe's
+    # capitalisation, USD reporters only, share classes collapsed by CIK.
+    #
+    # The payload records `erp_basis: "universe"` and leaves `market_implied_erp` NULL: this is
+    # a universe-implied rate, not an index-implied one, and the two carry different authority.
+    # See docs/ANCHOR_METHODOLOGY.md §3.3.
+    equity_aggregate_path: data/anchors/equity_aggregate.json
+    implied_solve:
+      rate_bounds: [-0.02, 0.25]
+      growth_bounds: [-0.05, 0.35]
+      iterations: 80
+      min_constituents: 30
+      min_coverage_share: 0.60
+    # Documented, versioned historical ERP estimates used ONLY to place the current
+    # regime in a percentile context, and to publish a distribution when no implied ERP
+    # can be measured. Long format CSV: date,erp[,measure,source]. Never presented as an
+    # implied value, never fabricated when the file is absent.
+    # Fetch with scripts/fetch_erp_history.py (Damodaran implied ERP (FCFE), annual).
+    regime_estimate:
+      history_path: data/anchors/erp_history.csv
+      source_label: "Damodaran implied ERP (FCFE), annual 1961-2025"
+      # Annual series, so the lookback spans the whole published history and the floor is
+      # set in years-of-observations rather than the monthly convention.
+      min_points: 25
+      lookback_years: 65
+    percentile_reference: history  # history | regime_band
+
+  # --- Sector risk loadings ------------------------------------------------------
+  # Equity beta vs the benchmark, measured from the SAME local sector ETF panel the
+  # validation layer already loads (config/sector_validation.yaml). Loadings are
+  # published information; they do NOT overwrite the consumer's sector spread table.
+  #
+  # price_panel_source is a PROVENANCE GATE, not a convenience flag. A beta is a
+  # market-measured quantity, so it inherits the same discipline as the ERP and the
+  # multiple bands: nothing is derived from a panel that has not been declared
+  # market-observed. `none` publishes no loadings at all.
+  #
+  # ENABLED 2026-09-20 after the panel was verified as real market data: 18 tickers,
+  # 1998-12-22 .. 2026-09-18, SPY realised annualised volatility 19.2% and the March 2020
+  # drawdown present. The panel it replaced was synthetic (5.1% vol, SPY RISING through the
+  # 2020 crash, XLE/SPY correlation -0.12) and byte-identical to ..._sample.csv.
+  # Re-verify these three properties before re-enabling after any refresh; the fetcher
+  # script refuses to write a panel that fails the volatility check.
+  sector_loadings:
+    price_panel_source: stored_sector_proxy_prices
+    source_config: config/sector_validation.yaml
+    min_return_observations: 250
+    window_years: 5
+    default_loading: 1.0
+
+growth:
+  # Real potential growth: log-linear trend of the observed potential-output series.
+  real_potential:
+    series: GDPPOT
+    trend_window_years: 10
+    min_observations: 12
+  # Long-run inflation expectation, market-implied. Preferred first, then breakeven.
+  inflation_expectation:
+    candidates:
+      - {series: T5YIFR, units: percent}   # 5y5y forward inflation expectation
+      - {series: T10YIE, units: percent}   # 10y breakeven
+    min_observations: 12
+  terminal_g:
+    # A perpetuity growth rate can never exceed the economy's nominal trend.
+    max_share_of_nominal_trend: 0.85
+    floor: 0.000
+    ceiling: 0.050
+    round_to: 0.0025
+  # Regime sensitivity: added to the trend-derived suggestion before clamping.
+  # Positive = the regime supports a richer perpetual growth assumption.
+  regime_sensitivity:
+    goldilocks: 0.0000
+    reflation: 0.0025
+    stagflation: -0.0075
+    recession: -0.0125
+    tightening: -0.0050
+  # The constant this anchor exists to replace, disclosed so consumers can see the delta.
+  downstream_prior_in_use: 0.025
+
+multiple_bands:
+  # --- Market-observed leg -------------------------------------------------------
+  # Conditional p25/median/p75 of a multiple per sector, conditioned on the macro state that
+  # prevailed at each observation.
+  #
+  # ENABLED 2026-09-20 on a panel built from the screener corpus by
+  # scripts/build_valuation_panel.py: 325,279 ticker-months, 3,492 names, all 11 sectors,
+  # 150 months (2014-01 .. 2026-06).
+  #
+  # READ THE `measure` FIELD. The quantiles live under the key `ntm_pe` because that is the
+  # published contract, but the shipped panel measures a TRAILING multiple (price / last
+  # reported FY earnings per diluted share), NOT a forward one. The payload states this in
+  # `measure`, `measure_definition` and `panel_meta.caveats`, so the label travels with the
+  # number rather than living only in this comment.
+  panel:
+    source: external_valuation_panel
+    path: data/anchors/sector_multiple_panel.csv
+    meta_path: data/anchors/sector_multiple_panel.meta.json
+    date_column: date
+    sector_column: sector_id
+    ticker_column: ticker
+    multiple_column: pe_ttm
+    eps_column: eps_ttm
+    price_column: close
+    sector_map_config: config/sector_validation.yaml
+    multiple_measure: pe_ttm
+    multiple_definition: >-
+      price divided by net income per diluted share of the most recently PUBLISHED fiscal year.
+      Trailing, not forward. Fiscal years are treated as first usable 15 months after the year
+      label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.
+  quantiles: [0.25, 0.50, 0.75]
+  # A cross-sectional cell holds hundreds of names per sector-month, so this floor is about
+  # regime-cell thickness, not sampling noise.
+  min_observations: 24
+  # Documented fallback ladder: when a fully-conditioned cell is too thin, the
+  # conditioning is coarsened in this order and `conditioning_level` records which
+  # rung produced the published band.
+  conditioning_ladder:
+    - [growth, inflation, rate_band, credit]
+    - [growth, inflation]
+    - [growth]
+    - []
+  # --- Arithmetic cross-check ----------------------------------------------------
+  # Always computed when the cost-of-capital and growth anchors are available:
+  # a Gordon justified multiple from CoE and g, so a statistical artefact cannot
+  # run away unnoticed. Never substituted for the market-observed band.
+  gordon:
+    payout_ratio: 0.60
+    min_spread: 0.005
+    sanity_band: [5.0, 60.0]
+
+regime_state:
+  # Macro state labels used to condition the multiple bands. Derived from the stored
+  # dimension history plus the observed policy rate — not from current_regime.json,
+  # whose `date` can be synthetic.
+  growth:
+    dimension_id: growth_momentum
+    weak_below: -0.5
+    strong_above: 0.5
+  inflation:
+    dimension_id: inflation_pressure
+    weak_below: -0.5
+    strong_above: 0.5
+  credit:
+    dimension_id: credit_liquidity
+    tight_below: -0.5
+    loose_above: 0.5
+  rate_band:
+    series: DGS10
+    low_below: 2.5
+    high_above: 4.0

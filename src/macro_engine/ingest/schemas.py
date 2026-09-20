@@ -41,3 +41,24 @@ class IngestionRunSummary(BaseModel):
     series_failed: int
     stale_series: list[str]
     storage_path: str
+
+
+class VintageIngestionSummary(BaseModel):
+    """Outcome of an ALFRED vintage backfill. Counts are aggregated by design:
+    one log line per (series, vintage) would be thousands of lines per backfill."""
+
+    run_id: str
+    series_requested: int
+    as_of_dates: list[str]
+    vintage_rows: int
+    vintage_series: int
+    # (series, as_of) pairs already stored and therefore not re-fetched. A full-history backfill
+    # is thousands of rate-limited requests, so resumption has to be visible, not implicit.
+    skipped_pairs: int = 0
+    # (series, as_of) pairs where the series had no vintage yet — a fact about the
+    # past (the series did not exist), reported rather than treated as a failure.
+    empty_vintage_count: int
+    failed_count: int
+    storage_path: str
+    # Which series actually landed rows in THIS run, so a partial run is legible.
+    series_stored: list[str] = Field(default_factory=list)

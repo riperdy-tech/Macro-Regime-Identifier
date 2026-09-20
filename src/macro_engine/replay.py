@@ -240,6 +240,12 @@ def _write_daily_replay_config(
     payload["monitoring"]["source_profile"] = "replay_local_csv"
     payload["live_ai_safety"]["max_items_per_run"] = max_items_per_replay_day
     payload["live_ai_safety"]["classify_only_unclassified"] = bool(only_unclassified)
+    # A replay must never publish the capital-market anchors. They are a LIVE shared input:
+    # another system reads them to set discount rates. A replay's macro state is a
+    # reconstitution of history, so anchors built from it would overwrite the live artifacts
+    # with numbers describing a different world. The reverse-DCF parameters a replay exists to
+    # test do not depend on the anchors, so nothing about the replay changes.
+    payload.setdefault("anchors", {})["enabled"] = False
     daily_config_path = temp_dir / f"daily_pipeline_{replay_day.isoformat()}.yaml"
     daily_config_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
     return daily_config_path

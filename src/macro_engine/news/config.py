@@ -295,6 +295,26 @@ class SecularNewsScoringConfig(BaseModel):
         return self
 
 
+class NewsAdvisoryBlockConfig(BaseModel):
+    """Whether the news layer is folded into the sector diagnostic or published beside it.
+
+    `overlay`  — news enters `combined_score` at `news_sector_weight` (the existing
+                 behaviour, and the default, so nothing downstream moves silently).
+    `advisory` — news does NOT enter `combined_score`; it is published as a separate,
+                 separately attributable block. This is the setting that satisfies the
+                 "news is its own consultative layer" requirement: a reader can see what
+                 the news said on its own terms without it displacing or diluting the
+                 macro signal.
+    """
+
+    mode: Literal["overlay", "advisory"] = "overlay"
+    output_file: str = "news_advisory_block.json"
+    # A direction is only asserted when the evidence clears these floors; below them
+    # the entry is reported as `insufficient_evidence` rather than as a weak view.
+    min_direction_score: float = Field(default=0.05, ge=0.0)
+    min_items_for_direction: int = Field(default=2, ge=0)
+
+
 class SectorNewsIntegrationConfig(BaseModel):
     enabled: bool = True
     macro_sector_weight: float = Field(default=0.75, ge=0.0)
@@ -307,6 +327,7 @@ class SectorNewsIntegrationConfig(BaseModel):
     require_recent_news: bool = False
     output_label: str = "experimental_combined_sector_diagnostic"
     output_dir: str = "outputs"
+    advisory_block: NewsAdvisoryBlockConfig = NewsAdvisoryBlockConfig()
 
     @model_validator(mode="after")
     def validate_weights(self):

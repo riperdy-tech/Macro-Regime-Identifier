@@ -9,7 +9,12 @@ from pydantic import BaseModel, Field, model_validator
 Frequency = Literal["daily", "weekly", "monthly", "quarterly", "annual"]
 DateRule = Literal["month_start", "month_end"]
 AsOfPolicy = Literal["latest_observation_on_or_before_date"]
-ScoringMode = Literal["same_date", "calendar_asof"]
+# calendar_asof: latest observation on/before the evaluation date, gated by a fixed
+#   per-series publication_lag_days approximation.
+# point_in_time: the value actually published as of the evaluation date, resolved from
+#   stored ALFRED vintages. Opt-in; the default is unchanged so existing historical
+#   diagnostics keep their factual basis.
+ScoringMode = Literal["same_date", "calendar_asof", "point_in_time"]
 
 
 class EvaluationCalendarConfig(BaseModel):

@@ -43,6 +43,8 @@ def build_asof_feature_values(
     sources: list[IngestionSource],
     calendar: pd.DataFrame,
     config: EvaluationCalendarConfig,
+    scoring_mode: str = "calendar_asof",
+    publication_index: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     rows: list[dict] = []
     if calendar.empty:
@@ -59,6 +61,8 @@ def build_asof_feature_values(
         feature_id: frame.sort_values("date")
         for feature_id, frame in feature_frame.groupby("feature_id", dropna=False)
     }
+    point_in_time = scoring_mode == "point_in_time"
+    first_known = _first_known_lookup(publication_index) if point_in_time else {}
 
     for evaluation_date in pd.to_datetime(calendar["evaluation_date"], errors="coerce"):
         for feature in feature_definitions:
@@ -98,14 +102,33 @@ def build_asof_feature_values(
                 & frame["valid"].fillna(False)
                 & frame["normalized_value"].notna()
             ]
-            # An observation only becomes visible publication_lag_days after
-            # its observation date; drop observations not yet released as of
-            # the evaluation date.
-            available_cutoff = evaluation_date - pd.Timedelta(
-                days=int(publication_lag.get(feature.series_id, 0))
-            )
-            usable = observed[observed["date"] <= available_cutoff]
+            if point_in_time:
+                # The vintage says what had actually been released, so the fixed
+                # publication-lag approximation is replaced by the measured first
+                # publication date. A series with no vintages is NOT silently
+                # approximated -- it is reported as unusable evidence.
+                usable, reason = _point_in_time_usable(
+                    observed,
+                    series_id=feature.series_id,
+                    evaluation_date=evaluation_date,
+                    first_known=first_known,
+                )
+            else:
+                # An observation only becomes visible publication_lag_days after
+                # its observation date; drop observations not yet released as of
+                # the evaluation date.
+                available_cutoff = evaluation_date - pd.Timedelta(
+                    days=int(publication_lag.get(feature.series_id, 0))
+                )
+                usable = observed[observed["date"] <= available_cutoff]
+                reason = ""
             if usable.empty:
+                if point_in_time and reason:
+                    failure_reason = reason
+                else:
+                    failure_reason = (
+                        "not_yet_published" if not observed.empty else "no_prior_valid_feature"
+                    )
                 rows.append(
                     _asof_row(
                         evaluation_date=evaluation_date,
@@ -115,9 +138,7 @@ def build_asof_feature_values(
                         normalized_value=None,
                         lag_days=None,
                         valid=False,
-                        reason="not_yet_published"
-                        if not observed.empty
-                        else "no_prior_valid_feature",
+                        reason=failure_reason,
                     )
                 )
                 continue
@@ -142,6 +163,42 @@ def build_asof_feature_values(
             )
 
     return pd.DataFrame(rows, columns=_asof_columns())
+
+
+def _first_known_lookup(publication_index: pd.DataFrame | None) -> dict[tuple[str, pd.Timestamp], pd.Timestamp]:
+    if publication_index is None or publication_index.empty:
+        return {}
+    frame = publication_index.copy()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame["first_known_date"] = pd.to_datetime(frame["first_known_date"], errors="coerce")
+    frame = frame.dropna(subset=["series_id", "date", "first_known_date"])
+    return {
+        (str(row.series_id), pd.Timestamp(row.date)): pd.Timestamp(row.first_known_date)
+        for row in frame.itertuples(index=False)
+    }
+
+
+def _point_in_time_usable(
+    observed: pd.DataFrame,
+    *,
+    series_id: str,
+    evaluation_date: pd.Timestamp,
+    first_known: dict[tuple[str, pd.Timestamp], pd.Timestamp],
+) -> tuple[pd.DataFrame, str]:
+    """Rows whose source period was already published on the evaluation date.
+
+    Returns (usable_rows, failure_reason). failure_reason is non-empty only when the
+    vintage evidence itself is missing, so the caller can say `pit_vintage_missing`
+    instead of the misleading `not_yet_published`.
+    """
+    if not first_known:
+        return observed.iloc[0:0], "pit_vintage_missing"
+    known_dates = [date for (sid, date) in first_known if sid == series_id]
+    if not known_dates:
+        return observed.iloc[0:0], "pit_vintage_missing"
+    published = observed["date"].map(lambda value: first_known.get((series_id, pd.Timestamp(value))))
+    usable = observed[published.notna() & (published <= evaluation_date)]
+    return usable, ""
 
 
 def asof_values_to_feature_frame(asof_values: pd.DataFrame) -> pd.DataFrame:

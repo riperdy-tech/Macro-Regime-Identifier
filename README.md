@@ -142,6 +142,18 @@ python -m venv .venv
 pip install -e ".[dev]"
 ```
 
+For a byte-reproducible environment, install the pinned set instead:
+
+```powershell
+pip install -r requirements.lock
+pip install -e ".[dev]" --no-deps
+```
+
+The lockfile is regenerated with `pip freeze --exclude-editable > requirements.lock` after any
+deliberate dependency change. It matters more here than in a typical project: this repo's
+outputs set another system's discount rates, so two machines producing different numbers from
+the same commit is a correctness problem, not an inconvenience.
+
 Create a local `.env` file:
 
 ```powershell

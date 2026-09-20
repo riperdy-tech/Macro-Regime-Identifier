@@ -20,7 +20,10 @@ def build_stored_dimensions(
     evaluation_config = load_evaluation_config(config_path)
     store = DuckDBStore(db_path)
     store.initialize()
-    if evaluation_config.scoring_mode == "calendar_asof":
+    # Both as-of modes consume the as-of feature matrix; they differ only in how an
+    # evaluation date decides what it was allowed to see (fixed publication lag vs
+    # stored ALFRED vintages). Only `same_date` reads the raw feature frame.
+    if evaluation_config.scoring_mode in ("calendar_asof", "point_in_time"):
         asof_values = store.read_asof_feature_values()
         if asof_values.empty:
             asof_values = build_stored_asof_features(

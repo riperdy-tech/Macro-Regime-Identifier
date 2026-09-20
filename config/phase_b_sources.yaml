@@ -168,6 +168,79 @@ sources:
     unusable_after_days: 120
     publication_lag_days: 47
 
+  # --- Capital-market anchor series (dimension: capital_market_anchors) --------
+  # Inputs to the anchors/ layer ONLY. Like the WS-B block above, required:false so
+  # a fetch gap can never invalidate the regime timeline, and they are referenced by
+  # NO dimension and NO regime: the anchors consume raw LEVELS (a yield, a breakeven,
+  # a potential-output index), so z-scored features would be the wrong instrument and
+  # adding unreferenced features would perturb stored feature/health outputs for no
+  # consumer. See docs/ANCHOR_METHODOLOGY.md and config/anchors.yaml.
+  - series_id: DFII10
+    name: 10-Year TIPS Real Yield (inflation-indexed constant maturity)
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: T10YIE
+    name: 10-Year Breakeven Inflation Rate
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: T5YIFR
+    name: 5-Year, 5-Year Forward Inflation Expectation Rate
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: DTB3
+    name: 3-Month Treasury Bill Secondary Market Rate
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: GDPPOT
+    name: Real Potential Gross Domestic Product (CBO)
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: quarterly
+    required: false
+    enabled: true
+    stale_after_days: 140
+    unusable_after_days: 400
+    publication_lag_days: 120
+
+  - series_id: THREEFYTP10
+    name: Fitted Term Premium on a 10-Year Zero Coupon Bond (Kim-Wright)
+    provider: FRED
+    dimension: capital_market_anchors
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 10
+    unusable_after_days: 30
+    publication_lag_days: 5
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
@@ -447,6 +520,16 @@ reports:
   include_diagnostic_summary: true
   max_contributors: 5
 
+# same_date | calendar_asof | point_in_time
+#
+# calendar_asof (default, unchanged): an evaluation date sees the latest observation
+# on or before it, minus a fixed per-series `publication_lag_days` approximation.
+#
+# point_in_time: an evaluation date sees the value that was ACTUALLY PUBLISHED as of
+# that date, resolved from stored ALFRED vintages (raw_observation_vintages). It is
+# strictly stronger evidence than the fixed lag, and is opt-in because switching it
+# silently would move the factual basis under every existing historical diagnostic.
+# Populate vintages first with scripts/backfill_vintages.py.
 scoring_mode: calendar_asof
 
 evaluation_calendar:

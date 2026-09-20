@@ -12,6 +12,7 @@ from macro_engine.accumulation import (
     run_news_accumulation,
     write_news_accumulation_report,
 )
+from macro_engine.anchors.service import build_anchors as build_anchors_service
 from macro_engine.automation import write_automation_summary
 from macro_engine.daily import run_daily_diagnostic
 from macro_engine.daily_health import daily_health_check as daily_health_check_service
@@ -29,7 +30,10 @@ from macro_engine.experiments.runner import run_calibration_experiments
 from macro_engine.features.config import load_feature_config
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
-from macro_engine.ingest.service import run_fred_ingestion
+from macro_engine.ingest.service import run_fred_ingestion, run_fred_vintage_ingestion
+from macro_engine.news.advisory import (
+    write_news_advisory_block as write_news_advisory_block_service,
+)
 from macro_engine.news.report import write_news_report as write_news_report_service
 from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
@@ -1107,6 +1111,150 @@ def build_secular_theme_scores(
         as_of=as_of,
     )
     console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("write-news-advisory-block")
+def write_news_advisory_block_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/sector_news_integration.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """v0.2: publish news as an independent, separately attributable advisory block."""
+    json_path, markdown_path = write_news_advisory_block_service(
+        config_path=config, db_path=db_path
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("build-anchors")
+def build_anchors_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/anchors.yaml",
+    macro_config: Annotated[str, typer.Option("--macro-config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+) -> None:
+    """v0.2: build all three capital-market anchors and publish JSON/Markdown artifacts."""
+    bundle = build_anchors_service(
+        config_path=config,
+        macro_config_path=macro_config,
+        sector_config_path=sector_config,
+        db_path=db_path,
+        as_of=as_of,
+    )
+    console.print_json(data=_anchor_summary(bundle))
+
+
+@app.command("build-cost-of-capital-anchor")
+def build_cost_of_capital_anchor_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/anchors.yaml",
+    macro_config: Annotated[str, typer.Option("--macro-config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+) -> None:
+    """v0.2: publish the equity cost-of-capital anchor (risk-free curve, ERP, loadings)."""
+    bundle = build_anchors_service(
+        config_path=config,
+        macro_config_path=macro_config,
+        sector_config_path=sector_config,
+        db_path=db_path,
+        as_of=as_of,
+        only=["cost_of_capital"],
+    )
+    console.print_json(data=_anchor_summary(bundle))
+
+
+@app.command("build-growth-anchor")
+def build_growth_anchor_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/anchors.yaml",
+    macro_config: Annotated[str, typer.Option("--macro-config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+) -> None:
+    """v0.2: publish the long-run nominal growth anchor and its terminal-growth suggestion."""
+    bundle = build_anchors_service(
+        config_path=config,
+        macro_config_path=macro_config,
+        sector_config_path=sector_config,
+        db_path=db_path,
+        as_of=as_of,
+        only=["long_run_growth"],
+    )
+    console.print_json(data=_anchor_summary(bundle))
+
+
+@app.command("build-multiple-bands")
+def build_multiple_bands_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/anchors.yaml",
+    macro_config: Annotated[str, typer.Option("--macro-config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+) -> None:
+    """v0.2: publish regime-conditional justified-multiple bands with a Gordon cross-check."""
+    bundle = build_anchors_service(
+        config_path=config,
+        macro_config_path=macro_config,
+        sector_config_path=sector_config,
+        db_path=db_path,
+        as_of=as_of,
+        only=["sector_multiple_bands"],
+    )
+    console.print_json(data=_anchor_summary(bundle))
+
+
+@app.command("ingest-fred-vintages")
+def ingest_fred_vintages_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    parquet_dir: Annotated[str, typer.Option("--parquet-dir")] = "data/raw/alfred",
+    series: Annotated[list[str] | None, typer.Option("--series")] = None,
+    start: Annotated[str | None, typer.Option("--start")] = None,
+    end: Annotated[str | None, typer.Option("--end")] = None,
+) -> None:
+    """v0.2: fetch ALFRED vintages for the as-of dates the diagnostic calendar uses."""
+    from macro_engine.anchors.pit_calendar import vintage_asof_dates
+
+    as_of_dates = vintage_asof_dates(db_path=db_path, start=start, end=end)
+    if not as_of_dates:
+        console.print_json(data={"valid": False, "reason": "no_asof_dates"})
+        raise typer.Exit(code=1)
+    summary = run_fred_vintage_ingestion(
+        as_of_dates=as_of_dates,
+        config_path=config,
+        requested_series=series,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+    )
+    console.print_json(data=summary.model_dump(mode="json"))
+
+
+def _anchor_summary(bundle) -> dict[str, object]:
+    coc = bundle.cost_of_capital
+    measured = coc.implied_cost_of_equity
+    risk_free = coc.risk_free.get("nominal_10y")
+    if measured is not None:
+        level, level_source = measured, f"implied_cost_of_equity({coc.erp_basis})"
+    elif risk_free is not None:
+        level, level_source = risk_free, "risk_free_10y_only_not_a_cost_of_equity"
+    else:
+        level, level_source = None, "unavailable"
+    return {
+        "asof": bundle.asof,
+        "scoring_mode": bundle.scoring_mode,
+        "degraded": bundle.degraded,
+        "level_cost_of_equity": level,
+        "level_cost_of_equity_source": level_source,
+        "erp_source": coc.erp_source,
+        "erp_basis": coc.erp_basis,
+        "implied_erp": coc.implied_erp,
+        "terminal_g_suggestion": bundle.long_run_growth.terminal_g_suggestion,
+        "terminal_g_delta_vs_prior": bundle.long_run_growth.delta,
+        "panel_source": bundle.sector_multiple_bands.panel_source,
+        "sector_bands": len(bundle.sector_multiple_bands.bands),
+        "degradation_reasons": bundle.degradation_reasons,
+    }
 
 
 @app.command("build-combined-sector-diagnostics")

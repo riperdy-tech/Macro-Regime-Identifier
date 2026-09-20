@@ -249,6 +249,11 @@ daily_pipeline:
   combined:
     enabled: true
     config_path: config/sector_news_integration.yaml
+  # The anchors layer reads the REAL stored DuckDB and publishes artifacts a separate
+  # system consumes, so a mocked-services daily run must not exercise it. Its own
+  # behaviour is covered by tests/test_dashboard_export_optional.py and the anchor suite.
+  anchors:
+    enabled: false
   monitoring:
     enabled: true
     config_path: config/news_monitoring.yaml

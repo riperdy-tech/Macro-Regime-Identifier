@@ -187,6 +187,13 @@ def test_validation_summary_calculates_rank_ic_and_spreads():
 
 
 def test_sector_validation_report_generation_is_diagnostic():
+    """The report is still produced and still safe — but this panel cannot carry a RESULT.
+
+    The fixture is 5 monthly points per ticker with near-monotone drift and `source='mock'`.
+    That is not market data, and the provenance gate now says so instead of publishing rank
+    ICs computed from it. Asserting `valid is True` here would be asserting that a
+    5-observation mock is a broad equity index.
+    """
     result = run_sector_validation(
         sector_scores=_sector_scores(),
         prices=_prices(),
@@ -199,8 +206,10 @@ def test_sector_validation_report_generation_is_diagnostic():
     )
     markdown = sector_validation_markdown(payload)
 
-    assert payload["valid"] is True
-    assert "not an implementable performance test" in markdown
+    assert payload["valid"] is False
+    assert payload["reason"] == "unverified_price_provenance"
+    assert payload["price_panel"]["market_observed"] is False
+    assert "NOT PUBLISHED AS A RESULT" in markdown
     assert "Proxy tickers are validation references only" in markdown
     forbidden = [
         "Buy ",
@@ -213,6 +222,42 @@ def test_sector_validation_report_generation_is_diagnostic():
         "portfolio allocation",
     ]
     assert not any(term in markdown for term in forbidden)
+
+
+def test_sector_validation_report_is_published_for_a_real_panel():
+    """The other half of the contract: a market-like panel DOES publish a result."""
+    import numpy as np
+
+    days = 600
+    rng = np.random.default_rng(11)
+    returns = rng.normal(0.0004, 0.011, days)
+    returns[200:260] -= 0.006
+    closes = 100 * np.cumprod(1 + returns)
+    dates = pd.date_range("2022-01-03", periods=days, freq="B")
+    prices = normalize_price_frame(
+        pd.DataFrame(
+            {
+                "ticker": ["SPY"] * days + ["XLE"] * days,
+                "date": list(dates) * 2,
+                "close": list(closes) + list(closes * 1.05),
+            }
+        ),
+        source="stooq",
+    )
+    result = run_sector_validation(
+        sector_scores=_sector_scores(),
+        prices=prices,
+        config=_validation_config(),
+    )
+    payload = build_sector_validation_report(
+        returns=result.returns,
+        summary=result.summary,
+        prices=prices,
+    )
+    markdown = sector_validation_markdown(payload)
+    assert payload["valid"] is True
+    assert payload["reason"] is None
+    assert "not an implementable performance test" in markdown
 
 
 def test_sector_validation_cli_flow_with_mocked_csv(tmp_path: Path):
@@ -268,8 +313,11 @@ def test_sector_validation_cli_flow_with_mocked_csv(tmp_path: Path):
     assert report.exit_code == 0, report.output
     payload = json.loads((tmp_path / "outputs" / "sector_validation.json").read_text())
     markdown = (tmp_path / "outputs" / "sector_validation.md").read_text()
-    assert payload["valid"] is True
-    assert "diagnostic validation" in markdown
+    # The CLI flow completes and writes both artifacts; the RESULT is withheld because the
+    # mocked CSV panel cannot be market data (5 monthly points, `source='mock'`).
+    assert payload["valid"] is False
+    assert payload["reason"] == "unverified_price_provenance"
+    assert "NOT PUBLISHED AS A RESULT" in markdown
 
 
 def test_stooq_ticker_normalization():

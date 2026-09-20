@@ -10,7 +10,10 @@ from uuid import uuid4
 
 import pandas as pd
 
+from macro_engine.anchors.config import load_anchor_config
+from macro_engine.anchors.service import build_anchors
 from macro_engine.guardrails import audit_markdown_reports
+from macro_engine.news.advisory import write_news_advisory_block
 from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
 from macro_engine.news.monitoring import (
@@ -181,6 +184,18 @@ def run_daily_diagnostic(
                 errors,
                 lambda: _run_combined(config, db_path, outputs, services),
                 fail=True,
+            )
+        if config.anchors.enabled:
+            # `fail=config.anchors.required` (False by default): the anchors are an
+            # additive artifact layer. A missing anchor input degrades loudly INSIDE the
+            # anchor payload; it must never take the daily diagnostic down with it.
+            _run_step(
+                "anchors",
+                statuses,
+                errors,
+                lambda: _run_anchors(config, db_path, outputs, services),
+                fail=config.anchors.required,
+                optional=not config.anchors.required,
             )
         if config.monitoring.enabled:
             _run_step(
@@ -631,6 +646,42 @@ def _run_combined(
     )
 
 
+def _run_anchors(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    outputs: list[str],
+    services: dict[str, Callable],
+) -> None:
+    anchors = services.get("build_anchors", build_anchors)(
+        config_path=config.anchors.config_path,
+        macro_config_path=config.anchors.macro_config_path,
+        sector_config_path=config.anchors.sector_config_path,
+        db_path=db_path,
+    )
+    output_dir = Path(load_anchor_config(config.anchors.config_path).output_dir)
+    if anchors.degraded:
+        print(
+            "daily: anchors built DEGRADED "
+            f"({len(anchors.degradation_reasons)} reason(s); see anchor payloads)",
+            flush=True,
+        )
+    for filename in (
+        "cost_of_capital_anchor.json",
+        "long_run_growth_anchor.json",
+        "sector_multiple_bands.json",
+        "rs2_repair_package.json",
+    ):
+        outputs.append(str(output_dir / filename))
+    if config.anchors.advisory_block.enabled:
+        _append_paths(
+            outputs,
+            services.get("write_news_advisory_block", write_news_advisory_block)(
+                config_path=config.anchors.advisory_block.config_path,
+                db_path=db_path,
+            ),
+        )
+
+
 def _run_monitoring(
     config: DailyPipelineConfig,
     db_path: str | Path,
@@ -659,13 +710,18 @@ def _run_step(
     func: Callable,
     *,
     fail: bool,
+    optional: bool = False,
 ) -> None:
     status_key = f"{step}_status"
     print(f"daily: {step} start", flush=True)
     try:
         func()
     except Exception as exc:
-        statuses[status_key] = "failed"
+        # `optional` steps record a NON-FATAL failure status. `_status_from_steps`
+        # treats only "failed" as fatal, so an additive artifact layer that cannot be
+        # built is reported loudly and downgrades the run to success_with_warnings
+        # without taking the diagnostic down.
+        statuses[status_key] = "failed_optional" if optional else "failed"
         errors.append(f"{step}: {exc}")
         print(f"daily: {step} failed - {exc}", flush=True)
         if fail:
@@ -722,9 +778,12 @@ def _status_from_steps(
 ) -> str:
     if any(value == "failed" for value in statuses.values()):
         return "failed"
-    if warnings and not (config.safety.allow_success_with_warnings or continue_on_warning):
+    optional_failure = any(value == "failed_optional" for value in statuses.values())
+    if (warnings or optional_failure) and not (config.safety.allow_success_with_warnings or continue_on_warning):
         return "failed"
-    return "success_with_warnings" if warnings else "success"
+    return (
+        "success_with_warnings" if (warnings or optional_failure) else "success"
+    )
 
 
 def _check_live_ai_safety(

@@ -1,6 +1,17 @@
 price_provider:
-  # Free daily ETF prices from stooq (no API key). CI fetches live each run.
-  provider: stooq
+  # Free daily ETF prices. CI fetches live each run.
+  #
+  # SWITCHED stooq -> yahoo 2026-09-20. Every stooq endpoint (stooq.com, stooq.pl, with and
+  # without a date range) began returning an HTML JavaScript bot-challenge instead of CSV, which
+  # made `ingest-sector-proxy-prices` fail on every run. It failed LOUDLY rather than degrading,
+  # which is correct — but a provider that cannot fetch leaves the panel on disk being read as
+  # measured market data, so CI needed a working source.
+  #
+  # `yahoo` is the same public chart endpoint the panel was last refreshed from: no API key,
+  # real market data, verified at SPY realised vol 19.2% with the 2020 drawdown present.
+  # `csv` remains available for an operator-supplied file; `stooq` is kept in the provider list
+  # and can be restored by changing this one line if stooq recovers.
+  provider: yahoo
   csv_path: data/sector_proxy_prices.csv
   start_date: "1998-12-22"
   end_date: null
