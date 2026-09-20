@@ -94,6 +94,31 @@ def test_a_single_series_frame_still_answers_without_a_series_id():
     assert float(row["value"]) == pytest.approx(156_400.0)
 
 
+def test_vintage_staleness_is_measured_against_the_as_of():
+    """The gate that stops a stale archive from publishing an "as published" number.
+
+    A point-in-time build resolves against the newest vintage it can SEE, so an archive nobody
+    refreshed produces a number that is old while still labelled as of the build date. Measured:
+    a 4.5-month-old archive moved the 10-year nominal by 54 bp, with every value well-formed.
+    """
+    from macro_engine.anchors.pit_calendar import vintage_staleness_days
+
+    one_vintage = pd.DataFrame(
+        {
+            "series_id": ["DGS10"],
+            "date": pd.to_datetime(["2024-05-01"]),
+            "value": [4.5],
+            "realtime_start": pd.to_datetime(["2024-06-01"]),
+            "realtime_end": pd.to_datetime(["2024-06-01"]),
+        }
+    )
+    assert vintage_staleness_days(one_vintage, "2024-06-01") == 0
+    assert vintage_staleness_days(one_vintage, "2024-06-20") == 19
+    # No vintages at all is a different failure, reported as `pit_vintage_missing` downstream.
+    assert vintage_staleness_days(None, "2024-06-20") is None
+    assert vintage_staleness_days(one_vintage.iloc[0:0], "2024-06-20") is None
+
+
 def test_as_of_before_the_revision_sees_the_as_published_value():
     """The whole point: a vintage read must not import the future revision."""
     row = point_in_time_observation(_vintages(), pd.Timestamp("2024-12-15"))
