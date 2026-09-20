@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 import pandas as pd
 from typer.testing import CliRunner
 
@@ -131,9 +133,35 @@ def _calendar_config() -> EvaluationCalendarConfig:
 def test_evaluation_calendar_config_validates():
     config = load_evaluation_config("config/phase_b_sources.yaml")
 
-    assert config.scoring_mode == "calendar_asof"
+    # The shipped basis is a point-in-time HYBRID: vintages from the boundary onward, the calendar
+    # rule before it, because ALFRED's archive does not reach back past 2014-02 for every leg
+    # (docs/ANCHOR_METHODOLOGY.md §6.2b). Pinned here so weakening it back to a bare
+    # `calendar_asof` is a deliberate edit rather than a silent default.
+    assert config.scoring_mode == "point_in_time"
+    assert config.point_in_time_start == "2014-02-01"
     assert config.evaluation_calendar.frequency == "monthly"
     assert config.evaluation_calendar.max_lag_by_frequency["annual"] == 450
+
+
+def test_the_hybrid_boundary_switches_the_applied_rule_per_date():
+    """Before the boundary the calendar rule applies; from it, point-in-time."""
+    config = load_evaluation_config("config/phase_b_sources.yaml")
+
+    assert config.effective_scoring_mode("2013-12-31") == "calendar_asof"
+    assert config.effective_scoring_mode("2014-02-01") == "point_in_time"
+    assert config.effective_scoring_mode("2026-09-20") == "point_in_time"
+    # The provenance string says WHY the earlier date was not point-in-time.
+    assert "point_in_time_start=2014-02-01" in config.scoring_mode_applied("1995-06-30")
+    assert config.scoring_mode_applied("2024-06-30") == "point_in_time"
+
+
+def test_a_null_boundary_means_point_in_time_everywhere():
+    """`point_in_time_start: null` is the blanket switch, kept available and explicit."""
+    config = load_evaluation_config("config/phase_b_sources.yaml").model_copy(
+        update={"point_in_time_start": None}
+    )
+
+    assert config.effective_scoring_mode("1995-06-30") == "point_in_time"
 
 
 def test_monthly_calendar_is_deterministic():
@@ -287,7 +315,12 @@ def test_same_date_mode_still_consumes_stored_features(tmp_path):
     db_path = tmp_path / "macro.duckdb"
     config_path = tmp_path / "config.yaml"
     source_config = open("config/phase_b_sources.yaml", encoding="utf-8").read()
-    source_config = source_config.replace("scoring_mode: calendar_asof", "scoring_mode: same_date")
+    # Rewrite the `scoring_mode:` line by pattern: the shipped value is a point-in-time hybrid
+    # now, so replacing a literal string silently produced no change at all.
+    source_config = re.sub(
+        r"(?m)^scoring_mode:.*$", "scoring_mode: same_date", source_config
+    )
+    assert "scoring_mode: same_date" in source_config
     config_path.write_text(source_config, encoding="utf-8")
 
     store = DuckDBStore(db_path)

@@ -45,7 +45,17 @@ def build_asof_feature_values(
     config: EvaluationCalendarConfig,
     scoring_mode: str = "calendar_asof",
     publication_index: pd.DataFrame | None = None,
+    point_in_time_start: str | None = None,
 ) -> pd.DataFrame:
+    """As-of feature values for every evaluation date in `calendar`.
+
+    `point_in_time_start` makes the point-in-time rule a HYBRID: dates on or after it resolve
+    from ALFRED vintages, earlier dates from the calendar rule. Without a per-date switch, a
+    blanket `point_in_time` would leave pre-archive dates with a rule that cannot answer for
+    them at all (no vintage exists), which reads as "the data was never published" rather than
+    "this rule does not reach back that far" -- two very different statements to put in a
+    historical diagnostic.
+    """
     rows: list[dict] = []
     if calendar.empty:
         return pd.DataFrame(rows, columns=_asof_columns())
@@ -61,10 +71,15 @@ def build_asof_feature_values(
         feature_id: frame.sort_values("date")
         for feature_id, frame in feature_frame.groupby("feature_id", dropna=False)
     }
-    point_in_time = scoring_mode == "point_in_time"
-    first_known = _first_known_lookup(publication_index) if point_in_time else {}
+    point_in_time_configured = scoring_mode == "point_in_time"
+    boundary = pd.Timestamp(point_in_time_start) if point_in_time_start else None
+    first_known = _first_known_lookup(publication_index) if point_in_time_configured else {}
 
     for evaluation_date in pd.to_datetime(calendar["evaluation_date"], errors="coerce"):
+        # The configured basis is point-in-time; the APPLIED basis depends on this date.
+        point_in_time = point_in_time_configured and (
+            boundary is None or pd.isna(evaluation_date) or evaluation_date >= boundary
+        )
         for feature in feature_definitions:
             if not feature.enabled:
                 rows.append(

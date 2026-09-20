@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -68,7 +69,7 @@ def _failing_ingest(config_path, start, end, db_path, parquet_dir):
 
 
 def _redirected_config(tmp_path) -> Path:
-    """The production config with `output_dir` pointed at tmp_path.
+    """The production config with `output_dir` pointed at tmp_path, on the CALENDAR basis.
 
     Any test that runs the pipeline to COMPLETION must use this. The pipeline writes reports to
     a cwd-relative `outputs/`, so a test that passes the real config publishes a synthetic world
@@ -77,14 +78,21 @@ def _redirected_config(tmp_path) -> Path:
     `date: 2031-08-01`, which then read as a current regime to anything consuming `outputs/`.
     Redirecting the output directory is the difference between testing the pipeline and
     publishing from it.
+
+    It also pins `scoring_mode: calendar_asof`, for the same class of reason. The shipped basis is
+    a point-in-time hybrid, and mock data has no ALFRED vintages -- so under the real config every
+    as-of feature correctly reports `pit_vintage_missing` and the run legitimately produces no
+    valid regime date. That is the honest behaviour (an opted-in point-in-time read must never
+    fall back to the approximation it was chosen over), but it makes this a test of the basis
+    rather than of the pipeline's wiring. The point-in-time path has its own tests.
     """
     output_dir = tmp_path / "outputs"
     config_path = tmp_path / "pipeline_config.yaml"
     source_config = open("config/phase_b_sources.yaml", encoding="utf-8").read()
-    config_path.write_text(
-        source_config.replace("output_dir: outputs", f"output_dir: {output_dir.as_posix()}"),
-        encoding="utf-8",
-    )
+    source_config = re.sub(r"(?m)^scoring_mode:.*$", "scoring_mode: calendar_asof", source_config)
+    source_config = source_config.replace("output_dir: outputs", f"output_dir: {output_dir.as_posix()}")
+    assert "scoring_mode: calendar_asof" in source_config
+    config_path.write_text(source_config, encoding="utf-8")
     return config_path
 
 

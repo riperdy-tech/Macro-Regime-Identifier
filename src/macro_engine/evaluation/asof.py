@@ -105,9 +105,36 @@ def latest_observation_on_or_before_date(
     return frame.sort_values("date").iloc[-1]
 
 
+def _single_series(frame: pd.DataFrame, series_id: str | None, caller: str) -> pd.DataFrame:
+    """Narrow a vintage frame to the series being asked about, or refuse to answer.
+
+    WHY THIS EXISTS. The resolver was originally handed the WHOLE `raw_observation_vintages`
+    table by the anchor builders and never filtered it, while every calendar-mode caller filtered
+    its own series first. With ~20 series sharing one monthly as-of calendar, "the newest
+    observation visible in the newest vintage" then returned whichever series happened to sort
+    last -- which is how point-in-time mode published **294.43 as the 10-year nominal Treasury
+    yield** (and, derived from it, an ERP of -294.33). The number was wrong by two orders of
+    magnitude and nothing flagged it, because the value was perfectly well-formed.
+
+    A caller that does not say which series it means cannot be answered correctly, so this raises
+    rather than guesses. Silence here is indistinguishable from a real measurement downstream.
+    """
+    if series_id is not None:
+        return frame[frame["series_id"].astype(str) == str(series_id)]
+    if "series_id" in frame.columns and frame["series_id"].astype(str).nunique(dropna=True) > 1:
+        raise ValueError(
+            f"{caller} was handed {frame['series_id'].nunique()} series and no series_id; the "
+            "answer would be whichever series sorts last, published as if it were the one asked "
+            "for. Pass series_id=<the series you mean>."
+        )
+    return frame
+
+
 def point_in_time_series(
     vintages: pd.DataFrame,
     as_of: pd.Timestamp | str,
+    *,
+    series_id: str | None = None,
 ) -> pd.DataFrame:
     """The series AS KNOWN on `as_of`: one row per observation period, from the newest
     vintage that had been published by then.
@@ -123,11 +150,14 @@ def point_in_time_series(
     the newest vintage at or before `as_of` wins, which is the value a reader at that date saw.
 
     No look-ahead by construction: rows first published after `as_of` are excluded.
+
+    `series_id` selects the series. Omit it only when `vintages` already holds exactly one
+    series; a multi-series frame without it raises (see `_single_series`).
     """
     if vintages.empty:
         return vintages.copy()
     moment = normalize_asof(as_of)
-    frame = vintages.copy()
+    frame = _single_series(vintages.copy(), series_id, "point_in_time_series")
     frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
     frame["realtime_start"] = pd.to_datetime(frame["realtime_start"], errors="coerce")
     frame = frame.dropna(subset=["date", "realtime_start"])
@@ -141,13 +171,15 @@ def point_in_time_series(
 def point_in_time_observation(
     vintages: pd.DataFrame,
     as_of: pd.Timestamp | str,
+    *,
+    series_id: str | None = None,
 ) -> pd.Series | None:
     """Newest observation period visible in the vintage current on `as_of`.
 
     There is no publication-lag subtraction here and there must not be: the vintage
     already encodes what had been released. Subtraction would double-count the lag.
     """
-    visible = point_in_time_series(vintages, as_of)
+    visible = point_in_time_series(vintages, as_of, series_id=series_id)
     if visible.empty:
         return None
     return visible.iloc[-1]
@@ -160,6 +192,7 @@ def resolve_asof_observation(
     as_of: pd.Timestamp | str,
     vintages: pd.DataFrame | None = None,
     publication_lag_days: int = 0,
+    series_id: str | None = None,
 ) -> tuple[pd.Series | None, AsOfReason]:
     """Dispatch to the configured as-of rule, returning (row, reason).
 
@@ -170,7 +203,7 @@ def resolve_asof_observation(
     if mode == "point_in_time":
         if vintages is None or vintages.empty:
             return None, "pit_vintage_missing"
-        row = point_in_time_observation(vintages, as_of)
+        row = point_in_time_observation(vintages, as_of, series_id=series_id)
         if row is None:
             return None, "not_yet_published"
         return row, "ok"

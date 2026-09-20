@@ -26,7 +26,8 @@ def build_stored_evaluation_calendar(
     features = store.read_features()
     calendar = build_evaluation_calendar(evaluation_config.evaluation_calendar, features)
     # Only read the vintage store when the configured mode needs it: the calendar
-    # path must not acquire a dependency (or a cost) it does not use.
+    # path must not acquire a dependency (or a cost) it does not use. The boundary does
+    # not change that -- dates before it fall back per-date inside the builder.
     publication_index = None
     if evaluation_config.scoring_mode == "point_in_time":
         publication_index = build_publication_index(store.read_raw_observation_vintages())
@@ -38,6 +39,7 @@ def build_stored_evaluation_calendar(
         config=evaluation_config.evaluation_calendar,
         scoring_mode=evaluation_config.scoring_mode,
         publication_index=publication_index,
+        point_in_time_start=evaluation_config.point_in_time_start,
     )
     store.replace_evaluation_outputs(calendar, asof_values)
     store.export_parquet(parquet_dir)

@@ -31,6 +31,7 @@ from macro_engine.anchors.multiples import (
     build_regime_state_frame,
     load_valuation_panel,
 )
+from macro_engine.anchors.pit_calendar import vintage_staleness_days
 from macro_engine.evaluation.asof import normalize_asof
 from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.sectors.validation import load_sector_validation_config
@@ -107,15 +108,26 @@ def build_anchors(
     """
     config = load_anchor_config(config_path)
     evaluation = load_evaluation_config(macro_config_path)
-    scoring_mode = evaluation.scoring_mode
 
     store = DuckDBStore(db_path)
     store.initialize()
     observations = store.read_raw_observations()
-    vintages = (
-        store.read_raw_observation_vintages() if scoring_mode == "point_in_time" else None
-    )
     resolved_as_of = _resolve_as_of(as_of, observations)
+    # The HYBRID boundary is applied here, per build, from the config -- not inferred. Point-in-
+    # time is the configured basis, but it only covers dates ALFRED actually archives: a blanket
+    # switch would not upgrade a 1995 build, it would empty it (no risk-free curve before 2005-07,
+    # no breakeven before 2014-02). Earlier dates resolve by the calendar rule and the provenance
+    # says so. See docs/ANCHOR_METHODOLOGY.md §6.2b.
+    scoring_mode = evaluation.effective_scoring_mode(resolved_as_of)
+    scoring_mode_applied = evaluation.scoring_mode_applied(resolved_as_of)
+    vintages = (
+        # Pushdown of the resolution rule: only the vintage visible on this as-of. Loading the
+        # whole archive to answer one date cost ~8 s and ~900 MB per build.
+        store.read_vintages_as_of(resolved_as_of)
+        if scoring_mode == "point_in_time"
+        else None
+    )
+    vintage_lag = vintage_staleness_days(vintages, resolved_as_of)
     built_at = datetime.now(UTC).isoformat()
 
     sector_validation = load_sector_validation_config(config.cost_of_capital.sector_loadings.source_config)
@@ -182,6 +194,23 @@ def build_anchors(
     if panel_reasons:
         bands_payload.provenance.degradation_reasons.extend(panel_reasons)
 
+    # STALENESS GATE. A point-in-time build is only as good as the newest vintage it can see: if
+    # the pipeline has not refreshed vintages, the archive resolves to an older as-of and every
+    # leg is quietly older than the build claims. The inputs would look perfectly well-formed --
+    # measured at −54 bp on the 10-year nominal for a 4.5-month-old archive -- so the staleness
+    # has to be stated, not inferred by the reader.
+    if scoring_mode == "point_in_time" and vintage_lag is not None:
+        if vintage_lag > evaluation.point_in_time_max_lag_days:
+            note = (
+                f"point_in_time: newest stored ALFRED vintage is {vintage_lag} days before the "
+                f"as-of {resolved_as_of.date().isoformat()} (limit "
+                f"{evaluation.point_in_time_max_lag_days}); the 'as published' basis is stale -- "
+                "refresh vintages in the daily pipeline"
+            )
+            for payload in (coc_anchor, growth_anchor, bands_payload):
+                payload.degraded = True
+                payload.provenance.degradation_reasons.append(note)
+
     reasons = [
         *coc_anchor.provenance.degradation_reasons,
         *growth_anchor.provenance.degradation_reasons,
@@ -190,7 +219,7 @@ def build_anchors(
     bundle = AnchorBundle(
         asof=resolved_as_of.date().isoformat(),
         built_at=built_at,
-        scoring_mode=scoring_mode,
+        scoring_mode=scoring_mode_applied,
         cost_of_capital=coc_anchor,
         long_run_growth=growth_anchor,
         sector_multiple_bands=bands_payload,
@@ -206,10 +235,10 @@ def build_anchors(
         write_anchor_outputs(bundle=bundle, output_dir=config.output_dir, only=only)
         store.upsert_anchor_run(
             {
-                "run_id": f"{bundle.asof}:{scoring_mode}",
+                "run_id": f"{bundle.asof}:{scoring_mode_applied}",
                 "built_at": bundle.built_at,
                 "as_of": bundle.asof,
-                "scoring_mode": scoring_mode,
+                "scoring_mode": scoring_mode_applied,
                 "cost_of_capital_json": coc_anchor.model_dump(mode="json"),
                 "long_run_growth_json": growth_anchor.model_dump(mode="json"),
                 "sector_multiple_bands_json": bands_payload.model_dump(mode="json"),

@@ -57,11 +57,18 @@ def _resolve(
     *,
     scoring_mode: str,
     vintages: pd.DataFrame | None,
+    series_id: str,
 ) -> tuple[pd.Series | None, str]:
+    """Latest observation for `series_id` under the configured as-of rule.
+
+    `series_id` is required, not inferred: in point-in-time mode the resolver reads the shared
+    vintage table, and a caller that does not name its series gets whichever one sorts last.
+    See evaluation.asof._single_series for what that cost.
+    """
     if scoring_mode == "point_in_time":
         if vintages is None or vintages.empty:
             return None, "pit_vintage_missing"
-        row = point_in_time_observation(vintages, as_of)
+        row = point_in_time_observation(vintages, as_of, series_id=series_id)
         return (row, "ok") if row is not None else (None, "not_yet_published")
     row = latest_observation_on_or_before_date(observations, as_of)
     return (row, "ok") if row is not None else (None, "not_yet_published")
@@ -94,7 +101,9 @@ def _latest_value(
     series happens to be quoted in percent.
     """
     frame = _series_slice(observations, ref.series)
-    row, reason = _resolve(frame, as_of, scoring_mode=scoring_mode, vintages=vintages)
+    row, reason = _resolve(
+        frame, as_of, scoring_mode=scoring_mode, vintages=vintages, series_id=ref.series
+    )
     if row is None:
         reasons.append(f"{label}: {ref.series} unavailable ({reason})")
         return None
@@ -130,7 +139,9 @@ def yoy_change(
         frame = _visible_vintage_series(vintages, series_id, as_of)
     else:
         frame = _series_slice(observations, series_id)
-        row, _ = _resolve(frame, as_of, scoring_mode="calendar_asof", vintages=None)
+        row, _ = _resolve(
+            frame, as_of, scoring_mode="calendar_asof", vintages=None, series_id=series_id
+        )
         if row is None:
             return None, None
         frame = frame[frame["date"] <= pd.Timestamp(row["date"])]
@@ -189,7 +200,9 @@ def term_premium(
     """Observed term premium if published, else a clearly-labelled computed proxy."""
     for ref in config.risk_free.term_premium_candidates:
         frame = _series_slice(observations, ref.series)
-        row, _ = _resolve(frame, as_of, scoring_mode=scoring_mode, vintages=vintages)
+        row, _ = _resolve(
+            frame, as_of, scoring_mode=scoring_mode, vintages=vintages, series_id=ref.series
+        )
         if row is not None and not pd.isna(row["value"]):
             input_dates[ref.series] = pd.Timestamp(row["date"]).date().isoformat()
             return ref.to_decimal(float(row["value"])), f"observed:{ref.series}"

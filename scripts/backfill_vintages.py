@@ -55,6 +55,12 @@ from macro_engine.ingest.service import run_fred_vintage_ingestion  # noqa: E402
 DEFAULT_CONFIG = "config/phase_b_sources.yaml"
 DEFAULT_DB_PATH = "data/macro_engine.duckdb"
 DEFAULT_PARQUET_DIR = "data/raw/alfred"
+DEFAULT_LOCK_PATH = "data/logs/backfill_vintages.lock"
+
+# FRED documents 120 requests/minute per key, so a handful of workers hides ALFRED's uneven
+# per-request latency (0.3 s for one vintage, 17-19 s for another in the SAME series) while
+# staying far below the limit.
+DEFAULT_WORKERS = 8
 
 # The anchor inputs. Fetching ONLY these is not enough to run `scoring_mode: point_in_time`:
 # that mode gates the FEATURE series (INDPRO, PAYEMS, UNRATE, CPIAUCSL, ...), which is a
@@ -84,6 +90,111 @@ def enabled_series(config_path: str | Path) -> list[str]:
     ]
 
 
+def _pid_alive(pid: int) -> bool:
+    """Is `pid` still running? os.kill cannot be used on Windows — it TERMINATES the target."""
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32
+    handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+    if not handle:
+        return False
+    try:
+        code = ctypes.c_ulong()
+        if not kernel32.GetExitCodeProcess(handle, ctypes.byref(code)):
+            return False
+        return code.value == 259  # STILL_ACTIVE
+    finally:
+        kernel32.CloseHandle(handle)
+
+
+def claim_single_instance(lock_path: Path) -> str | None:
+    """Take the backfill lock, or explain who already holds it.
+
+    Two concurrent backfills duplicate every request. DuckDB's write lock eventually stops the
+    second run, but only when it reaches a write — until then both hammer a rate-limited endpoint
+    for hours, each slower than either would have been alone. This lock is advisory, records the
+    PID so the holder is identifiable, and reclaims itself when that PID is gone.
+    """
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    if lock_path.exists():
+        try:
+            holder = int(lock_path.read_text(encoding="utf-8").strip() or "0")
+        except ValueError:
+            holder = 0
+        if holder and holder != os.getpid() and _pid_alive(holder):
+            return (
+                f"another vintage backfill is already running (pid {holder}).\n"
+                f"  lock file: {lock_path}\n"
+                "Wait for it to finish, stop it, or pass --force-lock if you know it is stale."
+            )
+    lock_path.write_text(str(os.getpid()), encoding="utf-8")
+    return None
+
+
+def release_single_instance(lock_path: Path) -> None:
+    try:
+        if lock_path.exists() and lock_path.read_text(encoding="utf-8").strip() == str(os.getpid()):
+            lock_path.unlink()
+    except OSError:
+        pass
+
+
+def seed_known_absences(
+    *, as_of_dates: list[str], series: list[str], db_path: str | Path
+) -> int:
+    """Record, without any network call, the pairs that cannot have a vintage.
+
+    A vintage store cannot hold a vintage EARLIER than the series' first stored vintage -- that is
+    a tautology, not an inference. The completed full-history backfill already asked ALFRED about
+    every pre-archive pair and got "the series does not exist in ALFRED" (measured: 3,154 pairs),
+    but that result was never persisted, so each subsequent run re-asked all of them: ~30 minutes
+    at the 100 requests/minute pace, for zero new rows, every single time.
+
+    These rows are labelled `no_vintage_before_first_archive` rather than
+    `no_vintage_in_alfred`, so a reader can tell a fact established by asking from one established
+    by the archive's shape. `--no-resume` still forces a genuine re-ask.
+    """
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    store = DuckDBStore(db_path)
+    store.initialize()
+    keys = store.read_vintage_keys()
+    if keys.empty:
+        return 0
+    first_vintage = {
+        str(row.series_id): pd.Timestamp(row.realtime_start)
+        for row in keys.groupby("series_id", as_index=False)["realtime_start"]
+        .min()
+        .itertuples(index=False)
+    }
+    expected = [str(value) for value in series]
+    pairs = [
+        (series_id, as_of)
+        for series_id in expected
+        if series_id in first_vintage
+        for as_of in as_of_dates
+        if pd.Timestamp(as_of) < first_vintage[series_id]
+    ]
+    if not pairs:
+        return 0
+    frame = pd.DataFrame(
+        {
+            "series_id": [pair[0] for pair in pairs],
+            "realtime_start": pd.to_datetime([pair[1] for pair in pairs]),
+            "reason": ["no_vintage_before_first_archive"] * len(pairs),
+            "checked_at": [pd.Timestamp.now(tz="UTC")] * len(pairs),
+        }
+    )
+    store.upsert_vintage_absence(frame)
+    return len(pairs)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--apply", action="store_true", help="fetch and store vintages (default: plan only)")
@@ -98,6 +209,14 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="re-fetch every (series, as-of) pair instead of skipping stored ones",
     )
+    parser.add_argument(
+        "--seed-absences",
+        action="store_true",
+        help=(
+            "before fetching, record the pre-archive pairs that cannot have a vintage "
+            "(no network call) so routine runs stop re-asking thousands of dead dates"
+        ),
+    )
     parser.add_argument("--start", default=None, help="earliest as-of date (YYYY-MM-DD)")
     parser.add_argument("--end", default=None, help="latest as-of date (YYYY-MM-DD)")
     parser.add_argument("--config", default=DEFAULT_CONFIG)
@@ -107,6 +226,21 @@ def build_parser() -> argparse.ArgumentParser:
         "--observation-start",
         default=None,
         help="bound the observation window carried in each vintage (default: FRED decides)",
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help=(
+            "concurrent vintage fetches (default: %(default)s). ALFRED latency is uneven per "
+            "request, so a serial loop runs at the speed of its worst request"
+        ),
+    )
+    parser.add_argument("--lock-path", default=DEFAULT_LOCK_PATH)
+    parser.add_argument(
+        "--force-lock",
+        action="store_true",
+        help="proceed even if another backfill appears to hold the lock",
     )
     return parser
 
@@ -145,6 +279,20 @@ def main(argv: list[str] | None = None) -> int:
         (pd.Timestamp(as_of_dates[0]) - pd.DateOffset(years=1)).date().isoformat()
     )
     print(f"  observation window : {observation_start} .. (each vintage's own date)")
+    print(f"  workers            : {max(args.workers, 1)}")
+
+    lock_path = Path(args.lock_path)
+    if not args.force_lock:
+        holder = claim_single_instance(lock_path)
+        if holder:
+            print(f"\n{holder}", file=sys.stderr)
+            return 1
+
+    if args.seed_absences:
+        seeded = seed_known_absences(
+            as_of_dates=as_of_dates, series=series, db_path=args.db_path
+        )
+        print(f"  absences seeded    : {seeded} (pre-archive pairs; no network call)")
 
     try:
         summary = run_fred_vintage_ingestion(
@@ -156,15 +304,19 @@ def main(argv: list[str] | None = None) -> int:
             parquet_dir=args.parquet_dir,
             resume=not args.no_resume,
             progress=True,
+            max_workers=max(args.workers, 1),
         )
     except FredError as exc:
         print(f"\nVintage backfill failed: {exc}", file=sys.stderr)
         return 1
+    finally:
+        release_single_instance(lock_path)
 
     print("\nStored (counts aggregated; per-vintage logging intentionally suppressed):")
     print(f"  vintage rows          : {summary.vintage_rows}")
     print(f"  series stored this run: {summary.vintage_series} {summary.series_stored}")
     print(f"  pairs skipped (already stored)    : {summary.skipped_pairs}")
+    print(f"    of which known-absent (no ALFRED archive): {summary.skipped_absent_pairs}")
     print(f"  series x date with no vintage yet : {summary.empty_vintage_count}")
     print(f"  failed fetches        : {summary.failed_count}")
     print(f"  parquet               : {summary.storage_path}")

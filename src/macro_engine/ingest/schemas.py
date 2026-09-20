@@ -58,6 +58,10 @@ class VintageIngestionSummary(BaseModel):
     # (series, as_of) pairs where the series had no vintage yet — a fact about the
     # past (the series did not exist), reported rather than treated as a failure.
     empty_vintage_count: int
+    # Of the skipped pairs, how many were skipped because a PREVIOUS run already established
+    # that ALFRED has no vintage there. Reported separately because "nothing new to do" and
+    # "nothing was ever there" are different answers to the same question.
+    skipped_absent_pairs: int = 0
     failed_count: int
     storage_path: str
     # Which series actually landed rows in THIS run, so a partial run is legible.

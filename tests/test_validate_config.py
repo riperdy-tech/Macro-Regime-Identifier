@@ -18,7 +18,9 @@ def test_validate_config_reports_enabled_counts():
     result = runner.invoke(app, ["validate-config"])
     assert result.exit_code == 0, result.output
     assert "5 regimes" in result.output
-    assert "scoring_mode=calendar_asof" in result.output
+    # The config check reports the BASIS INCLUDING its boundary, so the hybrid is visible where
+    # an operator looks rather than only in an artifact's provenance.
+    assert "scoring_mode=point_in_time(from 2014-02-01)" in result.output
 
 
 def test_validate_config_accepts_explicit_config_path():

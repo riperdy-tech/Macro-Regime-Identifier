@@ -11,8 +11,11 @@ from uuid import uuid4
 import pandas as pd
 
 from macro_engine.anchors.config import load_anchor_config
+from macro_engine.anchors.pit_calendar import vintage_asof_dates
 from macro_engine.anchors.service import build_anchors
+from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.guardrails import audit_markdown_reports
+from macro_engine.ingest.service import run_fred_vintage_ingestion
 from macro_engine.news.advisory import write_news_advisory_block
 from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
@@ -35,6 +38,10 @@ DAILY_SUMMARY_DISCLAIMER = (
     "This daily package is a diagnostic research artifact. It is not investment advice, "
     "market action guidance, execution guidance, or instructions for changing holdings."
 )
+
+# A daily vintage refresh asks for a handful of new as-of dates, so the pool only has to hide
+# ALFRED's uneven per-request latency (0.3-19 s), not saturate the rate limit.
+VINTAGE_REFRESH_WORKERS = 8
 
 
 @dataclass(frozen=True)
@@ -186,6 +193,20 @@ def run_daily_diagnostic(
                 fail=True,
             )
         if config.anchors.enabled:
+            # Refresh vintages BEFORE building anchors when the configured basis is point-in-time:
+            # the anchors read "what was published as of the as-of", so an unrefreshed archive
+            # silently dates the whole build. Optional, like the anchors themselves -- a failed
+            # refresh must not take the diagnostic down, it must show up as a stale basis in the
+            # anchor provenance (the anchors' own freshness gate reports it).
+            if _uses_point_in_time(config):
+                _run_step(
+                    "vintages",
+                    statuses,
+                    errors,
+                    lambda: _run_vintages(config, db_path, services),
+                    fail=False,
+                    optional=True,
+                )
             # `fail=config.anchors.required` (False by default): the anchors are an
             # additive artifact layer. A missing anchor input degrades loudly INSIDE the
             # anchor payload; it must never take the daily diagnostic down with it.
@@ -643,6 +664,54 @@ def _run_combined(
             config_path=config.combined.config_path,
             db_path=db_path,
         ),
+    )
+
+
+def _uses_point_in_time(config: DailyPipelineConfig) -> bool:
+    """Is the configured as-of basis point-in-time (hybrid or blanket)?
+
+    Read from the SAME config the anchors read, so the pipeline cannot end up refreshing vintages
+    for a basis nobody uses, or skipping the refresh for one that needs it.
+    """
+    try:
+        return load_evaluation_config(config.macro.config_path).scoring_mode == "point_in_time"
+    except Exception as exc:  # a broken config must not break the pipeline's step list
+        print(f"daily: could not read the scoring basis ({exc}); skipping vintage refresh", flush=True)
+        return False
+
+
+def _run_vintages(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    services: dict[str, Callable],
+) -> None:
+    """Refresh the ALFRED vintages the point-in-time basis reads.
+
+    Without this step a point-in-time anchor resolves against whatever the last backfill left
+    behind, which is how a present-day read ended up on an as-of 4.5 months old (measured −54 bp
+    on the 10-year nominal). The as-of set is the evaluation calendar PLUS today and the newest
+    stored observation date (`vintage_asof_dates`), so a daily run asks for a handful of new
+    vintages and resumes over everything already answered -- including the pairs ALFRED has
+    confirmed it has no archive for, which are remembered rather than re-asked.
+    """
+    fetcher = services.get("run_fred_vintage_ingestion", run_fred_vintage_ingestion)
+    as_of_dates = vintage_asof_dates(db_path=db_path)
+    if not as_of_dates:
+        print("daily: no evaluation calendar yet; skipping vintage refresh", flush=True)
+        return
+    summary = fetcher(
+        as_of_dates=as_of_dates,
+        config_path=config.macro.config_path,
+        db_path=db_path,
+        resume=True,
+        max_workers=VINTAGE_REFRESH_WORKERS,
+    )
+    print(
+        f"daily: vintages refreshed — {summary.vintage_rows} new rows, "
+        f"{summary.skipped_pairs} pairs already answered "
+        f"({summary.skipped_absent_pairs} known-absent), "
+        f"{summary.failed_count} failed",
+        flush=True,
     )
 
 

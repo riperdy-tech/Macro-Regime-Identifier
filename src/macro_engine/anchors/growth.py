@@ -113,7 +113,9 @@ def build_long_run_growth_anchor(
     inflation_series_used = None
     for ref in growth.inflation_expectation.candidates:
         frame = _series_slice(observations, ref.series)
-        row, reason = _resolve(frame, as_of, scoring_mode=scoring_mode, vintages=vintages)
+        row, reason = _resolve(
+            frame, as_of, scoring_mode=scoring_mode, vintages=vintages, series_id=ref.series
+        )
         if row is None:
             reasons.append(f"inflation_expectation: {ref.series} unavailable ({reason})")
             continue

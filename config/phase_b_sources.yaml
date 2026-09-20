@@ -530,7 +530,15 @@ reports:
 # strictly stronger evidence than the fixed lag, and is opt-in because switching it
 # silently would move the factual basis under every existing historical diagnostic.
 # Populate vintages first with scripts/backfill_vintages.py.
-scoring_mode: calendar_asof
+#
+# HYBRID BOUNDARY (measured 2026-09-20, docs/ANCHOR_METHODOLOGY.md §6.2b). ALFRED's archive
+# is not uniform: the risk-free curve does not exist before 2005-07, the breakeven leg before
+# 2014-02, the observed ACM term premium before 2016-06. `point_in_time_start` is therefore
+# where PIT takes over; earlier dates use `calendar_asof` and say so in provenance. A blanket
+# point-in-time switch would not upgrade those dates, it would EMPTY them (1995/2000: no
+# risk-free curve, ERP undefined; 2008: no breakeven, no ERP solve).
+scoring_mode: point_in_time
+point_in_time_start: "2014-02-01"
 
 evaluation_calendar:
   frequency: monthly

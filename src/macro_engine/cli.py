@@ -108,11 +108,17 @@ def validate_config(
         dimension for dimension in regime_config.dimensions if dimension.enabled
     ]
     enabled_regimes = [regime for regime in regime_config.regimes if regime.enabled]
+    # The boundary belongs in this line: a hybrid basis is a policy decision an operator must be
+    # able to read off the config check, not something to discover from an artifact's provenance.
+    boundary = evaluation_config.point_in_time_start
+    scoring_basis = evaluation_config.scoring_mode + (
+        f"(from {boundary})" if boundary and evaluation_config.scoring_mode == "point_in_time" else ""
+    )
     console.print(
         f"[green]Config valid[/green]: {config} — "
         f"{len(enabled_sources)} sources, {len(enabled_features)} features, "
         f"{len(enabled_dimensions)} dimensions, {len(enabled_regimes)} regimes, "
-        f"scoring_mode={evaluation_config.scoring_mode}, "
+        f"scoring_mode={scoring_basis}, "
         f"softmax_temperature={regime_config.scoring.softmax_temperature}, "
         f"transition_filter="
         f"{'enabled' if diagnostic_config.transition_filter.enabled else 'disabled'}"

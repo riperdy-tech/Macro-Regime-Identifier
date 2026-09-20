@@ -13,6 +13,21 @@ class FredError(RuntimeError):
     """Raised when FRED returns an error or unusable payload."""
 
 
+class NoVintageAvailable(FredError):
+    """ALFRED holds no vintage for this series/date range.
+
+    A fact about the archive, not a failure: asking for a 1995 vintage of a series ALFRED only
+    began archiving in 2005 is a well-formed question with the answer "no". ALFRED reports it as
+    HTTP 400 with "The series does not exist in ALFRED", which would otherwise be recorded as a
+    failed fetch -- thousands of phantom failures in a full-history backfill, burying the real
+    ones. It is a distinct type so callers can count it as an empty vintage.
+    """
+
+
+# ALFRED's wording for "this series has no archive covering the requested realtime range".
+_NOT_IN_ALFRED = "does not exist in ALFRED"
+
+
 # Retried on transient FRED responses (rate limit + server errors).
 _RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
@@ -72,18 +87,23 @@ class FredClient:
         published then", not "what do we believe about then now".
 
         Returns an EMPTY frame (not an error) when the series had no vintage on that
-        date: a series that did not yet exist is a fact about the past, not a fault.
+        date: a series that did not yet exist is a fact about the past, not a fault. ALFRED
+        reports that case as HTTP 400 rather than an empty list, so it is caught here and
+        converted -- the contract above is what callers actually depend on.
         """
-        payload = self._get(
-            "/series/observations",
-            {
-                "series_id": series_id,
-                "observation_start": observation_start,
-                "observation_end": observation_end,
-                "realtime_start": as_of,
-                "realtime_end": as_of,
-            },
-        )
+        try:
+            payload = self._get(
+                "/series/observations",
+                {
+                    "series_id": series_id,
+                    "observation_start": observation_start,
+                    "observation_end": observation_end,
+                    "realtime_start": as_of,
+                    "realtime_end": as_of,
+                },
+            )
+        except NoVintageAvailable:
+            return _empty_observation_frame()
         observations = payload.get("observations", [])
         if not observations:
             return _empty_observation_frame()
@@ -125,6 +145,16 @@ class FredClient:
         }
 
     def _get(self, endpoint: str, params: dict[str, Any]) -> dict[str, Any]:
+        """One FRED/ALFRED request, retried on every TRANSIENT failure class.
+
+        Retrying only on retryable HTTP statuses was not enough: a read timeout or a dropped
+        connection raises out of `session.get` before any status exists, and the exception is a
+        `requests` error rather than a `FredError`. A multi-hour vintage backfill (~6,500
+        requests) then died outright on one flaky socket, because the caller's per-series
+        `except FredError` could not see it. Transport faults and truncated bodies are now
+        retried exactly like 429/5xx, and — once retries are exhausted — surfaced AS a
+        `FredError`, so callers that already tolerate a failed fetch keep running.
+        """
         assert self.session is not None
         request_params = {
             "api_key": self.api_key,
@@ -132,24 +162,49 @@ class FredClient:
             **{key: value for key, value in params.items() if value is not None},
         }
         url = f"{self._base_for(params)}{endpoint}"
+        last_error = "no attempt was made"
+
+        def _exhausted(reason: str) -> FredError:
+            return FredError(
+                f"FRED request to {endpoint} failed after {self.max_retries} retries: {reason}"
+            )
+
         for attempt in range(self.max_retries + 1):
-            response = self.session.get(url, params=request_params, timeout=self.timeout)
+            try:
+                response = self.session.get(url, params=request_params, timeout=self.timeout)
+            except requests.exceptions.RequestException as exc:
+                last_error = f"{type(exc).__name__}: {exc}"
+                if attempt < self.max_retries:
+                    time.sleep(self._backoff_seconds(attempt))
+                    continue
+                raise _exhausted(last_error) from exc
+
             if response.status_code in _RETRYABLE_STATUS and attempt < self.max_retries:
                 time.sleep(self._retry_delay(response, attempt))
                 continue
             if response.status_code >= 400:
+                if response.status_code == 400 and _NOT_IN_ALFRED in response.text:
+                    raise NoVintageAvailable(
+                        f"ALFRED has no archive for {params.get('series_id')} over "
+                        f"{params.get('realtime_start')}..{params.get('realtime_end')}"
+                    )
                 raise FredError(
                     f"FRED request failed with HTTP {response.status_code}: {response.text}"
                 )
-            payload = response.json()
+            try:
+                payload = response.json()
+            except ValueError as exc:
+                # A truncated/garbled body is a transport fault, not a data verdict.
+                last_error = f"invalid JSON payload: {exc}"
+                if attempt < self.max_retries:
+                    time.sleep(self._backoff_seconds(attempt))
+                    continue
+                raise _exhausted(last_error) from exc
             if "error_message" in payload:
                 raise FredError(f"FRED error: {payload['error_message']}")
             return payload
-        # Exhausted retries on a retryable status.
-        raise FredError(
-            f"FRED request failed with HTTP {response.status_code} after "
-            f"{self.max_retries} retries: {response.text}"
-        )
+        # Unreachable in practice: every branch above returns or raises.
+        raise _exhausted(last_error)
 
     def _base_for(self, params: dict[str, Any]) -> str:
         """Vintage-aware requests go to the ALFRED host, everything else to FRED."""
@@ -165,6 +220,10 @@ class FredClient:
                 return min(float(retry_after), self.backoff_cap_seconds)
             except ValueError:
                 pass
+        return self._backoff_seconds(attempt)
+
+    def _backoff_seconds(self, attempt: int) -> float:
+        """Exponential backoff for failures that carry no response headers."""
         return min(self.backoff_base_seconds * (2**attempt), self.backoff_cap_seconds)
 
 

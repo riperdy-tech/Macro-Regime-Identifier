@@ -8,6 +8,8 @@ from typing import Any
 
 import pandas as pd
 
+from macro_engine.anchors.config import load_anchor_config
+from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.news.config import load_news_ai_config
 from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.operations_config import load_daily_pipeline_config
@@ -41,6 +43,7 @@ def daily_health_check(
     _check_ai_key(checks, config.news.news_ai_config, live_enabled=config.news.allow_live_ai)
     _check_gitignore(checks)
     _check_output_dates(checks, db_path, config.outputs.archive_root)
+    _check_anchor_basis(checks, db_path, config)
     status = "ok"
     if any(check["status"] == "blocked" for check in checks):
         status = "blocked"
@@ -100,6 +103,121 @@ def _check_output_dates(
             "stale_artifacts": sorted(stale),
         }
     )
+
+
+def _check_anchor_basis(
+    checks: list[dict[str, Any]],
+    db_path: str | Path,
+    config: Any,
+) -> None:
+    """Report whether the discount-rate anchor is current, and on what basis.
+
+    Two things were unmonitored and both are silent by construction:
+
+    * **Anchor age.** RS2 consumes the published anchors and tolerates them for up to
+      `anchor_max_age_days: 45`. Nothing on the MRI side said how old they were, so a stale
+      discount rate could sit inside that window looking authoritative.
+    * **Vintage coverage.** Under the point-in-time basis an anchor resolves against the newest
+      stored ALFRED vintage, so a pipeline that stops refreshing vintages produces a number that
+      is old while still labelled "as published". The anchor payload carries the staleness, but
+      only a health check can tell an operator BEFORE the run.
+
+    Warning, not blocked: a stale anchor is recoverable by rebuilding, and failing the daily run
+    over it would be worse than the problem this reports.
+    """
+    anchor_config_path = getattr(config.anchors, "config_path", "config/anchors.yaml")
+    macro_config_path = getattr(config.anchors, "macro_config_path", config.macro.config_path)
+    detail: dict[str, Any] = {}
+    issues: list[str] = []
+
+    try:
+        anchor_config = load_anchor_config(anchor_config_path)
+        cost_of_capital = Path(anchor_config.output_dir) / "cost_of_capital_anchor.json"
+        payload = json.loads(cost_of_capital.read_text(encoding="utf-8"))
+        asof = str(payload.get("asof", ""))[:10]
+        detail["anchor_asof"] = asof
+        detail["anchor_degraded"] = bool(payload.get("degraded"))
+        detail["anchor_scoring_mode"] = payload.get("provenance", {}).get("scoring_mode")
+        if asof:
+            age = (pd.Timestamp(_today()).normalize() - pd.Timestamp(asof).normalize()).days
+            detail["anchor_age_days"] = int(age)
+            limit = _anchor_age_limit()
+            if age > limit:
+                issues.append(f"cost_of_capital anchor is {age} days old (limit {limit})")
+        else:
+            issues.append("cost_of_capital anchor carries no as-of date")
+        if detail["anchor_degraded"]:
+            issues.append(
+                "cost_of_capital anchor is DEGRADED: "
+                f"{payload.get('provenance', {}).get('degradation_reasons')}"
+            )
+    except FileNotFoundError:
+        issues.append("cost_of_capital anchor has never been built")
+    except (OSError, json.JSONDecodeError) as exc:
+        issues.append(f"cost_of_capital anchor unreadable: {exc}")
+    except Exception as exc:  # pragma: no cover - defensive health reporting
+        issues.append(f"anchor config unreadable: {exc}")
+
+    try:
+        evaluation = load_evaluation_config(macro_config_path)
+        store = DuckDBStore(db_path)
+        store.initialize()
+        absence = store.read_vintage_absence()
+        keys = store.read_vintage_keys()
+        detail["scoring_mode"] = evaluation.scoring_mode
+        detail["point_in_time_start"] = evaluation.point_in_time_start
+        detail["vintage_pairs"] = int(len(keys))
+        detail["known_absent_pairs"] = int(len(absence))
+        if keys.empty:
+            if evaluation.scoring_mode == "point_in_time":
+                issues.append("point-in-time basis configured but the vintage store is empty")
+        else:
+            newest = pd.to_datetime(keys["realtime_start"], errors="coerce").max()
+            lag = int((pd.Timestamp(_today()).normalize() - pd.Timestamp(newest).normalize()).days)
+            detail["newest_vintage"] = pd.Timestamp(newest).date().isoformat()
+            detail["vintage_lag_days"] = lag
+            if evaluation.scoring_mode == "point_in_time":
+                limit = evaluation.point_in_time_max_lag_days
+                if lag > limit:
+                    issues.append(
+                        f"newest ALFRED vintage is {lag} days old (limit {limit}); the "
+                        "point-in-time basis is stale -- the vintages pipeline step is not "
+                        "refreshing"
+                    )
+    except Exception as exc:  # pragma: no cover - defensive health reporting
+        issues.append(f"vintage coverage unavailable: {exc}")
+
+    checks.append(
+        {
+            "name": "anchor_basis",
+            "status": "warning" if issues else "ok",
+            "path": str(anchor_config_path),
+            "message": "; ".join(issues) if issues else "anchors current and basis evidenced",
+            "issues": issues,
+            "detail": detail,
+        }
+    )
+
+
+def _today() -> str:
+    return pd.Timestamp.now(tz="UTC").date().isoformat()
+
+
+def _anchor_age_limit() -> int:
+    """RS2's tolerance for a stale anchor, read from its config when reachable.
+
+    MRI must not invent its own number here: the consumer already decides how old is too old
+    (`anchor_max_age_days`), and two limits would eventually disagree.
+    """
+    rs2_config = Path(os.getenv("RS2_CONFIG_PATH", r"C:\Users\riper\Downloads\RS2 Local\config.json"))
+    try:
+        payload = json.loads(rs2_config.read_text(encoding="utf-8"))
+        value = payload.get("anchor_max_age_days")
+        if isinstance(value, int) and value > 0:
+            return value
+    except (OSError, json.JSONDecodeError):
+        pass
+    return 45
 
 
 def _newest_stored_date(db_path: str | Path) -> str | None:

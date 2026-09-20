@@ -77,6 +77,31 @@ SECTOR_MAP = {
     "Utilities": "utilities",
 }
 
+# Yahoo industry name -> MRI SUB-INDUSTRY id (config/sectors.yaml §"Sub-industries (WS-A)").
+#
+# Why a second map: the six sub-industries are declared, enabled and consumed like any other
+# sector, but a Yahoo SECTOR value can never produce one of their ids -- so they were tracked and
+# permanently unmeasurable ("bands: no panel observations for sector banks" x6). The finer
+# vocabulary exists in the same corpus, in the `Industry` column, so the gap was a mapping gap,
+# not a data gap.
+#
+# A ticker inside a sub-industry is emitted under BOTH ids: `banks` is its own band while
+# `financials` remains the sector aggregate that contains it. Emitting only the finer id would
+# silently shrink the parent band; emitting only the parent would leave the sub-industry empty.
+SUBINDUSTRY_MAP = {
+    "Semiconductors": "semiconductors",
+    "Semiconductor Equipment & Materials": "semiconductors",
+    "Software - Application": "software",
+    "Software-Application": "software",
+    "Software - Infrastructure": "software",
+    "Banks - Regional": "banks",
+    "Banks-Regional": "banks",
+    "Banks - Diversified": "banks",
+    "Biotechnology": "biotech",
+    "Residential Construction": "homebuilders",
+    "Oil & Gas E&P": "oil_gas_ep",
+}
+
 PUBLICATION_LAG_MONTHS = 15  # FY(N) usable from month 15 after the start of year N (i.e. Mar N+1)
 MIN_ROWS = 5_000
 MIN_SECTORS = 8
@@ -87,20 +112,33 @@ def _read_json(path: Path):
         return json.load(handle)
 
 
-def load_sector_map(data_dir: Path) -> dict[str, str]:
+def load_sector_map(data_dir: Path) -> tuple[dict[str, str], dict[str, str]]:
+    """{symbol: parent sector id} and {symbol: sub-industry id} from stocks.csv.
+
+    Both vocabularies are read from the same row: `Sector` gives the parent, `Industry` the finer
+    group. A symbol may appear in the first without the second (most do).
+    """
     mapping: dict[str, str] = {}
+    sub_mapping: dict[str, str] = {}
     with (data_dir / "stocks.csv").open("r", encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         sector_col = next((c for c in reader.fieldnames if c.lower() == "sector"), None)
         symbol_col = next((c for c in reader.fieldnames if c.lower() == "symbol"), None)
+        industry_col = next((c for c in reader.fieldnames if c.lower() == "industry"), None)
         if sector_col is None or symbol_col is None:
             raise ValueError("stocks.csv needs Symbol and Sector columns")
         for row in reader:
             symbol = (row.get(symbol_col) or "").strip().upper()
+            if not symbol:
+                continue
             sector_id = SECTOR_MAP.get((row.get(sector_col) or "").strip())
-            if symbol and sector_id:
+            if sector_id:
                 mapping[symbol] = sector_id
-    return mapping
+            if industry_col:
+                sub_id = SUBINDUSTRY_MAP.get((row.get(industry_col) or "").strip())
+                if sub_id:
+                    sub_mapping[symbol] = sub_id
+    return mapping, sub_mapping
 
 
 def eps_by_first_usable_month(fiscal_years: dict) -> dict[int, float]:
@@ -133,7 +171,7 @@ def build_panel(
     data_dir: Path,
     max_pe: float = 400.0,
 ) -> tuple[list[dict[str, object]], dict[str, object]]:
-    sector_map = load_sector_map(data_dir)
+    sector_map, subindustry_map = load_sector_map(data_dir)
     fundamentals = _read_json(data_dir / "fundamentals_history.json")
     fundamentals = fundamentals.get("tickers") or fundamentals
     prices_payload = _read_json(data_dir / "backtest_prices.json")
@@ -150,6 +188,12 @@ def build_panel(
         if sector_id is None:
             skipped_no_sector += 1
             continue
+        # A sub-industry membership adds a SECOND band for the same ticker; it never replaces the
+        # parent, so `financials` still contains the banks it is made of.
+        sector_ids = [sector_id]
+        sub_id = subindustry_map.get(symbol)
+        if sub_id and sub_id != sector_id:
+            sector_ids.append(sub_id)
         schedule = eps_by_first_usable_month(fundamentals.get(symbol) or {})
         if not schedule:
             skipped_no_eps += 1
@@ -173,11 +217,17 @@ def build_panel(
             if not (0 < pe <= max_pe):
                 continue
             date = f"{month}-01"
-            rows.append(
-                {"date": date, "sector_id": sector_id, "ticker": symbol, "pe_ttm": round(pe, 6)}
-            )
+            for band_id in sector_ids:
+                rows.append(
+                    {
+                        "date": date,
+                        "sector_id": band_id,
+                        "ticker": symbol,
+                        "pe_ttm": round(pe, 6),
+                    }
+                )
+                per_sector_months[(band_id, str(month))] += 1
             months_seen.add(str(month))
-            per_sector_months[(sector_id, str(month))] += 1
             skipped_no_price += 0
         if not schedule:
             skipped_no_eps += 0
@@ -187,10 +237,26 @@ def build_panel(
         sector: sum(1 for (sid, _), _ in per_sector_months.items() if sid == sector)
         for sector in sorted({row["sector_id"] for row in rows})
     }
+    # Which parent each sub-industry sits inside, so the hierarchy is published with the panel
+    # instead of being implied by how the rows happen to be counted.
+    subindustry_parents = {
+        sub_id: sector_map[symbol]
+        for symbol, sub_id in subindustry_map.items()
+        if symbol in sector_map
+    }
+    present_subindustries = {
+        sub_id: months
+        for sub_id, months in coverage.items()
+        if sub_id in set(SUBINDUSTRY_MAP.values())
+    }
     meta: dict[str, object] = {
         "rows": len(rows),
         "tickers_with_sector_and_eps": len({row["ticker"] for row in rows}),
         "sectors": coverage,
+        "subindustries": present_subindustries,
+        "subindustry_parents": {
+            key: value for key, value in subindustry_parents.items() if key in present_subindustries
+        },
         "months": len(months_seen),
         "first_month": min(months_seen) if months_seen else None,
         "last_month": max(months_seen) if months_seen else None,
@@ -208,6 +274,8 @@ def build_panel(
             "SURVIVORSHIP: the universe is today's listings, so delisted names are absent.",
             "Loss-makers are excluded rather than assigned a multiple.",
             f"Multiples above {max_pe:.0f}x are dropped as near-zero-earnings artefacts.",
+            "HIERARCHY: a ticker inside a sub-industry appears under BOTH its sub-industry id and "
+            "its parent sector id, so the two levels are overlapping samples, not disjoint ones.",
         ],
     }
     return rows, meta

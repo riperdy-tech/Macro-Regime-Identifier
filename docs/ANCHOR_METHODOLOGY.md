@@ -201,6 +201,15 @@ market-implied one — the universe is a screener corpus, not an index. So:
 * **`market_implied_erp` and `market_implied_coe` stay `null`**, reserved for a true index
   aggregate. A consumer reading "market_implied" must be able to trust the word.
 
+  **BLOCKED, and by what.** Filling them needs constituent-level index data this repository does
+  not hold and cannot derive: float-adjusted weights, index membership history, and trailing
+  aggregate earnings for a licensed index. The corpus that IS held is a screener universe
+  (1,676 constituents after collapsing 236 share classes by CIK, 76.9% of the collapsed corpus by
+  market cap, 496 non-USD reporters excluded because their multiples would be currency-mixed).
+  Substituting it for an index would put a universe number under a market label — the exact
+  mislabelling this section forbids — so the fields stay null until the data is licensed.
+  Unblocking it is a data-acquisition decision, not an implementation task.
+
 As published at 2026-09-20: **implied ERP 4.24%, implied cost of equity 9.18%**.
 
 **External sanity check.** The solved 4.24% sits between the Damodaran history's median (4.10%)
@@ -359,11 +368,32 @@ Every one of these is a real limitation, published on the payload in `measure`,
   can only make the figure **staler**, never leak it early.
 * **Survivorship.** The universe is today's listings, so delisted names are absent.
 * **Loss-makers are excluded** rather than assigned a multiple; non-positive EPS yields no P/E,
-  and multiples above 400x are dropped as near-zero-earnings artefacts.
+  and multiples above 400x are dropped as near-zero-earnings artefacts. This lifts the measured
+  multiple most for CYCLICAL groups at a trough, where the excluded names are precisely the ones
+  earning nothing: `semiconductors` reads a 71x median while `banks` reads 12.9x. Read a cyclical
+  band as "the multiple of the names still earning", not as the sector's multiple.
 
 None of this is fatal to a regime-conditional **distribution**, which is what is published and
 which needs the cross-section to be representative month by month. It is fatal to treating any
 single row as a precise valuation.
+
+### The panel is hierarchical, and now covers every tracked sector
+
+The six sub-industries (`banks`, `biotech`, `homebuilders`, `oil_gas_ep`, `semiconductors`,
+`software`) were tracked, enabled and consumed like any other sector, but a Yahoo **Sector** value
+can never produce one of their ids — so they were permanently unmeasurable while the anchors
+faithfully reported `bands: no panel observations for sector banks` six times over. The finer
+vocabulary was in the same corpus all along, in its `Industry` column (159 distinct values), so the
+gap was a mapping gap, not a data gap.
+
+The builder now maps both levels and emits a ticker under **both** ids: `banks` is its own band
+while `financials` remains the sector aggregate containing it. Emitting only the finer id would
+silently shrink the parent; only the parent would leave the sub-industry empty. The relationship is
+published in `panel_meta.subindustry_parents`, with a caveat stating that the two levels are
+overlapping samples rather than disjoint ones.
+
+Coverage after the rebuild: **17 of 17 tracked sectors, 390,947 rows, 3,492 names, 150 months**
+(2014-01 … 2026-06), up from 11 sectors and 325,279 rows.
 
 ### Published bands
 
@@ -384,17 +414,17 @@ conditioned, 154–1,351 observations per cell:
 | industrials | 12.78 | **24.20** | 45.31 |
 | information technology | 13.86 | **29.56** | 66.52 |
 
-The six **sub-industries** (banks, biotech, homebuilders, oil & gas E&P, semiconductors,
-software) have no panel observations and are reported as absent rather than silently zeroed —
-the panel is sector-level, and inventing a sub-industry band from its parent sector would be a
-different claim.
+The six **sub-industries** now band from the same fully-conditioned rung as the sectors above
+(§"The panel is hierarchical"): banks median 12.9, biotech 9.5, homebuilders 11.2, oil & gas E&P
+13.7, software 26.7, semiconductors 71.3 — each measured over its own names, not inherited from a
+parent sector.
 
 **The arithmetic leg is always computed** when the cost-of-capital and growth anchors are
 available, and it survives when the observed leg does not. It is a Gordon justified multiple,
 `payout / (CoE − g)`, and it withholds itself when `CoE − g` falls below `min_spread`, because a
 collapsed denominator describes the Gordon form breaking down, not a real multiple. It is
 reported in a separate field (`arithmetic_check`) so an arithmetic identity can never masquerade
-as a market observation. It is currently withheld: no *measured* cost of equity exists (§3.3a).
+as a market observation.
 
 ---
 
@@ -441,6 +471,7 @@ unreachable from the daily path — non-breaking by construction rather than by 
 
 ### 6.2a Verified against live ALFRED
 
+First verification window (2024-01 onward); superseded by the full-history backfill in §6.2b.
 Backfilled and validated 2026-09-20: **20 series × 29 as-of dates = 155,881 vintage rows, 0
 failed fetches** (2023-01-01 onward observation windows).
 
@@ -461,6 +492,111 @@ re-seasonalisation moved the CPI level — while a calendar-as-of read would hav
 `point_in_time` remains **opt-in and not enabled**. Flipping it is one config line, but it
 moves the factual basis of every historical diagnostic, so it is a judgement call backed by a
 validation window rather than a default.
+
+### 6.2b Full-history backfill and the PIT cutover, measured
+
+Completed 2026-09-20: **20 series × 437 monthly as-of dates (1990-01 .. 2026-05) = 8,579,643
+vintage rows, 0 failed fetches**. Three properties of the run are worth recording, because each
+one cost a failed attempt to learn:
+
+* **ALFRED latency is uneven per request, not per series.** The same series returned a 2015
+  vintage in 0.29 s and a 2018 vintage in 17–19 s (HTTP 200, no rate-limit headers). A serial
+  loop therefore ran at the speed of its worst request — ~4 requests/minute — which is how a
+  two-hour backfill became a day-long one. Fetches are now pooled (`--workers`, paced at 100
+  requests/minute against FRED's documented 120) and writes stay serial per series.
+* **"The series does not exist in ALFRED" is not a failure.** For a date before a series' archive
+  begins, ALFRED answers HTTP 400, not an empty list. Counting that as a failed fetch produced
+  3,154 phantom failures that buried the real ones, and contradicted the contract
+  `get_series_observations_vintage` already documented. It is now `NoVintageAvailable` →
+  an empty vintage.
+* **Archive depth is not uniform, and it decides the cutover.** Measured first-vintage date per
+  series: CPIAUCSL / HOUST / INDPRO / M2SL / PAYEMS / UNRATE from 1990; GDPPOT 1991-02; FEDFUNDS
+  1997-01; PCEPI 2000-08; DGS10 and DTB3 2005-07; DFII10 2005-11; ICSA 2009-06; NFCI 2011-06;
+  BAA10Y / T10Y2Y / T10YIE / T5YIFR 2014-02; THREEFYTP10 2016-06; BAMLH0A0HYM2 2023-10.
+
+`scripts/validate_pit_vs_calendar.py` builds the anchors twice at each as-of date — once per
+scoring mode, `write=False` so no published artifact is touched — and reports every leg that
+moves. Results:
+
+| as-of | legs that move | point-in-time outcome |
+| --- | --- | --- |
+| 1995-06-30, 2000-06-30 | 4/10 | risk-free curve **unmeasurable** (`not_yet_published`); ERP undefined |
+| 2008-06-30 | 10/10 | breakeven unmeasurable (T10YIE archive starts 2014-02) → ERP solve unavailable |
+| 2015-06-30 | 8/10 | fully measurable; term premium falls back to the DGS10 − DTB3 **proxy** |
+| 2020-06-30, 2024-06-30 | 7/10, 8/10 | fully measurable, `degraded=False` |
+| 2026-09-20 | 10/10 | fully measurable |
+
+Three findings decide the cutover:
+
+1. **The revision effect is real and points the right way.** At 2024-06-30 CPI yoy reads
+   **3.36% as published** against **2.97% as revised** (+39 bp). Inflating a 2024 regime
+   classification with a base that was rewritten afterwards is precisely the look-ahead this
+   mode removes.
+2. **PIT is only usable from 2014-02.** Before 2005 the risk-free curve does not exist in the
+   archive at all; between 2005 and 2014-02 the breakeven leg is missing, which removes the ERP
+   solve. Before 2016-06 the observed ACM term premium is unavailable and the anchor silently
+   changes *measurement* (proxy instead of observed). A calendar/PIT hybrid with a documented
+   2014-02 boundary is the honest configuration; a blanket switch would gut the pre-2014
+   diagnostic.
+3. **PIT inherits the vintage calendar's freshness.** The newest stored vintage is the
+   evaluation calendar's last date, 2026-05-01. Asking for a present-day read therefore
+   resolved DGS10 to 2026-04-30 against the calendar read's 2026-09-17 — a −54 bp difference
+   that is **staleness, not revision**. Running PIT in production requires fetching the current
+   vintage on every pipeline run, not only a monthly backfill.
+
+### 6.2c Keeping the archive current, and what the basis changes in the regime layer
+
+Three things had to be true before point-in-time could be the shipped basis rather than a
+validation tool, and each was a defect found by trying:
+
+* **The archive must reach the present.** `vintage_asof_dates` now adds TODAY and the newest stored
+  observation date to the evaluation calendar's month starts. Without them the newest vintage was
+  the calendar's last month start (2026-05-01) and a present-day build resolved the 10-year to
+  2026-04-30 — the −54 bp of §6.2b, i.e. staleness wearing the label "as published".
+* **Negative answers must be remembered.** ALFRED answers "the series does not exist in ALFRED" for
+  every date before a series' archive begins, and nothing recorded it, so each run re-asked all
+  **3,154** dead pairs: ~30 minutes at the 100 requests/minute pace, for zero new rows, every run.
+  They are now stored in `vintage_absence` (labelled `no_vintage_before_first_archive` when
+  derived from the archive's shape rather than from asking) and skipped by `resume`. A refresh of
+  the live archive went from ~32 minutes to **44 seconds**.
+* **The daily pipeline must refresh them.** A `vintages` step runs before `anchors` whenever the
+  configured basis is point-in-time, and the anchor build carries a **staleness gate**: if the
+  newest visible vintage is more than `point_in_time_max_lag_days` (7) before the as-of, all three
+  payloads degrade with a reason naming the lag. A stale basis is reported, never inferred.
+
+`scripts/validate_regime_basis.py` measures what the basis changes BELOW the anchors: it runs the
+`build-asof-features → build-dimensions → build-regimes` chain twice over identical stored data —
+once on a copy with `calendar_asof`, once on the live store with the shipped hybrid — and compares.
+Result over 437 evaluation dates:
+
+| measure | value |
+| --- | --- |
+| as-of feature cells | 7,429 |
+| cells whose value differs | 387 |
+| cells withheld under point-in-time | 39 (all from 2014-03 onward) |
+| cells point-in-time alone can evidence | **0** |
+| regime labels / probabilities / confidences that differ | **0 of 17 timeline columns** |
+
+Two things follow. Point-in-time is **strictly more conservative** — it never produces a value the
+calendar rule cannot, and withholds 39 cells the approximation would have supplied. And the regime
+timeline is unmoved: the 387 value changes are absorbed by the softmax without flipping a single
+dominant or reported regime. So the historical diagnostic's conclusions are unchanged while its
+inputs are now evidenced, which is the outcome that justifies the switch.
+
+### 6.2d The resolver must be told which series it is answering about
+
+The first validation run published **294.43 as the 10-year nominal Treasury yield**, and
+−294.33 as the implied ERP. The anchor builders handed `point_in_time_observation` the entire
+`raw_observation_vintages` table while every calendar-mode caller filtered its own series first;
+with ~20 series sharing one as-of calendar, "the newest observation in the newest vintage"
+returned whichever series sorted last. Every value was well-formed, so nothing downstream could
+detect it.
+
+`evaluation/asof.py::_single_series` now narrows to a named series and **raises** when it is
+handed a multi-series frame without one — a caller that cannot say which series it means cannot
+be answered correctly, and silence is indistinguishable from a measurement. All anchor call
+sites name their series; `tests/test_pit_no_lookahead.py` pins both the refusal and the
+single-series path.
 
 ### 6.3 The failure mode this avoids
 

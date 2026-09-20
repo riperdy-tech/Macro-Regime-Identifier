@@ -157,37 +157,58 @@ the discount rate by the whole equity premium.
 
 ### Impact audit (executed, controlled arms)
 
-`tools/audit_202608/c2_anchor_impact.py`, over the live book (170 names, 165 reverse-DCF). Each
-arm pins an explicit engine state — `(terminal growth, level offset)` — because an earlier
+`RS2 Local/_archive/retired_20260920/tools/audit_202608/c2_anchor_impact.py` (the audit tree was
+relocated when the v2.0 generation was archived), over the live book (170 names, 165 reverse-DCF).
+Each arm pins an explicit engine state — `(terminal growth, level offset)` — because an earlier
 version varied the anchor *inputs* and let the rest fall out, which stopped measuring anything
 once the calibration cache became anchor-dependent.
 
-| arm | terminal g | offset | median ΔMoS vs pre-anchor | ρ(mos) | brake-tier flips |
+| arm | terminal g | level offset | median ΔMoS vs pre-anchor | ρ(mos) | brake-tier flips |
 | --- | --- | --- | --- | --- | --- |
-| `pre_anchor` (baseline) | 0.025 | +1.7pt | — | — | — |
-| `anchor_g` (growth anchor alone) | 0.035 | +1.7pt | **+3.5 pts** | 1.0 | 1 |
-| `coherent` (**shipped state**) | 0.035 | +2.4pt | **−0.4 pts** | **1.0** | **0** |
+| `pre_anchor` (baseline: self-referential level, constant g) | 0.025 | +1.7pt | — | — | — |
+| `anchor_g` (growth anchor alone, level still self-referential) | 0.035 | +1.7pt | **+3.5 pts** | 1.0 | 1 |
+| `coherent` (**shipped state**: anchor level + anchor growth) | 0.035 | **−0.3pt** | **+19.8 pts** | **0.995** | **7** |
 
-**The finding: adopting the anchors is close to neutral in effect and strictly better in
-provenance.** The two changes partly offset — the richer perpetual rate lifts every name's fair
-value (+3.5 pts), and re-solving the self-referential level under that same rate lifts the
-discount level (−3.9 pts). Net: the median MoS moves **0.4 points**, the cross-sectional
-ordering is untouched (ρ = 1.0), and **not one brake tier changes**.
+Measured 2026-09-20 against the live anchor artifacts (`coe_source:
+anchor_implied_coe(universe,2026-09-20)`, `terminal_g: 0.035` from the growth anchor, 165
+reverse-DCF names).
 
-So the book concludes the same thing it concluded before, which is the outcome worth having:
-`TERMINAL_G` and the sector-table level were load-bearing constants whose removal changes no
-verdict, and they are now sourced, versioned and revisable.
+**Correction to the previous version of this table.** It reported the shipped row as
+`(0.035, +2.4pt)` with **−0.4 pts / ρ=1.0 / 0 flips**, and concluded that adopting the anchors was
+"close to neutral". That measurement was real but the row was mislabelled: `+2.4pt` is the
+**self-referential cache's** `level_offset_pts`, and `coe_offset_pts()` is anchor-first — when a
+usable anchor level exists it returns `anchor_level − table_mean` instead, which is **−0.3pt**
+here. So the arm described as "shipped" was in fact the pre-anchor level with the new growth rate,
+which is neutral by construction. The shipped state is the third row, and it is not neutral.
 
-### Impact audit
+**The finding, restated.** The growth anchor alone is close to neutral (+3.5 pts, one tier flip).
+Consuming the anchor's **level** is what moves the book: the discount rate falls from the
+self-referential 12.77% to the measured 9.18%, median margin of safety rises ~20 points, and
+**7 of 165 brake tiers change**. Ordering survives (ρ = 0.995) — it is a level effect, as
+predicted — but it is a large one, and 7 tier changes is not "no verdict changes".
 
-`tools/audit_202608/c2_anchor_impact.py` replays the book under four states — `table`,
-`anchor_coe`, `anchor_g`, `anchor_both` — and reports MoS percentiles (level effect),
-Spearman ρ of `mos_pct` and `expectations_gap_pts` against the pre-anchor baseline (ordering
-effect), and brake-tier flips (what the book would do differently), following
-`c1_discount_rate.py`. Scenarios whose anchor is unavailable are reported as
-`unavailable_scenarios` and **skipped rather than approximated** — measuring the impact of
-an anchor that does not exist would be worse than not measuring at all. In the current
-working copy all three anchor scenarios are therefore skipped, which is itself the finding.
+**Why the two levels disagree by ~3.6 pts, and why that is a live issue.** `build_coe_calibration`
+aggregates **net income** (a levered flow) while the engine discounts `NI + D&A − capex`. Since
+capex exceeds D&A for this book, the flow the engine discounts is SMALLER than net income, so the
+required return on it must be HIGHER than a premium solved against net income implies. Price/net
+income and price/(NI + D&A − capex) are different multiples, and an anchor solved on the first
+understates the discount rate for the second — which inflates fair value and margin of safety. The
+anchor is not wrong; it answers a different question than the engine asks.
+
+Until that basis mismatch is resolved, the level row above should be read as a measurement of the
+mismatch, not as an endorsement of the applied rate. The two defensible resolutions are to solve
+the ERP against the same cash-flow definition the engine discounts, or to keep the
+self-referential level (row 2) and consume only the growth anchor. Both are RS2 decisions.
+
+### Impact audit — superseded
+
+An earlier version of the audit replayed the book under four states (`table`, `anchor_coe`,
+`anchor_g`, `anchor_both`) and reported MoS percentiles, Spearman ρ and brake-tier flips, with
+scenarios whose anchor was unavailable **skipped rather than approximated**. That design was
+replaced by the controlled-arms audit above: varying an *input* and letting the rest fall out
+stopped measuring anything once the calibration cache became anchor-dependent, and "all scenarios
+unavailable" was a property of the harness, not of the anchors. The results in the table above
+are the current ones.
 
 ---
 
@@ -195,9 +216,10 @@ working copy all three anchor scenarios are therefore skipped, which is itself t
 
 1. Fix the inputs in §2 and re-run `macro-engine build-anchors` until
    `rs2_repair_package.json` reports `degraded: false`.
-2. Run `c2_anchor_impact.py` and read ρ before touching the engine. Expect a large level
-   effect and a high but not perfect rank correlation; a ρ near 1.0 with a large MoS shift
-   means the level moved uniformly, which is the designed behaviour.
+2. Run `c2_anchor_impact.py` (in `RS2 Local/_archive/retired_20260920/tools/audit_202608/`) and
+   read ρ before touching the engine. Expect a large level effect and a high but not perfect rank
+   correlation; a ρ near 1.0 with a large MoS shift means the level moved uniformly, which is the
+   designed behaviour.
 3. Adopt **terminal growth first**, alone. It is FRED-provable end to end (no equity-side
    dependency) and it is the single largest uniform lever on the expectations gap.
 4. Adopt the **cost-of-capital level** second, again alone, and re-run the audit. The level
@@ -216,8 +238,12 @@ Between every step: re-run the audit, and confirm that nothing downstream regres
   which remain in the code unchanged. Nothing else is required.
 * **Narrower:** set `anchor_max_age_days` to `0`, which makes every anchor stale and forces
   the fallback path without touching the artifacts.
-* **`point_in_time` scoring mode** is opt-in per configuration; reverting to
-  `calendar_asof` in `config/phase_b_sources.yaml` restores the previous factual basis.
+* **`point_in_time` scoring mode** is the configured basis (hybrid: point-in-time from
+  `point_in_time_start`, the calendar rule before it). Setting
+  `scoring_mode: calendar_asof` in `config/phase_b_sources.yaml` restores the previous factual
+  basis outright; setting `point_in_time_start: null` instead extends point-in-time to every
+  date — which, before 2014-02, EMPTIES the risk-free curve rather than upgrading it
+  (docs/ANCHOR_METHODOLOGY.md §6.2b).
 * No MRI output schema changed and no MRI artifact was removed, so **no MRI rollback is
   required** for any RS2-side rollback.
 

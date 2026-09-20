@@ -44,6 +44,56 @@ def _vintages() -> pd.DataFrame:
     return pd.concat([PAYEMS_PRE_REVISION, PAYEMS_POST_REVISION], ignore_index=True)
 
 
+def test_multi_series_vintages_without_a_series_id_refuse_to_answer():
+    """Regression: the resolver used to answer from whichever series sorted last.
+
+    The anchor builders handed point-in-time mode the WHOLE `raw_observation_vintages` table
+    (~20 series sharing one monthly as-of calendar) and never named a series, while every
+    calendar-mode caller filtered its own first. Measured consequence: point-in-time mode
+    published **294.43 as the 10-year nominal Treasury yield**, and an ERP of -294.33 derived
+    from it. Every value was well-formed, so nothing downstream could tell it was wrong.
+
+    Naming the series must give the named series; not naming it must stop, not guess.
+    """
+    frame = pd.concat(
+        [
+            PAYEMS_PRE_REVISION,
+            pd.DataFrame(
+                {
+                    "series_id": ["DGS10"] * 3,
+                    "date": pd.to_datetime(["2024-03-01", "2024-04-01", "2024-05-01"]),
+                    "value": [4.20, 4.50, 4.80],
+                    "realtime_start": pd.to_datetime(["2024-06-07"] * 3),
+                    "realtime_end": pd.to_datetime(["9999-12-31"] * 3),
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    with pytest.raises(ValueError, match="no series_id"):
+        point_in_time_observation(frame, "2024-06-15")
+    with pytest.raises(ValueError, match="no series_id"):
+        point_in_time_series(frame, "2024-06-15")
+    with pytest.raises(ValueError, match="no series_id"):
+        resolve_asof_observation(
+            mode="point_in_time", observations=frame, as_of="2024-06-15", vintages=frame
+        )
+
+    named = point_in_time_observation(frame, "2024-06-15", series_id="DGS10")
+    assert named is not None
+    assert float(named["value"]) == pytest.approx(4.80)
+    payems = point_in_time_series(frame, "2024-06-15", series_id="PAYEMS")
+    assert set(payems["value"]) == {156_000.0, 156_200.0, 156_400.0}
+
+
+def test_a_single_series_frame_still_answers_without_a_series_id():
+    """The guard must not break the ordinary one-series call (it did not need naming before)."""
+    row = point_in_time_observation(_vintages(), "2024-12-15")
+    assert row is not None
+    assert float(row["value"]) == pytest.approx(156_400.0)
+
+
 def test_as_of_before_the_revision_sees_the_as_published_value():
     """The whole point: a vintage read must not import the future revision."""
     row = point_in_time_observation(_vintages(), pd.Timestamp("2024-12-15"))
@@ -341,3 +391,90 @@ def test_a_partially_fetched_series_resumes_mid_way(tmp_path):
     assert [call[1] for call in top_up.calls] == ["2020-02-01", "2020-03-01"]
     assert summary.skipped_pairs == 1
     assert len(DuckDBStore(db).read_raw_observation_vintages()) == 3
+
+
+def test_a_failed_pair_does_not_abort_the_run(tmp_path):
+    """One dead request must cost one pair, never the hours already spent.
+
+    Regression: a transport fault escaped both the client's retry loop and this loop's
+    `except FredError`, so a ~6,500-request backfill died outright mid-run. A failure is now
+    recorded against its own (series, as-of), the remaining pairs still run, and because the
+    failed pair was never stored, `resume` picks it up on the next attempt.
+    """
+    from macro_engine.ingest.fred import FredError
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    class _FlakyClient(_CountingClient):
+        def __init__(self, dead):
+            super().__init__()
+            self.dead = set(dead)
+
+        def get_series_observations_vintage(self, series_id, as_of, **kwargs):
+            if (series_id, as_of) in self.dead:
+                self.calls.append((series_id, as_of))
+                raise FredError("FRED request failed after 5 retries: ReadTimeout")
+            return super().get_series_observations_vintage(series_id, as_of, **kwargs)
+
+    db = tmp_path / "macro.duckdb"
+    config = _sources_file(tmp_path, ["AAA", "BBB"])
+    dates = ["2020-01-01", "2020-02-01"]
+
+    flaky = _FlakyClient({("AAA", "2020-01-01")})
+    summary = run_fred_vintage_ingestion(
+        as_of_dates=dates, config_path=config, db_path=db,
+        parquet_dir=tmp_path / "p", client=flaky,
+    )
+    assert summary.failed_count == 1
+    # Everything else still landed: the other pair of AAA and all of BBB.
+    assert summary.vintage_rows == 3
+    stored = DuckDBStore(db).read_raw_observation_vintages()
+    assert set(zip(stored["series_id"], stored["date"].astype(str))) == {
+        ("AAA", "2020-02-01"),
+        ("BBB", "2020-01-01"),
+        ("BBB", "2020-02-01"),
+    }
+
+    # The failure was not swallowed: resume asks for exactly the pair that is missing.
+    retry = _CountingClient()
+    resumed = run_fred_vintage_ingestion(
+        as_of_dates=dates, config_path=config, db_path=db,
+        parquet_dir=tmp_path / "p", client=retry,
+    )
+    assert retry.calls == [("AAA", "2020-01-01")]
+    assert resumed.skipped_pairs == 3
+    assert resumed.vintage_rows == 1
+
+
+def test_concurrent_fetch_stores_the_same_rows_in_date_order(tmp_path):
+    """Concurrency must change only the speed, never the contents or the bookkeeping.
+
+    ALFRED latency is uneven per request (0.3 s for one vintage, 17-19 s for another in the
+    same series), so the fetch is pooled. The write stays serial and the per-pair reporting
+    stays date-ordered, so summaries and `resume` behave identically at any worker count.
+    """
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    db = tmp_path / "macro.duckdb"
+    config = _sources_file(tmp_path, ["AAA"])
+    dates = [f"2020-{month:02d}-01" for month in range(1, 9)]
+
+    client = _CountingClient()
+    summary = run_fred_vintage_ingestion(
+        as_of_dates=dates, config_path=config, db_path=db,
+        parquet_dir=tmp_path / "p", client=client, max_workers=4,
+    )
+    assert summary.vintage_rows == len(dates)
+    assert sorted(call[1] for call in client.calls) == dates
+    stored = DuckDBStore(db).read_raw_observation_vintages()
+    assert sorted(stored["date"].astype(str)) == dates
+
+    # And the concurrent run is as resumable as the serial one.
+    second = _CountingClient()
+    again = run_fred_vintage_ingestion(
+        as_of_dates=dates, config_path=config, db_path=db,
+        parquet_dir=tmp_path / "p", client=second, max_workers=4,
+    )
+    assert second.calls == []
+    assert again.skipped_pairs == len(dates)
