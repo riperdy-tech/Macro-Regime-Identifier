@@ -41,7 +41,12 @@ from pathlib import Path
 _SCRIPT_DIR = Path(__file__).resolve().parent
 _REPO_ROOT = _SCRIPT_DIR.parent
 
-DEFAULT_DATA_DIR = Path(r"C:\Users\riper\Downloads\Stock Screener\Stock Screener\public\data")
+sys.path.insert(0, str(_REPO_ROOT / "src"))
+from macro_engine import peer_paths  # noqa: E402  peer-repo locations
+
+# Resolved, not hardcoded: see src/macro_engine/peer_paths.py. None when no screener
+# checkout is reachable, in which case --data-dir is required.
+DEFAULT_DATA_DIR = peer_paths.screener_data_dir()
 DEFAULT_OUT = "data/anchors/equity_aggregate.json"
 
 MIN_CONSTITUENTS = 30

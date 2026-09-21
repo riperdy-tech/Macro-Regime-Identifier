@@ -13,6 +13,7 @@ from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.news.config import load_news_ai_config
 from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.operations_config import load_daily_pipeline_config
+from macro_engine import peer_paths
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 _ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
@@ -209,7 +210,9 @@ def _anchor_age_limit() -> int:
     MRI must not invent its own number here: the consumer already decides how old is too old
     (`anchor_max_age_days`), and two limits would eventually disagree.
     """
-    rs2_config = Path(os.getenv("RS2_CONFIG_PATH", r"C:\Users\riper\Downloads\RS2 Local\config.json"))
+    rs2_config = peer_paths.rs2_config_path()
+    if rs2_config is None:
+        return 45
     try:
         payload = json.loads(rs2_config.read_text(encoding="utf-8"))
         value = payload.get("anchor_max_age_days")
