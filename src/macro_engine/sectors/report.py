@@ -127,16 +127,28 @@ def build_current_sector_report(
     latest = latest_scores.iloc[0]
     return _json_safe(
         {
+            "schema_version": 2,
             "valid": True,
             "date": str(latest_date.date()),
             "reported_macro_regime": latest["macro_reported_regime"],
             "raw_macro_leader": latest["macro_raw_dominant_regime"],
             "macro_confidence": macro_confidence,
+            # S1.2 (P0_0 §2.5 / §1.3.2): copied from Layer 1, same owner semantics as
+            # current_regime.json -- neither is multiplied into a score here.
+            "coverage": _to_float(latest.get("macro_coverage")),
+            "peakedness": _to_float(latest.get("macro_peakedness")),
             "sector_ranking": ranking,
             "subindustry_ranking": subindustry_ranking,
             "top_macro_supported_sectors": top_supported,
             "top_macro_pressured_sectors": top_pressured,
             "warnings": warnings,
+            "deprecations": [
+                "raw_sector_score and confidence_adjusted_score are v1 aliases for tilt_score "
+                "(S1.2: the confidence multiplier is deleted, so all three are now the same "
+                "value); will be removed in schema 3.",
+                "macro_confidence is a v1 alias for peakedness * coverage; removed in schema 3. "
+                "Use coverage and peakedness separately -- neither is a multiplier.",
+            ],
             "disclaimer": SECTOR_DISCLAIMER,
         }
     )
@@ -238,6 +250,10 @@ def _sector_rank_record(
         "proxy_ticker": sector.proxy_ticker,
         "parent_sector_id": sector.parent_sector_id,
         "rank": int(row["rank"]),
+        # S1.2 (P0_0 §2.5 / §1.3.2): tilt_score is the un-multiplied score and the schema-2
+        # field name; raw_sector_score and confidence_adjusted_score are kept, populated with
+        # the same value, as deprecated v1 aliases now that the confidence multiplier is gone.
+        "tilt_score": _to_float(row["confidence_adjusted_score"]),
         "raw_sector_score": _to_float(row["raw_sector_score"]),
         "confidence_adjusted_score": _to_float(row["confidence_adjusted_score"]),
         "macro_reported_regime": row["macro_reported_regime"],

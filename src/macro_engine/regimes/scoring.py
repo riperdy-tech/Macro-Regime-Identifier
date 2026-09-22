@@ -220,6 +220,8 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
                     "dominant_regime": None,
                     "dominant_probability": None,
                     "confidence": None,
+                    "coverage": None,
+                    "peakedness": None,
                     "entropy": None,
                     "valid_regime_count": 0,
                     "reason": "no_valid_regimes",
@@ -231,12 +233,14 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
         top_probability = float(top["probability"])
         average_coverage = float(valid["coverage_ratio"].mean())
         entropy = _entropy(valid["probability"].astype(float).tolist())
-        # Confidence = how PEAKED the regime distribution is, normalized by the
-        # number of regimes, times data coverage. The old raw top-2 probability
-        # gap pinned near zero over a 5-way softmax (a clear plurality leader
-        # still read ~5%); normalized peakedness gives an interpretable 0..1
-        # signal (uniform -> 0, single regime -> 1).
-        confidence = _normalized_peakedness(entropy, int(len(valid))) * average_coverage
+        # S1.2 (P0_0 §2.5): confidence used to be the one published number -- a
+        # data-completeness fact (coverage) multiplied by a distribution-shape fact
+        # (peakedness) -- and a downstream consumer then treated the product as a
+        # magnitude multiplier. coverage and peakedness are now published separately;
+        # `confidence` is kept, computed the same way, as a deprecated alias for one
+        # release (no consumer may treat it as a multiplier going forward).
+        peakedness = _normalized_peakedness(entropy, int(len(valid)))
+        confidence = peakedness * average_coverage
         rows.append(
             {
                 "date": pd.Timestamp(date).date(),
@@ -244,6 +248,8 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
                 "dominant_regime": top["regime_id"],
                 "dominant_probability": top_probability,
                 "confidence": confidence,
+                "coverage": average_coverage,
+                "peakedness": peakedness,
                 "entropy": entropy,
                 "valid_regime_count": int(len(valid)),
                 "reason": "ok",
@@ -343,6 +349,8 @@ def _health_columns() -> list[str]:
         "dominant_regime",
         "dominant_probability",
         "confidence",
+        "coverage",
+        "peakedness",
         "entropy",
         "valid_regime_count",
         "reason",

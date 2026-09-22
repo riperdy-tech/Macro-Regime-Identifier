@@ -56,7 +56,7 @@ def _toy_sector_config() -> SectorConfig:
                 "utilities": 0.4,
             },
         },
-        scoring=SectorScoringConfig(min_multiplier=0.40, max_multiplier=1.00),
+        scoring=SectorScoringConfig(),
     )
 
 
@@ -83,7 +83,7 @@ def _toy_sector_config_with_sub_industry() -> SectorConfig:
             "reflation": {"energy": 0.4, "utilities": -0.2, "oil_gas_ep": 0.9},
             "recession": {"energy": -0.2, "utilities": 0.4, "oil_gas_ep": -0.9},
         },
-        scoring=SectorScoringConfig(min_multiplier=0.40, max_multiplier=1.00),
+        scoring=SectorScoringConfig(),
     )
 
 
@@ -273,7 +273,8 @@ def test_sector_scoring_is_deterministic_and_stores_components():
     energy = result.sector_scores[result.sector_scores["sector_id"] == "energy"].iloc[0]
     assert bool(energy["valid"]) is True
     assert energy["raw_sector_score"] == pytest.approx(1.32)
-    assert energy["confidence_adjusted_score"] == pytest.approx(0.726)
+    # S1.2: no confidence multiplier -- confidence_adjusted_score equals raw_sector_score.
+    assert energy["confidence_adjusted_score"] == pytest.approx(1.32)
     assert energy["rank"] == 1
     assert len(result.components[result.components["sector_id"] == "energy"]) == 4
     assert set(result.components["component_type"]) == {"regime_prior", "dimension_exposure"}
@@ -315,7 +316,11 @@ def test_report_splits_sector_and_subindustry_rankings():
     assert payload["subindustry_ranking"][0]["parent_sector_id"] == "energy"
 
 
-def test_low_macro_confidence_reduces_adjusted_sector_score():
+def test_macro_confidence_no_longer_changes_sector_score():
+    # S1.2 (P0_0 §2.5): the confidence multiplier is deleted. Macro confidence is still
+    # recorded on the row for information, but confidence_adjusted_score == raw_sector_score
+    # regardless of its value -- the pre-S1.2 floor that let a near-zero-confidence read
+    # still tilt the score at 40% of full strength is gone.
     high = build_sector_scores(
         regime_scores=_regime_scores(),
         regime_health=_regime_health(),
@@ -333,8 +338,16 @@ def test_low_macro_confidence_reduces_adjusted_sector_score():
 
     high_energy = high.sector_scores[high.sector_scores["sector_id"] == "energy"].iloc[0]
     low_energy = low.sector_scores[low.sector_scores["sector_id"] == "energy"].iloc[0]
-    assert low_energy["confidence_adjusted_score"] < high_energy["confidence_adjusted_score"]
-    assert low_energy["confidence_adjusted_score"] == pytest.approx(0.528)
+    assert low_energy["confidence_adjusted_score"] == pytest.approx(high_energy["confidence_adjusted_score"])
+    assert low_energy["confidence_adjusted_score"] == pytest.approx(low_energy["raw_sector_score"])
+    assert low_energy["confidence_adjusted_score"] == pytest.approx(1.32)
+    assert low_energy["macro_confidence"] == pytest.approx(0.00)
+    assert high_energy["macro_confidence"] == pytest.approx(0.80)
+
+
+def test_sector_scoring_config_rejects_legacy_multiplier_keys():
+    with pytest.raises(Exception):
+        SectorScoringConfig(min_multiplier=0.40, max_multiplier=1.00)
 
 
 def test_sector_health_captures_missing_macro_inputs():

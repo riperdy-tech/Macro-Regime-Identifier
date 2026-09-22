@@ -67,7 +67,6 @@ def build_sector_scores(
                 date=date,
                 macro_row=macro_row,
                 components=sector_components,
-                config=config,
             )
             date_score_rows.append(score_row)
             health_rows.append(_sector_health_row(score_row, sector_components))
@@ -99,6 +98,11 @@ def _macro_date_frame(regime_health: pd.DataFrame, timeline: pd.DataFrame) -> pd
                         "macro_confidence": row.get("raw_confidence")
                         if pd.notna(row.get("raw_confidence"))
                         else row.get("confidence"),
+                        # S1.2 (P0_0 §2.5 / §1.3.2): coverage and peakedness are Layer-1
+                        # properties of the date, copied onto the sector artifact with the
+                        # same owner semantics as current_regime.json -- never multiplied.
+                        "macro_coverage": row.get("coverage"),
+                        "macro_peakedness": row.get("peakedness"),
                     }
                     for row in valid.sort_values("date").to_dict(orient="records")
                 ]
@@ -110,6 +114,8 @@ def _macro_date_frame(regime_health: pd.DataFrame, timeline: pd.DataFrame) -> pd
                 "macro_reported_regime",
                 "macro_raw_dominant_regime",
                 "macro_confidence",
+                "macro_coverage",
+                "macro_peakedness",
             ]
         )
     frame = regime_health.copy()
@@ -122,6 +128,8 @@ def _macro_date_frame(regime_health: pd.DataFrame, timeline: pd.DataFrame) -> pd
                 "macro_reported_regime": row.get("dominant_regime"),
                 "macro_raw_dominant_regime": row.get("dominant_regime"),
                 "macro_confidence": row.get("confidence"),
+                "macro_coverage": row.get("coverage"),
+                "macro_peakedness": row.get("peakedness"),
             }
             for row in valid.sort_values("date").to_dict(orient="records")
         ]
@@ -210,7 +218,6 @@ def _sector_score_row(
     date: pd.Timestamp,
     macro_row: dict,
     components: list[dict],
-    config: SectorConfig,
 ) -> dict:
     valid_components = [component for component in components if component["valid"]]
     missing_components = [
@@ -232,8 +239,12 @@ def _sector_score_row(
     )
     raw_score = regime_prior_score + dimension_exposure_score if valid else None
     macro_confidence = _optional_float(macro_row.get("macro_confidence"))
-    multiplier = _confidence_multiplier(macro_confidence, config)
-    adjusted = None if raw_score is None else raw_score * multiplier
+    # S1.2 (P0_0 §2.5): the confidence multiplier is deleted. A null macro read used to
+    # still tilt the research budget at the 0.40 floor -- clean-store measurement showed
+    # the floor doing almost all of the work in the live quota table. `confidence_adjusted_score`
+    # is kept, populated with the unmultiplied score, as the deprecated v1 alias for
+    # `tilt_score` (added at the report layer, since the two columns are now identical).
+    adjusted = raw_score
     return {
         "sector_id": sector.sector_id,
         "date": date.date(),
@@ -243,6 +254,8 @@ def _sector_score_row(
         "macro_reported_regime": macro_row.get("macro_reported_regime"),
         "macro_raw_dominant_regime": macro_row.get("macro_raw_dominant_regime"),
         "macro_confidence": macro_confidence,
+        "macro_coverage": _optional_float(macro_row.get("macro_coverage")),
+        "macro_peakedness": _optional_float(macro_row.get("macro_peakedness")),
         "valid": valid,
         "reason": reason,
     }
@@ -285,15 +298,6 @@ def _sector_health_row(score_row: dict, components: list[dict]) -> dict:
     }
 
 
-def _confidence_multiplier(confidence: float | None, config: SectorConfig) -> float:
-    if confidence is None:
-        clamped = 0.0
-    else:
-        clamped = max(0.0, min(float(confidence), 1.0))
-    span = config.scoring.max_multiplier - config.scoring.min_multiplier
-    return config.scoring.min_multiplier + (span * clamped)
-
-
 def _optional_float(value) -> float | None:
     if value is None or pd.isna(value):
         return None
@@ -334,6 +338,8 @@ def _score_columns() -> list[str]:
         "macro_reported_regime",
         "macro_raw_dominant_regime",
         "macro_confidence",
+        "macro_coverage",
+        "macro_peakedness",
         "valid",
         "reason",
     ]

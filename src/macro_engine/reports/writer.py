@@ -57,17 +57,30 @@ def build_current_regime_report(
     latest_dimensions = dimension_scores[dimension_scores["date"] == latest_date]
     invalid_dimensions = latest_dimensions[~latest_dimensions["valid"]]
     payload = {
+        "schema_version": 2,
         "valid": True,
         "date": str(latest_date),
         "dominant_regime": dominant,
         "dominant_probability": _to_float(reported["reported_regime_probability"]),
+        # S1.2 (P0_0 §2.5): confidence was `peakedness * coverage`, a data-completeness
+        # fact multiplied by a distribution-shape fact, then used downstream as a
+        # magnitude multiplier. coverage and peakedness are now published separately
+        # below; confidence/reported_confidence/raw_confidence are kept, computed the
+        # same way, as deprecated v1 aliases for one release (removed in schema 3).
         "confidence": _to_float(reported["reported_confidence"]),
+        "coverage": _to_float(latest.get("coverage")),
+        "peakedness": _to_float(latest.get("peakedness")),
         "reported_regime": dominant,
         "reported_regime_probability": _to_float(reported["reported_regime_probability"]),
         "reported_confidence": _to_float(reported["reported_confidence"]),
         "raw_dominant_regime": latest["dominant_regime"],
         "raw_dominant_probability": _to_float(latest["dominant_probability"]),
         "raw_confidence": _to_float(latest["confidence"]),
+        "deprecations": [
+            "confidence, reported_confidence and raw_confidence are v1 aliases for "
+            "peakedness * coverage; removed in schema 3. Use coverage and peakedness "
+            "separately -- neither is a multiplier.",
+        ],
         "regime_probabilities": {
             row["regime_id"]: _to_float(row["probability"])
             for row in latest_scores.to_dict(orient="records")

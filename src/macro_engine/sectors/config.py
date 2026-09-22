@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 import yaml
 
 from macro_engine.regimes.config import load_regime_config
@@ -22,8 +22,12 @@ class SectorDefinition(BaseModel):
 
 
 class SectorScoringConfig(BaseModel):
-    min_multiplier: float = Field(default=0.40, ge=0)
-    max_multiplier: float = Field(default=1.00, ge=0)
+    # S1.2 (P0_0 §2.5): min_multiplier/max_multiplier are deleted, not renamed. The clean
+    # S0 store measured the confidence*peakedness product at mean 0.197 / median 0.152, with
+    # the 2026-09-01 value 0.0226 -- so the 0.40 floor alone was setting the live sector
+    # quota table's multiplier on 73%+ of days. `extra="forbid"` makes a config that still
+    # sets either key fail loudly instead of the key being silently ignored.
+    model_config = ConfigDict(extra="forbid")
 
 
 class SectorConfig(BaseModel):
