@@ -69,6 +69,7 @@ def run_daily_diagnostic(
     archive: bool | None = None,
     continue_on_warning: bool = False,
     services: dict[str, Callable] | None = None,
+    output_dir: str | Path = "outputs",
 ) -> DailyDiagnosticResult:
     config = load_daily_pipeline_config(config_path)
     services = services or {}
@@ -255,7 +256,7 @@ def run_daily_diagnostic(
         generated_paths=outputs,
         archive_path=None,
     )
-    summary_json, summary_md = write_daily_summary(summary_payload)
+    summary_json, summary_md = write_daily_summary(summary_payload, output_dir)
     outputs.extend([str(summary_json), str(summary_md)])
     timeline_json = write_regime_timeline(store, Path(summary_json).parent)
     outputs.append(str(timeline_json))
@@ -275,7 +276,7 @@ def run_daily_diagnostic(
             archive_root=config.outputs.archive_root,
         )
         summary_payload["archive_path"] = archive_path
-        summary_json, summary_md = write_daily_summary(summary_payload)
+        summary_json, summary_md = write_daily_summary(summary_payload, output_dir)
         shutil.copy2(summary_json, Path(archive_path) / summary_json.name)
         shutil.copy2(summary_md, Path(archive_path) / summary_md.name)
 

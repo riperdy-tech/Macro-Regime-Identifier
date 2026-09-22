@@ -257,9 +257,10 @@ def test_source_coverage_report_and_cli(tmp_path: Path):
     store = DuckDBStore(db_path)
     store.initialize()
     store.upsert_news_items(_news_items())
+    watchlist_config = _news_source_watchlist_config(tmp_path)
 
     payload = build_news_source_coverage_report(
-        config_path="config/news_source_watchlist.yaml",
+        config_path=watchlist_config,
         db_path=db_path,
     )
     assert payload["valid"] is True
@@ -269,7 +270,7 @@ def test_source_coverage_report_and_cli(tmp_path: Path):
     assert "labor" in payload["missing_data_groups"]
 
     json_path, markdown_path = write_news_source_coverage_report(
-        config_path="config/news_source_watchlist.yaml",
+        config_path=watchlist_config,
         db_path=db_path,
     )
     assert json.loads(json_path.read_text(encoding="utf-8"))["valid"] is True
@@ -297,7 +298,13 @@ def test_source_coverage_report_and_cli(tmp_path: Path):
     assert coverage_cli.exit_code == 0, coverage_cli.output
     write_cli = runner.invoke(
         app,
-        ["write-news-source-coverage-report", "--db-path", str(db_path)],
+        [
+            "write-news-source-coverage-report",
+            "--config",
+            str(watchlist_config),
+            "--db-path",
+            str(db_path),
+        ],
     )
     assert write_cli.exit_code == 0, write_cli.output
 
@@ -371,6 +378,21 @@ def test_scheduled_run_artifacts_exist():
     assert runbook.exists()
     assert "run-daily-diagnostic" in ps1.read_text(encoding="utf-8")
     assert "logs/daily" in runbook.read_text(encoding="utf-8")
+
+
+def _news_source_watchlist_config(tmp_path: Path) -> Path:
+    # write_news_source_coverage_report reads output_dir from this file directly; the
+    # real config/news_source_watchlist.yaml points at the repo's own outputs/, so a
+    # test writer needs its own copy with output_dir redirected to tmp_path.
+    text = Path("config/news_source_watchlist.yaml").read_text(encoding="utf-8")
+    text = text.replace(
+        "output_dir: outputs",
+        f"output_dir: {(tmp_path / 'outputs').as_posix()}",
+        1,
+    )
+    path = tmp_path / "news_source_watchlist.yaml"
+    path.write_text(text, encoding="utf-8")
+    return path
 
 
 def _news_items() -> pd.DataFrame:

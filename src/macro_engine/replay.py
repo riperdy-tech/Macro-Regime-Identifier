@@ -113,6 +113,7 @@ def replay_news_history(
             mock_ai=mock_ai,
             archive=archive,
             services=run_services,
+            output_dir=temp_dir,
         )
         _mark_daily_summary_as_replay(
             result=result,

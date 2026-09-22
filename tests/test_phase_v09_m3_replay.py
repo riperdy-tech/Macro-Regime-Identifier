@@ -248,9 +248,9 @@ news:
   enabled: true
   source_profile: replay_local_csv
   news_sources_config: unused.yaml
-  news_ai_config: config/news_ai.yaml
+  news_ai_config: {_news_ai_config(tmp_path).as_posix()}
   news_themes_config: config/news_themes.yaml
-  news_scoring_config: config/news_scoring.yaml
+  news_scoring_config: {_news_scoring_config(tmp_path).as_posix()}
   allow_live_ai: false
   mock_mode_default: true
 combined:
@@ -262,6 +262,37 @@ outputs:
   archive_root: {(tmp_path / "outputs" / "archive").as_posix()}
 safety:
   allow_success_with_warnings: true
+""",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _news_ai_config(tmp_path: Path) -> Path:
+    # A CLI-driven replay run has no way to inject a `services` mock, so the real
+    # write_news_report writer runs and reads this file's own output_dir -- it must
+    # not be the repo's real config/news_ai.yaml, whose output_dir is "outputs".
+    path = tmp_path / "news_ai.yaml"
+    path.write_text(
+        f"""
+ai:
+  provider: mock
+  mock_mode: true
+  output_dir: {(tmp_path / "outputs").as_posix()}
+""",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _news_scoring_config(tmp_path: Path) -> Path:
+    # Same reasoning as _news_ai_config: write_news_score_report reads output_dir
+    # from this file directly, independent of run_daily_diagnostic's own output_dir.
+    path = tmp_path / "news_scoring.yaml"
+    path.write_text(
+        f"""
+news_scoring:
+  output_dir: {(tmp_path / "outputs").as_posix()}
 """,
         encoding="utf-8",
     )

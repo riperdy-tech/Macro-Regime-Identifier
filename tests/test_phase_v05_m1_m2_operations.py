@@ -52,6 +52,7 @@ def test_run_daily_diagnostic_with_mocked_services(tmp_path: Path):
         run_date="2026-05-18",
         archive=True,
         services=services,
+        output_dir=tmp_path / "outputs",
     )
     store = DuckDBStore(db_path)
     store.initialize()
@@ -113,6 +114,7 @@ def test_run_daily_diagnostic_reports_success_with_warnings_when_features_are_st
         db_path=db_path,
         run_date="2026-09-22",
         services=services,
+        output_dir=tmp_path / "outputs",
     )
 
     assert result.status == "success_with_warnings"
@@ -134,6 +136,7 @@ def test_run_daily_diagnostic_records_guardrail_failure(tmp_path: Path):
         run_date="2026-05-18",
         archive=False,
         services=services,
+        output_dir=tmp_path / "outputs",
     )
 
     assert result.status == "failed"
@@ -157,6 +160,7 @@ def test_run_daily_diagnostic_live_ai_uses_bounded_classification(tmp_path: Path
         run_date="2026-05-19",
         live_ai=True,
         services=services,
+        output_dir=tmp_path / "outputs",
     )
 
     assert result.status == "success"
@@ -183,6 +187,7 @@ def test_run_daily_diagnostic_live_ai_can_lower_batch_limit(tmp_path: Path):
         live_ai=True,
         max_live_items=7,
         services=services,
+        output_dir=tmp_path / "outputs",
     )
 
     assert result.status == "success"
@@ -207,6 +212,7 @@ def test_run_daily_diagnostic_live_ai_cannot_raise_config_limit(tmp_path: Path):
         live_ai=True,
         max_live_items=100,
         services=services,
+        output_dir=tmp_path / "outputs",
     )
 
     assert result.status == "success"
