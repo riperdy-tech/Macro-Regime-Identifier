@@ -14,6 +14,11 @@ class SectorDefinition(BaseModel):
     label: str
     proxy_ticker: str | None = None
     enabled: bool = True
+    # S1.5 (P0_0 §1.3.2): set only on the six sub-industries carved from a parent GICS
+    # sector (`config/sector_exposures.yaml` comments name the same parents). None for the
+    # 11 GICS-level sectors themselves. Used to rank the two cross-sections separately
+    # instead of pooling parents and sub-industries into one 17-row ranking.
+    parent_sector_id: str | None = None
 
 
 class SectorScoringConfig(BaseModel):
@@ -106,6 +111,17 @@ def _validate_sector_config(
     active_sector_ids = {sector.sector_id for sector in config.sectors if sector.enabled}
     if not active_sector_ids:
         raise ValueError("at least one active sector is required")
+
+    for sector in config.sectors:
+        if sector.parent_sector_id is None:
+            continue
+        if sector.parent_sector_id == sector.sector_id:
+            raise ValueError(f"sector {sector.sector_id} cannot be its own parent_sector_id")
+        if sector.parent_sector_id not in sector_ids:
+            raise ValueError(
+                f"sector {sector.sector_id} has unknown parent_sector_id "
+                f"{sector.parent_sector_id!r}"
+            )
 
     exposure_sector_ids = set(config.exposures)
     missing_exposures = sorted(active_sector_ids - exposure_sector_ids)

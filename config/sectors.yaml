@@ -64,28 +64,34 @@ sectors:
     label: Semiconductors
     proxy_ticker: SMH
     enabled: true
+    parent_sector_id: information_technology
 
   - sector_id: software
     label: Software & SaaS
     proxy_ticker: IGV
     enabled: true
+    parent_sector_id: information_technology
 
   - sector_id: banks
     label: Banks
     proxy_ticker: KBE
     enabled: true
+    parent_sector_id: financials
 
   - sector_id: biotech
     label: Biotechnology
     proxy_ticker: XBI
     enabled: true
+    parent_sector_id: health_care
 
   - sector_id: homebuilders
     label: Homebuilders
     proxy_ticker: XHB
     enabled: true
+    parent_sector_id: consumer_discretionary
 
   - sector_id: oil_gas_ep
     label: Oil & Gas E&P
     proxy_ticker: XOP
     enabled: true
+    parent_sector_id: energy

@@ -84,17 +84,31 @@ def build_current_sector_report(
         latest_health["date"] = pd.to_datetime(latest_health["date"], errors="coerce")
         latest_health = latest_health[latest_health["date"] == latest_date]
     sector_lookup = {sector.sector_id: sector for sector in config.sectors}
-    ranking = [
+    all_ranking = [
         _sector_rank_record(row, sector_lookup, latest_components, max_contributors)
         for row in latest_scores.to_dict(orient="records")
     ]
-    top_supported = [
-        item for item in ranking if item["confidence_adjusted_score"] is not None
-        and item["confidence_adjusted_score"] > 0
-    ][:max_contributors]
+    # S1.5 (P0_0 §1.3.2): two ranked blocks, not one pooled 17-row cross-section. A
+    # sub-industry is any sector whose config carries a parent_sector_id.
+    ranking = [item for item in all_ranking if sector_lookup[item["sector_id"]].parent_sector_id is None]
+    subindustry_ranking = [
+        item for item in all_ranking if sector_lookup[item["sector_id"]].parent_sector_id is not None
+    ]
+    # top_supported/top_pressured are highlights, not the ranked cross-section, so they keep
+    # drawing from every scored sector (both blocks) as before S1.5. Sorted explicitly by
+    # score rather than relying on list order: `rank` is no longer a single 1..17 sequence
+    # once S1.5 ranks the two blocks separately (a parent and a sub-industry can share a
+    # rank), so slicing pre-sorted-by-rank order would no longer mean sorted-by-score order.
+    top_supported = sorted(
+        [
+            item for item in all_ranking if item["confidence_adjusted_score"] is not None
+            and item["confidence_adjusted_score"] > 0
+        ],
+        key=lambda item: (-item["confidence_adjusted_score"], item["sector_id"]),
+    )[:max_contributors]
     top_pressured = sorted(
         [
-            item for item in ranking if item["confidence_adjusted_score"] is not None
+            item for item in all_ranking if item["confidence_adjusted_score"] is not None
             and item["confidence_adjusted_score"] < 0
         ],
         key=lambda item: (item["confidence_adjusted_score"], item["sector_id"]),
@@ -119,6 +133,7 @@ def build_current_sector_report(
             "raw_macro_leader": latest["macro_raw_dominant_regime"],
             "macro_confidence": macro_confidence,
             "sector_ranking": ranking,
+            "subindustry_ranking": subindustry_ranking,
             "top_macro_supported_sectors": top_supported,
             "top_macro_pressured_sectors": top_pressured,
             "warnings": warnings,
@@ -140,6 +155,16 @@ def current_sector_report_markdown(payload: dict[str, Any]) -> str:
         )
         for item in payload["sector_ranking"]
     )
+    subindustry_ranking = "\n".join(
+        "- {rank}. {label} ({sector_id}): adjusted {adjusted:.3f}, raw {raw:.3f}".format(
+            rank=item["rank"],
+            label=item["label"],
+            sector_id=item["sector_id"],
+            adjusted=item["confidence_adjusted_score"],
+            raw=item["raw_sector_score"],
+        )
+        for item in payload.get("subindustry_ranking", [])
+    ) or "- None"
     supported = "\n".join(
         f"- {item['label']}: positive macro tailwind score {item['confidence_adjusted_score']:.3f}"
         for item in payload["top_macro_supported_sectors"]
@@ -162,6 +187,13 @@ Macro confidence: {payload["macro_confidence"]:.3f}
 ## Sector Ranking
 
 {ranking}
+
+## Sub-Industry Ranking
+
+Ranked among the six sub-industries only, not against their parent GICS sector (P0_0 §1.3.2 /
+review N4).
+
+{subindustry_ranking}
 
 ## Top Macro-Supported Sectors
 
@@ -204,6 +236,7 @@ def _sector_rank_record(
         "sector_id": sector_id,
         "label": sector.label,
         "proxy_ticker": sector.proxy_ticker,
+        "parent_sector_id": sector.parent_sector_id,
         "rank": int(row["rank"]),
         "raw_sector_score": _to_float(row["raw_sector_score"]),
         "confidence_adjusted_score": _to_float(row["confidence_adjusted_score"]),

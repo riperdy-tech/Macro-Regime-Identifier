@@ -35,6 +35,10 @@ def build_sector_scores(
     health_rows: list[dict] = []
 
     active_sectors = [sector for sector in config.sectors if sector.enabled]
+    # S1.5 (P0_0 §1.3.2): the 6 sub-industries are carved from a parent GICS sector and
+    # near-collinear with it, so they rank among themselves, never pooled with the 11
+    # GICS-level sectors into one cross-section.
+    sub_industry_ids = {sector.sector_id for sector in config.sectors if sector.parent_sector_id}
     for macro_row in macro_dates.to_dict(orient="records"):
         date = pd.Timestamp(macro_row["date"])
         date_regimes = regime_frame[
@@ -67,7 +71,7 @@ def build_sector_scores(
             )
             date_score_rows.append(score_row)
             health_rows.append(_sector_health_row(score_row, sector_components))
-        _rank_sector_rows(date_score_rows)
+        _rank_sector_rows(date_score_rows, sub_industry_ids)
         component_rows.extend(date_component_rows)
         score_rows.extend(date_score_rows)
 
@@ -244,14 +248,23 @@ def _sector_score_row(
     }
 
 
-def _rank_sector_rows(rows: list[dict]) -> None:
-    valid_rows = [row for row in rows if row["valid"] and row["confidence_adjusted_score"] is not None]
-    ranked = sorted(
-        valid_rows,
-        key=lambda row: (-float(row["confidence_adjusted_score"]), row["sector_id"]),
-    )
-    for rank, row in enumerate(ranked, start=1):
-        row["rank"] = rank
+def _rank_sector_rows(rows: list[dict], sub_industry_ids: set[str]) -> None:
+    # S1.5: rank the GICS-level cross-section (11 sectors) and the sub-industry
+    # cross-section (6 sub-industries) separately -- 1..11 and 1..6 -- rather than pooling
+    # both into one 1..17 ranking, which double-counted a sub-industry against its own parent.
+    for group in (
+        [row for row in rows if row["sector_id"] not in sub_industry_ids],
+        [row for row in rows if row["sector_id"] in sub_industry_ids],
+    ):
+        valid_rows = [
+            row for row in group if row["valid"] and row["confidence_adjusted_score"] is not None
+        ]
+        ranked = sorted(
+            valid_rows,
+            key=lambda row: (-float(row["confidence_adjusted_score"]), row["sector_id"]),
+        )
+        for rank, row in enumerate(ranked, start=1):
+            row["rank"] = rank
 
 
 def _sector_health_row(score_row: dict, components: list[dict]) -> dict:

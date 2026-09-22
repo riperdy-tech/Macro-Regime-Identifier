@@ -60,6 +60,33 @@ def _toy_sector_config() -> SectorConfig:
     )
 
 
+def _toy_sector_config_with_sub_industry() -> SectorConfig:
+    # S1.5: a sub-industry (parent_sector_id set) scored higher than both GICS parents, to
+    # prove it ranks 1st in its own 1..N block rather than displacing them in a pooled rank.
+    return SectorConfig(
+        sectors=[
+            SectorDefinition(sector_id="energy", label="Energy", proxy_ticker="XLE"),
+            SectorDefinition(sector_id="utilities", label="Utilities", proxy_ticker="XLU"),
+            SectorDefinition(
+                sector_id="oil_gas_ep",
+                label="Oil & Gas E&P",
+                proxy_ticker="XOP",
+                parent_sector_id="energy",
+            ),
+        ],
+        exposures={
+            "energy": {"growth_momentum": 0.5, "inflation_pressure": 1.0},
+            "utilities": {"growth_momentum": -0.5, "inflation_pressure": -0.2},
+            "oil_gas_ep": {"growth_momentum": 2.0, "inflation_pressure": 2.0},
+        },
+        regime_priors={
+            "reflation": {"energy": 0.4, "utilities": -0.2, "oil_gas_ep": 0.9},
+            "recession": {"energy": -0.2, "utilities": 0.4, "oil_gas_ep": -0.9},
+        },
+        scoring=SectorScoringConfig(min_multiplier=0.40, max_multiplier=1.00),
+    )
+
+
 def _regime_scores() -> pd.DataFrame:
     return pd.DataFrame(
         [
@@ -250,6 +277,42 @@ def test_sector_scoring_is_deterministic_and_stores_components():
     assert energy["rank"] == 1
     assert len(result.components[result.components["sector_id"] == "energy"]) == 4
     assert set(result.components["component_type"]) == {"regime_prior", "dimension_exposure"}
+
+
+def test_sub_industry_ranks_separately_from_gics_parents():
+    result = build_sector_scores(
+        regime_scores=_regime_scores(),
+        regime_health=_regime_health(),
+        dimension_scores=_dimension_scores(),
+        timeline=_timeline(confidence=0.25),
+        config=_toy_sector_config_with_sub_industry(),
+    )
+    scores = result.sector_scores.set_index("sector_id")
+    # oil_gas_ep scores highest of all three, but must rank 1st within its own 1-row
+    # sub-industry block, not 1st in a pooled block that would also rank energy/utilities.
+    assert scores.loc["oil_gas_ep", "rank"] == 1
+    assert scores.loc["energy", "rank"] == 1
+    assert scores.loc["utilities", "rank"] == 2
+    assert scores.loc["oil_gas_ep", "confidence_adjusted_score"] > scores.loc["energy", "confidence_adjusted_score"]
+
+
+def test_report_splits_sector_and_subindustry_rankings():
+    result = build_sector_scores(
+        regime_scores=_regime_scores(),
+        regime_health=_regime_health(),
+        dimension_scores=_dimension_scores(),
+        timeline=_timeline(confidence=0.25),
+        config=_toy_sector_config_with_sub_industry(),
+    )
+    payload = build_current_sector_report(
+        sector_scores=result.sector_scores,
+        components=result.components,
+        health=result.sector_health,
+        config=_toy_sector_config_with_sub_industry(),
+    )
+    assert {item["sector_id"] for item in payload["sector_ranking"]} == {"energy", "utilities"}
+    assert {item["sector_id"] for item in payload["subindustry_ranking"]} == {"oil_gas_ep"}
+    assert payload["subindustry_ranking"][0]["parent_sector_id"] == "energy"
 
 
 def test_low_macro_confidence_reduces_adjusted_sector_score():
