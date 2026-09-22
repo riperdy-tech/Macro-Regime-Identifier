@@ -44,6 +44,57 @@ def _vintages() -> pd.DataFrame:
     return pd.concat([PAYEMS_PRE_REVISION, PAYEMS_POST_REVISION], ignore_index=True)
 
 
+class _FakeResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+        self.status_code = 200
+        self.text = ""
+
+    def json(self) -> dict:
+        return self._payload
+
+
+class _FakeSession:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def get(self, url, params, timeout):
+        return _FakeResponse(self._payload)
+
+
+def test_a_response_missing_realtime_start_never_becomes_the_fetch_date():
+    """The FRED/ALFRED response is the only legitimate source of realtime_start. A response
+    that omits it must store None, never "today" (the day the request happened to run) --
+    that is exactly the mechanism that let vintages after 2026-05-01 read as published four
+    months later than they actually were: the empirical publication index takes the MIN
+    stored realtime_start per (series, date), so one falsely-recent row poisons it.
+    """
+    from macro_engine.ingest.fred import FredClient
+
+    session = _FakeSession(
+        {
+            "observations": [
+                {"date": "2024-05-01", "value": "4.5"},  # no realtime_start/realtime_end at all
+                {
+                    "date": "2024-06-01",
+                    "value": "4.6",
+                    "realtime_start": "2024-06-01",
+                    "realtime_end": "2024-06-01",
+                },
+            ]
+        }
+    )
+    client = FredClient(api_key="test", session=session)
+
+    frame = client.get_series_observations("DGS10")
+
+    missing_row = frame.iloc[0]
+    assert missing_row["realtime_start"] is None
+    assert missing_row["realtime_end"] is None
+    present_row = frame.iloc[1]
+    assert present_row["realtime_start"] == pd.Timestamp("2024-06-01").date()
+
+
 def test_multi_series_vintages_without_a_series_id_refuse_to_answer():
     """Regression: the resolver used to answer from whichever series sorted last.
 

@@ -5,7 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from macro_engine.anchors.service import anchor_status
+from macro_engine.storage.duckdb_store import DuckDBStore
 
 
 DISCLAIMER = (
@@ -14,7 +17,8 @@ DISCLAIMER = (
 )
 MONITOR_READY_LABELS = {"monitor_ready", "validation_candidate"}
 # A monthly artifact. Matches RS2's regime_max_age_days, so a regime snapshot RS2 would reject
-# is flagged here too, rather than only downstream.
+# is flagged here too, rather than only downstream. Reused below for vintage freshness too,
+# deliberately: one staleness bound, not two that could drift apart.
 CURRENT_REGIME_MAX_AGE_DAYS = 45
 
 
@@ -48,7 +52,11 @@ def _regime_date_health(current: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def build_regime_status(*, outputs_dir: str | Path = "outputs") -> dict[str, Any]:
+def build_regime_status(
+    *,
+    outputs_dir: str | Path = "outputs",
+    db_path: str | Path | None = None,
+) -> dict[str, Any]:
     output_dir = Path(outputs_dir)
     current = _read_json(output_dir / "current_regime.json")
     daily = _read_json(output_dir / "daily_diagnostic_summary.json")
@@ -59,6 +67,16 @@ def build_regime_status(*, outputs_dir: str | Path = "outputs") -> dict[str, Any
     macro = _macro_status(current=current, daily=daily)
     readiness_label = accumulation.get("readiness_label")
     monitor_ready = readiness_label in MONITOR_READY_LABELS
+
+    # `db_path` is opt-in (None by default): the JSON-only fields above have always been the
+    # safe, storage-free surface, and this function is called from tests and contexts that must
+    # not acquire a dependency on which database happens to sit at the default path.
+    if db_path is None:
+        vintage_freshness: list[dict[str, Any]] = []
+    else:
+        store = DuckDBStore(db_path)
+        store.initialize()
+        vintage_freshness = compute_vintage_freshness(store)
 
     return {
         "computed_at": datetime.now(UTC).isoformat(),
@@ -72,6 +90,9 @@ def build_regime_status(*, outputs_dir: str | Path = "outputs") -> dict[str, Any
         **_regime_date_health(current),
         "monitor_ready": monitor_ready,
         "readiness_label": readiness_label or "missing",
+        # Self-reporting freshness: a vintage refresh that silently stopped running is
+        # otherwise invisible until a point-in-time evaluation date resolves stale much later.
+        "vintage_freshness": vintage_freshness,
         "secular_theme_scores": secular.get("themes") or {},
         "secular_theme_computed_at": secular.get("computed_at"),
         # Additive: absent anchors surface as None rather than as a failure, the same
@@ -98,15 +119,67 @@ def build_regime_status(*, outputs_dir: str | Path = "outputs") -> dict[str, Any
     }
 
 
-def write_regime_status(*, outputs_dir: str | Path = "outputs") -> Path:
+def write_regime_status(
+    *,
+    outputs_dir: str | Path = "outputs",
+    db_path: str | Path | None = None,
+) -> Path:
     output_dir = Path(outputs_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / "regime_status.json"
     path.write_text(
-        json.dumps(build_regime_status(outputs_dir=output_dir), indent=2, sort_keys=True),
+        json.dumps(
+            build_regime_status(outputs_dir=output_dir, db_path=db_path),
+            indent=2,
+            sort_keys=True,
+        ),
         encoding="utf-8",
     )
     return path
+
+
+def compute_vintage_freshness(store: DuckDBStore) -> list[dict[str, Any]]:
+    """Per-series freshness of the ALFRED vintage archive that point-in-time scoring reads.
+
+    A series whose archive fell behind is otherwise invisible until a point-in-time
+    evaluation date resolves to a stale vintage and gets rejected -- measured once at 124
+    days of lag before this was reported anywhere.
+    """
+    vintages = store.read_table("raw_observation_vintages")
+    if vintages.empty:
+        return []
+    frame = vintages.copy()
+    frame["realtime_start"] = pd.to_datetime(frame["realtime_start"], errors="coerce")
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    today = pd.Timestamp(datetime.now(UTC)).tz_localize(None).normalize()
+    rows: list[dict[str, Any]] = []
+    for series_id, group in frame.groupby("series_id"):
+        max_realtime_start = _max_date(group, "realtime_start")
+        max_observation_date = _max_date(group, "date")
+        age_days = None if max_realtime_start is None else int((today - max_realtime_start).days)
+        rows.append(
+            {
+                "series_id": str(series_id),
+                "max_realtime_start": _iso_date(max_realtime_start),
+                "max_observation_date": _iso_date(max_observation_date),
+                "age_days": age_days,
+                "stale": None if age_days is None else age_days > CURRENT_REGIME_MAX_AGE_DAYS,
+            }
+        )
+    return sorted(rows, key=lambda row: row["series_id"])
+
+
+def _max_date(frame: pd.DataFrame, column: str) -> pd.Timestamp | None:
+    if frame.empty or column not in frame.columns:
+        return None
+    dates = pd.to_datetime(frame[column], errors="coerce").dropna()
+    if dates.empty:
+        return None
+    return dates.max()
+
+
+def _iso_date(value: pd.Timestamp | None) -> str | None:
+    return None if value is None else value.date().isoformat()
 
 
 def _macro_status(*, current: dict[str, Any], daily: dict[str, Any]) -> dict[str, Any]:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pandas as pd
 from typer.testing import CliRunner
 
 from macro_engine.cli import app
@@ -85,16 +86,58 @@ def test_write_regime_status_cli(tmp_path: Path):
 
     result = runner.invoke(
         app,
-        ["write-regime-status", "--outputs-dir", str(tmp_path)],
+        [
+            "write-regime-status",
+            "--outputs-dir",
+            str(tmp_path),
+            "--db-path",
+            str(tmp_path / "macro.duckdb"),
+        ],
     )
 
     assert result.exit_code == 0, result.output
     output_path = tmp_path / "regime_status.json"
     assert output_path.exists()
-    assert json.loads(output_path.read_text(encoding="utf-8"))["monitor_ready"] is True
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["monitor_ready"] is True
+    assert payload["vintage_freshness"] == []
 
 
 def test_write_regime_status_function(tmp_path: Path):
     path = write_regime_status(outputs_dir=tmp_path)
     assert path == tmp_path / "regime_status.json"
     assert json.loads(path.read_text(encoding="utf-8"))["status"] == "diagnostic_only"
+
+
+def test_vintage_freshness_flags_a_series_trailing_by_120_days(tmp_path: Path):
+    """A series whose newest vintage has fallen behind is otherwise invisible until a
+    point-in-time evaluation date resolves stale and gets rejected."""
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    stale_realtime_start = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize() - pd.Timedelta(days=120)
+    store.upsert_raw_observation_vintages(
+        pd.DataFrame(
+            {
+                "series_id": ["DGS10"],
+                "date": [stale_realtime_start],
+                "value": [4.1],
+                "realtime_start": [stale_realtime_start.date()],
+                "realtime_end": [stale_realtime_start.date()],
+                "source": ["ALFRED"],
+                "fetched_at": [pd.Timestamp.now(tz="UTC")],
+                "frequency": ["daily"],
+                "units": [None],
+            }
+        )
+    )
+
+    status = build_regime_status(outputs_dir=tmp_path, db_path=db_path)
+
+    freshness = status["vintage_freshness"]
+    assert len(freshness) == 1
+    assert freshness[0]["series_id"] == "DGS10"
+    assert freshness[0]["age_days"] == 120
+    assert freshness[0]["stale"] is True

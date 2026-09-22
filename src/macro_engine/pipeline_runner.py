@@ -14,7 +14,7 @@ from macro_engine.dimensions.service import build_stored_dimensions
 from macro_engine.evaluation.service import build_stored_asof_features
 from macro_engine.features.service import build_stored_features
 from macro_engine.ingest.fred import FredError
-from macro_engine.ingest.service import run_fred_ingestion
+from macro_engine.ingest.service import run_fred_ingestion, run_vintage_backfill
 from macro_engine.regimes.service import build_stored_regimes
 from macro_engine.reports.config import load_report_config
 from macro_engine.reports.service import (
@@ -65,10 +65,12 @@ def run_pipeline(
     config_path: str | Path = "config/phase_b_sources.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
     parquet_dir: str | Path = "data/raw/fred",
+    vintage_parquet_dir: str | Path = "data/raw/alfred",
     mode: str = "live",
     start: str | None = None,
     end: str | None = None,
     ingest_runner: Callable | None = None,
+    vintage_runner: Callable | None = None,
     load_env: bool = True,
 ) -> PipelineSummary:
     if load_env:
@@ -113,6 +115,18 @@ def run_pipeline(
         )
         print("pipeline: build-features done", flush=True)
         _collect_invalid_feature_warnings(feature_result.feature_health, warnings)
+
+        failed_step = "vintages"
+        print("pipeline: vintages start", flush=True)
+        vrunner = vintage_runner or run_vintage_backfill
+        vintage_summary = vrunner(
+            config_path=config_path,
+            db_path=db_path,
+            parquet_dir=vintage_parquet_dir,
+            start=start,
+            end=end,
+        )
+        print(f"pipeline: vintages done (rows={vintage_summary.vintage_rows})", flush=True)
 
         failed_step = "build-asof-features"
         print("pipeline: build-asof-features start", flush=True)

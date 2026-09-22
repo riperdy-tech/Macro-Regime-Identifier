@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from macro_engine.ingest.fred import FredError
-from macro_engine.ingest.schemas import IngestionRunSummary
+from macro_engine.ingest.schemas import IngestionRunSummary, VintageIngestionSummary
 from macro_engine.pipeline_runner import run_pipeline
 from macro_engine.storage.duckdb_store import DuckDBStore
 from tests.test_phase_c_features import _raw_monthly
@@ -68,6 +68,22 @@ def _failing_ingest(config_path, start, end, db_path, parquet_dir):
     raise RuntimeError("mock hard failure")
 
 
+def _mock_vintages(*, config_path, db_path, parquet_dir, start, end):
+    # The pipeline's vintages step makes real network calls by default (see
+    # `run_vintage_backfill`), so every test that runs the pipeline to completion must inject
+    # a stand-in here -- the same reason `ingest_runner` is always mocked in this file.
+    return VintageIngestionSummary(
+        run_id="mock-vintages",
+        series_requested=0,
+        as_of_dates=[],
+        vintage_rows=0,
+        vintage_series=0,
+        empty_vintage_count=0,
+        failed_count=0,
+        storage_path=str(parquet_dir),
+    )
+
+
 def _redirected_config(tmp_path) -> Path:
     """The production config with `output_dir` pointed at tmp_path, on the CALENDAR basis.
 
@@ -107,6 +123,7 @@ def test_run_pipeline_works_against_temp_mock_data(tmp_path):
         parquet_dir=tmp_path / "fred",
         mode="mock",
         ingest_runner=_mock_ingest,
+        vintage_runner=_mock_vintages,
     )
 
     assert summary.status in {"success", "success_with_warnings"}
@@ -138,6 +155,31 @@ def test_run_pipeline_records_failed_step_on_hard_failure(tmp_path):
     assert run["failed_step"] == "ingest"
 
 
+def test_run_pipeline_fails_the_run_when_the_vintage_step_fails(tmp_path):
+    """The vintages step is required: `run-pipeline` had no vintage step at all, which let
+    point-in-time coverage silently degrade to whenever a human last ran the backfill by
+    hand. A failed refresh must stop the run, not quietly proceed on a stale archive."""
+
+    def _failing_vintages(*, config_path, db_path, parquet_dir, start, end):
+        raise RuntimeError("mock vintage failure")
+
+    db_path = tmp_path / "macro.duckdb"
+
+    with pytest.raises(RuntimeError, match="mock vintage failure"):
+        run_pipeline(
+            config_path=_redirected_config(tmp_path),
+            db_path=db_path,
+            parquet_dir=tmp_path / "fred",
+            mode="mock",
+            ingest_runner=_mock_ingest,
+            vintage_runner=_failing_vintages,
+        )
+
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] == "failed"
+    assert run["failed_step"] == "vintages"
+
+
 def test_live_pipeline_requires_fred_api_key(tmp_path, monkeypatch):
     monkeypatch.delenv("FRED_API_KEY", raising=False)
 
@@ -160,6 +202,7 @@ def test_live_pipeline_can_be_invoked_when_key_is_present_with_mock_runner(tmp_p
         parquet_dir=tmp_path / "fred",
         mode="live",
         ingest_runner=_mock_ingest,
+        vintage_runner=_mock_vintages,
     )
 
     assert summary.series_succeeded == 10
@@ -172,6 +215,7 @@ def test_pipeline_summary_is_deterministic_shape(tmp_path):
         parquet_dir=tmp_path / "fred",
         mode="mock",
         ingest_runner=_mock_ingest,
+        vintage_runner=_mock_vintages,
     ).to_dict()
 
     assert set(summary) == {

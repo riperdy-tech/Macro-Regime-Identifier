@@ -5,7 +5,7 @@ import pandas as pd
 from macro_engine.dimensions.config import load_dimension_config
 from macro_engine.features.config import load_feature_config
 from macro_engine.ingest.registry import load_ingestion_sources
-from macro_engine.ingest.schemas import IngestionRunSummary
+from macro_engine.ingest.schemas import IngestionRunSummary, VintageIngestionSummary
 from macro_engine.pipeline_runner import run_pipeline
 from macro_engine.storage.duckdb_store import DuckDBStore
 from tests.test_phase_c_features import _raw_monthly
@@ -69,6 +69,7 @@ def test_phase_t_pipeline_works_against_temp_mock_data(tmp_path):
         parquet_dir=tmp_path / "fred",
         mode="mock",
         ingest_runner=_phase_t_mock_ingest,
+        vintage_runner=_phase_t_mock_vintages,
     )
 
     assert summary.status in {"success", "success_with_warnings"}
@@ -78,6 +79,21 @@ def test_phase_t_pipeline_works_against_temp_mock_data(tmp_path):
     assert (output_dir / "current_regime.json").exists()
     feature_health = DuckDBStore(db_path).read_table("feature_health")
     assert "initial_claims_level_z" in set(feature_health["feature_id"])
+
+
+def _phase_t_mock_vintages(*, config_path, db_path, parquet_dir, start, end):
+    # `run_pipeline`'s vintages step makes real network calls by default; every test that
+    # runs the pipeline to completion must inject a stand-in here, same as `ingest_runner`.
+    return VintageIngestionSummary(
+        run_id="mock-vintages",
+        series_requested=0,
+        as_of_dates=[],
+        vintage_rows=0,
+        vintage_series=0,
+        empty_vintage_count=0,
+        failed_count=0,
+        storage_path=str(parquet_dir),
+    )
 
 
 def _phase_t_mock_ingest(config_path, start, end, db_path, parquet_dir):

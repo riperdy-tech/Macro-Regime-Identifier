@@ -28,6 +28,11 @@ from macro_engine.storage.duckdb_store import DuckDBStore
 # client when a burst slips through.
 _FRED_REQUESTS_PER_MINUTE = 100.0
 
+# Matches the daily runner's own vintage refresh (`VINTAGE_REFRESH_WORKERS` in daily.py) and
+# the standalone backfill script's default: enough to hide ALFRED's uneven per-request latency
+# (0.3-19 s, measured) without a dedicated flag for what is normally a handful of new dates.
+_DEFAULT_VINTAGE_BACKFILL_WORKERS = 8
+
 
 class _RequestPace:
     """Global minimum interval between request STARTS, shared across worker threads.
@@ -322,6 +327,54 @@ def run_fred_vintage_ingestion(
         failed_count=len(errors),
         storage_path=str(parquet_dir),
         series_stored=stored_series,
+    )
+
+
+def run_vintage_backfill(
+    *,
+    config_path: str | Path = "config/phase_b_sources.yaml",
+    db_path: str | Path = "data/macro_engine.duckdb",
+    parquet_dir: str | Path = "data/raw/alfred",
+    start: str | None = None,
+    end: str | None = None,
+    api_key: str | None = None,
+    client: FredClient | None = None,
+    max_workers: int = _DEFAULT_VINTAGE_BACKFILL_WORKERS,
+) -> VintageIngestionSummary:
+    """Refresh ALFRED vintages for every enabled series, over the as-of dates the stored
+    evaluation calendar actually asks about (`vintage_asof_dates`).
+
+    This is the same "which series, which as-of dates, fetched how" `scripts/backfill_vintages.py
+    --apply` runs by hand; `run-pipeline`'s vintages step calls it too, so there is one definition
+    of the default backfill rather than two that could drift apart.
+    """
+    # Imported locally, not at module scope, only to keep ingest/ from acquiring a
+    # module-load-time dependency on anchors/ for what is otherwise a one-line lookup.
+    from macro_engine.anchors.pit_calendar import vintage_asof_dates
+
+    as_of_dates = vintage_asof_dates(db_path=db_path, start=start, end=end)
+    series = [
+        source.series_id
+        for source in select_sources(load_ingestion_sources(config_path))
+    ]
+    observation_start = start or (
+        (pd.Timestamp(as_of_dates[0]) - pd.DateOffset(years=1)).date().isoformat()
+        if as_of_dates
+        else None
+    )
+    return run_fred_vintage_ingestion(
+        as_of_dates=as_of_dates,
+        config_path=config_path,
+        requested_series=series,
+        observation_start=observation_start,
+        observation_end=end,
+        db_path=db_path,
+        parquet_dir=parquet_dir,
+        api_key=api_key,
+        client=client,
+        resume=True,
+        progress=False,
+        max_workers=max_workers,
     )
 
 

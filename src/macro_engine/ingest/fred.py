@@ -231,10 +231,38 @@ def _observation_frame(observations: list[dict[str, Any]], series_id: str) -> pd
     frame = pd.DataFrame(observations)
     frame["series_id"] = series_id
     frame["date"] = frame["date"].map(_parse_fred_date)
-    frame["realtime_start"] = frame["realtime_start"].map(_parse_fred_date)
-    frame["realtime_end"] = frame["realtime_end"].map(_parse_fred_date)
+    for bound in ("realtime_start", "realtime_end"):
+        if bound not in frame.columns:
+            frame[bound] = None
+        frame[bound] = frame[bound].map(_parse_realtime_bound)
+    missing_start = int(frame["realtime_start"].isna().sum())
+    if missing_start:
+        # NEVER fall back to the fetch date here: the empirical publication index used by
+        # point-in-time scoring takes the MIN stored realtime_start per (series, date), so one
+        # falsely-recent row (e.g. "today") poisons it and reads as published far later than
+        # it actually was. Storing None instead means the row is excluded from PIT evidence
+        # rather than silently misdating it.
+        print(
+            f"fred: {series_id} — {missing_start} observation(s) had no usable realtime_start "
+            "in the response; stored as None, never the fetch date",
+            flush=True,
+        )
     frame["value"] = pd.to_numeric(frame["value"].replace(".", pd.NA), errors="coerce")
     return frame[["series_id", "date", "value", "realtime_start", "realtime_end"]]
+
+
+def _parse_realtime_bound(value: Any) -> date | None:
+    """Parse one realtime_start/realtime_end bound from the FRED/ALFRED response.
+
+    The bound must come from the response itself. A response that omits it, or sends
+    something unparsable, becomes None -- never the day the request happened to run.
+    """
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    try:
+        return _parse_fred_date(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _empty_observation_frame() -> pd.DataFrame:

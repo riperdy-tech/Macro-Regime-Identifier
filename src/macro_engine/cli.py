@@ -1665,9 +1665,10 @@ def write_automation_summary_cli(
 @app.command("write-regime-status")
 def write_regime_status_cli(
     outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
 ) -> None:
     """Write a small diagnostic regime status JSON snapshot."""
-    json_path = write_regime_status(outputs_dir=outputs_dir)
+    json_path = write_regime_status(outputs_dir=outputs_dir, db_path=db_path)
     console.print_json(data={"json_path": str(json_path)})
 
 
