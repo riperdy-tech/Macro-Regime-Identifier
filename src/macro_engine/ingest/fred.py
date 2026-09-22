@@ -237,11 +237,20 @@ def _observation_frame(observations: list[dict[str, Any]], series_id: str) -> pd
         frame[bound] = frame[bound].map(_parse_realtime_bound)
     missing_start = int(frame["realtime_start"].isna().sum())
     if missing_start:
-        # NEVER fall back to the fetch date here: the empirical publication index used by
-        # point-in-time scoring takes the MIN stored realtime_start per (series, date), so one
-        # falsely-recent row (e.g. "today") poisons it and reads as published far later than
-        # it actually was. Storing None instead means the row is excluded from PIT evidence
-        # rather than silently misdating it.
+        # NEVER fall back to the fetch date here. This guards a hypothetical, not an
+        # observed, failure: if a response ever omitted realtime_start, defaulting it to
+        # "today" would let one falsely-recent row poison the empirical publication index,
+        # which takes the MIN stored realtime_start per (series, date). Storing None instead
+        # means the row is excluded from PIT evidence rather than silently misdating it.
+        #
+        # This is NOT what caused the 2026-05..09 point-in-time freeze. That diagnosis
+        # ("vintages were stamped with the fetch date instead of the publication date") was
+        # investigated and withdrawn: raw_observation_vintages.realtime_start is an as-of
+        # index by design, and routine ingest (this function's other caller,
+        # get_series_observations) never writes that table at all. The freeze's real cause
+        # was absence, not mislabelling -- no as-of date in June/July/August was ever
+        # queried, because the chain could not run. See
+        # docs/review_2026-09-22/reports/MRI_S0_APPROVAL.md §0.1 and §2.2.
         print(
             f"fred: {series_id} — {missing_start} observation(s) had no usable realtime_start "
             "in the response; stored as None, never the fetch date",

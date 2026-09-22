@@ -65,9 +65,16 @@ class _FakeSession:
 def test_a_response_missing_realtime_start_never_becomes_the_fetch_date():
     """The FRED/ALFRED response is the only legitimate source of realtime_start. A response
     that omits it must store None, never "today" (the day the request happened to run) --
-    that is exactly the mechanism that let vintages after 2026-05-01 read as published four
-    months later than they actually were: the empirical publication index takes the MIN
-    stored realtime_start per (series, date), so one falsely-recent row poisons it.
+    a falsely-recent row would poison the empirical publication index, which takes the MIN
+    stored realtime_start per (series, date).
+
+    This guards a hypothetical failure mode, not the one that actually froze point-in-time
+    resolution between 2026-05-31 and 2026-09-18. That diagnosis ("vintages read as
+    published four months later than they actually were, because a fetch date was stamped
+    into realtime_start") was investigated and withdrawn: raw_observation_vintages.
+    realtime_start is an as-of index by design, and the freeze's real cause was absence --
+    no as-of date in June/July/August was ever queried, because the chain could not run.
+    See docs/review_2026-09-22/reports/MRI_S0_APPROVAL.md §0.1 and §2.2.
     """
     from macro_engine.ingest.fred import FredClient
 
