@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import pandas as pd
 
+from macro_engine.dimensions.composition import CompositionRegistry
 from macro_engine.dimensions.config import DimensionDefinition
 
 
@@ -37,6 +38,7 @@ class DimensionBuildResult:
 def build_dimensions_from_features(
     features: pd.DataFrame,
     dimensions: list[DimensionDefinition],
+    composition: CompositionRegistry | None = None,
 ) -> DimensionBuildResult:
     feature_frame = features.copy()
     if feature_frame.empty:
@@ -52,7 +54,7 @@ def build_dimensions_from_features(
     for dimension in dimensions:
         if not dimension.enabled:
             continue
-        dimension_contributions = _build_dimension_contributions(feature_frame, dimension)
+        dimension_contributions = _build_dimension_contributions(feature_frame, dimension, composition)
         contribution_records.extend(dimension_contributions.to_dict(orient="records"))
         scores = _build_dimension_scores(dimension_contributions, dimension)
         score_rows.extend(scores.to_dict(orient="records"))
@@ -75,6 +77,7 @@ def build_dimensions_from_features(
 def _build_dimension_contributions(
     features: pd.DataFrame,
     dimension: DimensionDefinition,
+    composition: CompositionRegistry | None = None,
 ) -> pd.DataFrame:
     rows: list[dict] = []
     configured = {feature.feature_id: feature for feature in dimension.features}
@@ -112,6 +115,19 @@ def _build_dimension_contributions(
                 )
                 continue
             valid = bool(row["valid"]) and pd.notna(row["normalized_value"])
+            reason = "ok" if valid else row.get("reason", "invalid_feature")
+            # S1.4 (P0_0 §2.6): a feature that validates outside its declared composition
+            # window is an undeclared re-specification of the dimension (the HY OAS case,
+            # S0.2), not an ordinary data point. It never SILENTLY widens the valid set --
+            # the feature is excluded here and the whole date is invalidated below, in
+            # `_build_dimension_scores`, once every row for the date is visible.
+            if valid and composition is not None:
+                declared = composition.declared_feature_ids(
+                    dimension.dimension_id, pd.Timestamp(date).date()
+                )
+                if declared is not None and dimension_feature.feature_id not in declared:
+                    valid = False
+                    reason = f"undeclared_composition:extra:{dimension_feature.feature_id}"
             normalized_value = (
                 None if pd.isna(row["normalized_value"]) else float(row["normalized_value"])
             )
@@ -128,7 +144,7 @@ def _build_dimension_contributions(
                     signed_value,
                     0.0,
                     valid,
-                    "ok" if valid else row.get("reason", "invalid_feature"),
+                    reason,
                 )
             )
 
@@ -160,14 +176,26 @@ def _build_dimension_scores(
         valid_count = int(len(valid_group))
         used_weight = float(valid_group["weight"].sum())
         coverage = 0.0 if total_weight == 0 else used_weight / total_weight
+        # S1.4 (P0_0 §2.6): an undeclared-composition feature invalidates the whole
+        # dimension for this date, not just its own contribution -- an unexpected feature
+        # entering the valid set is a re-specification of the dimension, which coverage
+        # renormalization would otherwise absorb silently.
+        composition_reasons = [
+            str(value)
+            for value in group["reason"]
+            if str(value).startswith("undeclared_composition:")
+        ]
         valid = (
-            valid_count >= dimension.min_valid_features
+            not composition_reasons
+            and valid_count >= dimension.min_valid_features
             and coverage >= dimension.min_coverage_ratio
             and used_weight > 0
         )
         if not valid:
             reason = (
-                "below_min_valid_features"
+                composition_reasons[0]
+                if composition_reasons
+                else "below_min_valid_features"
                 if valid_count < dimension.min_valid_features
                 else "below_min_coverage_ratio"
             )

@@ -1,0 +1,103 @@
+# S1.4 (P0_0 §2.6) — declarative dimension composition registry.
+#
+# Per dimension, the ordered set of (feature_id, weight, valid_from, valid_to) that is
+# DECLARED valid over a date range. `weight` is duplicated from the matching entry in
+# `config/phase_b_sources.yaml`'s `dimensions:` block on purpose, not read from it: a drift
+# between the two is a loud config-load error (`validate_registry_against_dimensions`) rather
+# than a silent one.
+#
+# Six of the seven dimensions have never had a composition break: every configured feature is
+# declared valid for the dimension's whole observed history (1990-01-01, open-ended), measured
+# against `asof_feature_values` on the S0 store (every feature_id in these six dimensions is
+# never observed `valid` outside that window; several have ordinary scattered single-month
+# `valid=False` staleness *inside* the window, which is expected and does not trip the check —
+# the registry declares which features may EVER validate for a date, not that every declared
+# feature must validate every date).
+#
+# `credit_liquidity` is the one dimension with a real break: `high_yield_oas_level_z` is
+# licence-limited to a rolling ~3-year ICE window (S0.2) and is `valid=True` on zero evaluation
+# months before 2023-10-01 and on every valid month at/after it, measured on
+# `asof_feature_values` (441/441 rows checked). The pre-break segment lists only the two
+# features that were ever actually scoreable; declaring `high_yield_oas_level_z` there too
+# would make the registry a no-op for the one case S0.2 exists to catch.
+
+dimension_compositions:
+  growth_momentum:
+    - composition_id: "growth_momentum:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: industrial_production_yoy_z
+          weight: 0.30
+        - feature_id: payrolls_yoy_z
+          weight: 0.30
+        - feature_id: unemployment_6m_change_z
+          weight: 0.25
+        - feature_id: initial_claims_level_z
+          weight: 0.15
+
+  inflation_pressure:
+    - composition_id: "inflation_pressure:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: headline_cpi_yoy_z
+          weight: 0.50
+        - feature_id: pce_price_yoy_z
+          weight: 0.50
+
+  policy_stance:
+    - composition_id: "policy_stance:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: fed_funds_level_z
+          weight: 0.40
+        - feature_id: fed_funds_6m_change_z
+          weight: 0.30
+        - feature_id: ten_year_yield_level_z
+          weight: 0.30
+
+  credit_liquidity:
+    - composition_id: "credit_liquidity:v1:1990-01-01..2023-09-30"
+      valid_from: "1990-01-01"
+      valid_to: "2023-09-30"
+      features:
+        - feature_id: baa_spread_level_z
+          weight: 0.35
+        - feature_id: nfci_level_z
+          weight: 0.35
+    - composition_id: "credit_liquidity:v2:2023-10-01.."
+      valid_from: "2023-10-01"
+      valid_to: null
+      features:
+        - feature_id: baa_spread_level_z
+          weight: 0.35
+        - feature_id: nfci_level_z
+          weight: 0.35
+        - feature_id: high_yield_oas_level_z
+          weight: 0.30
+
+  yield_curve:
+    - composition_id: "yield_curve:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: yield_curve_10y2y_level_z
+          weight: 1.00
+
+  monetary_liquidity:
+    - composition_id: "monetary_liquidity:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: m2_money_supply_yoy_z
+          weight: 1.00
+
+  housing_activity:
+    - composition_id: "housing_activity:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: housing_starts_yoy_z
+          weight: 1.00
