@@ -29,6 +29,7 @@ from macro_engine.news.scoring import build_stored_news_scores
 from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.operations_config import DailyPipelineConfig, load_daily_pipeline_config
 from macro_engine.pipeline_runner import run_pipeline
+from macro_engine.regime_status import compute_feature_freshness
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.service import build_stored_sector_scores
 from macro_engine.storage.duckdb_store import DuckDBStore
@@ -232,6 +233,11 @@ def run_daily_diagnostic(
             errors.extend([f"{item['path']}:{item['term']}" for item in guardrail.violations])
             if config.safety.fail_on_guardrail_violation:
                 raise ValueError("daily report guardrail audit failed")
+        feature_freshness = compute_feature_freshness(store)
+        if feature_freshness.get("stale"):
+            warnings.append(
+                f"feature_freshness_stale:gap_days={feature_freshness.get('gap_days')}"
+            )
     except Exception as exc:
         errors.append(str(exc))
         status = "failed"
@@ -327,6 +333,7 @@ def build_daily_summary_payload(
             "status": status,
             "step_statuses": statuses,
             "macro": _latest_macro(store),
+            "feature_freshness": compute_feature_freshness(store),
             "sector_macro_top": _latest_sector_top(store),
             "news": _latest_news_summary(store),
             "combined_top": _latest_combined_top(store),
@@ -548,6 +555,7 @@ def daily_summary_markdown(payload: dict[str, Any]) -> str:
     macro = payload.get("macro") or {}
     news = payload.get("news") or {}
     monitoring = payload.get("monitoring") or {}
+    feature_freshness = payload.get("feature_freshness") or {}
     return f"""# Daily Diagnostic Summary
 
 Run date: {payload["run_date"]}
@@ -558,6 +566,7 @@ Run status: {payload["status"]}
 - Reported regime: {macro.get("reported_regime")}
 - Raw leader: {macro.get("raw_dominant_regime")}
 - Confidence: {_fmt(macro.get("confidence"))}
+- Feature freshness: gap {feature_freshness.get("gap_days")}d (stale: {feature_freshness.get("stale")})
 
 ## Sector Macro Diagnostics
 

@@ -17,8 +17,8 @@ DISCLAIMER = (
 )
 MONITOR_READY_LABELS = {"monitor_ready", "validation_candidate"}
 # A monthly artifact. Matches RS2's regime_max_age_days, so a regime snapshot RS2 would reject
-# is flagged here too, rather than only downstream. Reused below for vintage freshness too,
-# deliberately: one staleness bound, not two that could drift apart.
+# is flagged here too, rather than only downstream. Reused below for feature and vintage
+# freshness too, deliberately: one staleness bound, not three that could drift apart.
 CURRENT_REGIME_MAX_AGE_DAYS = 45
 
 
@@ -72,10 +72,12 @@ def build_regime_status(
     # safe, storage-free surface, and this function is called from tests and contexts that must
     # not acquire a dependency on which database happens to sit at the default path.
     if db_path is None:
+        feature_freshness = _blank_feature_freshness()
         vintage_freshness: list[dict[str, Any]] = []
     else:
         store = DuckDBStore(db_path)
         store.initialize()
+        feature_freshness = compute_feature_freshness(store)
         vintage_freshness = compute_vintage_freshness(store)
 
     return {
@@ -90,8 +92,9 @@ def build_regime_status(
         **_regime_date_health(current),
         "monitor_ready": monitor_ready,
         "readiness_label": readiness_label or "missing",
-        # Self-reporting freshness: a vintage refresh that silently stopped running is
-        # otherwise invisible until a point-in-time evaluation date resolves stale much later.
+        # Self-reporting freshness: a features build or a vintage refresh that silently
+        # stopped running is otherwise invisible until a regime score goes stale much later.
+        "feature_freshness": feature_freshness,
         "vintage_freshness": vintage_freshness,
         "secular_theme_scores": secular.get("themes") or {},
         "secular_theme_computed_at": secular.get("computed_at"),
@@ -138,6 +141,25 @@ def write_regime_status(
     return path
 
 
+def compute_feature_freshness(store: DuckDBStore) -> dict[str, Any]:
+    """How far the stored features have fallen behind the raw observations they are built
+    from. A features build that silently stopped running is otherwise invisible until a
+    regime score goes stale much later, by which point the cause is hard to see."""
+    max_raw = _max_date(store.read_table("raw_observations"), "date")
+    max_feature = _max_date(store.read_table("features"), "date")
+    gap_days = None
+    stale = None
+    if max_raw is not None and max_feature is not None:
+        gap_days = int((max_raw - max_feature).days)
+        stale = gap_days > CURRENT_REGIME_MAX_AGE_DAYS
+    return {
+        "max_raw_observation_date": _iso_date(max_raw),
+        "max_feature_date": _iso_date(max_feature),
+        "gap_days": gap_days,
+        "stale": stale,
+    }
+
+
 def compute_vintage_freshness(store: DuckDBStore) -> list[dict[str, Any]]:
     """Per-series freshness of the ALFRED vintage archive that point-in-time scoring reads.
 
@@ -167,6 +189,15 @@ def compute_vintage_freshness(store: DuckDBStore) -> list[dict[str, Any]]:
             }
         )
     return sorted(rows, key=lambda row: row["series_id"])
+
+
+def _blank_feature_freshness() -> dict[str, Any]:
+    return {
+        "max_raw_observation_date": None,
+        "max_feature_date": None,
+        "gap_days": None,
+        "stale": None,
+    }
 
 
 def _max_date(frame: pd.DataFrame, column: str) -> pd.Timestamp | None:

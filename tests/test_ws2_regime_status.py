@@ -100,6 +100,7 @@ def test_write_regime_status_cli(tmp_path: Path):
     assert output_path.exists()
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["monitor_ready"] is True
+    assert payload["feature_freshness"]["stale"] is None
     assert payload["vintage_freshness"] == []
 
 
@@ -107,6 +108,59 @@ def test_write_regime_status_function(tmp_path: Path):
     path = write_regime_status(outputs_dir=tmp_path)
     assert path == tmp_path / "regime_status.json"
     assert json.loads(path.read_text(encoding="utf-8"))["status"] == "diagnostic_only"
+
+
+def test_feature_freshness_stale_when_features_trail_raw_observations(tmp_path: Path):
+    """A features build that silently stopped running is otherwise invisible until a much
+    later regime score goes stale."""
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.upsert_raw_observations(
+        pd.DataFrame(
+            {
+                "series_id": ["DGS10"],
+                "date": [pd.Timestamp("2026-09-01")],
+                "value": [4.2],
+                "realtime_start": [pd.Timestamp("2026-09-01").date()],
+                "realtime_end": [pd.Timestamp("2026-09-01").date()],
+                "source": ["FRED"],
+                "fetched_at": [pd.Timestamp("2026-09-01", tz="UTC")],
+                "frequency": ["daily"],
+                "units": ["Percent"],
+            }
+        )
+    )
+    store.upsert_features(
+        pd.DataFrame(
+            [
+                {
+                    "feature_id": "ten_year_level",
+                    "series_id": "DGS10",
+                    "date": pd.Timestamp("2026-05-03"),  # 121 days behind the raw observation
+                    "raw_value": 4.0,
+                    "transformed_value": 4.0,
+                    "normalized_value": 0.1,
+                    "transform": "level",
+                    "normalization": "none",
+                    "window_start": pd.Timestamp("2026-05-03"),
+                    "window_end": pd.Timestamp("2026-05-03"),
+                    "valid": True,
+                    "reason": "ok",
+                }
+            ]
+        )
+    )
+
+    status = build_regime_status(outputs_dir=tmp_path, db_path=db_path)
+
+    freshness = status["feature_freshness"]
+    assert freshness["max_raw_observation_date"] == "2026-09-01"
+    assert freshness["max_feature_date"] == "2026-05-03"
+    assert freshness["gap_days"] == 121
+    assert freshness["stale"] is True
 
 
 def test_vintage_freshness_flags_a_series_trailing_by_120_days(tmp_path: Path):

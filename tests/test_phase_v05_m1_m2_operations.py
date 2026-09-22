@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -61,6 +62,65 @@ def test_run_daily_diagnostic_with_mocked_services(tmp_path: Path):
     assert (Path(result.archive_path) / "daily_diagnostic_summary.md").exists()
     assert not runs.empty
     assert runs.iloc[-1]["guardrail_status"] == "passed"
+
+
+def test_run_daily_diagnostic_reports_success_with_warnings_when_features_are_stale(tmp_path: Path):
+    """`allow_success_with_warnings: true` is what lets a stale features build downgrade the
+    run instead of failing it outright -- but it must still be VISIBLE, not silently green."""
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.upsert_raw_observations(
+        pd.DataFrame(
+            {
+                "series_id": ["DGS10"],
+                "date": [pd.Timestamp("2026-09-20")],
+                "value": [4.2],
+                "realtime_start": [pd.Timestamp("2026-09-20").date()],
+                "realtime_end": [pd.Timestamp("2026-09-20").date()],
+                "source": ["FRED"],
+                "fetched_at": [pd.Timestamp("2026-09-20", tz="UTC")],
+                "frequency": ["daily"],
+                "units": ["Percent"],
+            }
+        )
+    )
+    store.upsert_features(
+        pd.DataFrame(
+            [
+                {
+                    "feature_id": "ten_year_level",
+                    "series_id": "DGS10",
+                    "date": pd.Timestamp("2026-05-22"),  # 121 days behind the raw observation
+                    "raw_value": 4.0,
+                    "transformed_value": 4.0,
+                    "normalized_value": 0.1,
+                    "transform": "level",
+                    "normalization": "none",
+                    "window_start": pd.Timestamp("2026-05-22"),
+                    "window_end": pd.Timestamp("2026-05-22"),
+                    "valid": True,
+                    "reason": "ok",
+                }
+            ]
+        )
+    )
+    config_path = _daily_config(tmp_path)
+    services = _daily_services(tmp_path)
+
+    result = run_daily_diagnostic(
+        config_path=config_path,
+        db_path=db_path,
+        run_date="2026-09-22",
+        services=services,
+    )
+
+    assert result.status == "success_with_warnings"
+    assert any(warning.startswith("feature_freshness_stale") for warning in result.warnings)
+    summary = json.loads(result.summary_json_path.read_text(encoding="utf-8"))
+    assert summary["feature_freshness"]["stale"] is True
+    assert summary["feature_freshness"]["gap_days"] == 121
+    assert "Feature freshness" in result.summary_markdown_path.read_text(encoding="utf-8")
 
 
 def test_run_daily_diagnostic_records_guardrail_failure(tmp_path: Path):
