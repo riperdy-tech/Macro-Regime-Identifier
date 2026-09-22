@@ -104,6 +104,7 @@ def _build_regime_contributions(
             dimension_score = None if pd.isna(row["score"]) else float(row["score"])
             transformed = (
                 transform_dimension_value(dimension_score, regime_dimension.polarity)
+                + regime_dimension.intercept
                 if dimension_valid
                 else None
             )

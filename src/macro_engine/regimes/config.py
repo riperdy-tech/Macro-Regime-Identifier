@@ -23,6 +23,7 @@ class RegimeDimensionConfig(BaseModel):
     dimension_id: str
     weight: float = Field(gt=0)
     polarity: RegimePolarity
+    intercept: float = 0.0
 
 
 class RegimeDefinition(BaseModel):

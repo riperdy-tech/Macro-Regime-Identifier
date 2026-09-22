@@ -196,6 +196,37 @@ def test_regime_polarity_functions():
     assert transform_dimension_value(0.5, "reward_near_zero") == -0.5
 
 
+def test_intercept_defaults_to_zero_and_applies_when_set():
+    regime = _regime()
+    assert regime.dimensions[0].intercept == 0.0
+
+    intercepted = RegimeDefinition.model_validate(
+        {
+            "regime_id": "test_regime_intercept",
+            "enabled": True,
+            "min_valid_dimensions": 2,
+            "min_coverage_ratio": 0.6,
+            "dimensions": [
+                {
+                    "dimension_id": "growth_momentum",
+                    "weight": 0.6,
+                    "polarity": "positive",
+                    "intercept": 0.5,
+                },
+                {"dimension_id": "inflation_pressure", "weight": 0.4, "polarity": "negative"},
+            ],
+        }
+    )
+    result = build_regimes_from_dimensions(
+        _dimension_scores(),
+        [intercepted],
+        RegimeScoringConfig(softmax_temperature=1.0),
+    )
+    contributions = result.contributions.set_index("dimension_id")
+    # growth_momentum score 1.0, polarity positive -> transformed 1.0, + intercept 0.5 = 1.5
+    assert contributions.loc["growth_momentum", "transformed_dimension_value"] == pytest.approx(1.5)
+
+
 def test_regime_contributions_and_raw_score():
     result = build_regimes_from_dimensions(
         _dimension_scores(),

@@ -565,12 +565,19 @@ regimes:
       - dimension_id: inflation_pressure
         weight: 0.25
         polarity: penalize_positive_only
+        # S1.1 (S0 measurement): E[penalize_positive_only] on inflation_pressure over the
+        # clean 1990-01..2026-09 store = -0.429 (regime_dimension_contributions, valid rows).
+        # Centring intercept removes the accidental polarity prior; see P0_0 §2.2.
+        intercept: 0.429
       - dimension_id: credit_liquidity
         weight: 0.20
         polarity: positive
       - dimension_id: policy_stance
         weight: 0.15
         polarity: reward_near_zero
+        # S1.1 (S0 measurement): E[reward_near_zero] on policy_stance over the clean
+        # 1990-01..2026-09 store = -0.889. See P0_0 §2.2.
+        intercept: 0.889
       - dimension_id: yield_curve
         weight: 0.10
         polarity: positive
@@ -628,6 +635,9 @@ regimes:
       - dimension_id: inflation_pressure
         weight: 0.10
         polarity: penalize_positive_only
+        # S1.1 (S0 measurement): E[penalize_positive_only] on inflation_pressure over the
+        # clean 1990-01..2026-09 store = -0.429. See P0_0 §2.2.
+        intercept: 0.429
       - dimension_id: credit_liquidity
         weight: 0.25
         polarity: negative
