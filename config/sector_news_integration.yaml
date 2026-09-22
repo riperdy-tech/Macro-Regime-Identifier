@@ -12,12 +12,13 @@ sector_news_integration:
   output_dir: outputs
 
   # News layer placement.
-  #   overlay  = news enters combined_score at news_sector_weight (existing behaviour)
+  #   overlay  = news enters combined_score at news_sector_weight (pre-S1.6 behaviour)
   #   advisory = news does NOT enter combined_score; it is published as a separate,
   #              separately attributable block in news_advisory_block.json
-  # Default stays `overlay` so the shipped diagnostic is byte-identical to before.
+  # S1.6 (P0_0 §1.1): the news blend ends here. combined_score now equals the macro
+  # score; news_advisory_block.json is the news view.
   advisory_block:
-    mode: overlay
+    mode: advisory
     output_file: news_advisory_block.json
     min_direction_score: 0.05
     min_items_for_direction: 2
