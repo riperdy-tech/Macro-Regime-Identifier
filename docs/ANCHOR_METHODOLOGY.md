@@ -512,7 +512,13 @@ one cost a failed attempt to learn:
 * **Archive depth is not uniform, and it decides the cutover.** Measured first-vintage date per
   series: CPIAUCSL / HOUST / INDPRO / M2SL / PAYEMS / UNRATE from 1990; GDPPOT 1991-02; FEDFUNDS
   1997-01; PCEPI 2000-08; DGS10 and DTB3 2005-07; DFII10 2005-11; ICSA 2009-06; NFCI 2011-06;
-  BAA10Y / T10Y2Y / T10YIE / T5YIFR 2014-02; THREEFYTP10 2016-06; BAMLH0A0HYM2 2023-10.
+  BAA10Y / T10Y2Y / T10YIE / T5YIFR 2014-02; THREEFYTP10 2016-06; BAMLH0A0HYM2 2023-10 **as of
+  that backfill run**. Unlike every other series above, BAMLH0A0HYM2's start date is not a fixed
+  archive floor: FRED serves ICE's high-yield OAS on a rolling ~3-year window that advances with
+  the current date, not a fixed backfill limit. Re-measured 2026-09-22 (S0.2): a fresh unbounded
+  fetch now starts 2023-09-22, having started 2023-05-15 when last fetched 2026-05-14 — the same
+  ~4-month roll as the elapsed time between those two fetches. Treat any first-vintage date quoted
+  for this series as a snapshot, not a constant, and re-measure before relying on it.
 
 `scripts/validate_pit_vs_calendar.py` builds the anchors twice at each as-of date — once per
 scoring mode, `write=False` so no published artifact is touched — and reports every leg that
