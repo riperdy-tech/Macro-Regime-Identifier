@@ -163,6 +163,63 @@ def test_feature_freshness_stale_when_features_trail_raw_observations(tmp_path: 
     assert freshness["stale"] is True
 
 
+def test_feature_freshness_bounds_future_dated_raw_observations_at_today(tmp_path: Path):
+    """Several FRED series carry projections years into the future -- GDPPOT reaches
+    ~2036-10-01 on the real store. Without a bound at today, the raw side of this gap
+    sits permanently in the future and gap_days was measured at 3663 on the real store,
+    so every daily run reported `stale` forever regardless of how current the build
+    actually was."""
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    today = pd.Timestamp.now(tz="UTC").tz_localize(None).normalize()
+    future = today + pd.Timedelta(days=3650)
+    store.upsert_raw_observations(
+        pd.DataFrame(
+            {
+                "series_id": ["GDPPOT", "DGS10"],
+                "date": [future, today],
+                "value": [25.0, 4.2],
+                "realtime_start": [future.date(), today.date()],
+                "realtime_end": [future.date(), today.date()],
+                "source": ["FRED", "FRED"],
+                "fetched_at": [pd.Timestamp.now(tz="UTC"), pd.Timestamp.now(tz="UTC")],
+                "frequency": ["quarterly", "daily"],
+                "units": ["Billions of Dollars", "Percent"],
+            }
+        )
+    )
+    store.upsert_features(
+        pd.DataFrame(
+            [
+                {
+                    "feature_id": "ten_year_level",
+                    "series_id": "DGS10",
+                    "date": today,
+                    "raw_value": 4.2,
+                    "transformed_value": 4.2,
+                    "normalized_value": 0.1,
+                    "transform": "level",
+                    "normalization": "none",
+                    "window_start": today,
+                    "window_end": today,
+                    "valid": True,
+                    "reason": "ok",
+                }
+            ]
+        )
+    )
+
+    status = build_regime_status(outputs_dir=tmp_path, db_path=db_path)
+
+    freshness = status["feature_freshness"]
+    assert freshness["max_raw_observation_date"] == today.date().isoformat()
+    assert freshness["gap_days"] == 0
+    assert freshness["stale"] is False
+
+
 def test_vintage_freshness_flags_a_series_trailing_by_120_days(tmp_path: Path):
     """A series whose newest vintage has fallen behind is otherwise invisible until a
     point-in-time evaluation date resolves stale and gets rejected."""

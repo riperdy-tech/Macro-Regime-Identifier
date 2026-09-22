@@ -144,8 +144,20 @@ def write_regime_status(
 def compute_feature_freshness(store: DuckDBStore) -> dict[str, Any]:
     """How far the stored features have fallen behind the raw observations they are built
     from. A features build that silently stopped running is otherwise invisible until a
-    regime score goes stale much later, by which point the cause is hard to see."""
-    max_raw = _max_date(store.read_table("raw_observations"), "date")
+    regime score goes stale much later, by which point the cause is hard to see.
+
+    The raw side is bounded at today's newest observation on or before today, not the
+    series' true max: several FRED series carry projections years into the future
+    (GDPPOT reaches ~2036-10-01), which would otherwise make this gap permanently in the
+    thousands of days and every daily run report `stale` forever -- measured on the real
+    store before this bound (gap_days 3663). `vintage_asof_dates` in
+    anchors/pit_calendar.py already applies the same cap for the same reason.
+    """
+    raw = store.read_table("raw_observations")
+    today = pd.Timestamp(datetime.now(UTC)).tz_localize(None).normalize()
+    if not raw.empty and "date" in raw.columns:
+        raw = raw.loc[pd.to_datetime(raw["date"], errors="coerce") <= today]
+    max_raw = _max_date(raw, "date")
     max_feature = _max_date(store.read_table("features"), "date")
     gap_days = None
     stale = None
