@@ -7,6 +7,26 @@ import pandas as pd
 from macro_engine.dimensions.config import DimensionDefinition
 
 
+class DuplicateFeatureRows(Exception):
+    """More than one stored row exists for one (feature_id, date) key.
+
+    A database persisted across repeated runs has been observed accumulating up to 11
+    rows per key, with materially disagreeing z-scores (0.5-0.75 z spread, up to 4.4 z)
+    and nothing recording which row was current. Picking one arbitrarily (the previous
+    behavior here: the last row after `sort_values("date")`) silently changes the score
+    depending on run history. Scoring must stop and name the key instead.
+    """
+
+    def __init__(self, feature_id: str, date: object, n: int) -> None:
+        self.feature_id = feature_id
+        self.date = date
+        self.n = n
+        super().__init__(
+            f"duplicate feature rows for feature_id={feature_id!r} date={date!r}: "
+            f"{n} rows stored, expected 1"
+        )
+
+
 @dataclass(frozen=True)
 class DimensionBuildResult:
     contributions: pd.DataFrame
@@ -62,6 +82,11 @@ def _build_dimension_contributions(
     all_dates = sorted(dimension_features["date"].dropna().unique())
     if not all_dates:
         return pd.DataFrame(rows, columns=_contribution_columns())
+    duplicate_counts = dimension_features.groupby(["feature_id", "date"]).size()
+    duplicated = duplicate_counts[duplicate_counts > 1]
+    if not duplicated.empty:
+        feature_id, date = duplicated.index[0]
+        raise DuplicateFeatureRows(feature_id, date, int(duplicated.iloc[0]))
     latest_by_feature_date = {
         (row["feature_id"], row["date"]): row
         for row in dimension_features.sort_values("date").to_dict(orient="records")

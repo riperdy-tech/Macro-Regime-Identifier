@@ -6,7 +6,7 @@ from typer.testing import CliRunner
 
 from macro_engine.cli import app
 from macro_engine.dimensions.config import DimensionDefinition, load_dimension_config
-from macro_engine.dimensions.scoring import build_dimensions_from_features
+from macro_engine.dimensions.scoring import DuplicateFeatureRows, build_dimensions_from_features
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -159,6 +159,23 @@ dimensions:
 
     with pytest.raises(ValueError, match="duplicate dimension_id"):
         load_dimension_config(config_path)
+
+
+def test_duplicate_feature_rows_fail_loudly_instead_of_picking_one():
+    """A stored (feature_id, date) key with more than one row must stop scoring, not
+    silently take whichever row `sort_values("date")` happened to put last."""
+    duplicated = pd.concat(
+        [_features(), _features().iloc[[0]].assign(raw_value=999.0, normalized_value=999.0)],
+        ignore_index=True,
+    )
+
+    with pytest.raises(DuplicateFeatureRows) as excinfo:
+        build_dimensions_from_features(duplicated, [_dimension()])
+
+    assert excinfo.value.feature_id == "feature_a"
+    assert excinfo.value.n == 2
+    assert "feature_a" in str(excinfo.value)
+    assert "2" in str(excinfo.value)
 
 
 def test_positive_and_negative_polarity_apply_correctly():

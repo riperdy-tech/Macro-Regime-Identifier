@@ -87,3 +87,25 @@ def test_feature_builder_ignores_duplicate_vintages():
     assert len(deduped) == len(single) == 6
     # Latest vintage wins.
     assert deduped["raw_value"].tolist() == single["raw_value"].tolist()
+
+
+def test_upsert_features_leaves_exactly_one_row_per_key_after_two_writes(tmp_path):
+    """The `features` table must not accumulate duplicates across repeated runs -- this is
+    the defect that let up to 11 rows pile up per (feature_id, date), with no column
+    recording which was current."""
+    store = DuckDBStore(tmp_path / "test.duckdb")
+    store.initialize()
+    first = build_features_from_raw(
+        _raw("2026-07-01", "2026-07-01"), [_source()], [_feature()]
+    ).features
+    second = build_features_from_raw(
+        _raw("2026-07-02", "2026-07-02", value_offset=0.5), [_source()], [_feature()]
+    ).features
+
+    store.upsert_features(first)
+    store.upsert_features(second)
+
+    stored = store.read_features("test_level")
+    keys = stored[["feature_id", "date"]].drop_duplicates()
+    assert len(stored) == len(keys) == 6, "re-writing the same keys must not duplicate rows"
+    assert (pd.to_numeric(stored.sort_values("date")["raw_value"]) - pd.Series(range(1, 7)) == 0.5).all()

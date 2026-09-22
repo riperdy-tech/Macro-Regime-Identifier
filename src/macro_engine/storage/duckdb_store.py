@@ -138,10 +138,16 @@ class DuckDBStore:
                     window_start DATE,
                     window_end DATE,
                     valid BOOLEAN,
-                    reason TEXT
+                    reason TEXT,
+                    computed_at TIMESTAMP,
+                    source_run_id TEXT
                 )
                 """
             )
+            # Additive migration for a database written before provenance columns existed:
+            # existing rows get NULL rather than the table failing to open.
+            con.execute("ALTER TABLE features ADD COLUMN IF NOT EXISTS computed_at TIMESTAMP")
+            con.execute("ALTER TABLE features ADD COLUMN IF NOT EXISTS source_run_id TEXT")
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS feature_health (
@@ -889,8 +895,16 @@ class DuckDBStore:
     def upsert_features(self, features: pd.DataFrame) -> None:
         if features.empty:
             return
+        frame = features.copy()
+        # Provenance columns are additive: a caller that does not set them (older test
+        # fixtures, callers that predate this migration) still gets a clean write, with
+        # NULL rather than a missing-column error.
+        if "computed_at" not in frame.columns:
+            frame["computed_at"] = pd.NaT
+        if "source_run_id" not in frame.columns:
+            frame["source_run_id"] = None
         with self._connect() as con:
-            con.register("features_frame", features)
+            con.register("features_frame", frame)
             con.execute(
                 """
                 DELETE FROM features
@@ -907,7 +921,7 @@ class DuckDBStore:
                 INSERT INTO features
                 SELECT feature_id, series_id, date, raw_value, transformed_value,
                        normalized_value, transform, normalization, window_start,
-                       window_end, valid, reason
+                       window_end, valid, reason, computed_at, source_run_id
                 FROM features_frame
                 """
             )
