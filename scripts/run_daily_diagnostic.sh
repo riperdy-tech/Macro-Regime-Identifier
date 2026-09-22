@@ -5,6 +5,11 @@ SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 REPO_ROOT="$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)"
 cd "$REPO_ROOT"
 
+# Fail fast if the venv's editable install resolves `macro_engine` outside this repo (a stale
+# .pth after a reorg silently stopped the daily diagnostic for four months last time). `set -e`
+# above means a non-zero exit here aborts the script with the check's own message on stderr.
+python "$SCRIPT_DIR/check_macro_engine_import.py"
+
 LOG_DIR="$REPO_ROOT/logs/daily"
 mkdir -p "$LOG_DIR"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S)"

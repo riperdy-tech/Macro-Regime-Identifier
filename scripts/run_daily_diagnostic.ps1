@@ -4,6 +4,14 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $RepoRoot = Resolve-Path (Join-Path $ScriptDir "..")
 Set-Location $RepoRoot
 
+# Fail fast if the venv's editable install resolves `macro_engine` outside this repo (a stale
+# .pth after a reorg silently stopped the daily diagnostic for four months last time).
+& python (Join-Path $ScriptDir "check_macro_engine_import.py")
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Environment check failed; see the message above. Daily diagnostic did not run."
+    exit $LASTEXITCODE
+}
+
 $LogDir = Join-Path $RepoRoot "logs\daily"
 New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
 
