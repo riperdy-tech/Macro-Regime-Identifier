@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 
 from macro_engine.reports.config import load_report_config
+from macro_engine.reports.writer import require_schema_v2_fields
 from macro_engine.sectors.config import SectorConfig, load_sector_config
 from macro_engine.storage.duckdb_store import DuckDBStore
 
@@ -40,6 +41,7 @@ def write_current_sector_report(
         config=sector_config,
         max_contributors=report_config.max_contributors,
     )
+    require_schema_v2_fields(payload)
     markdown = current_sector_report_markdown(payload)
     output_dir = Path(report_config.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

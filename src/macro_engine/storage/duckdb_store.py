@@ -276,11 +276,23 @@ class DuckDBStore:
                     dominant_regime TEXT,
                     dominant_probability DOUBLE,
                     confidence DOUBLE,
+                    coverage DOUBLE,
+                    peakedness DOUBLE,
                     entropy DOUBLE,
                     valid_regime_count INTEGER,
                     reason TEXT
                 )
                 """
+            )
+            # S1.2b (P0_0 S1.2/2.5): coverage and peakedness split off `confidence` but were
+            # never added to this table, so replace_regime_outputs's explicit column-list
+            # INSERT silently dropped them on every write. Additive for a database predating
+            # the split.
+            con.execute(
+                "ALTER TABLE regime_health ADD COLUMN IF NOT EXISTS coverage DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE regime_health ADD COLUMN IF NOT EXISTS peakedness DOUBLE"
             )
             con.execute(
                 """
@@ -297,6 +309,8 @@ class DuckDBStore:
                     second_regime TEXT,
                     second_probability DOUBLE,
                     confidence DOUBLE,
+                    coverage DOUBLE,
+                    peakedness DOUBLE,
                     entropy DOUBLE,
                     valid_regime_count INTEGER,
                     valid BOOLEAN,
@@ -329,6 +343,13 @@ class DuckDBStore:
             )
             con.execute(
                 "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS transition_filter_reason TEXT"
+            )
+            # S1.2b: same dropped-column defect as regime_health above.
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS coverage DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE historical_regime_timeline ADD COLUMN IF NOT EXISTS peakedness DOUBLE"
             )
             con.execute(
                 """
@@ -386,10 +407,20 @@ class DuckDBStore:
                     macro_reported_regime TEXT,
                     macro_raw_dominant_regime TEXT,
                     macro_confidence DOUBLE,
+                    macro_coverage DOUBLE,
+                    macro_peakedness DOUBLE,
                     valid BOOLEAN,
                     reason TEXT
                 )
                 """
+            )
+            # S1.2b: same dropped-column defect as regime_health/historical_regime_timeline
+            # above -- macro_coverage/macro_peakedness were never added to this table.
+            con.execute(
+                "ALTER TABLE sector_scores ADD COLUMN IF NOT EXISTS macro_coverage DOUBLE"
+            )
+            con.execute(
+                "ALTER TABLE sector_scores ADD COLUMN IF NOT EXISTS macro_peakedness DOUBLE"
             )
             con.execute(
                 """
@@ -1048,12 +1079,22 @@ class DuckDBStore:
                     """
                 )
             if not health.empty:
+                health = _ensure_health_columns(health)
                 con.register("regime_health_frame", health)
+                # Explicit column list on both sides: `coverage`/`peakedness` were added via
+                # ALTER TABLE on a database that predates them, which appends at the physical
+                # end regardless of where they sit in the CREATE TABLE text -- a positional
+                # INSERT INTO ... SELECT would silently misalign against that DB (S1.2b).
                 con.execute(
                     """
-                    INSERT INTO regime_health
+                    INSERT INTO regime_health (
+                        date, valid, dominant_regime, dominant_probability,
+                        confidence, coverage, peakedness, entropy, valid_regime_count,
+                        reason
+                    )
                     SELECT date, valid, dominant_regime, dominant_probability,
-                           confidence, entropy, valid_regime_count, reason
+                           confidence, coverage, peakedness, entropy, valid_regime_count,
+                           reason
                     FROM regime_health_frame
                     """
                 )
@@ -1078,7 +1119,8 @@ class DuckDBStore:
                         reported_regime, reported_regime_probability,
                         reported_confidence, raw_dominant_regime,
                         raw_dominant_probability, raw_confidence, second_regime,
-                        second_probability, confidence, entropy, valid_regime_count,
+                        second_probability, confidence, coverage, peakedness,
+                        entropy, valid_regime_count,
                         valid, transition_filter_applied, transition_filter_reason,
                         reason
                     )
@@ -1086,7 +1128,8 @@ class DuckDBStore:
                            reported_regime, reported_regime_probability,
                            reported_confidence, raw_dominant_regime,
                            raw_dominant_probability, raw_confidence, second_regime,
-                           second_probability, confidence, entropy, valid_regime_count,
+                           second_probability, confidence, coverage, peakedness,
+                           entropy, valid_regime_count,
                            valid, transition_filter_applied, transition_filter_reason,
                            reason
                     FROM timeline_frame
@@ -1127,13 +1170,20 @@ class DuckDBStore:
             con.execute("DELETE FROM sector_score_components")
             con.execute("DELETE FROM sector_health")
             if not scores.empty:
+                scores = _ensure_sector_score_columns(scores)
                 con.register("sector_score_frame", scores)
                 con.execute(
                     """
-                    INSERT INTO sector_scores
+                    INSERT INTO sector_scores (
+                        sector_id, date, raw_sector_score,
+                        confidence_adjusted_score, rank, macro_reported_regime,
+                        macro_raw_dominant_regime, macro_confidence, macro_coverage,
+                        macro_peakedness, valid, reason
+                    )
                     SELECT sector_id, date, raw_sector_score,
                            confidence_adjusted_score, rank, macro_reported_regime,
-                           macro_raw_dominant_regime, macro_confidence, valid, reason
+                           macro_raw_dominant_regime, macro_confidence, macro_coverage,
+                           macro_peakedness, valid, reason
                     FROM sector_score_frame
                     """
                 )
@@ -1930,8 +1980,33 @@ def _ensure_timeline_columns(timeline: pd.DataFrame) -> pd.DataFrame:
         "raw_confidence": frame.get("confidence"),
         "transition_filter_applied": False,
         "transition_filter_reason": "no_filter",
+        # S1.2b: coverage/peakedness have no earlier-schema source column to fall back to --
+        # a frame that predates the split gets an explicit absence, not a guessed value.
+        "coverage": None,
+        "peakedness": None,
     }
     for column, value in defaults.items():
         if column not in frame.columns:
             frame[column] = value
+    return frame
+
+
+def _ensure_health_columns(health: pd.DataFrame) -> pd.DataFrame:
+    """S1.2b: `coverage`/`peakedness` split off `confidence` (regimes/scoring.py
+    `_build_regime_health`) but a frame built before the split, or by a caller that never
+    picked up the new fields, has neither column. Same treatment as
+    `_ensure_timeline_columns`: an explicit null, not a guessed value."""
+    frame = health.copy()
+    for column in ("coverage", "peakedness"):
+        if column not in frame.columns:
+            frame[column] = None
+    return frame
+
+
+def _ensure_sector_score_columns(scores: pd.DataFrame) -> pd.DataFrame:
+    """S1.2b: same treatment for `macro_coverage`/`macro_peakedness` on sector_scores."""
+    frame = scores.copy()
+    for column in ("macro_coverage", "macro_peakedness"):
+        if column not in frame.columns:
+            frame[column] = None
     return frame

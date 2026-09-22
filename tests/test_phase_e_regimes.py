@@ -366,6 +366,16 @@ def test_regime_rows_are_stored(tmp_path):
     assert len(store.read_table("regime_scores")) == 1
     assert len(store.read_table("regime_health")) == 1
 
+    # S1.2b: coverage/peakedness compute correctly in memory but were never persisted --
+    # replace_regime_outputs's explicit column-list INSERT silently dropped them. Round-trip
+    # through the store rather than only asserting the in-memory frame.
+    computed = result.regime_health.iloc[0]
+    assert computed["coverage"] is not None
+    assert computed["peakedness"] is not None
+    stored = store.read_table("regime_health").iloc[0]
+    assert stored["coverage"] == pytest.approx(computed["coverage"])
+    assert stored["peakedness"] == pytest.approx(computed["peakedness"])
+
 
 def test_regime_cli_commands_work(tmp_path):
     db_path = tmp_path / "macro.duckdb"

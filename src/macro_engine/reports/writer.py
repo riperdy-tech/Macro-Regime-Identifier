@@ -243,6 +243,36 @@ Date range: {payload["start_date"]} to {payload["end_date"]}
 """
 
 
+class SchemaVersionFieldsMissing(ValueError):
+    """A payload declares `schema_version: 2` but a field that defines version 2 is null.
+
+    S1.2 (P0_0 S1.2b) split `confidence` into `coverage` and `peakedness`. A consumer that
+    branches on `schema_version` reads a null field as a real value, so a v2 payload with
+    either missing must not publish -- that is worse than not having shipped the split."""
+
+
+# The fields that define schema_version 2 across the artifacts that declare it
+# (current_regime.json, current_sector_ranking.json). Neither is nullable once the payload
+# claims the version.
+SCHEMA_V2_REQUIRED_FIELDS = ("coverage", "peakedness")
+
+
+def require_schema_v2_fields(payload: dict[str, Any]) -> dict[str, Any]:
+    """Refuse to publish a `schema_version: 2` payload whose defining fields are null.
+
+    Only applies to a payload that both claims the version and claims to be valid -- an
+    invalid payload (`valid: False`) never carries these fields in the first place."""
+    if payload.get("schema_version") == 2 and payload.get("valid"):
+        missing = [field for field in SCHEMA_V2_REQUIRED_FIELDS if payload.get(field) is None]
+        if missing:
+            raise SchemaVersionFieldsMissing(
+                f"schema_version 2 payload is missing required field(s) {missing}: "
+                "coverage and peakedness must be non-null when schema_version is 2 and "
+                "valid is true (P0_0 S1.2b guard)"
+            )
+    return payload
+
+
 def write_report_outputs(
     *,
     output_dir: str | Path,
@@ -251,6 +281,7 @@ def write_report_outputs(
     payload: dict[str, Any],
     markdown: str,
 ) -> tuple[Path, Path]:
+    require_schema_v2_fields(payload)
     path = Path(output_dir)
     path.mkdir(parents=True, exist_ok=True)
     json_path = path / json_name

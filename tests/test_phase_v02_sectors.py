@@ -135,7 +135,9 @@ def _regime_health() -> pd.DataFrame:
     )
 
 
-def _timeline(confidence: float = 0.25) -> pd.DataFrame:
+def _timeline(
+    confidence: float = 0.25, coverage: float = 0.8, peakedness: float = 0.3125
+) -> pd.DataFrame:
     return pd.DataFrame(
         [
             {
@@ -151,6 +153,8 @@ def _timeline(confidence: float = 0.25) -> pd.DataFrame:
                 "second_regime": "recession",
                 "second_probability": 0.3,
                 "confidence": confidence,
+                "coverage": coverage,
+                "peakedness": peakedness,
                 "entropy": 0.6,
                 "valid_regime_count": 2,
                 "valid": True,
@@ -366,6 +370,33 @@ def test_sector_health_captures_missing_macro_inputs():
     assert "dimension_exposure:inflation_pressure" in energy["missing_components"]
 
 
+def test_sector_score_rows_are_stored(tmp_path: Path):
+    # S1.2b: macro_coverage/macro_peakedness compute correctly in memory (copied from the
+    # Layer-1 timeline, P0_0 S1.2/1.3.2) but were never persisted -- replace_sector_outputs's
+    # explicit column-list INSERT silently dropped them from sector_scores. Round-trip
+    # through the store rather than only asserting the in-memory frame.
+    result = build_sector_scores(
+        regime_scores=_regime_scores(),
+        regime_health=_regime_health(),
+        dimension_scores=_dimension_scores(),
+        timeline=_timeline(confidence=0.25, coverage=0.8, peakedness=0.3125),
+        config=_toy_sector_config(),
+    )
+    computed = result.sector_scores[result.sector_scores["sector_id"] == "energy"].iloc[0]
+    assert computed["macro_coverage"] == pytest.approx(0.8)
+    assert computed["macro_peakedness"] == pytest.approx(0.3125)
+
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.replace_sector_outputs(result.sector_scores, result.components, result.sector_health)
+
+    stored = store.read_table("sector_scores")
+    stored_energy = stored[stored["sector_id"] == "energy"].iloc[0]
+    assert stored_energy["macro_coverage"] == pytest.approx(0.8)
+    assert stored_energy["macro_peakedness"] == pytest.approx(0.3125)
+
+
 def test_sector_cli_commands_and_reports_work(tmp_path: Path):
     macro_config = _write_macro_config(tmp_path)
     db_path = tmp_path / "macro.duckdb"
@@ -416,6 +447,10 @@ def test_sector_cli_commands_and_reports_work(tmp_path: Path):
     payload = json.loads((output_dir / "current_sector_ranking.json").read_text())
     markdown = (output_dir / "current_sector_ranking.md").read_text()
     assert payload["valid"] is True
+    # S1.2b: the published current_sector_ranking.json must actually carry coverage/
+    # peakedness, not just the in-memory frame that feeds it.
+    assert payload["coverage"] == pytest.approx(0.8)
+    assert payload["peakedness"] == pytest.approx(0.25)
     assert "not investment advice" in markdown
     assert "Sector Ranking" in markdown
 
@@ -641,6 +676,8 @@ def _full_timeline() -> pd.DataFrame:
                 "second_regime": "stagflation",
                 "second_probability": 0.2,
                 "confidence": 0.2,
+                "coverage": 0.8,
+                "peakedness": 0.25,
                 "entropy": 1.4,
                 "valid_regime_count": 5,
                 "valid": True,

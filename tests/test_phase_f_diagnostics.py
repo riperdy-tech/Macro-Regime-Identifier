@@ -57,6 +57,8 @@ def _regime_health() -> pd.DataFrame:
                 "dominant_regime": "goldilocks",
                 "dominant_probability": 0.60,
                 "confidence": 0.30,
+                "coverage": 1.0,
+                "peakedness": 0.30,
                 "entropy": 0.9,
                 "valid_regime_count": 3,
                 "reason": "ok",
@@ -67,6 +69,8 @@ def _regime_health() -> pd.DataFrame:
                 "dominant_regime": "goldilocks",
                 "dominant_probability": 0.55,
                 "confidence": 0.20,
+                "coverage": 1.0,
+                "peakedness": 0.20,
                 "entropy": 1.0,
                 "valid_regime_count": 3,
                 "reason": "ok",
@@ -77,6 +81,8 @@ def _regime_health() -> pd.DataFrame:
                 "dominant_regime": "recession",
                 "dominant_probability": 0.58,
                 "confidence": 0.26,
+                "coverage": 1.0,
+                "peakedness": 0.26,
                 "entropy": 0.95,
                 "valid_regime_count": 3,
                 "reason": "ok",
@@ -87,6 +93,8 @@ def _regime_health() -> pd.DataFrame:
                 "dominant_regime": None,
                 "dominant_probability": None,
                 "confidence": None,
+                "coverage": None,
+                "peakedness": None,
                 "entropy": None,
                 "valid_regime_count": 0,
                 "reason": "no_valid_regimes",
@@ -121,6 +129,8 @@ def test_timeline_stores_dominant_second_confidence_entropy_and_invalid_dates():
     assert jan["dominant_regime"] == "goldilocks"
     assert jan["second_regime"] == "recession"
     assert jan["confidence"] == 0.30
+    assert jan["coverage"] == 1.0
+    assert jan["peakedness"] == 0.30
     assert jan["entropy"] == 0.9
     assert bool(apr["valid"]) is False
     assert apr["reason"] == "below_min_valid_regimes"
@@ -178,6 +188,18 @@ def test_diagnostic_rows_are_stored(tmp_path):
     assert len(store.read_table("regime_transitions")) == 1
     summary = store.read_table("diagnostic_summary").iloc[0]
     assert json.loads(summary["dominant_regime_distribution"])["goldilocks"] == pytest.approx(2 / 3)
+
+    # S1.2b: coverage/peakedness compute correctly in memory but were never persisted --
+    # replace_diagnostic_outputs's explicit column-list INSERT silently dropped them from
+    # historical_regime_timeline. Round-trip through the store, not just the in-memory frame.
+    computed = result.timeline.set_index("date").loc[pd.Timestamp("2026-01-01").date()]
+    assert computed["coverage"] is not None
+    assert computed["peakedness"] is not None
+    stored_timeline = store.read_table("historical_regime_timeline")
+    stored_timeline["date"] = pd.to_datetime(stored_timeline["date"])
+    stored = stored_timeline.set_index("date").loc[pd.Timestamp("2026-01-01")]
+    assert stored["coverage"] == pytest.approx(computed["coverage"])
+    assert stored["peakedness"] == pytest.approx(computed["peakedness"])
 
 
 def test_diagnostic_cli_commands_work(tmp_path):

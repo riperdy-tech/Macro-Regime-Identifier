@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 
 import pandas as pd
+import pytest
 from typer.testing import CliRunner
 
 from macro_engine.cli import app
@@ -12,10 +13,13 @@ from macro_engine.reports.service import (
     write_historical_diagnostic_report,
 )
 from macro_engine.reports.writer import (
+    SchemaVersionFieldsMissing,
     build_current_regime_report,
     build_historical_diagnostic_report,
     current_report_markdown,
     diagnostic_report_markdown,
+    require_schema_v2_fields,
+    write_report_outputs,
 )
 from macro_engine.storage.duckdb_store import DuckDBStore
 
@@ -60,6 +64,8 @@ def _regime_health() -> pd.DataFrame:
                 "dominant_regime": "goldilocks",
                 "dominant_probability": 0.6,
                 "confidence": 0.2,
+                "coverage": 0.8,
+                "peakedness": 0.25,
                 "entropy": 0.67,
                 "valid_regime_count": 2,
                 "reason": "ok",
@@ -337,10 +343,45 @@ reports:
         db_path=db_path,
     )
 
-    assert json.loads(current_json.read_text(encoding="utf-8"))["dominant_regime"] == "goldilocks"
+    current_payload = json.loads(current_json.read_text(encoding="utf-8"))
+    assert current_payload["dominant_regime"] == "goldilocks"
+    # S1.2b: the published current_regime.json must actually carry coverage/peakedness, not
+    # just the in-memory frame that feeds it.
+    assert current_payload["coverage"] == pytest.approx(0.8)
+    assert current_payload["peakedness"] == pytest.approx(0.25)
     assert "Current Macro Regime" in current_md.read_text(encoding="utf-8")
     assert json.loads(diagnostic_json.read_text(encoding="utf-8"))["mode"] == "revised_data"
     assert "Historical Diagnostic" in diagnostic_md.read_text(encoding="utf-8")
+
+
+def test_write_report_outputs_refuses_schema_v2_payload_missing_coverage(tmp_path):
+    # S1.2b guard (P0_0): schema_version 2 is a claim about coverage/peakedness being
+    # published. A valid v2 payload with either null must fail loudly rather than publish a
+    # null behind an unchanged version number.
+    bad_payload = {
+        "schema_version": 2,
+        "valid": True,
+        "coverage": None,
+        "peakedness": 0.3,
+    }
+    with pytest.raises(SchemaVersionFieldsMissing):
+        write_report_outputs(
+            output_dir=tmp_path,
+            json_name="bad_current_regime.json",
+            markdown_name="bad_current_regime.md",
+            payload=bad_payload,
+            markdown="unused",
+        )
+    assert not (tmp_path / "bad_current_regime.json").exists()
+
+
+def test_require_schema_v2_fields_allows_non_v2_and_invalid_payloads():
+    # Only a *valid* schema_version 2 payload is held to the invariant -- an invalid payload
+    # never carries coverage/peakedness in the first place, and schema_version 1 predates
+    # the split.
+    require_schema_v2_fields({"schema_version": 2, "valid": False, "reason": "no_valid_regime"})
+    require_schema_v2_fields({"schema_version": 1, "valid": True})
+    require_schema_v2_fields({"schema_version": 2, "valid": True, "coverage": 0.8, "peakedness": 0.3})
 
 
 def test_report_cli_commands_work(tmp_path):
