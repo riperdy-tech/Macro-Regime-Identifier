@@ -37,6 +37,25 @@ class NberRecession(BaseModel):
         return self
 
 
+class NberBenchmarkPins(BaseModel):
+    """S1.7 (P0_0 §2.7): a production regression guard, not a target.
+
+    Recorded from one real run (`measured_at`, `source_run_note`) at the configured
+    `threshold`. `tolerance` is the ± band around each pinned value; a run whose AUROC,
+    precision or recall at that threshold falls outside its band is a real change in the
+    engine's ranking behaviour and needs a dated commit re-recording the pin, not a silent
+    drift. Provisional per the work order: tolerance 0.05.
+    """
+
+    auroc: float = Field(ge=0, le=1)
+    precision_at_threshold: float = Field(ge=0, le=1)
+    recall_at_threshold: float = Field(ge=0, le=1)
+    threshold: float = Field(gt=0, lt=1)
+    tolerance: float = Field(default=0.05, gt=0)
+    measured_at: str
+    source_run_note: str
+
+
 class NberBenchmarkConfig(BaseModel):
     recessions: list[NberRecession]
     recession_regime_ids: list[str] = Field(default_factory=lambda: ["recession"])
@@ -46,6 +65,7 @@ class NberBenchmarkConfig(BaseModel):
     detection_threshold: float = Field(default=0.25, gt=0, lt=1)
     lead_lag_window_months: int = Field(default=9, ge=0)
     output_dir: str = "outputs"
+    pins: NberBenchmarkPins | None = None
 
     @model_validator(mode="after")
     def has_recessions(self) -> NberBenchmarkConfig:
@@ -62,6 +82,43 @@ def load_nber_benchmark_config(
     recessions = [NberRecession.model_validate(item) for item in data.get("nber_recessions", [])]
     benchmark = data.get("benchmark", {}) or {}
     return NberBenchmarkConfig(recessions=recessions, **benchmark)
+
+
+def check_benchmark_pins(summary: dict, config: NberBenchmarkConfig) -> list[str]:
+    """Compare a benchmark summary against `config.pins`. Empty list == inside every band.
+
+    No pins configured is not a failure (`pins: None` is a valid, disclosed absence, per
+    "0.0 is a value, None is an absence") -- it means no production run has recorded one yet.
+    """
+    if config.pins is None:
+        return []
+    if summary.get("status") != "ok":
+        return [f"benchmark status {summary.get('status')!r}, cannot check pins"]
+    pins = config.pins
+    threshold_row = next(
+        (row for row in summary["threshold_metrics"] if row["threshold"] == pins.threshold),
+        None,
+    )
+    if threshold_row is None:
+        return [f"pinned threshold {pins.threshold} is not in probability_thresholds"]
+    recession_hits = threshold_row["recession_hits"]
+    flagged = recession_hits + threshold_row["expansion_flags"]
+    precision = recession_hits / flagged if flagged > 0 else None
+    recall = threshold_row["recession_hit_rate"]
+    violations: list[str] = []
+    auroc = summary["auroc"]
+    if auroc is None or abs(auroc - pins.auroc) > pins.tolerance:
+        violations.append(f"auroc {auroc} outside pin {pins.auroc} +/- {pins.tolerance}")
+    if precision is None or abs(precision - pins.precision_at_threshold) > pins.tolerance:
+        violations.append(
+            f"precision@{pins.threshold} {precision} outside pin "
+            f"{pins.precision_at_threshold} +/- {pins.tolerance}"
+        )
+    if recall is None or abs(recall - pins.recall_at_threshold) > pins.tolerance:
+        violations.append(
+            f"recall@{pins.threshold} {recall} outside pin {pins.recall_at_threshold} +/- {pins.tolerance}"
+        )
+    return violations
 
 
 def build_monthly_benchmark_frame(
@@ -172,6 +229,10 @@ def run_stored_nber_benchmark(
         store.read_table("historical_regime_timeline"),
         config,
     )
+    # S1.7 (P0_0 §2.7): annotate, never silently gate -- a pin violation is reported on the
+    # artifact so an operator sees it, not a raised exception that would stop the daily run
+    # over a diagnostic regression guard.
+    summary["pin_violations"] = check_benchmark_pins(summary, config)
     target_dir = Path(output_dir) if output_dir is not None else Path(config.output_dir)
     target_dir.mkdir(parents=True, exist_ok=True)
     json_path = target_dir / "nber_benchmark.json"

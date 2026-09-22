@@ -70,6 +70,27 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+# S1.7 / S0.7a: the report writer is a separate step from the builder, so a stale report can
+# silently disagree with the store (MRI_S0_APPROVAL.md §1 row 14 caught `sector_validation.json`
+# doing exactly this). Both run every day so neither can go stale between runs.
+& python -m macro_engine.cli run-sector-validation --config config/sector_validation.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Sector validation failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
+& python -m macro_engine.cli write-sector-validation-report --config config/sector_validation.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Sector validation report failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
+& python -m macro_engine.cli run-nber-benchmark --benchmark-config config/nber_recessions.yaml *> $LogPath -Append
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "NBER benchmark failed. See $LogPath"
+    exit $LASTEXITCODE
+}
+
 & python -m macro_engine.cli write-regime-status *> $LogPath -Append
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Regime status failed. See $LogPath"

@@ -30,3 +30,21 @@ benchmark:
   # detecting that recession (rather than a standalone false positive).
   lead_lag_window_months: 9
   output_dir: outputs
+  # S1.7 (P0_0 §2.7): a production regression guard on the filtered recession posterior,
+  # not a target. Measured by `run-nber-benchmark` against the real store on 2026-09-23
+  # (441-month timeline, `regime_scores`/`historical_regime_timeline` as they stood in
+  # `data/macro_engine.duckdb` at that time -- the store had not yet been rebuilt with
+  # S1.1's intercepts, so this pin reflects the currently-published softmax scoring, not
+  # the S1.1-corrected one; re-measure and bump this pin in its own dated commit once the
+  # store is rebuilt with S1's non-hard-stopped changes). ±0.05 tolerance per the work
+  # order, provisional.
+  pins:
+    auroc: 0.8884085213032581
+    precision_at_threshold: 0.23780487804878
+    recall_at_threshold: 0.975
+    threshold: 0.25
+    tolerance: 0.05
+    measured_at: "2026-09-23"
+    source_run_note: >-
+      run-nber-benchmark against data/macro_engine.duckdb, pre-S1.1-rebuild store state
+      (identical to the S0 baseline pack: AUROC 0.8884, recall 0.975 at threshold 0.25).

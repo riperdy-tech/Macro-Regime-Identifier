@@ -33,6 +33,12 @@ python -m macro_engine.cli run-news-accumulation --config config/news_accumulati
 python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-news-source-coverage-report --config config/news_source_watchlist.yaml >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml >> "$LOG_PATH" 2>&1
+# S1.7 / S0.7a: the report writer is a separate step from the builder, so a stale report can
+# silently disagree with the store (MRI_S0_APPROVAL.md §1 row 14 caught `sector_validation.json`
+# doing exactly this). Both run every day so neither can go stale between runs.
+python -m macro_engine.cli run-sector-validation --config config/sector_validation.yaml >> "$LOG_PATH" 2>&1
+python -m macro_engine.cli write-sector-validation-report --config config/sector_validation.yaml >> "$LOG_PATH" 2>&1
+python -m macro_engine.cli run-nber-benchmark --benchmark-config config/nber_recessions.yaml >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-regime-status >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli export-dashboard-data >> "$LOG_PATH" 2>&1
 python -m macro_engine.cli write-automation-summary >> "$LOG_PATH" 2>&1

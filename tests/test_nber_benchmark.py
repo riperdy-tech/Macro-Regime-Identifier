@@ -6,10 +6,12 @@ import pandas as pd
 
 from macro_engine.evaluation.nber import (
     NberBenchmarkConfig,
+    NberBenchmarkPins,
     NberRecession,
     _auroc,
     build_markdown_report,
     build_monthly_benchmark_frame,
+    check_benchmark_pins,
     load_nber_benchmark_config,
     run_nber_benchmark,
 )
@@ -174,3 +176,102 @@ def test_production_benchmark_config_loads():
     assert config.recession_regime_ids == ["recession"]
     starts = [recession.start for recession in config.recessions]
     assert "2007-12" in starts
+
+
+# ── S1.7 (P0_0 §2.7): production pins ───────────────────────────────────────────
+
+
+def test_production_config_carries_a_pin_band():
+    config = load_nber_benchmark_config("config/nber_recessions.yaml")
+    assert config.pins is not None
+    assert config.pins.threshold in config.probability_thresholds
+    assert 0 < config.pins.tolerance <= 0.10
+
+
+def test_pin_holds_when_the_run_reproduces_the_pinned_measurement():
+    months_probability = {
+        "2019-12": 0.10,
+        "2020-01": 0.30,
+        "2020-02": 0.70,
+        "2020-03": 0.80,
+        "2020-04": 0.75,
+    }
+    months_regime = dict.fromkeys(months_probability, "goldilocks")
+    config = _config(
+        pins=NberBenchmarkPins(
+            auroc=1.0,
+            precision_at_threshold=0.75,
+            recall_at_threshold=1.0,
+            threshold=0.25,
+            tolerance=0.05,
+            measured_at="2026-09-23",
+            source_run_note="synthetic fixture",
+        )
+    )
+    summary = run_nber_benchmark(_scores(months_probability), _timeline(months_regime), config)
+
+    assert check_benchmark_pins(summary, config) == []
+
+
+def test_pin_fails_loudly_when_the_fixture_auroc_is_perturbed():
+    """The work order's own gate: 'the pin test fails when the fixture's AUROC is
+    perturbed by 0.10.'"""
+    months_probability = {
+        "2019-12": 0.10,
+        "2020-01": 0.30,
+        "2020-02": 0.70,
+        "2020-03": 0.80,
+        "2020-04": 0.75,
+    }
+    months_regime = dict.fromkeys(months_probability, "goldilocks")
+    config = _config(
+        pins=NberBenchmarkPins(
+            # The real run scores AUROC 1.0; pin it 0.10 away from that, outside the 0.05
+            # tolerance. precision/recall are pinned to their true values so AUROC is the
+            # only violation.
+            auroc=0.90,
+            precision_at_threshold=0.75,
+            recall_at_threshold=1.0,
+            threshold=0.25,
+            tolerance=0.05,
+            measured_at="2026-09-23",
+            source_run_note="synthetic fixture, deliberately perturbed",
+        )
+    )
+    summary = run_nber_benchmark(_scores(months_probability), _timeline(months_regime), config)
+
+    violations = check_benchmark_pins(summary, config)
+    assert violations == ["auroc 1.0 outside pin 0.9 +/- 0.05"]
+
+
+def test_pin_check_is_a_noop_when_no_pins_are_configured():
+    config = _config()
+    assert config.pins is None
+    summary = run_nber_benchmark(
+        _scores({"2020-01": 0.1, "2020-02": 0.6, "2020-03": 0.1}),
+        _timeline({"2020-01": "goldilocks", "2020-02": "recession", "2020-03": "goldilocks"}),
+        config,
+    )
+    assert check_benchmark_pins(summary, config) == []
+
+
+def test_pin_check_reports_when_the_pinned_threshold_is_not_evaluated():
+    config = _config(
+        probability_thresholds=[0.30],
+        pins=NberBenchmarkPins(
+            auroc=1.0,
+            precision_at_threshold=1.0,
+            recall_at_threshold=1.0,
+            threshold=0.25,
+            tolerance=0.05,
+            measured_at="2026-09-23",
+            source_run_note="synthetic fixture",
+        ),
+    )
+    summary = run_nber_benchmark(
+        _scores({"2020-01": 0.1, "2020-02": 0.6, "2020-03": 0.1}),
+        _timeline({"2020-01": "goldilocks", "2020-02": "recession", "2020-03": "goldilocks"}),
+        config,
+    )
+    violations = check_benchmark_pins(summary, config)
+    assert violations == ["pinned threshold 0.25 is not in probability_thresholds"]
