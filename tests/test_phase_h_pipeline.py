@@ -34,6 +34,18 @@ def _raw_sub_monthly(series_id: str, freq: str, frequency_label: str) -> pd.Data
     )
 
 
+def _raw_fedfunds_monthly(periods: int) -> pd.DataFrame:
+    # S1.4 (operator-approved 2026-09-23): with ten_year_yield_level_z removed from
+    # policy_stance, fed_funds_6m_change_z is no longer masked by a second valid feature.
+    # _raw_monthly's plain +1-per-month ramp gives diff_6m a constant 6.0 forever, zero
+    # variance, so rolling_z_10y normalization can never produce a valid z-score
+    # (insufficient_normalization_history) -- a pre-existing fixture gap S1.4 exposes, not
+    # a production regression. A period-12 sawtooth gives the 6-month change real variance.
+    frame = _raw_monthly("FEDFUNDS", periods)
+    frame["value"] = [float(index % 12 + 1) for index in range(periods)]
+    return frame
+
+
 def _mock_ingest(config_path, start, end, db_path, parquet_dir):
     store = DuckDBStore(db_path)
     store.initialize()
@@ -44,7 +56,7 @@ def _mock_ingest(config_path, start, end, db_path, parquet_dir):
             _raw_monthly("UNRATE", 140),
             _raw_monthly("CPIAUCSL", 140),
             _raw_monthly("PCEPI", 140),
-            _raw_monthly("FEDFUNDS", 140),
+            _raw_fedfunds_monthly(140),
             _raw_sub_monthly("DGS10", "B", "daily"),
             _raw_sub_monthly("BAA10Y", "B", "daily"),
             _raw_sub_monthly("NFCI", "W-FRI", "weekly"),

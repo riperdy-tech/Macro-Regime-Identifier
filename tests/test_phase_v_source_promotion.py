@@ -34,5 +34,7 @@ def test_phase_v_production_dimension_weights_match_approved_source_promotion():
 
     assert credit["baa_spread_level_z"].weight == 0.35
     assert credit["nfci_level_z"].weight == 0.35
-    assert credit["high_yield_oas_level_z"].weight == 0.30
-    assert credit["high_yield_oas_level_z"].polarity == "negative"
+    # S1.4 (operator-approved 2026-09-23): high_yield_oas_level_z removed from the
+    # credit_liquidity dimension composition. It stays a promoted, enabled feature
+    # (asserted above), referenced by no dimension, like the anchor series.
+    assert "high_yield_oas_level_z" not in credit

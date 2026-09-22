@@ -495,15 +495,18 @@ def test_shipped_composition_registry_loads_and_validates_against_the_production
 
     validate_registry_against_dimensions(registry, production.dimensions)
 
+    # S1.4: high_yield_oas_level_z removed from credit_liquidity, so the composition break
+    # this registry exists to declare (§2.6) no longer exists -- one segment for the whole
+    # history.
     assert registry.composition_id("credit_liquidity", pd.Timestamp("2020-01-01").date()) == (
-        "credit_liquidity:v1:1990-01-01..2023-09-30"
+        "credit_liquidity:v3:1990-01-01.."
     )
     assert registry.composition_id("credit_liquidity", pd.Timestamp("2024-01-01").date()) == (
-        "credit_liquidity:v2:2023-10-01.."
+        "credit_liquidity:v3:1990-01-01.."
     )
     assert registry.declared_feature_ids(
         "credit_liquidity", pd.Timestamp("2020-01-01").date()
     ) == {"baa_spread_level_z", "nfci_level_z"}
     assert registry.declared_feature_ids(
         "credit_liquidity", pd.Timestamp("2024-01-01").date()
-    ) == {"baa_spread_level_z", "nfci_level_z", "high_yield_oas_level_z"}
+    ) == {"baa_spread_level_z", "nfci_level_z"}
