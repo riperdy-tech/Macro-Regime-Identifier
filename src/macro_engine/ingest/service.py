@@ -327,6 +327,7 @@ def run_fred_vintage_ingestion(
         failed_count=len(errors),
         storage_path=str(parquet_dir),
         series_stored=stored_series,
+        failed_series=sorted({error["series_id"] for error in errors}),
     )
 
 

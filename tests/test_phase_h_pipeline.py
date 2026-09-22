@@ -180,6 +180,83 @@ def test_run_pipeline_fails_the_run_when_the_vintage_step_fails(tmp_path):
     assert run["failed_step"] == "vintages"
 
 
+def test_run_pipeline_fails_the_run_when_every_vintage_fetch_fails(tmp_path):
+    """§0.3 item 1, demonstrated the way the S0 approval demonstrated the defect: a client
+    whose `get_series_observations_vintage` always raises FredError produced
+    `failed_count = 4, vintage_rows = 0` with no exception, so an ALFRED outage, a revoked
+    key, or a rate-limit ban all produced a "successful" run on a stale archive. `failed_count
+    > 0` with `vintage_rows == 0` must now stop the run instead."""
+    from macro_engine.ingest.fred import FredError
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+
+    class _DeadClient:
+        def get_series_observations_vintage(
+            self, series_id, as_of, observation_start=None, observation_end=None
+        ):
+            raise FredError("ALFRED down")
+
+    def _dead_vintages(*, config_path, db_path, parquet_dir, start, end):
+        return run_fred_vintage_ingestion(
+            as_of_dates=["2020-01-01"],
+            config_path=config_path,
+            db_path=db_path,
+            parquet_dir=parquet_dir,
+            client=_DeadClient(),
+        )
+
+    db_path = tmp_path / "macro.duckdb"
+
+    with pytest.raises(FredError, match="vintage backfill failed"):
+        run_pipeline(
+            config_path=_redirected_config(tmp_path),
+            db_path=db_path,
+            parquet_dir=tmp_path / "fred",
+            mode="mock",
+            ingest_runner=_mock_ingest,
+            vintage_runner=_dead_vintages,
+        )
+
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] == "failed"
+    assert run["failed_step"] == "vintages"
+
+
+def test_run_pipeline_warns_and_continues_on_a_partial_vintage_failure(tmp_path):
+    """§0.3 item 1's other half: a PARTIAL vintage failure (some series fetched, some
+    failed) must not stop the run outright -- it downgrades to success_with_warnings and
+    names which series failed, rather than either silently proceeding or aborting on data
+    that mostly refreshed fine."""
+    from macro_engine.pipeline_runner import _vintage_partial_warnings
+
+    partial_summary = VintageIngestionSummary(
+        run_id="mock-partial-vintages",
+        series_requested=2,
+        as_of_dates=["2020-01-01"],
+        vintage_rows=3,
+        vintage_series=1,
+        empty_vintage_count=0,
+        failed_count=1,
+        storage_path=str(tmp_path / "fred"),
+        failed_series=["BBB"],
+    )
+    assert _vintage_partial_warnings(partial_summary) == ["vintage_partial:BBB"]
+
+    db_path = tmp_path / "macro.duckdb"
+    summary = run_pipeline(
+        config_path=_redirected_config(tmp_path),
+        db_path=db_path,
+        parquet_dir=tmp_path / "fred",
+        mode="mock",
+        ingest_runner=_mock_ingest,
+        vintage_runner=lambda **_: partial_summary,
+    )
+
+    assert summary.status == "success_with_warnings"
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] == "success_with_warnings"
+    assert run["failed_step"] is None
+
+
 def test_live_pipeline_requires_fred_api_key(tmp_path, monkeypatch):
     monkeypatch.delenv("FRED_API_KEY", raising=False)
 

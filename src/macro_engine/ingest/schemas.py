@@ -66,3 +66,6 @@ class VintageIngestionSummary(BaseModel):
     storage_path: str
     # Which series actually landed rows in THIS run, so a partial run is legible.
     series_stored: list[str] = Field(default_factory=list)
+    # Which series had at least one failed vintage fetch in THIS run, so a caller can name
+    # the failure in a warning instead of only counting it.
+    failed_series: list[str] = Field(default_factory=list)

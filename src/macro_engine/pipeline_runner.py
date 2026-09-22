@@ -127,6 +127,17 @@ def run_pipeline(
             end=end,
         )
         print(f"pipeline: vintages done (rows={vintage_summary.vintage_rows})", flush=True)
+        if vintage_summary.failed_count > 0:
+            if vintage_summary.vintage_rows == 0:
+                # Every requested fetch failed: proceeding would silently build on whatever
+                # archive already existed, which is the exact failure the required vintage
+                # step exists to make loud (an ALFRED outage, a revoked key, or a
+                # rate-limit ban all look like this from here).
+                raise FredError(
+                    "vintage backfill failed for every requested series "
+                    f"({vintage_summary.failed_count} failed fetches, 0 vintage rows stored)"
+                )
+            warnings.extend(_vintage_partial_warnings(vintage_summary))
 
         failed_step = "build-asof-features"
         print("pipeline: build-asof-features start", flush=True)
@@ -224,6 +235,10 @@ def run_pipeline(
 def _require_live_key_if_needed(mode: str) -> None:
     if mode == "live" and not os.getenv("FRED_API_KEY"):
         raise FredError("FRED_API_KEY is required for live pipeline ingestion")
+
+
+def _vintage_partial_warnings(vintage_summary) -> list[str]:
+    return [f"vintage_partial:{series}" for series in vintage_summary.failed_series]
 
 
 def _collect_invalid_feature_warnings(feature_health: pd.DataFrame, warnings: list[str]) -> None:
