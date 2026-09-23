@@ -254,3 +254,50 @@ def test_baseline_pack_does_not_open_the_store_for_write(tmp_path, monkeypatch):
 
     assert seen_read_only, "expected the script to open the database at least once"
     assert all(seen_read_only), "measure_baseline.py must open the store with read_only=True"
+
+
+def test_s1_1_intercepts_center_the_transform_within_0_02():
+    """C8 / P0_0 §2.2 (MRI_S1_APPROVAL.md §2, condition C8): each regime-dimension pair
+    that carries a non-default intercept must have a transform-attributable mean within
+    ±0.02 of zero, measured on the real store's `dimension_scores`. This is the test the
+    S1.1 commit was missing: without it, an intercept can go stale silently -- exactly
+    what happened when S1.4 removed `ten_year_yield_level_z` from `policy_stance` and the
+    0.889 centring value (measured on the pre-removal dimension) was never re-derived.
+    The shipped value is now 0.814, re-derived directly from `dimension_scores`."""
+    db_path = Path(__file__).resolve().parents[1] / "data" / "macro_engine.duckdb"
+    if not db_path.exists():
+        pytest.skip("real store not present")
+
+    from macro_engine.regimes.config import load_regime_config
+    from macro_engine.regimes.scoring import transform_dimension_value
+
+    con = duckdb.connect(str(db_path), read_only=True)
+    try:
+        scores = con.execute(
+            "select dimension_id, score from dimension_scores where valid and score is not null"
+        ).fetchdf()
+    finally:
+        con.close()
+
+    config = load_regime_config(
+        Path(__file__).resolve().parents[1] / "config" / "phase_b_sources.yaml"
+    )
+    checked = 0
+    for regime in config.regimes:
+        for dimension in regime.dimensions:
+            if dimension.intercept == 0.0:
+                continue
+            dim_scores = scores.loc[scores["dimension_id"] == dimension.dimension_id, "score"]
+            if dim_scores.empty:
+                continue
+            transformed = dim_scores.astype(float).apply(
+                lambda value: transform_dimension_value(value, dimension.polarity)
+                + dimension.intercept
+            )
+            mean = float(transformed.mean())
+            assert abs(mean) <= 0.02, (
+                f"{regime.regime_id}/{dimension.dimension_id}: transform-attributable mean "
+                f"{mean:.4f} is outside +/-0.02 -- the intercept ({dimension.intercept}) is stale"
+            )
+            checked += 1
+    assert checked > 0, "expected at least one intercepted regime-dimension pair to check"

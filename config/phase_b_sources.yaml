@@ -577,9 +577,13 @@ regimes:
       - dimension_id: policy_stance
         weight: 0.15
         polarity: reward_near_zero
-        # S1.1 (S0 measurement): E[reward_near_zero] on policy_stance over the clean
-        # 1990-01..2026-09 store = -0.889. See P0_0 §2.2.
-        intercept: 0.889
+        # S1.1 (C8 re-derivation, MRI_S1_APPROVAL.md §2/C8): E[reward_near_zero] on the
+        # shipped policy_stance (post S1.4 feature removal) over the clean
+        # 1990-01..2026-09 store = -0.814, not the pre-S1.4 -0.889 this intercept was set
+        # from. Re-derived directly from `dimension_scores` (policy_stance, valid rows):
+        # mean(-abs(score)) = -0.8137. See P0_0 §2.2 and measure_baseline.py's
+        # `regime_dimension_contributions` -> mean_transformed_dimension_value.
+        intercept: 0.814
       - dimension_id: yield_curve
         weight: 0.10
         polarity: positive
