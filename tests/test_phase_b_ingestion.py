@@ -72,7 +72,7 @@ def test_load_production_controlled_source_set():
     sources = load_ingestion_sources("config/phase_b_sources.yaml")
     selected = select_sources(sources)
 
-    assert len(selected) == 22
+    assert len(selected) == 28
     assert {source.series_id for source in selected} == {
         "INDPRO",
         "PAYEMS",
@@ -104,7 +104,28 @@ def test_load_production_controlled_source_set():
         # no sector exposure.
         "MCOILWTICO",
         "NNUSBIS",
+        # S4 Layer-2 shock series (MRI_S4_PLAN.md, architecture §3): feed shock register
+        # only, referenced by no Layer-1 dimension and no regime.
+        "VIXCLS",
+        "DCOILWTICO",
+        "DTWEXBGS",
+        "DTWEXB",
+        "TWEXBMTH",
+        "DGS2",
     }
+
+
+def test_layer2_shock_sources_flags():
+    sources = load_ingestion_sources("config/phase_b_sources.yaml")
+    source_map = {s.series_id: s for s in sources}
+    layer2_ids = ["VIXCLS", "DCOILWTICO", "DTWEXBGS", "DTWEXB", "TWEXBMTH", "DGS2"]
+    for sid in layer2_ids:
+        assert sid in source_map, f"{sid} missing from sources"
+        source = source_map[sid]
+        assert source.dimension == "layer2_shocks"
+        assert source.required is False
+        assert source.enabled is True
+        assert source.publication_lag_days > 0
 
 
 def test_missing_api_key_has_clear_error():

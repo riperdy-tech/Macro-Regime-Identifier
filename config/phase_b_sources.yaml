@@ -264,6 +264,78 @@ sources:
     unusable_after_days: 120
     publication_lag_days: 52
 
+  # --- Layer-2 shock series (dimension: layer2_shocks) -----------------------
+  # Inputs to the shock register ONLY (MRI_S4_PLAN.md, architecture §3).
+  # required: false so a fetch gap cannot invalidate the regime timeline, and
+  # referenced by NO Layer-1 dimension and NO regime.
+  - series_id: VIXCLS
+    name: "CBOE Volatility Index: VIX"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: DCOILWTICO
+    name: "Crude Oil Prices: West Texas Intermediate (WTI) - Cushing, Oklahoma"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: DTWEXBGS
+    name: "Nominal Broad U.S. Dollar Index (Goods and Services)"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: DTWEXB
+    name: "Nominal Broad U.S. Dollar Index (Goods Only) [Discontinued]"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+  - series_id: TWEXBMTH
+    name: "Nominal Broad U.S. Dollar Index (Monthly) [Discontinued]"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+    publication_lag_days: 35
+
+  - series_id: DGS2
+    name: "Market Yield on U.S. Treasury Securities at 2-Year Constant Maturity"
+    provider: FRED
+    dimension: layer2_shocks
+    frequency: daily
+    required: false
+    enabled: true
+    stale_after_days: 5
+    unusable_after_days: 15
+    publication_lag_days: 1
+
+
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
