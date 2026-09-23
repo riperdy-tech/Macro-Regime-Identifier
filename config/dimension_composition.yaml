@@ -46,8 +46,8 @@ dimension_compositions:
         - feature_id: pce_price_yoy_z
           weight: 0.50
 
-  # HARD STOP (P0_0 S1.4, operator ruling pending): matches phase_b_sources.yaml's staged
-  # removal of ten_year_yield_level_z. NOT committed.
+  # S1.4 (committed, operator-approved 2026-09-23): matches phase_b_sources.yaml's removal
+  # of ten_year_yield_level_z.
   policy_stance:
     - composition_id: "policy_stance:v2:1990-01-01.."
       valid_from: "1990-01-01"
@@ -58,10 +58,10 @@ dimension_compositions:
         - feature_id: fed_funds_6m_change_z
           weight: 0.30
 
-  # HARD STOP (P0_0 S1.4, operator ruling pending): matches phase_b_sources.yaml's staged
-  # removal of high_yield_oas_level_z -- the composition break this registry exists to
-  # declare (§2.6) no longer exists once the feature is gone, so this collapses to one
-  # segment for the whole history. NOT committed.
+  # S1.4 (committed, operator-approved 2026-09-23): matches phase_b_sources.yaml's removal
+  # of high_yield_oas_level_z -- the composition break this registry exists to declare
+  # (§2.6) no longer exists once the feature is gone, so this collapses to one segment for
+  # the whole history.
   credit_liquidity:
     - composition_id: "credit_liquidity:v3:1990-01-01.."
       valid_from: "1990-01-01"

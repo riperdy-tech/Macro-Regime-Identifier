@@ -422,10 +422,10 @@ dimensions:
     required_for_regime: true
     min_valid_features: 2
     min_coverage_ratio: 0.60
-    # HARD STOP (P0_0 S1.4, operator ruling pending): ten_year_yield_level_z removed --
-    # it double-counts the 10-year, which also drives yield_curve. Feature stays enabled
-    # and referenced by no dimension, like the anchor series (S1.4). NOT committed; staged
-    # for the operator's blast-radius review (see the S1 report).
+    # S1.4 (committed, operator-approved 2026-09-23): ten_year_yield_level_z removed --
+    # it raised policy_stance's collinearity with yield_curve (0.70 -> 0.76) and carried a
+    # structural "easy" bias from a secularly falling series (+0.20 on the dimension mean).
+    # Feature stays enabled and referenced by no dimension, like the anchor series.
     features:
       - feature_id: fed_funds_level_z
         weight: 0.40
@@ -439,10 +439,9 @@ dimensions:
     required_for_regime: true
     min_valid_features: 2
     min_coverage_ratio: 0.60
-    # HARD STOP (P0_0 S1.4, operator ruling pending): high_yield_oas_level_z removed --
+    # S1.4 (committed, operator-approved 2026-09-23): high_yield_oas_level_z removed --
     # S0.2 proved it is ICE-licence-limited to a rolling ~3-year window and can never have
-    # deep history. Feature stays enabled and referenced by no dimension. NOT committed;
-    # staged for the operator's blast-radius review (see the S1 report).
+    # deep history. Feature stays enabled and referenced by no dimension.
     features:
       - feature_id: baa_spread_level_z
         weight: 0.35
