@@ -40,10 +40,11 @@ def run_news_accumulation(
     config = load_news_accumulation_config(config_path)
     store = DuckDBStore(db_path)
     store.initialize()
+    classifications, _, _ = store.read_effective_news_classifications()
     result = build_news_accumulation_outputs(
         config=config,
         news_items=store.read_table("news_items"),
-        classifications=store.read_table("news_classifications"),
+        classifications=classifications,
         daily_theme_scores=store.read_table("news_daily_theme_scores"),
         daily_sector_scores=store.read_table("news_daily_sector_scores"),
         combined_diagnostics=store.read_table("combined_sector_diagnostics"),
@@ -100,13 +101,14 @@ def write_news_accumulation_report(
     config = load_news_accumulation_config(config_path)
     store = DuckDBStore(db_path)
     store.initialize()
+    classifications, _, _ = store.read_effective_news_classifications()
     payload = build_news_accumulation_report(
         config=config,
         runs=store.read_table("news_accumulation_runs"),
         news_history=store.read_table("news_score_history_summary"),
         combined_history=store.read_table("combined_diagnostic_history_summary"),
         news_items=store.read_table("news_items"),
-        classifications=store.read_table("news_classifications"),
+        classifications=classifications,
     )
     markdown = news_accumulation_report_markdown(payload)
     output_dir = Path(config.output_dir)

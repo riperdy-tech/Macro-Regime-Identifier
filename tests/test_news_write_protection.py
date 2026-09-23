@@ -12,7 +12,6 @@ from typer.testing import CliRunner
 
 from macro_engine.cli import app
 from macro_engine.daily import run_daily_diagnostic
-from macro_engine.news.classify import MockNewsClassifier
 from macro_engine.news.config import NewsThemesConfig
 from macro_engine.news.schema import NewsItem
 from macro_engine.news.service import classify_stored_news
@@ -38,6 +37,8 @@ def _sample_real_classification(news_id: str = "real_1", cid: str = "c_real_1") 
         "raw_ai_response": {"model": "deepseek-chat", "text": "real"},
         "classification_status": "success",
         "error_message": None,
+        "origin": "live",
+        "prompt_version": "v1",
     }
 
 
@@ -59,6 +60,8 @@ def _sample_mock_classification(news_id: str = "mock_1", cid: str = "c_mock_1") 
         "raw_ai_response": {"mock": True},
         "classification_status": "success",
         "error_message": None,
+        "origin": "mock",
+        "prompt_version": "v1",
     }
 
 

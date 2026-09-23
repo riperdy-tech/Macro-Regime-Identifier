@@ -39,6 +39,7 @@ from macro_engine.sectors.validation import (
     load_sector_validation_config,
 )
 from macro_engine.storage.duckdb_store import DuckDBStore
+from macro_engine.news.provenance import filter_forward_evidence
 
 # Directional sector calls only - mixed/neutral/unclear make no testable
 # directional prediction, so they are excluded from hit-rate scoring.
@@ -97,6 +98,7 @@ def build_confidence_ledger(
         "impact_score",
         "confidence",
         "expected_sign",
+        "ai_provider",
     ]
     if sector_impacts is None or sector_impacts.empty:
         return pd.DataFrame(columns=columns)
@@ -104,9 +106,14 @@ def build_confidence_ledger(
         raise ValueError(f"unknown date_basis {date_basis}")
 
     impacts = sector_impacts.copy()
-    meta = classifications[["classification_id", "news_id", "classified_at"]].copy()
+    meta_cols = ["classification_id", "news_id", "classified_at"]
+    if "ai_provider" in classifications.columns:
+        meta_cols.append("ai_provider")
+    meta = classifications[meta_cols].copy()
     meta = meta.drop_duplicates(subset=["news_id"], keep="last")
     merged = impacts.merge(meta, on="news_id", how="left")
+    if "ai_provider" not in merged.columns:
+        merged["ai_provider"] = None
 
     if date_basis == "published_at":
         if news_items is None or "published_at" not in getattr(news_items, "columns", []):
@@ -294,6 +301,21 @@ def merge_ledger(existing: pd.DataFrame, new: pd.DataFrame) -> pd.DataFrame:
     return combined.drop_duplicates(subset=_LEDGER_KEY, keep="last").reset_index(drop=True)
 
 
+def repair_confidence_ledger(
+    ledger: pd.DataFrame,
+    mock_classification_ids: set[str],
+) -> pd.DataFrame:
+    """Drop rows whose classification_id belongs to a mock row in the store.
+
+    Rows whose classification_ids are unknown to the store (pre-wipe history)
+    are KEPT. Only known mock classification IDs are dropped.
+    """
+    if ledger.empty or not mock_classification_ids:
+        return ledger.copy()
+    mask = ~ledger["classification_id"].astype(str).isin(mock_classification_ids)
+    return ledger.loc[mask].reset_index(drop=True)
+
+
 # ---- service (impure) ------------------------------------------------------
 
 
@@ -316,8 +338,7 @@ def run_confidence_calibration(
 
     store = DuckDBStore(db_path)
     store.initialize()
-    sector_impacts = store.read_table("news_sector_impacts")
-    classifications = store.read_table("news_classifications")
+    classifications, theme_scores, sector_impacts = store.read_effective_news_classifications()
     news_items = store.read_table("news_items")
     prices = store.read_sector_proxy_prices()
 
@@ -333,6 +354,14 @@ def run_confidence_calibration(
             sector_impacts = sector_impacts[
                 ~sector_impacts["news_id"].astype(str).isin(backfill_ids)
             ].copy()
+
+    if not provisional:
+        classifications = filter_forward_evidence(classifications, news_items=news_items)
+        valid_ids = set(classifications["news_id"].astype(str))
+        sector_impacts = sector_impacts[
+            sector_impacts["news_id"].astype(str).isin(valid_ids)
+        ].copy()
+
     ledger = build_confidence_ledger(
         sector_impacts, classifications, news_items=news_items, date_basis=date_basis
     )
@@ -348,6 +377,23 @@ def run_confidence_calibration(
     ledger_path = out_dir / f"confidence_calibration_ledger{suffix}.parquet"
     existing = pd.read_parquet(ledger_path) if ledger_path.exists() else pd.DataFrame()
     accumulated = merge_ledger(existing, ledger)
+    if not provisional:
+        mock_ids = store.get_mock_classification_ids()
+        accumulated = repair_confidence_ledger(accumulated, mock_ids)
+        if "ai_provider" not in accumulated.columns:
+            accumulated["ai_provider"] = None
+        if not classifications.empty and "ai_provider" in classifications.columns:
+            provider_map = dict(
+                zip(
+                    classifications["classification_id"].astype(str),
+                    classifications["ai_provider"],
+                )
+            )
+            null_mask = accumulated["ai_provider"].isna()
+            if null_mask.any():
+                matched = accumulated.loc[null_mask, "classification_id"].astype(str).map(provider_map)
+                accumulated.loc[null_mask & matched.notna(), "ai_provider"] = matched[matched.notna()]
+
     accumulated.to_parquet(ledger_path, index=False)
 
     bucket_tables = {

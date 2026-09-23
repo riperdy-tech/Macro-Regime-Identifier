@@ -8,6 +8,7 @@ import requests
 
 from macro_engine.news.classify import (
     build_system_prompt,
+    compute_prompt_version,
     parse_ai_json_response,
     retry_user_prompt,
     truncate_for_prompt,
@@ -23,10 +24,13 @@ _HARD_TIMEOUT_BUFFER_SECONDS = 15
 
 
 class DeepSeekNewsClassifier:
-    def __init__(self, config: NewsAIConfig) -> None:
+    origin = "live"
+
+    def __init__(self, config: NewsAIConfig, prompt_version: str | None = None) -> None:
         self.config = config
         self.provider_name = "deepseek"
         self.model_name = config.model
+        self.prompt_version = prompt_version or compute_prompt_version()
 
     def classify(self, item: NewsItem, themes: NewsThemesConfig) -> dict[str, Any]:
         if not self.config.enable_live_ai:

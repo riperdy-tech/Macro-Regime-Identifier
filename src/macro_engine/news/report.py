@@ -37,11 +37,12 @@ def write_news_report(
 ) -> tuple[Path, Path]:
     config = load_news_ai_config(ai_config_path)
     store = DuckDBStore(db_path)
+    classifications, theme_scores, sector_impacts = store.read_effective_news_classifications()
     payload = build_news_report(
         news_items=store.read_table("news_items"),
-        classifications=store.read_table("news_classifications"),
-        theme_scores=store.read_table("news_theme_scores"),
-        sector_impacts=store.read_table("news_sector_impacts"),
+        classifications=classifications,
+        theme_scores=theme_scores,
+        sector_impacts=sector_impacts,
     )
     markdown = news_report_markdown(payload)
     _assert_no_forbidden_language(markdown)

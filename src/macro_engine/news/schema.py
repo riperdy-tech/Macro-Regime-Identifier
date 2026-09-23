@@ -102,3 +102,5 @@ class NewsClassificationRecord(BaseModel):
     raw_ai_response: dict[str, Any]
     classification_status: str
     error_message: str | None = None
+    origin: str | None = None
+    prompt_version: str | None = None

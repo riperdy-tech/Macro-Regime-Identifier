@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 import hashlib
 import json
 import math
+from pathlib import Path
 from copy import deepcopy
 import time
 from typing import Any, Protocol
@@ -14,6 +15,23 @@ from macro_engine.news.schema import (
     NewsClassificationRecord,
     NewsItem,
 )
+
+
+def compute_prompt_version(
+    themes_path: str | Path = "config/news_themes.yaml",
+    *,
+    themes_bytes: bytes | None = None,
+) -> str:
+    """sha256 of classifier prompt template plus bytes of news_themes.yaml, first 16 hex chars."""
+    h = hashlib.sha256()
+    h.update(SYSTEM_PROMPT_TEMPLATE.encode("utf-8"))
+    if themes_bytes is not None:
+        h.update(themes_bytes)
+    else:
+        p = Path(themes_path)
+        if p.exists():
+            h.update(p.read_bytes())
+    return h.hexdigest()[:16]
 
 
 SYSTEM_PROMPT_TEMPLATE = """You classify news/events for macro and sector diagnostics.
@@ -84,6 +102,8 @@ Do not invent unsupported sector impacts.
 class NewsClassifier(Protocol):
     provider_name: str
     model_name: str
+    origin: str
+    prompt_version: str
 
     def classify(self, item: NewsItem, themes: NewsThemesConfig) -> dict[str, Any]:
         """Return raw classification JSON for a news item."""
@@ -92,6 +112,10 @@ class NewsClassifier(Protocol):
 class MockNewsClassifier:
     provider_name = "mock"
     model_name = "mock-news-classifier"
+    origin = "mock"
+
+    def __init__(self, prompt_version: str | None = None) -> None:
+        self.prompt_version = prompt_version or compute_prompt_version()
 
     def classify(self, item: NewsItem, themes: NewsThemesConfig) -> dict[str, Any]:
         text = f"{item.title} {item.body}".lower()
@@ -241,6 +265,11 @@ def classify_news_item(
     )
     now = datetime.now(UTC)
     classification_id = _classification_id(item.news_id, classifier.provider_name, now)
+    origin_val = (
+        getattr(classifier, "origin", None)
+        or ("mock" if classifier.provider_name == "mock" else "live")
+    )
+    prompt_version_val = getattr(classifier, "prompt_version", None) or compute_prompt_version()
     return NewsClassificationRecord(
         classification_id=classification_id,
         news_id=item.news_id,
@@ -260,6 +289,8 @@ def classify_news_item(
         raw_ai_response=raw,
         classification_status=status,
         error_message=error,
+        origin=origin_val,
+        prompt_version=prompt_version_val,
     )
 
 

@@ -24,13 +24,14 @@ def write_news_score_report(
 ) -> tuple[Path, Path]:
     config = load_news_scoring_config(config_path)
     store = DuckDBStore(db_path)
+    classifications, _, _ = store.read_effective_news_classifications()
     payload = build_news_score_report(
         daily_theme_scores=store.read_table("news_daily_theme_scores"),
         daily_sector_scores=store.read_table("news_daily_sector_scores"),
         weekly_theme_scores=store.read_table("news_weekly_theme_scores"),
         weekly_sector_scores=store.read_table("news_weekly_sector_scores"),
         components=store.read_table("news_score_components"),
-        classifications=store.read_table("news_classifications"),
+        classifications=classifications,
         news_items=store.read_table("news_items"),
     )
     markdown = news_score_report_markdown(payload)

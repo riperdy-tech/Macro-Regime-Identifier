@@ -37,9 +37,10 @@ def write_secular_theme_tracker(
     store = DuckDBStore(db_path)
     store.initialize()
     computed_at = _computed_at(as_of)
+    classifications, _, _ = store.read_effective_news_classifications()
     payload = build_secular_theme_tracker(
         news_items=store.read_table("news_items"),
-        classifications=store.read_table("news_classifications"),
+        classifications=classifications,
         scoring_config=scoring_config,
         secular_themes=themes_config.secular_themes or {},
         computed_at=computed_at,

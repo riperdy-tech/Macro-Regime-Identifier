@@ -576,12 +576,20 @@ class DuckDBStore:
                     summary TEXT,
                     raw_ai_response_json TEXT,
                     classification_status TEXT,
-                    error_message TEXT
+                    error_message TEXT,
+                    origin TEXT,
+                    prompt_version TEXT
                 )
                 """
             )
             con.execute(
                 "ALTER TABLE news_classifications ADD COLUMN IF NOT EXISTS secular_theme TEXT"
+            )
+            con.execute(
+                "ALTER TABLE news_classifications ADD COLUMN IF NOT EXISTS origin TEXT"
+            )
+            con.execute(
+                "ALTER TABLE news_classifications ADD COLUMN IF NOT EXISTS prompt_version TEXT"
             )
             con.execute(
                 """
@@ -1353,6 +1361,8 @@ class DuckDBStore:
             frame["raw_metadata_json"] = "{}"
         if "first_seen_at" not in frame.columns:
             frame["first_seen_at"] = None
+        if "source_url" not in frame.columns:
+            frame["source_url"] = None
 
         news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
         if not news_ids:
@@ -1548,14 +1558,32 @@ class DuckDBStore:
         frame = classifications.copy()
         if "secular_theme" not in frame.columns:
             frame["secular_theme"] = None
-        if "macro_themes_json" not in frame.columns and "macro_themes" in frame.columns:
-            frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
-        if "sector_impacts_json" not in frame.columns and "sector_impacts" in frame.columns:
-            frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
-        if "entities_json" not in frame.columns and "entities" in frame.columns:
-            frame["entities_json"] = frame["entities"].map(json.dumps)
-        if "raw_ai_response_json" not in frame.columns and "raw_ai_response" in frame.columns:
-            frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
+        if "macro_themes_json" not in frame.columns:
+            frame["macro_themes_json"] = (
+                frame["macro_themes"].map(json.dumps) if "macro_themes" in frame.columns else "[]"
+            )
+        if "sector_impacts_json" not in frame.columns:
+            frame["sector_impacts_json"] = (
+                frame["sector_impacts"].map(json.dumps) if "sector_impacts" in frame.columns else "[]"
+            )
+        if "entities_json" not in frame.columns:
+            frame["entities_json"] = (
+                frame["entities"].map(json.dumps) if "entities" in frame.columns else "[]"
+            )
+        if "raw_ai_response_json" not in frame.columns:
+            frame["raw_ai_response_json"] = (
+                frame["raw_ai_response"].map(json.dumps) if "raw_ai_response" in frame.columns else "{}"
+            )
+        for col in [
+            "time_horizon",
+            "severity",
+            "confidence",
+            "summary",
+            "classification_status",
+            "error_message",
+        ]:
+            if col not in frame.columns:
+                frame[col] = None
 
         news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
         if not news_ids:
@@ -1714,6 +1742,100 @@ class DuckDBStore:
             sector_impacts,
             origin=origin,
         )
+
+    def read_effective_news_classifications(
+        self,
+    ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+        with self._connect() as con:
+            table_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_classifications')"
+            ).fetchone()[0]
+            if not table_exists:
+                return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+            has_real = bool(
+                con.execute(
+                    "SELECT EXISTS(SELECT 1 FROM news_classifications WHERE ai_provider != 'mock')"
+                ).fetchone()[0]
+            )
+
+            cols = {r[1] for r in con.execute("PRAGMA table_info(news_classifications)").fetchall()}
+            if "origin" in cols:
+                eff_expr = "COALESCE(origin, CASE WHEN ai_provider = 'mock' THEN 'mock' ELSE 'live' END)"
+            else:
+                eff_expr = "CASE WHEN ai_provider = 'mock' THEN 'mock' ELSE 'live' END"
+
+            where_clause = f"WHERE ({eff_expr}) != 'mock'" if has_real else ""
+
+            query = f"""
+                SELECT *,
+                       {eff_expr} AS effective_origin
+                FROM news_classifications
+                {where_clause}
+            """
+            classifications = con.execute(query).fetchdf()
+
+            if "origin" not in classifications.columns:
+                classifications["origin"] = None
+            if "prompt_version" not in classifications.columns:
+                classifications["prompt_version"] = None
+
+            if classifications.empty:
+                return classifications, pd.DataFrame(), pd.DataFrame()
+
+            con.register("effective_cls_ids", classifications[["news_id"]])
+
+            ts_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_theme_scores')"
+            ).fetchone()[0]
+            if ts_exists:
+                if has_real:
+                    theme_scores = con.execute(
+                        "SELECT * FROM news_theme_scores WHERE news_id IN (SELECT news_id FROM effective_cls_ids)"
+                    ).fetchdf()
+                else:
+                    theme_scores = con.execute("SELECT * FROM news_theme_scores").fetchdf()
+            else:
+                theme_scores = pd.DataFrame()
+
+            si_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_sector_impacts')"
+            ).fetchone()[0]
+            if si_exists:
+                if has_real:
+                    sector_impacts = con.execute(
+                        "SELECT * FROM news_sector_impacts WHERE news_id IN (SELECT news_id FROM effective_cls_ids)"
+                    ).fetchdf()
+                else:
+                    sector_impacts = con.execute("SELECT * FROM news_sector_impacts").fetchdf()
+            else:
+                sector_impacts = pd.DataFrame()
+
+            return classifications, theme_scores, sector_impacts
+
+    def get_mock_classification_ids(self) -> set[str]:
+        with self._connect() as con:
+            table_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_classifications')"
+            ).fetchone()[0]
+            if not table_exists:
+                return set()
+            cols = {r[1] for r in con.execute("PRAGMA table_info(news_classifications)").fetchall()}
+            if "origin" in cols:
+                eff = "COALESCE(origin, CASE WHEN ai_provider = 'mock' THEN 'mock' ELSE 'live' END)"
+            else:
+                eff = "CASE WHEN ai_provider = 'mock' THEN 'mock' ELSE 'live' END"
+            df = con.execute(
+                f"""
+                SELECT classification_id
+                FROM news_classifications
+                WHERE ({eff}) = 'mock'
+                """
+            ).fetchdf()
+            if df.empty:
+                return set()
+            return set(df["classification_id"].dropna().astype(str))
+
 
     def replace_news_score_outputs(
         self,

@@ -78,6 +78,7 @@ def run_daily_diagnostic(
     outputs: list[str] = []
     warnings: list[str] = []
     errors: list[str] = []
+    profile = source_profile or config.news.source_profile
     statuses = {
         "macro_status": "skipped",
         "sector_status": "skipped",
@@ -656,7 +657,7 @@ def _run_macro(
     warnings: list[str] | None = None,
 ) -> None:
     runner = services.get("run_pipeline", run_pipeline)
-    print("daily: macro pipeline (ingest → features → dimensions → regimes → reports)", flush=True)
+    print("daily: macro pipeline (ingest -> features -> dimensions -> regimes -> reports)", flush=True)
 
     vintage_time_budget_seconds: float | None = None
     if run_deadline is not None:

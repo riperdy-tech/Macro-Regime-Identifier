@@ -33,11 +33,12 @@ def build_stored_news_scores(
     store.initialize()
     started_at = datetime.now(UTC)
     try:
+        classifications, theme_scores, sector_impacts = store.read_effective_news_classifications()
         result = build_news_scores(
             news_items=store.read_table("news_items"),
-            classifications=store.read_table("news_classifications"),
-            theme_scores=store.read_table("news_theme_scores"),
-            sector_impacts=store.read_table("news_sector_impacts"),
+            classifications=classifications,
+            theme_scores=theme_scores,
+            sector_impacts=sector_impacts,
             config=config,
             started_at=started_at,
         )

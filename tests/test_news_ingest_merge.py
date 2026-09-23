@@ -5,9 +5,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 import duckdb
 import pandas as pd
-import pytest
 
-from macro_engine.news.config import FulltextEnrichmentConfig
 from macro_engine.news.schema import NewsItem
 from macro_engine.news.service import ingest_stored_news
 from macro_engine.storage.duckdb_store import DuckDBStore
