@@ -550,9 +550,13 @@ class DuckDBStore:
                     ingested_at TIMESTAMP,
                     provider TEXT,
                     raw_metadata_json TEXT,
-                    content_hash TEXT
+                    content_hash TEXT,
+                    first_seen_at TIMESTAMP
                 )
                 """
+            )
+            con.execute(
+                "ALTER TABLE news_items ADD COLUMN IF NOT EXISTS first_seen_at TIMESTAMP"
             )
             con.execute(
                 """
@@ -1338,32 +1342,132 @@ class DuckDBStore:
                     """
                 )
 
-    def upsert_news_items(self, items: pd.DataFrame) -> None:
+    def merge_news_items(self, items: pd.DataFrame) -> dict[str, int]:
+        result = {"inserted": 0, "body_upgraded": 0, "unchanged": 0}
         if items.empty:
-            return
+            return result
         frame = items.copy()
         if "raw_metadata" in frame.columns:
             frame["raw_metadata_json"] = frame["raw_metadata"].map(json.dumps)
         elif "raw_metadata_json" not in frame.columns:
             frame["raw_metadata_json"] = "{}"
+        if "first_seen_at" not in frame.columns:
+            frame["first_seen_at"] = None
+
+        news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
+        if not news_ids:
+            return result
+
         with self._connect() as con:
-            con.register("news_item_frame", frame)
-            con.execute(
+            id_df = pd.DataFrame({"news_id": news_ids})
+            con.register("incoming_items_id_frame", id_df)
+
+            existing_df = con.execute(
                 """
-                DELETE FROM news_items
-                USING news_item_frame
-                WHERE news_items.news_id = news_item_frame.news_id
-                   OR news_items.content_hash = news_item_frame.content_hash
+                SELECT news_id, body, length(body) as body_len
+                FROM news_items
+                WHERE news_id IN (SELECT news_id FROM incoming_items_id_frame)
                 """
-            )
-            con.execute(
-                """
-                INSERT INTO news_items
-                SELECT news_id, source, source_url, title, body, published_at,
-                       ingested_at, provider, raw_metadata_json, content_hash
-                FROM news_item_frame
-                """
-            )
+            ).fetchdf()
+
+            existing_map: dict[str, dict[str, Any]] = {}
+            for _, r in existing_df.iterrows():
+                existing_map[str(r["news_id"])] = {
+                    "body": r["body"],
+                    "body_len": int(r["body_len"]) if pd.notna(r["body_len"]) else len(str(r["body"] or "")),
+                }
+
+            table_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_classifications')"
+            ).fetchone()[0]
+            if table_exists:
+                real_classified_df = con.execute(
+                    """
+                    SELECT DISTINCT news_id
+                    FROM news_classifications
+                    WHERE ai_provider != 'mock'
+                      AND news_id IN (SELECT news_id FROM incoming_items_id_frame)
+                    """
+                ).fetchdf()
+                real_classified_ids = (
+                    set(real_classified_df["news_id"].astype(str))
+                    if not real_classified_df.empty
+                    else set()
+                )
+            else:
+                real_classified_ids = set()
+
+            insert_rows: list[dict[str, Any]] = []
+            upgrade_rows: list[dict[str, Any]] = []
+
+            for _, row in frame.iterrows():
+                nid = str(row["news_id"])
+                if nid not in existing_map:
+                    row_dict = row.to_dict()
+                    if pd.isna(row_dict.get("first_seen_at")) or row_dict.get("first_seen_at") is None:
+                        row_dict["first_seen_at"] = row_dict["ingested_at"]
+                    insert_rows.append(row_dict)
+                    existing_map[nid] = {
+                        "body": row_dict["body"],
+                        "body_len": len(str(row_dict["body"] or "")),
+                    }
+                    result["inserted"] += 1
+                else:
+                    incoming_body = str(row.get("body") or "")
+                    existing_len = existing_map[nid]["body_len"]
+                    has_real_class = nid in real_classified_ids
+                    if (not has_real_class) and (len(incoming_body) > existing_len):
+                        upgrade_rows.append({
+                            "news_id": nid,
+                            "body": incoming_body,
+                            "raw_metadata_json": row["raw_metadata_json"],
+                            "content_hash": row["content_hash"],
+                        })
+                        existing_map[nid]["body_len"] = len(incoming_body)
+                        result["body_upgraded"] += 1
+                    else:
+                        result["unchanged"] += 1
+
+            con.execute("BEGIN TRANSACTION")
+            try:
+                if insert_rows:
+                    insert_df = pd.DataFrame(insert_rows)
+                    con.register("news_items_insert_frame", insert_df)
+                    con.execute(
+                        """
+                        INSERT INTO news_items (
+                            news_id, source, source_url, title, body,
+                            published_at, ingested_at, provider, raw_metadata_json,
+                            content_hash, first_seen_at
+                        )
+                        SELECT news_id, source, source_url, title, body,
+                               published_at, ingested_at, provider, raw_metadata_json,
+                               content_hash, first_seen_at
+                        FROM news_items_insert_frame
+                        """
+                    )
+                if upgrade_rows:
+                    up_df = pd.DataFrame(upgrade_rows)
+                    con.register("news_items_upgrade_frame", up_df)
+                    con.execute(
+                        """
+                        UPDATE news_items
+                        SET body = up.body,
+                            raw_metadata_json = up.raw_metadata_json,
+                            content_hash = up.content_hash
+                        FROM news_items_upgrade_frame AS up
+                        WHERE news_items.news_id = up.news_id
+                        """
+                    )
+                con.execute("COMMIT")
+            except Exception:
+                con.execute("ROLLBACK")
+                raise
+
+        return result
+
+    def upsert_news_items(self, items: pd.DataFrame) -> dict[str, int]:
+        return self.merge_news_items(items)
 
     def has_real_classifications(self) -> bool:
         with self._connect() as con:

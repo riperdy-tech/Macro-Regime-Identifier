@@ -349,7 +349,7 @@ def _persist_replay_day_to_central_db(
 
     news_items = daily_store.read_table("news_items")
     if not news_items.empty:
-        central_store.upsert_news_items(news_items)
+        central_store.merge_news_items(news_items)
 
     classifications = daily_store.read_table("news_classifications")
     theme_scores = daily_store.read_table("news_theme_scores")

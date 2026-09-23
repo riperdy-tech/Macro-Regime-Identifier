@@ -317,8 +317,8 @@ def backfill_gdelt_news(
 
     def _persist(batch: list[NewsItem]) -> None:
         nonlocal inserted
-        store.upsert_news_items(news_items_to_frame(batch))
-        inserted += len(batch)
+        res = store.merge_news_items(news_items_to_frame(batch))
+        inserted += res.get("inserted", 0)
 
     result = fetch_gdelt_news_items(
         config,

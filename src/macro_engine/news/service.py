@@ -36,13 +36,24 @@ def ingest_stored_news(
     db_path: str | Path = "data/macro_engine.duckdb",
     profile: str | None = None,
 ) -> pd.DataFrame:
-    items = load_news_items_from_config(config_path, profile=profile)
-    sources_config = load_news_sources_config(config_path)
-    items = enrich_items_with_fulltext(items, sources_config.fulltext_enrichment)
     store = DuckDBStore(db_path)
     store.initialize()
-    frame = pd.DataFrame([item.model_dump() for item in items])
-    store.upsert_news_items(frame)
+    stored_items = store.read_news_items()
+    stored_ids = (
+        set(stored_items["news_id"].dropna().astype(str))
+        if not stored_items.empty
+        else set()
+    )
+    items = load_news_items_from_config(config_path, profile=profile)
+    sources_config = load_news_sources_config(config_path)
+    new_items = [item for item in items if str(item.news_id) not in stored_ids]
+    enriched_new_items = enrich_items_with_fulltext(
+        new_items, sources_config.fulltext_enrichment
+    )
+    enriched_by_id = {item.news_id: item for item in enriched_new_items}
+    final_items = [enriched_by_id.get(item.news_id, item) for item in items]
+    frame = pd.DataFrame([item.model_dump() for item in final_items])
+    store.merge_news_items(frame)
     return frame
 
 

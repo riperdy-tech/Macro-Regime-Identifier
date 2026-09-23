@@ -32,6 +32,7 @@ class NewsItem(BaseModel):
     provider: str
     raw_metadata: dict[str, Any] = Field(default_factory=dict)
     content_hash: str
+    first_seen_at: datetime | None = None
 
 
 class MacroThemeSignal(BaseModel):
