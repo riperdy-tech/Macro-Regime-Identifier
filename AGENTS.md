@@ -73,8 +73,11 @@ before doing any real work. Fix: run `pip install -e .` from the repo root.
 
 ## Agent policy
 
-One agent works directly in this repository. Do not dispatch work to DeepSeek agents, `.ds-codex`
-workers, or worker-grid workers; do not create DeepSeek task files or run
-`python .ds-codex/scripts/ds_codex.py dispatch`; do not ask an external agent to edit files,
+One agent works in this repository at a time. The orchestrating Claude session may delegate coding
+to Gemini through the Antigravity CLI (`agy`), by operator decision of 2026-09-23; the delegated
+agent follows every rule in this file and the workspace `AGENTS.md`, and the orchestrator reviews
+each change before it is merged. Do not dispatch work to DeepSeek agents, `.ds-codex` workers, or
+worker-grid workers; do not create DeepSeek task files or run
+`python .ds-codex/scripts/ds_codex.py dispatch`; do not ask any other external agent to edit files,
 generate patches or review diffs. The `.ds-codex/` directory and `instructions.md` are inert local
 scaffold — leave them alone unless the operator explicitly asks for them.
