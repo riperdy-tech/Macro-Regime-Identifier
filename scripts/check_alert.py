@@ -58,9 +58,11 @@ def alert_message(
 
     alerts: list[str] = []
 
-    # Check 1: no archived daily_diagnostic_summary.json for today's UTC date
+    # Check 1: no archived daily_diagnostic_summary.json for today's UTC date.
+    # OA-1: the DuckDB cache now saves if: always(), so a missing archive means
+    # the run itself did not finish, not that the cache save was skipped.
     if not today_summaries:
-        alerts.append("daily run did not complete — DuckDB cache NOT saved")
+        alerts.append("daily run did not complete (no summary archived for today)")
 
     if summaries:
         current = _load(summaries[-1])
@@ -72,6 +74,19 @@ def alert_message(
             regime = _regime(current)
             if regime and prev_regime and regime != prev_regime:
                 alerts.append(f"regime change: {prev_regime} -> {regime}")
+
+        # N1.6 / OA-4: a failed run status, with the first recorded error.
+        if current.get("status") == "failed":
+            errors = current.get("errors") or []
+            first_error = str(errors[0]) if errors else "no error recorded"
+            alerts.append(f"daily status = failed: {first_error}")
+
+        # N1.6: news_health degraded or failed, with its reasons.
+        news_health = current.get("news_health") or {}
+        health_status = news_health.get("status")
+        if health_status in ("degraded", "failed"):
+            reasons = ", ".join(news_health.get("reasons") or []) or "no reasons recorded"
+            alerts.append(f"news_health status = {health_status}: {reasons}")
 
         # Check 2: pipeline shortfall warnings in latest summary
         warnings = current.get("warnings") or []

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pandas as pd
 
@@ -515,6 +516,97 @@ def test_daily_wiring_skips_history_steps_when_history_dir_unset(tmp_path: Path)
     assert summary["step_statuses"]["news_history_hydrate_status"] == "skipped"
     assert summary["step_statuses"]["news_history_export_status"] == "skipped"
     assert summary["news_history"] == {}
+
+
+def test_daily_wiring_skips_classification_on_news_blackout_precheck(tmp_path: Path):
+    """N1.6 wiring: F1 (news_blackout) is known right after ingestion, before a
+    single classification call is spent. classify_news must never be called,
+    news_classification_status is skipped_news_failed, and the daily status
+    becomes failed."""
+    from types import SimpleNamespace
+
+    from macro_engine.daily import run_daily_diagnostic
+    from macro_engine.storage.duckdb_store import DuckDBStore
+
+    output_dir = tmp_path / "outputs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    db_path = tmp_path / "macro.duckdb"
+
+    cfg_text = Path("config/daily_pipeline.yaml").read_text(encoding="utf-8")
+    cfg_text = cfg_text.replace(
+        "archive_root: outputs/archive", f"archive_root: {(tmp_path / 'archive').as_posix()}"
+    )
+    cfg_path = tmp_path / "daily_pipeline_test.yaml"
+    cfg_path.write_text(cfg_text, encoding="utf-8")
+
+    def write_pair(name: str):
+        j_path = output_dir / f"{name}.json"
+        m_path = output_dir / f"{name}.md"
+        j_path.write_text("{}", encoding="utf-8")
+        m_path.write_text("diagnostic report", encoding="utf-8")
+        return j_path, m_path
+
+    def fake_ingest(**kwargs):
+        # Simulate a run where every source fetched zero NEW items.
+        store = DuckDBStore(kwargs["db_path"])
+        store.initialize()
+        store.insert_news_source_runs(
+            pd.DataFrame(
+                [
+                    {
+                        "run_id": kwargs["run_id"],
+                        "run_at": datetime.now(UTC),
+                        "source_id": "feed_a",
+                        "provider": "rss",
+                        "source_group": "macro_general",
+                        "status": "ok",
+                        "items_fetched": 5,
+                        "items_new": 0,
+                        "newest_published_at": None,
+                        "undated_count": 0,
+                        "error": None,
+                        "elapsed_seconds": 1.0,
+                    }
+                ]
+            )
+        )
+        return pd.DataFrame()
+
+    services = {
+        "run_pipeline": lambda **_: SimpleNamespace(status="success"),
+        "build_sector_scores": lambda **_: None,
+        "run_sector_validation": lambda **_: None,
+        "write_sector_report": lambda **_: write_pair("sector"),
+        "write_sector_fit_report": lambda **_: write_pair("sector_exposures_fitted"),
+        "ingest_news": fake_ingest,
+        "classify_news": MagicMock(side_effect=AssertionError("classify_news must not be called")),
+        "write_news_report": lambda **_: write_pair("news"),
+        "build_news_scores": lambda **_: None,
+        "write_news_score_report": lambda **_: write_pair("news_score"),
+        "build_combined": lambda **_: SimpleNamespace(),
+        "write_combined_report": lambda **_: write_pair("combined"),
+        "build_anchors": lambda **_: SimpleNamespace(degraded=False, degradation_reasons=[]),
+        "write_news_advisory_block": lambda **_: write_pair("advisory"),
+        "refresh_monitoring": lambda **_: None,
+        "write_monitoring_report": lambda **_: write_pair("monitoring"),
+    }
+
+    result = run_daily_diagnostic(
+        config_path=str(cfg_path),
+        db_path=db_path,
+        mock_ai=True,
+        archive=False,
+        services=services,
+        output_dir=output_dir,
+    )
+    summary = json.loads(result.summary_json_path.read_text(encoding="utf-8"))
+    assert summary["step_statuses"]["news_classification_status"] == "skipped_news_failed"
+    assert summary["step_statuses"]["news_health_status"] == "failed"
+    assert "news_blackout" in summary["news_health"]["reasons"]
+    assert summary["status"] == "failed"
+    # Macro/sector still ran (non-negotiable 3: news never gates the macro product).
+    assert summary["step_statuses"]["macro_status"] == "success"
+    assert summary["step_statuses"]["sector_status"] == "success"
 
 
 def test_local_import_never_displaces_existing_real_rows(tmp_path: Path):

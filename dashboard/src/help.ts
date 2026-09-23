@@ -58,6 +58,8 @@ export const TOOLTIPS: Record<string, string> = {
     "News items the classifier was least sure about. Useful for spotting ambiguous or off-topic articles.",
   news_sources:
     "The live RSS feeds the news layer pulls from, grouped by category. Headlines are used as diagnostic inputs only, not republished.",
+  news_health:
+    "Per-run status of the news pipeline itself (ok/degraded/failed): dead feeds, a rate-limited GDELT, a broken durable-history export. Separate from the macro regime, which is never gated by news.",
 
   // combined tab
   combined_overlay:

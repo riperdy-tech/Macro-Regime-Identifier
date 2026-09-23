@@ -377,6 +377,8 @@ function Overview({ data }: { data: DashboardData }) {
   const missingFiles = data.manifest?.missing_files ?? [];
   const macroDate = text(macro.date, "latest macro month");
   const newsDate = text(getNested(data.newsScores, "latest_news_scoring_date"), "latest run");
+  const newsHealth = getObject(daily.news_health);
+  const newsHealthReasons = asArray<string>(newsHealth.reasons);
   const combinedDate = text(
     getObject(data.combined).diagnostic_date ??
       getNested(data.monitoring, "overlay_monitoring", "diagnostic_date"),
@@ -413,6 +415,12 @@ function Overview({ data }: { data: DashboardData }) {
         value={formatPct(classification.success_rate)}
         detail={`retry ${formatPct(classification.retry_rate)} / repair ${formatPct(classification.repair_rate)}`}
         info={TOOLTIPS.classification_success}
+      />
+      <Metric
+        label="News health"
+        value={text(newsHealth.status, "not computed")}
+        detail={newsHealthReasons.length ? newsHealthReasons[0] : "all sources live"}
+        info={TOOLTIPS.news_health}
       />
       <Metric
         label="Data source"
@@ -934,6 +942,9 @@ function NewsPanel({ data }: { data: DashboardData }) {
       <Panel title="News Sources We Read" wide info={TOOLTIPS.news_sources}>
         <NewsSources data={data} />
       </Panel>
+      <Panel title="News Source Health" wide info={TOOLTIPS.news_health}>
+        <NewsSourceHealthTable data={data} />
+      </Panel>
     </section>
   );
 }
@@ -962,6 +973,44 @@ function NewsSources({ data }: { data: DashboardData }) {
         ))}
       </div>
     </div>
+  );
+}
+
+function NewsSourceHealthTable({ data }: { data: DashboardData }) {
+  const daily = getObject(data.daily);
+  const newsHealth = getObject(daily.news_health);
+  const sources = asArray<Record<string, unknown>>(newsHealth.sources);
+  if (!sources.length) {
+    return <p className="muted">No per-source telemetry yet. Populated after the first live run with news.history_dir set.</p>;
+  }
+  const sorted = [...sources].sort((a, b) => {
+    const deadA = a.dead ? 1 : 0;
+    const deadB = b.dead ? 1 : 0;
+    return deadB - deadA;
+  });
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Source</th>
+          <th>Status</th>
+          <th>New items</th>
+          <th>Last new item</th>
+          <th>Bad-run streak</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((row, index) => (
+          <tr key={`${text(row.source_id)}-${index}`} className={row.dead ? "row-dead" : undefined}>
+            <td>{text(row.source_id)}</td>
+            <td>{text(row.status)}{row.dead ? " (dead)" : ""}</td>
+            <td>{formatCount(row.items_new)}</td>
+            <td>{text(row.last_new_at, "never")}</td>
+            <td>{formatCount(row.consecutive_bad_runs)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 

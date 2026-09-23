@@ -88,11 +88,14 @@ def run_daily_diagnostic(
         "news_classification_status": "skipped",
         "news_scoring_status": "skipped",
         "news_history_export_status": "skipped",
+        "news_health_status": "skipped",
         "combined_status": "skipped",
         "monitoring_status": "skipped",
         "guardrail_status": "skipped",
     }
     news_history_result: dict[str, Any] = {}
+    news_health_result: dict[str, Any] = {}
+    classification_result_holder: dict[str, Any] = {}
 
     print(f"daily: run_id={run_id} date={run_day.isoformat()} starting", flush=True)
 
@@ -163,27 +166,45 @@ def run_daily_diagnostic(
                     deadline=run_deadline,
                     daily_warnings=warnings,
                 )
-                classification_deadline = (
-                    run_deadline - config.safety.post_classification_reserve_minutes * 60.0
+                # N1.6 pre-check: F1 (news_blackout) and F4 (cold_hydrate_failed)
+                # are both known right after ingestion, before a single DeepSeek
+                # call is spent. A failed pre-check skips classification instead
+                # of paying for it; the final news_health (after export) is what
+                # the summary and the workflow's red-run gate (OA-4) read.
+                precheck = _compute_news_health(
+                    config,
+                    db_path,
+                    run_id=run_id,
+                    run_at=started_at,
+                    profile=profile,
+                    news_history_result=news_history_result,
+                    classification_result=None,
                 )
-                _run_step(
-                    "news_classification",
-                    statuses,
-                    errors,
-                    lambda: _run_news_classification(
-                        config,
-                        db_path,
-                        services,
-                        live_ai=live_ai,
-                        mock_ai=mock_ai,
-                        max_live_items=max_live_items,
-                        deadline_monotonic=classification_deadline,
-                        warnings=warnings,
-                    ),
-                    fail=True,
-                    deadline=run_deadline,
-                    daily_warnings=warnings,
-                )
+                if precheck["status"] == "failed":
+                    statuses["news_classification_status"] = "skipped_news_failed"
+                else:
+                    classification_deadline = (
+                        run_deadline - config.safety.post_classification_reserve_minutes * 60.0
+                    )
+                    _run_step(
+                        "news_classification",
+                        statuses,
+                        errors,
+                        lambda: _run_news_classification(
+                            config,
+                            db_path,
+                            services,
+                            live_ai=live_ai,
+                            mock_ai=mock_ai,
+                            max_live_items=max_live_items,
+                            deadline_monotonic=classification_deadline,
+                            warnings=warnings,
+                            result_holder=classification_result_holder,
+                        ),
+                        fail=True,
+                        deadline=run_deadline,
+                        daily_warnings=warnings,
+                    )
             _run_step(
                 "news_report",
                 statuses,
@@ -234,6 +255,30 @@ def run_daily_diagnostic(
                     deadline=None,
                     daily_warnings=warnings,
                 )
+            # N1.6: the authoritative news_health, computed after export,
+            # deadline-exempt, before the summary. Never depends on monitoring
+            # (the deadline can skip that step). failed -> daily status becomes
+            # failed (the CLI still exits 0; OA-4's workflow step is what turns
+            # the Action red). degraded -> success_with_warnings via the warning
+            # appended below.
+            news_health_result.update(
+                _compute_news_health(
+                    config,
+                    db_path,
+                    run_id=run_id,
+                    run_at=started_at,
+                    profile=profile,
+                    news_history_result=news_history_result,
+                    classification_result=classification_result_holder.get("classification"),
+                )
+            )
+            if news_health_result:
+                statuses["news_health_status"] = news_health_result["status"]
+                reason_text = ",".join(news_health_result.get("reasons", []))
+                if news_health_result["status"] == "failed":
+                    warnings.append(f"news_health_failed:{reason_text}")
+                elif news_health_result["status"] == "degraded":
+                    warnings.append(f"news_health_degraded:{reason_text}")
         if config.combined.enabled:
             _run_step(
                 "combined",
@@ -305,6 +350,7 @@ def run_daily_diagnostic(
         generated_paths=outputs,
         archive_path=None,
         news_history=news_history_result,
+        news_health=news_health_result,
     )
     summary_json, summary_md = write_daily_summary(summary_payload, output_dir)
     outputs.extend([str(summary_json), str(summary_md)])
@@ -377,6 +423,7 @@ def build_daily_summary_payload(
     generated_paths: list[str],
     archive_path: str | None,
     news_history: dict[str, Any] | None = None,
+    news_health: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from macro_engine.ingest.service import compute_vintage_backlog
 
@@ -403,6 +450,7 @@ def build_daily_summary_payload(
             "combined_top": _latest_combined_top(store),
             "monitoring": _latest_monitoring(store),
             "news_history": news_history or {},
+            "news_health": news_health or {},
             "warnings": warnings,
             "errors": errors,
             "generated_artifacts": generated_paths,
@@ -620,7 +668,14 @@ def daily_summary_markdown(payload: dict[str, Any]) -> str:
     macro = payload.get("macro") or {}
     news = payload.get("news") or {}
     monitoring = payload.get("monitoring") or {}
+    news_health = payload.get("news_health") or {}
     feature_freshness = payload.get("feature_freshness") or {}
+    monitoring_status = (payload.get("step_statuses") or {}).get("monitoring_status")
+    monitoring_note = (
+        ""
+        if monitoring_status == "success"
+        else f"\n_Monitoring not run this time; values as_of run_id={monitoring.get('as_of_run_id')}._\n"
+    )
     return f"""# Daily Diagnostic Summary
 
 Run date: {payload["run_date"]}
@@ -653,12 +708,19 @@ Sector diagnostic headwinds:
 {_rank_lines(payload.get("combined_top", []), "combined_score")}
 
 ## Monitoring
-
+{monitoring_note}
 - Classification success rate: {_fmt(monitoring.get("success_rate"))}
 - Retry rate: {_fmt(monitoring.get("retry_rate"))}
 - Repair rate: {_fmt(monitoring.get("repair_rate"))}
 - Max overlay rank change: {monitoring.get("max_rank_change")}
 - Monitoring warnings: {monitoring.get("warning_count")}
+
+## News health
+
+- Status: {news_health.get("status", "not_computed")}
+- Reasons: {", ".join(news_health.get("reasons", [])) or "none"}
+- Notes: {", ".join(news_health.get("notes", [])) or "none"}
+{_dead_source_lines(news_health.get("sources", []))}
 
 ## Artifacts
 
@@ -909,6 +971,7 @@ def _run_news_classification(
     max_live_items: int | None,
     deadline_monotonic: float | None,
     warnings: list[str],
+    result_holder: dict[str, Any] | None = None,
 ) -> None:
     fn = services.get("classify_news", classify_stored_news)
     kwargs: dict[str, Any] = {
@@ -944,6 +1007,8 @@ def _run_news_classification(
         kwargs["deadline_monotonic"] = deadline_monotonic
 
     result = fn(**kwargs)
+    if result_holder is not None and isinstance(result, dict):
+        result_holder["classification"] = result
     if isinstance(result, dict) and result.get("deadline_hit"):
         done = result.get("completed_count", 0)
         selected = result.get("selected_count", 0)
@@ -970,6 +1035,59 @@ def _run_news_history_export(
     fn = services.get("export_news_history", export_news_history)
     outcome = fn(db_path=db_path, history_dir=config.news.history_dir)
     result_holder["export"] = outcome
+
+
+def _compute_news_health(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    *,
+    run_id: str,
+    run_at: datetime,
+    profile: str | None,
+    news_history_result: dict[str, Any],
+    classification_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    from macro_engine.news.health import compute_news_health
+
+    store = DuckDBStore(db_path)
+    try:
+        history = store.read_table("news_source_runs")
+    except Exception:
+        history = pd.DataFrame()
+    stale_map, profile_groups = _news_source_health_config(config.news.news_sources_config, profile)
+    hydrate_result = news_history_result.get("hydrate") or {}
+    export_result = news_history_result.get("export") or {}
+    return compute_news_health(
+        run_id=run_id,
+        run_at=run_at,
+        source_runs_history=history,
+        stale_after_hours=stale_map,
+        profile_groups=profile_groups,
+        classification_result=classification_result,
+        hydrate_result=hydrate_result,
+        export_result=export_result,
+        store_was_cold=bool(hydrate_result.get("store_was_cold", False)),
+    )
+
+
+def _news_source_health_config(
+    sources_config_path: str | Path, profile: str | None
+) -> tuple[dict[str, int], dict[str, list[str]]]:
+    from macro_engine.news.config import load_news_sources_config
+
+    sources_config = load_news_sources_config(sources_config_path)
+    stale_map: dict[str, int] = {}
+    groups: dict[str, list[str]] = {}
+    for source in sources_config.news_sources:
+        stale_map[source.source_id] = source.stale_after_hours
+        selected = (
+            source.enabled
+            if profile is None
+            else (source.source_id == profile or profile in source.profiles)
+        )
+        if selected and source.source_group:
+            groups.setdefault(source.source_group, []).append(source.source_id)
+    return stale_map, groups
 
 
 def _classification_limit(
@@ -1152,6 +1270,7 @@ def _latest_monitoring(store: DuckDBStore) -> dict[str, Any]:
         "repair_rate": row.get("repair_rate"),
         "max_rank_change": overlay_row.get("max_rank_change"),
         "warning_count": 1 if overlay_row.get("overlay_status") == "warning" else 0,
+        "as_of_run_id": row.get("run_id"),
     }
 
 
@@ -1187,6 +1306,17 @@ def _score_lines(items: list[dict[str, Any]]) -> str:
     if not items:
         return "- None"
     return "\n".join(f"- {item.get('id')}: {_fmt(item.get('score'))}" for item in items)
+
+
+def _dead_source_lines(sources: list[dict[str, Any]]) -> str:
+    dead = [s for s in sources if s.get("dead")]
+    if not dead:
+        return "- No dead sources"
+    return "\n".join(
+        f"- {s['source_id']}: {s['status']}, last new item "
+        f"{s.get('last_new_at') or 'never'}, {s.get('consecutive_bad_runs', 0)} bad runs"
+        for s in dead
+    )
 
 
 def _artifact_lines(items: list[str]) -> str:

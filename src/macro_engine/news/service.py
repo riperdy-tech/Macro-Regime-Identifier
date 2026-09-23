@@ -244,6 +244,7 @@ def classify_stored_news(
         "sector_impacts": sector_impacts,
         "selected_count": total,
         "completed_count": len(records),
+        "failed_count": failure_count,
         "deadline_hit": deadline_hit,
         "inserted": inserted_count,
         "upgraded": upgraded_count,

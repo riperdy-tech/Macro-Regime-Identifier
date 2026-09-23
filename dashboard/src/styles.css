@@ -443,6 +443,15 @@ tbody tr:hover td {
   background: var(--surface-tint);
 }
 
+tr.row-dead td {
+  background: var(--warning-bg);
+  color: var(--warning-ink);
+}
+
+tr.row-dead:hover td {
+  background: var(--warning-bg);
+}
+
 .score-list,
 .compact-list,
 .warning-list {
