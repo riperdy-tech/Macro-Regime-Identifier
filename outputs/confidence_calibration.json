@@ -1,12 +1,14 @@
 {
-  "ledger_rows": 5234,
-  "directional_calls": 4291,
+  "ledger_rows": 5270,
+  "directional_calls": 4316,
   "calibration_artifact": {
     "schema_version": 1,
-    "directional_calls": 0,
+    "directional_calls": 2018,
     "min_directional_calls": 200,
-    "horizons": [],
-    "ready": false,
+    "horizons": [
+      "1m"
+    ],
+    "ready": true,
     "fitted": false,
     "provisional": false
   },
@@ -14,31 +16,31 @@
     "1m": [
       {
         "confidence_bucket": "0.0-0.3",
-        "n": 0,
-        "hit_rate": null,
-        "avg_signed_relative_return": null,
-        "avg_raw_relative_return": null
+        "n": 40,
+        "hit_rate": 0.625,
+        "avg_signed_relative_return": 0.012511796238195535,
+        "avg_raw_relative_return": -0.025514905164897593
       },
       {
         "confidence_bucket": "0.3-0.6",
-        "n": 0,
-        "hit_rate": null,
-        "avg_signed_relative_return": null,
-        "avg_raw_relative_return": null
+        "n": 242,
+        "hit_rate": 0.4793388429752066,
+        "avg_signed_relative_return": 4.4665973956288646e-05,
+        "avg_raw_relative_return": -0.0167310710920115
       },
       {
         "confidence_bucket": "0.6-0.8",
-        "n": 0,
-        "hit_rate": null,
-        "avg_signed_relative_return": null,
-        "avg_raw_relative_return": null
+        "n": 1714,
+        "hit_rate": 0.9649941656942824,
+        "avg_signed_relative_return": 0.043247730445620025,
+        "avg_raw_relative_return": -0.022440919295303185
       },
       {
         "confidence_bucket": "0.8-1.0",
-        "n": 0,
-        "hit_rate": null,
-        "avg_signed_relative_return": null,
-        "avg_raw_relative_return": null
+        "n": 22,
+        "hit_rate": 0.8636363636363636,
+        "avg_signed_relative_return": 0.03240604303616486,
+        "avg_raw_relative_return": 0.004756358755992169
       }
     ],
     "3m": [
