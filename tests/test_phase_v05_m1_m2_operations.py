@@ -274,7 +274,7 @@ def test_news_accumulation_outputs_and_report(tmp_path: Path):
     store = DuckDBStore(tmp_path / "macro.duckdb")
     store.initialize()
     store.upsert_news_items(_news_items())
-    store.replace_news_classifications(_classifications(), pd.DataFrame(), pd.DataFrame())
+    store.write_news_classifications(_classifications(), pd.DataFrame(), pd.DataFrame())
     store.upsert_news_accumulation_outputs(
         result.runs,
         result.news_history,

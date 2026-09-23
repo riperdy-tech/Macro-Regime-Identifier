@@ -674,7 +674,7 @@ def test_live_ai_usage_report_writes_outputs_and_cli(tmp_path: Path):
     output_dir = tmp_path / "outputs"
     store = DuckDBStore(db_path)
     store.initialize()
-    store.replace_news_classifications(
+    store.write_news_classifications(
         pd.DataFrame(
             [
                 _classification_row(

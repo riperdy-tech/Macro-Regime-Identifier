@@ -367,10 +367,11 @@ def _persist_replay_day_to_central_db(
         0,
         tzinfo=UTC,
     )
-    central_store.upsert_news_classification_outputs(
+    central_store.write_news_classifications(
         persisted,
         theme_scores,
         sector_impacts,
+        origin="replay",
     )
 
 

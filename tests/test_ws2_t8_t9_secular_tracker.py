@@ -95,7 +95,7 @@ def test_duckdb_store_persists_optional_secular_theme(tmp_path):
     store = DuckDBStore(db_path)
     store.initialize()
     store.upsert_news_items(_news_items())
-    store.replace_news_classifications(_classifications(), pd.DataFrame(), pd.DataFrame())
+    store.write_news_classifications(_classifications(), pd.DataFrame(), pd.DataFrame())
 
     stored = store.read_table("news_classifications")
 

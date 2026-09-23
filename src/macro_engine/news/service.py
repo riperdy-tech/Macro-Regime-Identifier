@@ -69,9 +69,17 @@ def classify_stored_news(
     store.initialize()
     news_items = store.read_news_items()
     existing = store.read_table("news_classifications")
-    if only_unclassified and not existing.empty:
-        classified_ids = set(existing["news_id"].dropna().astype(str))
-        news_items = news_items[~news_items["news_id"].astype(str).isin(classified_ids)].copy()
+    if not existing.empty:
+        all_ids = set(existing["news_id"].dropna().astype(str))
+        real_ids = set(
+            existing.loc[existing["ai_provider"] != "mock", "news_id"].dropna().astype(str)
+        )
+        if use_mock:
+            news_items = news_items[~news_items["news_id"].astype(str).isin(all_ids)].copy()
+        elif only_unclassified:
+            news_items = news_items[~news_items["news_id"].astype(str).isin(all_ids)].copy()
+        else:
+            news_items = news_items[~news_items["news_id"].astype(str).isin(real_ids)].copy()
     if limit is not None:
         if selection_config_path is not None and not news_items.empty:
             # Importance-ranked selection within the budget (pure, no LLM). The
@@ -87,6 +95,9 @@ def classify_stored_news(
     rows = news_items.to_dict(orient="records")
     total = len(rows)
     failure_count = 0
+    inserted_count = 0
+    upgraded_count = 0
+    skipped_protected_count = 0
     _emit_progress(
         "classify-news: ai_config "
         f"provider={ai_config.provider} model={ai_config.model} "
@@ -129,11 +140,15 @@ def classify_stored_news(
         records.append(record)
         if record.classification_status != "success":
             failure_count += 1
-        store.upsert_news_classification_outputs(
+        write_res = store.write_news_classifications(
             pd.DataFrame([record.model_dump()]),
             _theme_scores_from_classifications([record]),
             _sector_impacts_from_classifications([record]),
+            origin="mock" if use_mock else "live",
         )
+        inserted_count += write_res.get("inserted", 0)
+        upgraded_count += write_res.get("upgraded", 0)
+        skipped_protected_count += write_res.get("skipped_protected", 0)
         elapsed = time.monotonic() - started
         _emit_progress(
             "classify-news: item "
@@ -154,20 +169,9 @@ def classify_stored_news(
                 "classification failure rate exceeded threshold: "
                 f"{failure_count}/{attempted}"
             )
-    classifications = pd.DataFrame([record.model_dump() for record in records])
-    theme_scores = _theme_scores_from_classifications(records)
-    sector_impacts = _sector_impacts_from_classifications(records)
-    if not only_unclassified:
-        store.replace_news_classifications(classifications, theme_scores, sector_impacts)
-    elif records:
-        existing_after = store.read_table("news_classifications")
-        classifications = existing_after
-        theme_scores = store.read_table("news_theme_scores")
-        sector_impacts = store.read_table("news_sector_impacts")
-    else:
-        classifications = existing
-        theme_scores = store.read_table("news_theme_scores")
-        sector_impacts = store.read_table("news_sector_impacts")
+    classifications = store.read_table("news_classifications")
+    theme_scores = store.read_table("news_theme_scores")
+    sector_impacts = store.read_table("news_sector_impacts")
     return {
         "classifications": classifications,
         "theme_scores": theme_scores,
@@ -175,6 +179,9 @@ def classify_stored_news(
         "selected_count": total,
         "completed_count": len(records),
         "deadline_hit": deadline_hit,
+        "inserted": inserted_count,
+        "upgraded": upgraded_count,
+        "skipped_protected": skipped_protected_count,
     }
 
 

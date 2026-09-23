@@ -121,40 +121,47 @@ def run_daily_diagnostic(
         if config.news.enabled:
             profile = source_profile or config.news.source_profile
             _check_live_ai_safety(config, live_ai=live_ai, mock_ai=mock_ai)
-            _run_step(
-                "news_ingestion",
-                statuses,
-                errors,
-                lambda: services.get("ingest_news", ingest_stored_news)(
-                    config_path=config.news.news_sources_config,
-                    db_path=db_path,
-                    profile=profile,
-                ),
-                fail=True,
-                deadline=run_deadline,
-                daily_warnings=warnings,
-            )
-            classification_deadline = (
-                run_deadline - config.safety.post_classification_reserve_minutes * 60.0
-            )
-            _run_step(
-                "news_classification",
-                statuses,
-                errors,
-                lambda: _run_news_classification(
-                    config,
-                    db_path,
-                    services,
-                    live_ai=live_ai,
-                    mock_ai=mock_ai,
-                    max_live_items=max_live_items,
-                    deadline_monotonic=classification_deadline,
-                    warnings=warnings,
-                ),
-                fail=True,
-                deadline=run_deadline,
-                daily_warnings=warnings,
-            )
+            store = DuckDBStore(db_path)
+            store.initialize()
+            if (not _daily_uses_live_ai(config, live_ai=live_ai, mock_ai=mock_ai)) and store.has_real_classifications():
+                statuses["news_ingestion_status"] = "skipped_live_store"
+                statuses["news_classification_status"] = "skipped_live_store"
+                warnings.append("news_nonlive_skipped_on_live_store")
+            else:
+                _run_step(
+                    "news_ingestion",
+                    statuses,
+                    errors,
+                    lambda: services.get("ingest_news", ingest_stored_news)(
+                        config_path=config.news.news_sources_config,
+                        db_path=db_path,
+                        profile=profile,
+                    ),
+                    fail=True,
+                    deadline=run_deadline,
+                    daily_warnings=warnings,
+                )
+                classification_deadline = (
+                    run_deadline - config.safety.post_classification_reserve_minutes * 60.0
+                )
+                _run_step(
+                    "news_classification",
+                    statuses,
+                    errors,
+                    lambda: _run_news_classification(
+                        config,
+                        db_path,
+                        services,
+                        live_ai=live_ai,
+                        mock_ai=mock_ai,
+                        max_live_items=max_live_items,
+                        deadline_monotonic=classification_deadline,
+                        warnings=warnings,
+                    ),
+                    fail=True,
+                    deadline=run_deadline,
+                    daily_warnings=warnings,
+                )
             _run_step(
                 "news_report",
                 statuses,

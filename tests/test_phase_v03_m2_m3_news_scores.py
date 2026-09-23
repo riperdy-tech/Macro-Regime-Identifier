@@ -274,7 +274,7 @@ def _seed_news_outputs(db_path: Path) -> None:
     store = DuckDBStore(db_path)
     store.initialize()
     store.upsert_news_items(_news_items())
-    store.replace_news_classifications(_classifications(), _theme_scores(), _sector_impacts())
+    store.write_news_classifications(_classifications(), _theme_scores(), _sector_impacts())
 
 
 def _news_items() -> pd.DataFrame:

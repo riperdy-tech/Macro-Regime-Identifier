@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Annotated
 
 import pandas as pd
@@ -971,7 +972,7 @@ def classify_news(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     limit: Annotated[int | None, typer.Option("--limit")] = None,
     max_items: Annotated[int | None, typer.Option("--max-items")] = None,
-    only_unclassified: Annotated[bool, typer.Option("--only-unclassified")] = False,
+    only_unclassified: Annotated[bool, typer.Option("--only-unclassified")] = True,
     progress: Annotated[bool, typer.Option("--progress/--no-progress")] = True,
     continue_on_failure: Annotated[bool, typer.Option("--continue-on-failure/--stop-on-failure")] = True,
 ) -> None:
@@ -998,6 +999,22 @@ def classify_news(
             "sector_impact_rows": int(len(result["sector_impacts"])),
         }
     )
+
+
+@app.command("maintenance-destroy-news-classifications")
+def maintenance_destroy_news_classifications(
+    backup_dir: Annotated[str, typer.Option("--backup-dir")],
+    confirm_real_rows: Annotated[int, typer.Option("--confirm-real-rows")],
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Loudly named maintenance command to back up and delete all news classifications."""
+    store = DuckDBStore(db_path)
+    store.initialize()
+    result = store.destroy_all_news_classifications(
+        backup_dir=Path(backup_dir),
+        confirm_real_rows=confirm_real_rows,
+    )
+    typer.echo(json.dumps(result, ensure_ascii=True, indent=2))
 
 
 @app.command("inspect-news-item")

@@ -1365,141 +1365,251 @@ class DuckDBStore:
                 """
             )
 
-    def replace_news_classifications(
+    def has_real_classifications(self) -> bool:
+        with self._connect() as con:
+            table_exists = con.execute(
+                "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'news_classifications')"
+            ).fetchone()[0]
+            if not table_exists:
+                return False
+            return bool(
+                con.execute(
+                    "SELECT EXISTS(SELECT 1 FROM news_classifications WHERE ai_provider != 'mock')"
+                ).fetchone()[0]
+            )
+
+    def destroy_all_news_classifications(
+        self,
+        *,
+        backup_dir: Path | str,
+        confirm_real_rows: int,
+    ) -> dict[str, Any]:
+        backup_path = Path(backup_dir)
+        backup_path.mkdir(parents=True, exist_ok=True)
+        with self._connect() as con:
+            real_count = int(
+                con.execute(
+                    "SELECT count(*) FROM news_classifications WHERE ai_provider != 'mock'"
+                ).fetchone()[0]
+            )
+            if confirm_real_rows != real_count:
+                raise ValueError(
+                    f"confirm_real_rows mismatch: expected {real_count} real rows, got {confirm_real_rows}"
+                )
+            tables = ["news_classifications", "news_theme_scores", "news_sector_impacts"]
+            counts_before = {}
+            for tbl in tables:
+                expected_count = int(con.execute(f"SELECT count(*) FROM {tbl}").fetchone()[0])
+                dest = backup_path / f"{tbl}.parquet"
+                if dest.exists():
+                    dest.unlink()
+                con.execute(f"COPY {tbl} TO ? (FORMAT PARQUET)", [str(dest)])
+                if not dest.exists():
+                    raise RuntimeError(f"Backup file for {tbl} not created at {dest}")
+                verified_count = int(
+                    con.execute("SELECT count(*) FROM read_parquet(?)", [str(dest)]).fetchone()[0]
+                )
+                if verified_count != expected_count:
+                    raise RuntimeError(
+                        f"Backup verification failed for {tbl}: expected {expected_count} rows, found {verified_count}"
+                    )
+                counts_before[tbl] = verified_count
+            con.execute("BEGIN TRANSACTION")
+            try:
+                con.execute("DELETE FROM news_classifications")
+                con.execute("DELETE FROM news_theme_scores")
+                con.execute("DELETE FROM news_sector_impacts")
+                con.execute("COMMIT")
+            except Exception:
+                con.execute("ROLLBACK")
+                raise
+        return {
+            "status": "destroyed",
+            "backup_dir": str(backup_path),
+            "counts_backed_up": counts_before,
+            "real_rows_confirmed": real_count,
+        }
+
+    def write_news_classifications(
         self,
         classifications: pd.DataFrame,
         theme_scores: pd.DataFrame,
         sector_impacts: pd.DataFrame,
-    ) -> None:
+        *,
+        origin: str | None = None,
+    ) -> dict[str, int]:
+        result = {"inserted": 0, "upgraded": 0, "skipped_protected": 0}
+        if classifications.empty:
+            return result
+        frame = classifications.copy()
+        if "secular_theme" not in frame.columns:
+            frame["secular_theme"] = None
+        if "macro_themes_json" not in frame.columns and "macro_themes" in frame.columns:
+            frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
+        if "sector_impacts_json" not in frame.columns and "sector_impacts" in frame.columns:
+            frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
+        if "entities_json" not in frame.columns and "entities" in frame.columns:
+            frame["entities_json"] = frame["entities"].map(json.dumps)
+        if "raw_ai_response_json" not in frame.columns and "raw_ai_response" in frame.columns:
+            frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
+
+        news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
+        if not news_ids:
+            return result
+
         with self._connect() as con:
-            con.execute("DELETE FROM news_classifications")
-            con.execute("DELETE FROM news_theme_scores")
-            con.execute("DELETE FROM news_sector_impacts")
-            if not classifications.empty:
-                frame = classifications.copy()
-                if "secular_theme" not in frame.columns:
-                    frame["secular_theme"] = None
-                frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
-                frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
-                frame["entities_json"] = frame["entities"].map(json.dumps)
-                frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
-                con.register("news_classification_frame", frame)
-                con.execute(
-                    """
-                    INSERT INTO news_classifications (
-                        classification_id, news_id, classified_at, ai_provider,
-                        ai_model, macro_themes_json, sector_impacts_json,
-                        entities_json, secular_theme, time_horizon, severity,
-                        confidence, summary, raw_ai_response_json,
-                        classification_status, error_message
+            table_cols = {row[1] for row in con.execute("PRAGMA table_info(news_classifications)").fetchall()}
+            has_origin_col = "origin" in table_cols
+            has_prompt_ver_col = "prompt_version" in table_cols
+
+            if has_origin_col:
+                if origin is not None:
+                    frame["origin"] = origin
+                elif "origin" not in frame.columns:
+                    frame["origin"] = frame["ai_provider"].map(lambda p: "mock" if p == "mock" else "live")
+            if has_prompt_ver_col and "prompt_version" not in frame.columns:
+                frame["prompt_version"] = None
+
+            news_id_frame = pd.DataFrame({"news_id": news_ids})
+            con.register("incoming_news_ids", news_id_frame)
+            existing_df = con.execute(
+                """
+                SELECT news_id, ai_provider
+                FROM news_classifications
+                WHERE news_id IN (SELECT news_id FROM incoming_news_ids)
+                """
+            ).fetchdf()
+
+            existing_map = dict(
+                zip(
+                    existing_df["news_id"].astype(str),
+                    existing_df["ai_provider"].astype(str),
+                )
+            )
+
+            insert_ids: list[str] = []
+            upgrade_ids: list[str] = []
+            for _, row in frame.iterrows():
+                nid = str(row["news_id"])
+                incoming_provider = str(row.get("ai_provider", ""))
+                incoming_is_real = incoming_provider != "mock"
+                existing_provider = existing_map.get(nid)
+
+                if existing_provider is None:
+                    insert_ids.append(nid)
+                    result["inserted"] += 1
+                elif existing_provider == "mock":
+                    if incoming_is_real:
+                        upgrade_ids.append(nid)
+                        result["upgraded"] += 1
+                    else:
+                        pass
+                else:
+                    result["skipped_protected"] += 1
+
+            ids_to_write = insert_ids + upgrade_ids
+            if not ids_to_write:
+                return result
+
+            con.execute("BEGIN TRANSACTION")
+            try:
+                if upgrade_ids:
+                    upgrade_id_frame = pd.DataFrame({"news_id": upgrade_ids})
+                    con.register("upgrade_ids_frame", upgrade_id_frame)
+                    con.execute(
+                        """
+                        DELETE FROM news_classifications
+                        USING upgrade_ids_frame
+                        WHERE news_classifications.news_id = upgrade_ids_frame.news_id
+                        """
                     )
-                    SELECT classification_id, news_id, classified_at, ai_provider,
-                           ai_model, macro_themes_json, sector_impacts_json,
-                           entities_json, secular_theme, time_horizon, severity,
-                           confidence, summary, raw_ai_response_json,
-                           classification_status, error_message
-                    FROM news_classification_frame
-                    """
-                )
-            if not theme_scores.empty:
-                con.register("news_theme_score_frame", theme_scores)
+                    con.execute(
+                        """
+                        DELETE FROM news_theme_scores
+                        USING upgrade_ids_frame
+                        WHERE news_theme_scores.news_id = upgrade_ids_frame.news_id
+                        """
+                    )
+                    con.execute(
+                        """
+                        DELETE FROM news_sector_impacts
+                        USING upgrade_ids_frame
+                        WHERE news_sector_impacts.news_id = upgrade_ids_frame.news_id
+                        """
+                    )
+
+                write_frame = frame[frame["news_id"].astype(str).isin(ids_to_write)].copy()
+                con.register("news_classification_write_frame", write_frame)
+
+                extra_cols = []
+                if has_origin_col:
+                    extra_cols.append("origin")
+                if has_prompt_ver_col:
+                    extra_cols.append("prompt_version")
+
+                base_cols = [
+                    "classification_id", "news_id", "classified_at", "ai_provider",
+                    "ai_model", "macro_themes_json", "sector_impacts_json",
+                    "entities_json", "secular_theme", "time_horizon", "severity",
+                    "confidence", "summary", "raw_ai_response_json",
+                    "classification_status", "error_message",
+                ]
+                all_insert_cols = base_cols + extra_cols
+                cols_str = ", ".join(all_insert_cols)
+
                 con.execute(
-                    """
-                    INSERT INTO news_theme_scores
-                    SELECT news_id, theme_id, direction, severity, confidence, time_horizon
-                    FROM news_theme_score_frame
-                    """
-                )
-            if not sector_impacts.empty:
-                con.register("news_sector_impact_frame", sector_impacts)
-                con.execute(
-                    """
-                    INSERT INTO news_sector_impacts
-                    SELECT news_id, sector_id, impact_direction, impact_score,
-                           confidence, rationale
-                    FROM news_sector_impact_frame
+                    f"""
+                    INSERT INTO news_classifications ({cols_str})
+                    SELECT {cols_str}
+                    FROM news_classification_write_frame
                     """
                 )
+
+                if not theme_scores.empty:
+                    ts_write = theme_scores[theme_scores["news_id"].astype(str).isin(ids_to_write)].copy()
+                    if not ts_write.empty:
+                        con.register("news_theme_score_write_frame", ts_write)
+                        con.execute(
+                            """
+                            INSERT INTO news_theme_scores
+                            SELECT news_id, theme_id, direction, severity, confidence, time_horizon
+                            FROM news_theme_score_write_frame
+                            """
+                        )
+
+                if not sector_impacts.empty:
+                    si_write = sector_impacts[sector_impacts["news_id"].astype(str).isin(ids_to_write)].copy()
+                    if not si_write.empty:
+                        con.register("news_sector_impact_write_frame", si_write)
+                        con.execute(
+                            """
+                            INSERT INTO news_sector_impacts
+                            SELECT news_id, sector_id, impact_direction, impact_score,
+                                   confidence, rationale
+                            FROM news_sector_impact_write_frame
+                            """
+                        )
+                con.execute("COMMIT")
+            except Exception:
+                con.execute("ROLLBACK")
+                raise
+
+        return result
 
     def upsert_news_classification_outputs(
         self,
         classifications: pd.DataFrame,
         theme_scores: pd.DataFrame,
         sector_impacts: pd.DataFrame,
-    ) -> None:
-        if classifications.empty:
-            return
-        frame = classifications.copy()
-        if "secular_theme" not in frame.columns:
-            frame["secular_theme"] = None
-        news_ids = frame["news_id"].dropna().astype(str).unique().tolist()
-        if not news_ids:
-            return
-        frame["macro_themes_json"] = frame["macro_themes"].map(json.dumps)
-        frame["sector_impacts_json"] = frame["sector_impacts"].map(json.dumps)
-        frame["entities_json"] = frame["entities"].map(json.dumps)
-        frame["raw_ai_response_json"] = frame["raw_ai_response"].map(json.dumps)
-        with self._connect() as con:
-            news_id_frame = pd.DataFrame({"news_id": news_ids})
-            con.register("news_id_frame", news_id_frame)
-            con.execute(
-                """
-                DELETE FROM news_classifications
-                USING news_id_frame
-                WHERE news_classifications.news_id = news_id_frame.news_id
-                """
-            )
-            con.execute(
-                """
-                DELETE FROM news_theme_scores
-                USING news_id_frame
-                WHERE news_theme_scores.news_id = news_id_frame.news_id
-                """
-            )
-            con.execute(
-                """
-                DELETE FROM news_sector_impacts
-                USING news_id_frame
-                WHERE news_sector_impacts.news_id = news_id_frame.news_id
-                """
-            )
-            con.register("news_classification_frame", frame)
-            con.execute(
-                """
-                INSERT INTO news_classifications (
-                    classification_id, news_id, classified_at, ai_provider,
-                    ai_model, macro_themes_json, sector_impacts_json,
-                    entities_json, secular_theme, time_horizon, severity,
-                    confidence, summary, raw_ai_response_json,
-                    classification_status, error_message
-                )
-                SELECT classification_id, news_id, classified_at, ai_provider,
-                       ai_model, macro_themes_json, sector_impacts_json,
-                       entities_json, secular_theme, time_horizon, severity,
-                       confidence, summary, raw_ai_response_json,
-                       classification_status, error_message
-                FROM news_classification_frame
-                """
-            )
-            if not theme_scores.empty:
-                con.register("news_theme_score_frame", theme_scores)
-                con.execute(
-                    """
-                    INSERT INTO news_theme_scores
-                    SELECT news_id, theme_id, direction, severity, confidence, time_horizon
-                    FROM news_theme_score_frame
-                    """
-                )
-            if not sector_impacts.empty:
-                con.register("news_sector_impact_frame", sector_impacts)
-                con.execute(
-                    """
-                    INSERT INTO news_sector_impacts
-                    SELECT news_id, sector_id, impact_direction, impact_score,
-                           confidence, rationale
-                    FROM news_sector_impact_frame
-                    """
-                )
+        *,
+        origin: str | None = None,
+    ) -> dict[str, int]:
+        return self.write_news_classifications(
+            classifications,
+            theme_scores,
+            sector_impacts,
+            origin=origin,
+        )
 
     def replace_news_score_outputs(
         self,
