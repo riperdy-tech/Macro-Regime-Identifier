@@ -203,6 +203,7 @@ def test_a_0727_regression_mock_daily_run_skips_news_on_live_store(tmp_path: Pat
         "build_sector_scores": lambda **_: None,
         "run_sector_validation": lambda **_: None,
         "write_sector_report": lambda **_: write_pair("sector"),
+        "write_sector_fit_report": lambda **_: write_pair("sector_exposures_fitted"),
         "ingest_news": MagicMock(side_effect=AssertionError("ingest_news must not be called")),
         "classify_news": MagicMock(side_effect=AssertionError("classify_news must not be called")),
         "build_news_scores": lambda **_: SimpleNamespace(
