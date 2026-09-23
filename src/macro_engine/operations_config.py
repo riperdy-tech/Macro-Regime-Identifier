@@ -19,6 +19,10 @@ class DailySectorConfig(BaseModel):
     sector_config_path: str = "config/sectors.yaml"
     exposure_config_path: str = "config/sector_exposures.yaml"
     prior_config_path: str = "config/sector_regime_priors.yaml"
+    # C1 (MRI_S1_APPROVAL.md S6): sector validation now runs inside the daily sector step,
+    # before the ranking report is written, so `current_sector_ranking.json`'s `validation`
+    # block always describes the scores it was just built from -- not the previous run's.
+    validation_config_path: str = "config/sector_validation.yaml"
 
 
 class DailyNewsConfig(BaseModel):

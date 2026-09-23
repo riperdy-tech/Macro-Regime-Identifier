@@ -111,7 +111,11 @@ Reasons:
 {payload["disclaimer"]}
 """
     summary = "\n".join(
-        "- {horizon}: observations {observation_count}, rank IC {rank_ic}, top-bottom spread {spread}, top hit rate {hit_rate}".format(
+        # C1 (MRI_S1_APPROVAL.md S6): one row per (cross_section, horizon) now, not one per
+        # horizon -- name the cross-section so gics_11/subindustry_6/pooled_17 rows for the
+        # same horizon are not shown as unlabeled duplicates.
+        "- {cross_section} {horizon}: observations {observation_count}, rank IC {rank_ic}, top-bottom spread {spread}, top hit rate {hit_rate}".format(
+            cross_section=row.get("cross_section") or "pooled_17",
             horizon=row["horizon"],
             observation_count=row["observation_count"],
             rank_ic=_fmt(row["rank_ic_spearman"]),

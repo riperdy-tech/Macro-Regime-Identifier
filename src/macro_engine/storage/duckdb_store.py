@@ -217,9 +217,15 @@ class DuckDBStore:
                     used_weight DOUBLE,
                     coverage_ratio DOUBLE,
                     valid BOOLEAN,
-                    reason TEXT
+                    reason TEXT,
+                    composition_id TEXT
                 )
                 """
+            )
+            # C3/C9 (MRI_S1_APPROVAL.md S8 item 2, S9 C3): the composition registry (S1.4) was
+            # built but never published on an artifact. Additive for a database predating it.
+            con.execute(
+                "ALTER TABLE dimension_scores ADD COLUMN IF NOT EXISTS composition_id TEXT"
             )
             con.execute(
                 """
@@ -280,7 +286,8 @@ class DuckDBStore:
                     peakedness DOUBLE,
                     entropy DOUBLE,
                     valid_regime_count INTEGER,
-                    reason TEXT
+                    reason TEXT,
+                    source_run_id TEXT
                 )
                 """
             )
@@ -293,6 +300,11 @@ class DuckDBStore:
             )
             con.execute(
                 "ALTER TABLE regime_health ADD COLUMN IF NOT EXISTS peakedness DOUBLE"
+            )
+            # C3 (MRI_S1_APPROVAL.md S9): current_regime.json's schema-2 source_run_id, same
+            # per-build stamp pattern as features.source_run_id. Additive.
+            con.execute(
+                "ALTER TABLE regime_health ADD COLUMN IF NOT EXISTS source_run_id TEXT"
             )
             con.execute(
                 """
@@ -410,7 +422,8 @@ class DuckDBStore:
                     macro_coverage DOUBLE,
                     macro_peakedness DOUBLE,
                     valid BOOLEAN,
-                    reason TEXT
+                    reason TEXT,
+                    source_run_id TEXT
                 )
                 """
             )
@@ -421,6 +434,12 @@ class DuckDBStore:
             )
             con.execute(
                 "ALTER TABLE sector_scores ADD COLUMN IF NOT EXISTS macro_peakedness DOUBLE"
+            )
+            # C1/C3 (MRI_S1_APPROVAL.md S9): identifies which build produced these rows, so
+            # the validation block can name `validated_run_id` and the ranking artifact can
+            # detect staleness against it (validated_run_id != source_run_id). Additive.
+            con.execute(
+                "ALTER TABLE sector_scores ADD COLUMN IF NOT EXISTS source_run_id TEXT"
             )
             con.execute(
                 """
@@ -482,6 +501,7 @@ class DuckDBStore:
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS sector_validation_summary (
+                    cross_section TEXT,
                     horizon TEXT,
                     observation_count INTEGER,
                     rank_ic_spearman DOUBLE,
@@ -489,10 +509,35 @@ class DuckDBStore:
                     bottom_quintile_avg_relative_return DOUBLE,
                     top_minus_bottom_spread DOUBLE,
                     hit_rate_top_positive DOUBLE,
-                    notes TEXT
+                    notes TEXT,
+                    n_dates INTEGER,
+                    sd_per_date_ic DOUBLE,
+                    t_naive DOUBLE,
+                    t_overlap_corrected DOUBLE,
+                    positive_share DOUBLE,
+                    score_end_date DATE,
+                    run_id TEXT
                 )
                 """
             )
+            # C1 (MRI_S1_APPROVAL.md S6): the pooled 17-row cross-section double-counted a
+            # sub-industry against its own parent (S1.5); the summary now carries the
+            # de-duplicated gics_11 and subindustry_6 cross-sections separately, plus the
+            # Newey-West statistics and run identity the validation block needs. Additive
+            # for a database predating the split.
+            for column, ddl_type in (
+                ("cross_section", "TEXT"),
+                ("n_dates", "INTEGER"),
+                ("sd_per_date_ic", "DOUBLE"),
+                ("t_naive", "DOUBLE"),
+                ("t_overlap_corrected", "DOUBLE"),
+                ("positive_share", "DOUBLE"),
+                ("score_end_date", "DATE"),
+                ("run_id", "TEXT"),
+            ):
+                con.execute(
+                    f"ALTER TABLE sector_validation_summary ADD COLUMN IF NOT EXISTS {column} {ddl_type}"
+                )
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS news_items (
@@ -1021,13 +1066,18 @@ class DuckDBStore:
                     """
                 )
             if not scores.empty:
+                scores = _ensure_dimension_score_columns(scores)
                 con.register("dimension_score_frame", scores)
                 con.execute(
                     """
-                    INSERT INTO dimension_scores
+                    INSERT INTO dimension_scores (
+                        dimension_id, date, score, valid_feature_count,
+                        configured_feature_count, total_configured_weight,
+                        used_weight, coverage_ratio, valid, reason, composition_id
+                    )
                     SELECT dimension_id, date, score, valid_feature_count,
                            configured_feature_count, total_configured_weight,
-                           used_weight, coverage_ratio, valid, reason
+                           used_weight, coverage_ratio, valid, reason, composition_id
                     FROM dimension_score_frame
                     """
                 )
@@ -1071,7 +1121,11 @@ class DuckDBStore:
                 con.register("regime_score_frame", scores)
                 con.execute(
                     """
-                    INSERT INTO regime_scores
+                    INSERT INTO regime_scores (
+                        regime_id, date, raw_score, probability, rank,
+                        valid_dimension_count, configured_dimension_count,
+                        coverage_ratio, valid, reason
+                    )
                     SELECT regime_id, date, raw_score, probability, rank,
                            valid_dimension_count, configured_dimension_count,
                            coverage_ratio, valid, reason
@@ -1090,11 +1144,11 @@ class DuckDBStore:
                     INSERT INTO regime_health (
                         date, valid, dominant_regime, dominant_probability,
                         confidence, coverage, peakedness, entropy, valid_regime_count,
-                        reason
+                        reason, source_run_id
                     )
                     SELECT date, valid, dominant_regime, dominant_probability,
                            confidence, coverage, peakedness, entropy, valid_regime_count,
-                           reason
+                           reason, source_run_id
                     FROM regime_health_frame
                     """
                 )
@@ -1178,12 +1232,12 @@ class DuckDBStore:
                         sector_id, date, raw_sector_score,
                         confidence_adjusted_score, rank, macro_reported_regime,
                         macro_raw_dominant_regime, macro_confidence, macro_coverage,
-                        macro_peakedness, valid, reason
+                        macro_peakedness, valid, reason, source_run_id
                     )
                     SELECT sector_id, date, raw_sector_score,
                            confidence_adjusted_score, rank, macro_reported_regime,
                            macro_raw_dominant_regime, macro_confidence, macro_coverage,
-                           macro_peakedness, valid, reason
+                           macro_peakedness, valid, reason, source_run_id
                     FROM sector_score_frame
                     """
                 )
@@ -1266,11 +1320,20 @@ class DuckDBStore:
                 con.register("sector_validation_summary_frame", summary)
                 con.execute(
                     """
-                    INSERT INTO sector_validation_summary
-                    SELECT horizon, observation_count, rank_ic_spearman,
+                    INSERT INTO sector_validation_summary (
+                        cross_section, horizon, observation_count, rank_ic_spearman,
+                        top_quintile_avg_relative_return,
+                        bottom_quintile_avg_relative_return,
+                        top_minus_bottom_spread, hit_rate_top_positive, notes,
+                        n_dates, sd_per_date_ic, t_naive, t_overlap_corrected,
+                        positive_share, score_end_date, run_id
+                    )
+                    SELECT cross_section, horizon, observation_count, rank_ic_spearman,
                            top_quintile_avg_relative_return,
                            bottom_quintile_avg_relative_return,
-                           top_minus_bottom_spread, hit_rate_top_positive, notes
+                           top_minus_bottom_spread, hit_rate_top_positive, notes,
+                           n_dates, sd_per_date_ic, t_naive, t_overlap_corrected,
+                           positive_share, score_end_date, run_id
                     FROM sector_validation_summary_frame
                     """
                 )
@@ -1997,7 +2060,7 @@ def _ensure_health_columns(health: pd.DataFrame) -> pd.DataFrame:
     picked up the new fields, has neither column. Same treatment as
     `_ensure_timeline_columns`: an explicit null, not a guessed value."""
     frame = health.copy()
-    for column in ("coverage", "peakedness"):
+    for column in ("coverage", "peakedness", "source_run_id"):
         if column not in frame.columns:
             frame[column] = None
     return frame
@@ -2006,7 +2069,16 @@ def _ensure_health_columns(health: pd.DataFrame) -> pd.DataFrame:
 def _ensure_sector_score_columns(scores: pd.DataFrame) -> pd.DataFrame:
     """S1.2b: same treatment for `macro_coverage`/`macro_peakedness` on sector_scores."""
     frame = scores.copy()
-    for column in ("macro_coverage", "macro_peakedness"):
+    for column in ("macro_coverage", "macro_peakedness", "source_run_id"):
         if column not in frame.columns:
             frame[column] = None
+    return frame
+
+
+def _ensure_dimension_score_columns(scores: pd.DataFrame) -> pd.DataFrame:
+    """C3/C9: `composition_id` (S1.4's registry, never published until now) on a frame
+    built before it existed."""
+    frame = scores.copy()
+    if "composition_id" not in frame.columns:
+        frame["composition_id"] = None
     return frame

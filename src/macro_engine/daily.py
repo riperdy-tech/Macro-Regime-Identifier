@@ -29,6 +29,7 @@ from macro_engine.pipeline_runner import run_pipeline
 from macro_engine.regime_status import compute_feature_freshness
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.service import build_stored_sector_scores
+from macro_engine.sectors.validation import run_stored_sector_validation
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -629,6 +630,19 @@ def _run_sector(
         exposure_config_path=config.sector.exposure_config_path,
         prior_config_path=config.sector.prior_config_path,
         db_path=db_path,
+    )
+    # C1 (MRI_S1_APPROVAL.md S6): validation must run BEFORE the ranking artifact is
+    # written, against the sector_scores just built above -- otherwise `validation` in
+    # current_sector_ranking.json always describes the previous run (the review's key
+    # finding: this used to happen the other way around, write_sector_report at daily.py's
+    # old :635 and run-sector-validation only later, in run_daily_diagnostic.ps1:76).
+    services.get("run_sector_validation", run_stored_sector_validation)(
+        config_path=config.sector.validation_config_path,
+        db_path=db_path,
+        macro_config_path=config.sector.config_path,
+        sector_config_path=config.sector.sector_config_path,
+        exposure_config_path=config.sector.exposure_config_path,
+        prior_config_path=config.sector.prior_config_path,
     )
     _append_paths(
         outputs,

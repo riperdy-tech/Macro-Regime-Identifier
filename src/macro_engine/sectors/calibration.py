@@ -232,8 +232,16 @@ def _comparison_frame(
 ) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     for result in variant_results:
+        # C1 (MRI_S1_APPROVAL.md S6): summarize_validation_returns now emits one row per
+        # (cross_section, horizon), not one per horizon -- this experiment tool compares
+        # exposure variants pooled across all 17 sectors (it is called with no
+        # `sector_config`, so `sub_industry_ids` is empty and `gics_11`/`pooled_17` are
+        # identical), so pin to `pooled_17` explicitly rather than let a dict comprehension
+        # silently pick whichever cross-section iterated last.
         summary_by_horizon = {
-            row["horizon"]: row for row in result["validation"]["summary"]
+            row["horizon"]: row
+            for row in result["validation"]["summary"]
+            if row.get("cross_section", "pooled_17") == "pooled_17"
         }
         primary = summary_by_horizon.get(primary_horizon, {})
         secondary = summary_by_horizon.get(secondary_horizon, {})

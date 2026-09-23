@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from macro_engine.evaluation.config import load_evaluation_config
+from macro_engine.evaluation.nber import load_nber_benchmark_config
 from macro_engine.reports.config import load_report_config
 from macro_engine.reports.writer import (
     build_current_regime_report,
@@ -12,13 +14,23 @@ from macro_engine.reports.writer import (
 )
 from macro_engine.storage.duckdb_store import DuckDBStore
 
+DEFAULT_NBER_CONFIG_PATH = "config/nber_recessions.yaml"
+
 
 def write_current_regime_report(
     *,
     config_path: str | Path = "config/phase_b_sources.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
+    nber_config_path: str | Path = DEFAULT_NBER_CONFIG_PATH,
 ) -> tuple[Path, Path]:
     config = load_report_config(config_path)
+    scoring_mode = load_evaluation_config(config_path).scoring_mode
+    # C3 (P0_0 §1.3.1): `threshold_configured` is the one number a consumer may treat as a
+    # probability threshold -- reuse the NBER benchmark's own detection_threshold (0.25)
+    # rather than inventing a second constant for the same concept.
+    recession_threshold = 0.25
+    if Path(nber_config_path).exists():
+        recession_threshold = load_nber_benchmark_config(nber_config_path).detection_threshold
     store = DuckDBStore(db_path)
     payload = build_current_regime_report(
         regime_scores=store.read_table("regime_scores"),
@@ -30,6 +42,8 @@ def write_current_regime_report(
         feature_health=store.read_table("feature_health"),
         source_health=store.read_table("source_health"),
         config=config,
+        scoring_mode=scoring_mode,
+        recession_threshold=recession_threshold,
     )
     markdown = current_report_markdown(payload)
     return write_report_outputs(

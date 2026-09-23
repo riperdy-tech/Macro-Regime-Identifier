@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import math
 import os
 from pathlib import Path
 from typing import Any, Literal
 
+import numpy as np
 import pandas as pd
 from pydantic import BaseModel, Field
 import requests
 import yaml
 
+from macro_engine.sectors.config import SectorConfig, load_sector_config
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 MAX_PRICE_LOOKAHEAD_DAYS = 7
@@ -395,14 +399,26 @@ def run_stored_sector_validation(
     *,
     config_path: str | Path = "config/sector_validation.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
+    macro_config_path: str | Path = "config/phase_b_sources.yaml",
+    sector_config_path: str | Path = "config/sectors.yaml",
+    exposure_config_path: str | Path = "config/sector_exposures.yaml",
+    prior_config_path: str | Path = "config/sector_regime_priors.yaml",
 ) -> SectorValidationResult:
     config = load_sector_validation_config(config_path)
+    sector_config = load_sector_config(
+        macro_config_path=macro_config_path,
+        sector_config_path=sector_config_path,
+        exposure_config_path=exposure_config_path,
+        prior_config_path=prior_config_path,
+    )
     store = DuckDBStore(db_path)
     store.initialize()
+    sector_scores = store.read_table("sector_scores")
     result = run_sector_validation(
-        sector_scores=store.read_table("sector_scores"),
+        sector_scores=sector_scores,
         prices=store.read_sector_proxy_prices(),
         config=config,
+        sector_config=sector_config,
     )
     store.replace_sector_validation_outputs(result.returns, result.summary)
     return result
@@ -413,13 +429,32 @@ def run_sector_validation(
     sector_scores: pd.DataFrame,
     prices: pd.DataFrame,
     config: SectorValidationConfig,
+    sector_config: SectorConfig | None = None,
 ) -> SectorValidationResult:
     returns = calculate_validation_returns(
         sector_scores=sector_scores,
         prices=prices,
         config=config,
     )
-    summary = summarize_validation_returns(returns, config.horizons_months)
+    # C1 (MRI_S1_APPROVAL.md S6): rank the gics_11 and subindustry_6 cross-sections
+    # separately -- a sub-industry is any sector whose config carries a parent_sector_id
+    # (same rule S1.5 already ranks by, sectors/scoring.py `_rank_sector_rows`).
+    sub_industry_ids = (
+        {sector.sector_id for sector in sector_config.sectors if sector.parent_sector_id}
+        if sector_config is not None
+        else set()
+    )
+    # C1: the sector_scores table is fully replaced on every build (replace_sector_outputs),
+    # so every row shares one source_run_id -- that identifies which sector-scoring run
+    # this validation ran against, for the ranking artifact's staleness check.
+    run_id = None
+    if not sector_scores.empty and "source_run_id" in sector_scores.columns:
+        run_ids = sector_scores["source_run_id"].dropna().unique()
+        if len(run_ids) == 1:
+            run_id = str(run_ids[0])
+    summary = summarize_validation_returns(
+        returns, config.horizons_months, sub_industry_ids, run_id=run_id
+    )
     return SectorValidationResult(returns=returns, summary=summary)
 
 
@@ -492,50 +527,133 @@ def calculate_validation_returns(
     return pd.DataFrame(rows, columns=_return_columns())
 
 
+# C1 (MRI_S1_APPROVAL.md S6): the pooled 17-row cross-section double-counts a sub-industry
+# against its own parent (S1.5's ranking fix, review N4). `pooled_17` is kept one release
+# for continuity (S6 rule 1); `gics_11` is the de-duplicated cross-section the screener's
+# gate reads.
+CROSS_SECTIONS = ("gics_11", "subindustry_6", "pooled_17")
+
+
 def summarize_validation_returns(
     returns: pd.DataFrame,
     horizons: list[int],
+    sub_industry_ids: set[str] | None = None,
+    *,
+    run_id: str | None = None,
 ) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     if returns.empty:
         return pd.DataFrame(rows, columns=_summary_columns())
-    for horizon in horizons:
-        relative_column = f"relative_forward_{horizon}m_return"
-        valid = returns[returns["valid"] & returns[relative_column].notna()].copy()
-        if valid.empty:
-            rows.append(_summary_row(f"{horizon}m", 0, None, None, None, None, None, "no_valid_returns"))
-            continue
-        ic_values = []
-        top_returns = []
-        bottom_returns = []
-        for _, group in valid.groupby("score_date", dropna=False):
-            if len(group) < 2:
+    sub_industry_ids = sub_industry_ids or set()
+    score_end_date: str | None = None
+    valid_dates = pd.to_datetime(returns.loc[returns["valid"], "score_date"], errors="coerce")
+    if not valid_dates.empty and valid_dates.notna().any():
+        score_end_date = str(valid_dates.max().date())
+
+    cross_section_frames = {
+        "gics_11": returns[~returns["sector_id"].isin(sub_industry_ids)],
+        "subindustry_6": returns[returns["sector_id"].isin(sub_industry_ids)],
+        "pooled_17": returns,
+    }
+    for cross_section in CROSS_SECTIONS:
+        cs_returns = cross_section_frames[cross_section]
+        for horizon in horizons:
+            relative_column = f"relative_forward_{horizon}m_return"
+            valid = cs_returns[cs_returns["valid"] & cs_returns[relative_column].notna()].copy()
+            if valid.empty:
+                rows.append(
+                    _summary_row(
+                        cross_section, f"{horizon}m", 0, None, None, None, None, None,
+                        "no_valid_returns", 0, None, None, None, None, score_end_date, run_id,
+                    )
+                )
                 continue
-            ic = _spearman(group["confidence_adjusted_score"], group[relative_column])
-            if ic is not None:
-                ic_values.append(ic)
-            ordered = group.sort_values("confidence_adjusted_score", ascending=False)
-            bucket_size = max(1, int(round(len(ordered) * 0.2)))
-            top_returns.extend(ordered.head(bucket_size)[relative_column].tolist())
-            bottom_returns.extend(ordered.tail(bucket_size)[relative_column].tolist())
-        rank_ic = None if not ic_values else float(pd.Series(ic_values).mean())
-        top_avg = None if not top_returns else float(pd.Series(top_returns).mean())
-        bottom_avg = None if not bottom_returns else float(pd.Series(bottom_returns).mean())
-        spread = None if top_avg is None or bottom_avg is None else top_avg - bottom_avg
-        hit_rate = None if not top_returns else float((pd.Series(top_returns) > 0).mean())
-        rows.append(
-            _summary_row(
-                f"{horizon}m",
-                int(len(valid)),
-                rank_ic,
-                top_avg,
-                bottom_avg,
-                spread,
-                hit_rate,
-                "diagnostic_validation_not_trading_backtest",
+            ic_values: list[float] = []
+            top_returns = []
+            bottom_returns = []
+            for _, group in valid.groupby("score_date", dropna=False):
+                if len(group) < 2:
+                    continue
+                ic = _spearman(group["confidence_adjusted_score"], group[relative_column])
+                if ic is not None:
+                    ic_values.append(ic)
+                ordered = group.sort_values("confidence_adjusted_score", ascending=False)
+                bucket_size = max(1, int(round(len(ordered) * 0.2)))
+                top_returns.extend(ordered.head(bucket_size)[relative_column].tolist())
+                bottom_returns.extend(ordered.tail(bucket_size)[relative_column].tolist())
+            rank_ic = None if not ic_values else float(pd.Series(ic_values).mean())
+            top_avg = None if not top_returns else float(pd.Series(top_returns).mean())
+            bottom_avg = None if not bottom_returns else float(pd.Series(bottom_returns).mean())
+            spread = None if top_avg is None or bottom_avg is None else top_avg - bottom_avg
+            hit_rate = None if not top_returns else float((pd.Series(top_returns) > 0).mean())
+            n_dates = len(ic_values)
+            sd_per_date_ic = float(pd.Series(ic_values).std()) if n_dates > 1 else None
+            t_naive = (
+                rank_ic / (sd_per_date_ic / math.sqrt(n_dates))
+                if rank_ic is not None and sd_per_date_ic
+                else None
             )
-        )
+            # C1 (S6, S8 S1.7): Newey-West (Bartlett kernel), lag = horizon_months - 1 --
+            # not the sqrt(h) approximation `scripts/measure_baseline.py` used to carry.
+            t_overlap_corrected, _ = newey_west_t(ic_values, lag=max(0, horizon - 1))
+            positive_share = float((pd.Series(ic_values) > 0).mean()) if n_dates else None
+            rows.append(
+                _summary_row(
+                    cross_section,
+                    f"{horizon}m",
+                    int(len(valid)),
+                    rank_ic,
+                    top_avg,
+                    bottom_avg,
+                    spread,
+                    hit_rate,
+                    "diagnostic_validation_not_trading_backtest",
+                    n_dates,
+                    sd_per_date_ic,
+                    t_naive,
+                    t_overlap_corrected,
+                    positive_share,
+                    score_end_date,
+                    run_id,
+                )
+            )
     return pd.DataFrame(rows, columns=_summary_columns())
+
+
+def newey_west_t(values: list[float], lag: int) -> tuple[float | None, float | None]:
+    """Newey-West (Bartlett kernel) t-statistic for the mean of `values` being zero,
+    correcting the naive standard error for serial correlation up to `lag` lags.
+
+    Returns `(t_stat, long_run_sd)`; both `None` when there are fewer than two observations
+    or the long-run variance estimate is non-positive (a degenerate series). `lag=0` reduces
+    to the naive (White) standard error, which is the 1-month-horizon case here -- a
+    1-month-ahead return series has no month-to-month observation overlap to correct for.
+    """
+    n = len(values)
+    if n < 2:
+        return None, None
+    arr = np.asarray(values, dtype=float)
+    mean = float(arr.mean())
+    demeaned = arr - mean
+    gamma0 = float(np.dot(demeaned, demeaned)) / n
+    variance = gamma0
+    max_lag = max(0, min(lag, n - 1))
+    for k in range(1, max_lag + 1):
+        autocovariance = float(np.dot(demeaned[k:], demeaned[:-k])) / n
+        weight = 1.0 - k / (max_lag + 1)
+        variance += 2.0 * weight * autocovariance
+    # A near-zero (not exactly zero) variance is the same degenerate case wearing
+    # floating-point noise -- an IC series with no real cross-date variation still fails
+    # to land on exactly 0.0 in binary floating point, and dividing by that residue
+    # produces an enormous, meaningless t-statistic instead of the "undefined" it should
+    # be. IC values are bounded in [-1, 1], so 1e-12 is well below any real signal.
+    if variance <= 1e-12:
+        return None, None
+    long_run_sd = math.sqrt(variance)
+    standard_error = long_run_sd / math.sqrt(n)
+    if standard_error == 0:
+        return None, None
+    return mean / standard_error, long_run_sd
 
 
 def _prepared_prices(prices: pd.DataFrame) -> pd.DataFrame:
@@ -599,6 +717,7 @@ def _spearman(left: pd.Series, right: pd.Series) -> float | None:
 
 
 def _summary_row(
+    cross_section: str,
     horizon: str,
     observation_count: int,
     rank_ic_spearman: float | None,
@@ -607,8 +726,16 @@ def _summary_row(
     spread: float | None,
     hit_rate: float | None,
     notes: str,
+    n_dates: int,
+    sd_per_date_ic: float | None,
+    t_naive: float | None,
+    t_overlap_corrected: float | None,
+    positive_share: float | None,
+    score_end_date: str | None,
+    run_id: str | None,
 ) -> dict[str, Any]:
     return {
+        "cross_section": cross_section,
         "horizon": horizon,
         "observation_count": observation_count,
         "rank_ic_spearman": rank_ic_spearman,
@@ -617,6 +744,13 @@ def _summary_row(
         "top_minus_bottom_spread": spread,
         "hit_rate_top_positive": hit_rate,
         "notes": notes,
+        "n_dates": n_dates,
+        "sd_per_date_ic": sd_per_date_ic,
+        "t_naive": t_naive,
+        "t_overlap_corrected": t_overlap_corrected,
+        "positive_share": positive_share,
+        "score_end_date": score_end_date,
+        "run_id": run_id,
     }
 
 
@@ -644,6 +778,7 @@ def _return_columns() -> list[str]:
 
 def _summary_columns() -> list[str]:
     return [
+        "cross_section",
         "horizon",
         "observation_count",
         "rank_ic_spearman",
@@ -652,4 +787,11 @@ def _summary_columns() -> list[str]:
         "top_minus_bottom_spread",
         "hit_rate_top_positive",
         "notes",
+        "n_dates",
+        "sd_per_date_ic",
+        "t_naive",
+        "t_overlap_corrected",
+        "positive_share",
+        "score_end_date",
+        "run_id",
     ]

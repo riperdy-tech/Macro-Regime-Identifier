@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -16,6 +18,34 @@ REVISED_DATA_DISCLAIMER = (
     "Historical outputs are revised-data diagnostics, not ALFRED/vintage point-in-time backtests."
 )
 
+# C3 (MRI_S1_APPROVAL.md S9): "none:softmax_v1" per P0_0_TARGET_ARCHITECTURE.md §1.3.1 --
+# the HMM fit id (S3) replaces this once S3 promotes a fitted persistence model.
+PARAMETER_VINTAGE_PRE_S3 = "none:softmax_v1"
+
+
+def compute_composition_signature(dimension_rows: pd.DataFrame) -> tuple[str | None, str]:
+    """The header `composition_id` (§1.2 rule 3) for one date: a single id summarizing the
+    S1.4 composition registry's declared set for every dimension scored on that date.
+
+    There is no single "the" composition_id the way there is per dimension (S1.4 registers
+    segments per dimension, not one for the whole engine), so this derives a stable one: a
+    sha256 of the sorted `dimension_id:composition_id` pairs actually present. Returns
+    `(None, "composition_registry_unavailable")` when no dimension on the date carries a
+    registered composition_id (composition_id column absent/entirely null) -- registration
+    is additive (S1.4), so this is a real, disclosed absence, not a bug.
+    """
+    if dimension_rows.empty or "composition_id" not in dimension_rows.columns:
+        return None, "composition_registry_unavailable"
+    pairs = sorted(
+        f"{row['dimension_id']}:{row['composition_id']}"
+        for row in dimension_rows.to_dict(orient="records")
+        if row.get("composition_id")
+    )
+    if not pairs:
+        return None, "composition_registry_unavailable"
+    digest = hashlib.sha256(",".join(pairs).encode("utf-8")).hexdigest()[:16]
+    return digest, "ok"
+
 
 def build_current_regime_report(
     *,
@@ -28,6 +58,8 @@ def build_current_regime_report(
     source_health: pd.DataFrame,
     config: ReportConfig,
     timeline: pd.DataFrame | None = None,
+    scoring_mode: str = "calendar_asof",
+    recession_threshold: float = 0.25,
 ) -> dict[str, Any]:
     valid_health = regime_health[regime_health["valid"]].sort_values("date")
     if valid_health.empty:
@@ -56,10 +88,63 @@ def build_current_regime_report(
     )
     latest_dimensions = dimension_scores[dimension_scores["date"] == latest_date]
     invalid_dimensions = latest_dimensions[~latest_dimensions["valid"]]
+
+    reasons: list[str] = []
+
+    peakedness = _to_float(latest.get("peakedness"))
+    if peakedness is None:
+        # C5 (MRI_S1_APPROVAL.md §5): `regimes/scoring.py` sets `reason` to
+        # `peakedness_undefined:<n>_valid_regimes` for this case.
+        reasons.append(str(latest.get("reason")))
+
+    composition_id, composition_reason = compute_composition_signature(latest_dimensions)
+    if composition_id is None:
+        reasons.append(composition_reason)
+
+    # C3 (P0_0 §1.3.1): season_posterior carries calibration_status per regime -- only the
+    # recession leg has ground truth to calibrate against (the NBER benchmark, S1.7).
+    season_posterior = {
+        row["regime_id"]: {
+            "probability": _to_float(row["probability"]),
+            "calibration_status": (
+                "calibrated_vs_nber"
+                if row["regime_id"] == "recession"
+                else "uncalibrated_partition_weight"
+            ),
+        }
+        for row in latest_scores.to_dict(orient="records")
+    }
+    recession_row = next(
+        (row for row in latest_scores.to_dict(orient="records") if row["regime_id"] == "recession"),
+        None,
+    )
+    recession_probability = _to_float(recession_row["probability"]) if recession_row else None
+    if recession_probability is None:
+        reasons.append("recession_regime_not_scored")
+
+    probabilities_desc = [
+        _to_float(value) for value in latest_scores["probability"].tolist()
+    ]
+    if len(probabilities_desc) >= 2 and probabilities_desc[0] is not None and probabilities_desc[1] is not None:
+        headline_margin = probabilities_desc[0] - probabilities_desc[1]
+    else:
+        headline_margin = None
+        reasons.append("headline_margin_undefined:fewer_than_2_valid_regimes")
+
+    # C3 (P0_0 §1.3.4): Layer 2 (the shock register, S4) has not been built yet -- null is
+    # the spec-defined representation for "the register was unavailable", not an omission.
+    reasons.append("shock_register_not_built:S4_not_shipped")
+
     payload = {
         "schema_version": 2,
         "valid": True,
-        "date": str(latest_date),
+        "process_id": "MRI-05",
+        "date": pd.Timestamp(latest_date).strftime("%Y-%m-%d"),
+        "built_at": datetime.now(timezone.utc).isoformat(),
+        "source_run_id": latest.get("source_run_id"),
+        "scoring_mode": scoring_mode,
+        "composition_id": composition_id,
+        "parameter_vintage": PARAMETER_VINTAGE_PRE_S3,
         "dominant_regime": dominant,
         "dominant_probability": _to_float(reported["reported_regime_probability"]),
         # S1.2 (P0_0 §2.5): confidence was `peakedness * coverage`, a data-completeness
@@ -69,16 +154,12 @@ def build_current_regime_report(
         # same way, as deprecated v1 aliases for one release (removed in schema 3).
         "confidence": _to_float(reported["reported_confidence"]),
         "coverage": _to_float(latest.get("coverage")),
-        "peakedness": _to_float(latest.get("peakedness")),
+        "peakedness": peakedness,
         # C5 (MRI_S1_APPROVAL.md §5): present only when peakedness is null, naming why --
         # `regimes/scoring.py` sets `reason` to `peakedness_undefined:<n>_valid_regimes`
         # for that case (the row's overall `reason` is "ok" whenever peakedness is
         # defined, so this never fires on a routine valid row).
-        **(
-            {"peakedness_reason": latest.get("reason")}
-            if _to_float(latest.get("peakedness")) is None
-            else {}
-        ),
+        **({"peakedness_reason": latest.get("reason")} if peakedness is None else {}),
         "reported_regime": dominant,
         "reported_regime_probability": _to_float(reported["reported_regime_probability"]),
         "reported_confidence": _to_float(reported["reported_confidence"]),
@@ -89,13 +170,33 @@ def build_current_regime_report(
             "confidence, reported_confidence and raw_confidence are v1 aliases for "
             "peakedness * coverage; removed in schema 3. Use coverage and peakedness "
             "separately -- neither is a multiplier.",
+            "raw_confidence, dominant_regime, dominant_probability, regime_probabilities, "
+            "reported_regime and reported_regime_probability are v1 keys kept for one "
+            "release (P0_0 §1.3.1); use season_posterior, season_headline and "
+            "season_headline_probability.",
         ],
         "regime_probabilities": {
             row["regime_id"]: _to_float(row["probability"])
             for row in latest_scores.to_dict(orient="records")
         },
+        # C3 (P0_0 §1.3.1): the primary object -- consumers read the recession leg's
+        # probability and calibration_status, not the argmax headline (§1.2 rule 5).
+        "season_posterior": season_posterior,
+        "recession_probability": recession_probability,
+        "threshold_configured": recession_threshold,
+        "above_threshold": (
+            None if recession_probability is None else recession_probability >= recession_threshold
+        ),
+        "season_headline": dominant,
+        "season_headline_probability": _to_float(reported["reported_regime_probability"]),
+        "headline_margin": headline_margin,
         "transition_filter_applied": reported["transition_filter_applied"],
         "transition_filter_reason": reported["transition_filter_reason"],
+        "transition_filter": {
+            "applied": reported["transition_filter_applied"],
+            "reason": reported["transition_filter_reason"],
+        },
+        "active_shocks_on_date": None,
         "top_supporting_dimensions": _contribution_records(
             supporting.head(config.max_contributors)
         ),
@@ -105,8 +206,21 @@ def build_current_regime_report(
         ].to_dict(orient="records")
         if not invalid_dimensions.empty
         else [],
+        # C3 (P0_0 §1.3.1): the numeric interface -- one entry per dimension scored on this
+        # date, carrying the composition_id (S1.4) it was scored under.
+        "factors": {
+            row["dimension_id"]: {
+                "score": _to_float(row.get("score")),
+                "valid": bool(row["valid"]),
+                "coverage": _to_float(row.get("coverage_ratio")),
+                "reason": row.get("reason"),
+                "composition_id": row.get("composition_id"),
+            }
+            for row in latest_dimensions.to_dict(orient="records")
+        },
         "data_health_warnings": _health_warnings(feature_health, source_health),
         "explanation": _build_explanation(dominant, supporting, opposing, config.max_contributors),
+        "reasons": reasons,
         "disclaimer": NOT_INVESTMENT_ADVICE,
     }
     if config.include_dimension_details:
@@ -265,28 +379,61 @@ class SchemaVersionFieldsMissing(ValueError):
     nullable, but only alongside a reason naming why."""
 
 
-# The field that defines schema_version 2 across the artifacts that declare it
-# (current_regime.json, current_sector_ranking.json) and is never nullable once the
-# payload claims the version. `peakedness` is checked separately below: it may be null,
-# but only with a `peakedness_reason` explaining why (C5).
-SCHEMA_V2_REQUIRED_FIELDS = ("coverage",)
+# The fields that define schema_version 2 across the artifacts that declare it
+# (current_regime.json, current_sector_ranking.json) and are never nullable once the
+# payload claims the version and `valid` is true. `peakedness` is checked separately
+# below: it may be null, but only with a `peakedness_reason` explaining why (C5).
+# C3 (MRI_S1_APPROVAL.md §9): widened from `coverage` alone to the §1.2 header fields
+# every artifact owes (process_id, built_at, source_run_id, scoring_mode,
+# parameter_vintage) plus each artifact's own non-nullable §1.3 fields, so a payload that
+# over-claims schema_version 2 without actually carrying its fields refuses to publish --
+# the defect class this guard exists to catch (S1.2's own `schema_version: 2` claim was
+# exactly this, on two of roughly twenty required fields).
+_HEADER_REQUIRED_FIELDS = (
+    "process_id",
+    "built_at",
+    "source_run_id",
+    "scoring_mode",
+    "parameter_vintage",
+    "coverage",
+    "reasons",
+    "deprecations",
+)
+SCHEMA_V2_REGIME_REQUIRED_FIELDS = _HEADER_REQUIRED_FIELDS + (
+    "factors",
+    "season_posterior",
+    "season_headline",
+    "transition_filter",
+)
+# C1 (MRI_S1_APPROVAL.md §6): `validation` must always be present -- the screener's loader
+# reads `validation.horizon_3m.rank_ic` and `validation.horizon_3m.t_overlap_corrected` and
+# fails closed without them, so a v2 sector payload missing the key entirely must not
+# publish (its numeric leaves may still be null, with reasons, when validation is stale or
+# missing -- only the key itself is required here).
+SCHEMA_V2_SECTOR_REQUIRED_FIELDS = _HEADER_REQUIRED_FIELDS + ("validation",)
+# Backward-compatible alias for the pre-C3 name.
+SCHEMA_V2_REQUIRED_FIELDS = SCHEMA_V2_REGIME_REQUIRED_FIELDS
 
 
 def require_schema_v2_fields(payload: dict[str, Any]) -> dict[str, Any]:
     """Refuse to publish a `schema_version: 2` payload whose defining fields are null.
 
     Only applies to a payload that both claims the version and claims to be valid -- an
-    invalid payload (`valid: False`) never carries these fields in the first place."""
+    invalid payload (`valid: False`) never carries these fields in the first place. The
+    sector artifact is told apart by `process_id` ("MRI-07") or, failing that, the
+    presence of `sector_ranking` -- everything else uses the regime artifact's set."""
     if payload.get("schema_version") == 2 and payload.get("valid"):
-        missing = [field for field in SCHEMA_V2_REQUIRED_FIELDS if payload.get(field) is None]
+        is_sector = payload.get("process_id") == "MRI-07" or "sector_ranking" in payload
+        required = SCHEMA_V2_SECTOR_REQUIRED_FIELDS if is_sector else SCHEMA_V2_REGIME_REQUIRED_FIELDS
+        missing = [field for field in required if payload.get(field) is None]
         if payload.get("peakedness") is None and not payload.get("peakedness_reason"):
             missing.append("peakedness (or peakedness_reason)")
         if missing:
             raise SchemaVersionFieldsMissing(
                 f"schema_version 2 payload is missing required field(s) {missing}: "
-                "coverage must be non-null, and peakedness must be non-null or carry "
-                "peakedness_reason, when schema_version is 2 and valid is true "
-                "(P0_0 S1.2b guard)"
+                "every field in this list must be non-null, and peakedness must be "
+                "non-null or carry peakedness_reason, when schema_version is 2 and "
+                "valid is true (P0_0 S1.2b guard, widened by C3)"
             )
     return payload
 

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import random
 
+import numpy as np
 import pandas as pd
 import pytest
 from typer.testing import CliRunner
@@ -440,3 +442,183 @@ class _FakeResponse:
 
     def raise_for_status(self) -> None:
         return None
+
+
+# ── C1 (MRI_S1_APPROVAL.md §6): cross-section split, Newey-West t ──────────────────────
+
+
+def test_newey_west_t_matches_naive_at_zero_lag():
+    """lag=0 has no autocovariance terms, so it must reduce exactly to the naive
+    (population-variance) t-statistic -- the 1-month-horizon case, where there is no
+    month-to-month overlap to correct for. Newey-West's own convention normalizes the
+    variance estimator by n (not n-1, the way `pandas.Series.std()` does), matching
+    statsmodels' `cov_hac`, so the comparison here uses the same population formula."""
+    from macro_engine.sectors.validation import newey_west_t
+
+    values = [0.10, -0.05, 0.20, 0.00, 0.15, -0.02]
+    arr = np.asarray(values, dtype=float)
+    mean = arr.mean()
+    population_variance = float(((arr - mean) ** 2).sum()) / len(arr)
+    naive_t = mean / ((population_variance**0.5) / (len(values) ** 0.5))
+
+    t_stat, _ = newey_west_t(values, lag=0)
+    assert t_stat == pytest.approx(naive_t)
+
+
+def test_newey_west_t_none_for_degenerate_series():
+    from macro_engine.sectors.validation import newey_west_t
+
+    assert newey_west_t([], lag=2) == (None, None)
+    assert newey_west_t([0.1], lag=2) == (None, None)
+    # zero variance: every value identical -> long-run variance is 0, not divide-by-zero.
+    assert newey_west_t([0.1, 0.1, 0.1], lag=1) == (None, None)
+
+
+def test_newey_west_t_positive_serial_correlation_widens_the_interval():
+    """A positively autocorrelated series (the expected shape for overlapping-window
+    returns) must produce a smaller |t| than the naive calculation -- the whole point of
+    the correction. This is what made the review's sqrt(h) approximation the wrong
+    direction of caution for `t_overlap_corrected` to skip."""
+    from macro_engine.sectors.validation import newey_west_t
+
+    # A trending, positively autocorrelated series.
+    values = [0.05, 0.06, 0.07, 0.06, 0.08, 0.09, 0.07, 0.10, 0.08, 0.11]
+    series = pd.Series(values, dtype=float)
+    naive_t = series.mean() / (series.std() / (len(values) ** 0.5))
+
+    t_stat, _ = newey_west_t(values, lag=2)
+    assert t_stat is not None
+    assert abs(t_stat) < abs(naive_t)
+
+
+def _cross_section_returns() -> pd.DataFrame:
+    # 4 "GICS" sectors + 1 sub-industry (a real one from measure_baseline's
+    # SUB_INDUSTRY_SECTOR_IDS, so the equality test below can use the same set), over 6
+    # dates. Scores are fixed per sector; returns track score plus noise large enough to
+    # occasionally re-rank adjacent sectors, so the per-date IC series has genuine
+    # cross-date variance (a fixture where every date's IC is identically 1.0 gives an
+    # exactly-zero cross-date variance, which is a real degenerate case, not a bug, but
+    # not what this fixture is for).
+    rng = random.Random(20260923)
+    sector_scores = {
+        "energy": 2.0,
+        "utilities": 1.0,
+        "financials": -1.0,
+        "healthcare": -2.0,
+        "semiconductors": 1.5,
+    }
+    rows = []
+    for date_index in range(6):
+        score_date = f"2026-0{date_index + 1}-01"
+        for sector_id, score in sector_scores.items():
+            noise = rng.uniform(-3.0, 3.0)
+            rows.append(
+                {
+                    "sector_id": sector_id,
+                    "score_date": score_date,
+                    "confidence_adjusted_score": score,
+                    "relative_forward_1m_return": 0.01 * score + 0.008 * noise,
+                    "relative_forward_3m_return": 0.03 * score + 0.015 * noise,
+                    "valid": True,
+                }
+            )
+    return pd.DataFrame(rows)
+
+
+def test_summarize_validation_returns_splits_gics_and_subindustry_cross_sections():
+    """C1: a sub-industry's rows must never leak into gics_11 -- the screener's gate reads
+    that cross-section specifically, and S1.5 already ranks the two blocks separately for
+    the same reason."""
+    returns = _cross_section_returns()
+    sub_industry_ids = {"semiconductors"}
+
+    summary = summarize_validation_returns(returns, [1, 3], sub_industry_ids, run_id="run-x")
+
+    gics_3m = summary[(summary["cross_section"] == "gics_11") & (summary["horizon"] == "3m")].iloc[0]
+    sub_3m = summary[(summary["cross_section"] == "subindustry_6") & (summary["horizon"] == "3m")].iloc[0]
+    pooled_3m = summary[(summary["cross_section"] == "pooled_17") & (summary["horizon"] == "3m")].iloc[0]
+
+    assert gics_3m["observation_count"] == 4 * 6  # 4 GICS sectors x 6 dates
+    assert sub_3m["observation_count"] == 1 * 6  # semiconductors only
+    assert pooled_3m["observation_count"] == 5 * 6  # everything
+    assert gics_3m["run_id"] == "run-x"
+    assert gics_3m["n_dates"] == 6
+    assert gics_3m["rank_ic_spearman"] > 0.5  # strong rank match by construction, not perfect
+    assert gics_3m["t_overlap_corrected"] is not None
+    assert gics_3m["score_end_date"] == "2026-06-01"
+
+
+def test_gics_11_numbers_match_measure_baseline_script():
+    """C1 rule 2: the gics_11 numbers published in `validation` must equal
+    `scripts/measure_baseline.py`'s `11_row_cross_section` on the same data -- including
+    the Newey-West t, since both now share the exact same `newey_west_t` implementation."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "measure_baseline_module",
+        Path(__file__).resolve().parents[1] / "scripts" / "measure_baseline.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    returns = _cross_section_returns()
+    sub_industry_ids = module.SUB_INDUSTRY_SECTOR_IDS
+    assert "semiconductors" in sub_industry_ids  # the fixture's sub-industry stand-in
+
+    summary = summarize_validation_returns(returns, [1, 3], sub_industry_ids)
+    gics_3m = summary[(summary["cross_section"] == "gics_11") & (summary["horizon"] == "3m")].iloc[0]
+    gics_1m = summary[(summary["cross_section"] == "gics_11") & (summary["horizon"] == "1m")].iloc[0]
+
+    baseline = module._measure_sector_rank_ic(returns)
+    baseline_3m = baseline["11_row_cross_section"]["3m"]
+    baseline_1m = baseline["11_row_cross_section"]["1m"]
+
+    # measure_baseline.py rounds every float to 6 digits before returning (its own
+    # byte-identity reproducibility contract); production does not round, so the
+    # comparison tolerance is set to that rounding, not float equality.
+    for production_row, baseline_row in ((gics_3m, baseline_3m), (gics_1m, baseline_1m)):
+        assert production_row["n_dates"] == baseline_row["n_dates"]
+        assert production_row["rank_ic_spearman"] == pytest.approx(baseline_row["mean_per_date_ic"], abs=1e-6)
+        assert production_row["sd_per_date_ic"] == pytest.approx(baseline_row["sd_per_date_ic"], abs=1e-6)
+        assert production_row["t_naive"] == pytest.approx(baseline_row["naive_t"], abs=1e-6)
+        assert production_row["t_overlap_corrected"] == pytest.approx(baseline_row["overlap_corrected_t"], abs=1e-6)
+        assert production_row["positive_share"] == pytest.approx(baseline_row["positive_share_of_dates"], abs=1e-6)
+
+
+def test_validation_missing_when_no_gics_11_rows():
+    """No sector_validation_summary rows at all (validation never ran for this vintage) is
+    `validation_missing`, per C1 rule 4."""
+    from macro_engine.sectors.report import _build_validation_block
+
+    block = _build_validation_block(pd.DataFrame(), "run-a")
+    assert block["reasons"] == ["validation_missing"]
+    assert block["horizon_3m"]["rank_ic"] is None
+    assert block["horizon_3m"]["t_overlap_corrected"] is None
+
+
+def test_validation_stale_when_validated_run_id_differs_from_source_run_id():
+    """C1 rule 4: a validation run against an OLDER sector-scoring run must not be
+    presented as describing the current ranking -- every numeric leaf nulls out."""
+    from macro_engine.sectors.report import _build_validation_block
+
+    summary = pd.DataFrame(
+        [
+            {
+                "cross_section": "gics_11",
+                "horizon": "3m",
+                "observation_count": 100,
+                "rank_ic_spearman": 0.05,
+                "n_dates": 20,
+                "sd_per_date_ic": 0.3,
+                "t_naive": 0.7,
+                "t_overlap_corrected": 0.4,
+                "positive_share": 0.6,
+                "score_end_date": "2026-08-01",
+                "run_id": "old-run",
+            }
+        ]
+    )
+    block = _build_validation_block(summary, "new-run")
+    assert block["reasons"] == ["validation_stale:old-run"]
+    assert block["horizon_3m"]["rank_ic"] is None
+    assert block["validated_run_id"] == "old-run"

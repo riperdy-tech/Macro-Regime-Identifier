@@ -168,6 +168,7 @@ def run_pipeline(
             config_path=config_path,
             db_path=db_path,
             parquet_dir=parquet_dir,
+            run_id=run_id,
         )
         print("pipeline: build-regimes done", flush=True)
         _collect_invalid_regime_warnings(regime_result.regime_scores, warnings)

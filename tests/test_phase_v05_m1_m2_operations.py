@@ -65,6 +65,39 @@ def test_run_daily_diagnostic_with_mocked_services(tmp_path: Path):
     assert runs.iloc[-1]["guardrail_status"] == "passed"
 
 
+def test_daily_sector_step_runs_validation_before_writing_the_ranking_report(tmp_path: Path):
+    """C1 (MRI_S1_APPROVAL.md §6, the review's key ordering finding): validation must run
+    against the sector_scores just built, BEFORE the ranking artifact is written -- the old
+    order (write first, validate later in run_daily_diagnostic.ps1) meant
+    `current_sector_ranking.json.validation` always described the PREVIOUS run."""
+    db_path = tmp_path / "macro.duckdb"
+    config_path = _daily_config(tmp_path)
+    services = _daily_services(tmp_path)
+
+    call_order: list[str] = []
+    services["build_sector_scores"] = lambda **_: call_order.append("build_sector_scores")
+    services["run_sector_validation"] = lambda **_: call_order.append("run_sector_validation")
+    original_write = services["write_sector_report"]
+
+    def _tracked_write_sector_report(**kwargs):
+        call_order.append("write_sector_report")
+        return original_write(**kwargs)
+
+    services["write_sector_report"] = _tracked_write_sector_report
+
+    result = run_daily_diagnostic(
+        config_path=config_path,
+        db_path=db_path,
+        run_date="2026-05-18",
+        archive=True,
+        services=services,
+        output_dir=tmp_path / "outputs",
+    )
+
+    assert result.status == "success"
+    assert call_order == ["build_sector_scores", "run_sector_validation", "write_sector_report"]
+
+
 def test_run_daily_diagnostic_reports_success_with_warnings_when_features_are_stale(tmp_path: Path):
     """`allow_success_with_warnings: true` is what lets a stale features build downgrade the
     run instead of failing it outright -- but it must still be VISIBLE, not silently green."""
@@ -379,6 +412,9 @@ def _daily_services(tmp_path: Path, forbidden_report: bool = False) -> dict:
     return {
         "run_pipeline": lambda **_: SimpleNamespace(status="success"),
         "build_sector_scores": lambda **_: None,
+        # C1 (MRI_S1_APPROVAL.md S6): _run_sector now runs validation between build and
+        # write; stubbed here like every other step so this suite stays hermetic.
+        "run_sector_validation": lambda **_: None,
         "write_sector_report": lambda **_: write_pair("sector"),
         "ingest_news": lambda **_: pd.DataFrame(),
         "classify_news": lambda **_: {},

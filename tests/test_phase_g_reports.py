@@ -69,6 +69,7 @@ def _regime_health() -> pd.DataFrame:
                 "entropy": 0.67,
                 "valid_regime_count": 2,
                 "reason": "ok",
+                "source_run_id": "test-run-1",
             }
         ]
     )
@@ -286,6 +287,66 @@ def test_current_report_explains_from_contribution_rows():
     assert "not investment advice" in payload["disclaimer"]
 
 
+def test_current_regime_report_schema_v2_fields_are_present():
+    """C3 (MRI_S1_APPROVAL.md §9): every §1.3.1 field S1 can compute now must actually be
+    on the payload -- schema_version: 2 must stop over-claiming. `active_shocks_on_date` is
+    the one field this fixture cannot fill (Layer 2 / S4 has not been built), and per the
+    architecture that is a real, disclosed null (named in `reasons`), not an omission."""
+    payload = build_current_regime_report(
+        regime_scores=_regime_scores(),
+        regime_health=_regime_health(),
+        regime_contributions=_regime_contributions(),
+        dimension_scores=_dimension_scores(),
+        dimension_contributions=_dimension_contributions(),
+        feature_health=_feature_health(),
+        source_health=_source_health(),
+        config=ReportConfig(max_contributors=3),
+        scoring_mode="calendar_asof",
+        recession_threshold=0.25,
+    )
+
+    for field in (
+        "process_id",
+        "built_at",
+        "source_run_id",
+        "scoring_mode",
+        "parameter_vintage",
+        "factors",
+        "season_posterior",
+        "season_headline",
+        "season_headline_probability",
+        "headline_margin",
+        "transition_filter",
+        "reasons",
+        "deprecations",
+    ):
+        assert field in payload, f"missing schema-2 field: {field}"
+    assert payload["process_id"] == "MRI-05"
+    assert payload["scoring_mode"] == "calendar_asof"
+    assert payload["parameter_vintage"] == "none:softmax_v1"
+    assert payload["source_run_id"] == "test-run-1"
+    # ISO date, not the v1 "YYYY-MM-DD HH:MM:SS" format (P0_0 §1.3.1).
+    assert payload["date"] == "2026-01-01"
+    assert payload["threshold_configured"] == 0.25
+    assert payload["above_threshold"] in (True, False)
+    assert set(payload["season_posterior"].keys()) >= {"goldilocks", "recession"}
+    assert payload["season_posterior"]["recession"]["calibration_status"] == "calibrated_vs_nber"
+    assert (
+        payload["season_posterior"]["goldilocks"]["calibration_status"]
+        == "uncalibrated_partition_weight"
+    )
+    assert payload["transition_filter"] == {
+        "applied": payload["transition_filter_applied"],
+        "reason": payload["transition_filter_reason"],
+    }
+    # Layer 2 has not been built -- null is the spec-defined representation, named in
+    # reasons, not a silent absence.
+    assert payload["active_shocks_on_date"] is None
+    assert any("shock_register_not_built" in reason for reason in payload["reasons"])
+    for dimension_id, factor in payload["factors"].items():
+        assert set(factor.keys()) == {"score", "valid", "coverage", "reason", "composition_id"}
+
+
 def test_current_markdown_is_deterministic():
     payload = build_current_regime_report(
         regime_scores=_regime_scores(),
@@ -375,13 +436,34 @@ def test_write_report_outputs_refuses_schema_v2_payload_missing_coverage(tmp_pat
     assert not (tmp_path / "bad_current_regime.json").exists()
 
 
+# C3 (MRI_S1_APPROVAL.md §9): the header fields every schema-2 payload now owes (§1.2
+# rule 3), for tests that exercise a narrower guard behavior (peakedness nullability)
+# without needing a full, realistic artifact.
+_MINIMAL_REGIME_V2_FIELDS = {
+    "schema_version": 2,
+    "valid": True,
+    "coverage": 0.8,
+    "process_id": "MRI-05",
+    "built_at": "2026-09-23T00:00:00+00:00",
+    "source_run_id": "test-run-1",
+    "scoring_mode": "calendar_asof",
+    "parameter_vintage": "none:softmax_v1",
+    "factors": {},
+    "season_posterior": {},
+    "season_headline": "goldilocks",
+    "transition_filter": {"applied": True, "reason": "ok"},
+    "reasons": [],
+    "deprecations": [],
+}
+
+
 def test_require_schema_v2_fields_allows_non_v2_and_invalid_payloads():
     # Only a *valid* schema_version 2 payload is held to the invariant -- an invalid payload
     # never carries coverage/peakedness in the first place, and schema_version 1 predates
     # the split.
     require_schema_v2_fields({"schema_version": 2, "valid": False, "reason": "no_valid_regime"})
     require_schema_v2_fields({"schema_version": 1, "valid": True})
-    require_schema_v2_fields({"schema_version": 2, "valid": True, "coverage": 0.8, "peakedness": 0.3})
+    require_schema_v2_fields({**_MINIMAL_REGIME_V2_FIELDS, "peakedness": 0.3})
 
 
 def test_require_schema_v2_fields_allows_null_peakedness_with_a_reason():
@@ -390,9 +472,7 @@ def test_require_schema_v2_fields_allows_null_peakedness_with_a_reason():
     # exactly the "silently null" failure mode the guard exists to catch.
     require_schema_v2_fields(
         {
-            "schema_version": 2,
-            "valid": True,
-            "coverage": 0.8,
+            **_MINIMAL_REGIME_V2_FIELDS,
             "peakedness": None,
             "peakedness_reason": "peakedness_undefined:1_valid_regimes",
         }

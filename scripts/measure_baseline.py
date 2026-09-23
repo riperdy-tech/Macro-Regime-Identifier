@@ -48,6 +48,7 @@ sys.path.insert(0, str(_REPO_ROOT / "src"))
 
 from macro_engine.anchors.config import load_anchor_config  # noqa: E402
 from macro_engine.anchors.multiples import build_regime_state_frame  # noqa: E402
+from macro_engine.sectors.validation import newey_west_t  # noqa: E402
 
 DEFAULT_DB_PATH = "data/macro_engine.duckdb"
 DEFAULT_OUT_DIR = "outputs/baseline/S0"
@@ -572,7 +573,13 @@ def _rank_ic_for_horizon(frame: pd.DataFrame, column: str, months: int) -> dict[
     mean = float(series.mean()) if n else None
     sd = float(series.std()) if n > 1 else None
     naive_t = mean / (sd / math.sqrt(n)) if mean is not None and sd else None
-    overlap_corrected_t = naive_t / math.sqrt(months) if naive_t is not None else None
+    # C1 (MRI_S1_APPROVAL.md S6, S8 S1.7): Newey-West (Bartlett kernel), lag = months - 1 --
+    # this used to divide naive_t by sqrt(months), which the S1 fix-up review named as the
+    # wrong approximation ("the S1 pack's sqrt(h) version"). Shares the exact implementation
+    # `sectors/validation.py summarize_validation_returns` uses, so the two are guaranteed to
+    # agree rather than merely expected to (rule: the gics_11 numbers here must equal the
+    # production `current_sector_ranking.json.validation` block on the same store).
+    overlap_corrected_t, _ = newey_west_t(ic_values, lag=max(0, months - 1)) if ic_values else (None, None)
     return {
         "n_dates": n,
         "mean_per_date_ic": _r(mean),
@@ -601,9 +608,10 @@ def _measure_sector_rank_ic(sector_validation_returns: pd.DataFrame) -> dict[str
         "basis": (
             "sector_validation_returns WHERE valid; per-date Spearman rank IC between "
             "confidence_adjusted_score and relative forward return; naive_t = mean/(sd/sqrt(n)); "
-            "overlap_corrected_t divides naive_t by sqrt(horizon_months); top_quintile_hit_rate "
-            "is the share of top-quintile-by-score picks with positive relative return (same "
-            "definition as sectors/validation.py summarize_validation_returns.hit_rate_top_positive)"
+            "overlap_corrected_t is Newey-West (Bartlett kernel, lag = horizon_months - 1) via "
+            "sectors/validation.py newey_west_t; top_quintile_hit_rate is the share of "
+            "top-quintile-by-score picks with positive relative return (same definition as "
+            "sectors/validation.py summarize_validation_returns.hit_rate_top_positive)"
         ),
         "sub_industry_sector_ids_excluded_from_11_row": sorted(SUB_INDUSTRY_SECTOR_IDS),
         "17_row_cross_section": horizons(frame),

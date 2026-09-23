@@ -754,9 +754,25 @@ def ingest_sector_proxy_prices_cli(
 def run_sector_validation_cli(
     config: Annotated[str, typer.Option("--config")] = "config/sector_validation.yaml",
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    macro_config: Annotated[str, typer.Option("--macro-config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    exposure_config: Annotated[str, typer.Option("--exposure-config")] = "config/sector_exposures.yaml",
+    prior_config: Annotated[str, typer.Option("--prior-config")] = "config/sector_regime_priors.yaml",
 ) -> None:
-    """v0.2-F: compare stored sector scores with future sector ETF relative returns."""
-    result = run_stored_sector_validation(config_path=config, db_path=db_path)
+    """v0.2-F: compare stored sector scores with future sector ETF relative returns.
+
+    C1 (MRI_S1_APPROVAL.md S6): the sector-definition configs are needed to split the
+    gics_11 and subindustry_6 cross-sections apart (a sub-industry is any sector whose
+    config carries a parent_sector_id) -- same defaults as `build-sector-scores`.
+    """
+    result = run_stored_sector_validation(
+        config_path=config,
+        db_path=db_path,
+        macro_config_path=macro_config,
+        sector_config_path=sector_config,
+        exposure_config_path=exposure_config,
+        prior_config_path=prior_config,
+    )
     console.print_json(
         data={
             "return_rows": int(len(result.returns)),

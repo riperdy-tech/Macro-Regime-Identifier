@@ -320,6 +320,81 @@ def test_report_splits_sector_and_subindustry_rankings():
     assert payload["subindustry_ranking"][0]["parent_sector_id"] == "energy"
 
 
+def test_sector_report_schema_v2_fields_are_present_and_validation_key_always_exists():
+    """C3 (MRI_S1_APPROVAL.md §9): every §1.3.2 non-nullable field the sector artifact can
+    compute now must actually be on the payload, not just claimed via schema_version. C1:
+    `validation` must always be present (as a dict, possibly all-null with reasons), even
+    when no `sector_validation_summary` was supplied at all -- the screener's loader reads
+    `validation.horizon_3m.rank_ic` / `t_overlap_corrected` and fails closed without the key."""
+    result = build_sector_scores(
+        regime_scores=_regime_scores(),
+        regime_health=_regime_health(),
+        dimension_scores=_dimension_scores(),
+        timeline=_timeline(confidence=0.25),
+        config=_toy_sector_config(),
+    )
+    payload = build_current_sector_report(
+        sector_scores=result.sector_scores,
+        components=result.components,
+        health=result.sector_health,
+        config=_toy_sector_config(),
+        dimension_scores=_dimension_scores(),
+        validation_summary=None,
+        scoring_mode="calendar_asof",
+    )
+
+    for field in (
+        "process_id",
+        "built_at",
+        "source_run_id",
+        "scoring_mode",
+        "parameter_vintage",
+        "reasons",
+        "deprecations",
+        "validation",
+    ):
+        assert field in payload, f"missing schema-2 field: {field}"
+    assert payload["process_id"] == "MRI-07"
+    assert payload["scoring_mode"] == "calendar_asof"
+    assert payload["parameter_vintage"] == "none:softmax_v1"
+    # No validation_summary supplied -- must be null-with-reasons, not absent.
+    assert payload["validation"]["reasons"] == ["validation_missing"]
+    assert payload["validation"]["horizon_3m"]["rank_ic"] is None
+    assert payload["validation"]["horizon_3m"]["t_overlap_corrected"] is None
+    # source_run_id was never stamped on this fixture (build_sector_scores bypasses the
+    # service-layer stamp) -- a real absence, named in reasons via the guard, not silently
+    # dropped from the payload.
+    assert payload["source_run_id"] is None
+    for row in payload["sector_ranking"]:
+        assert row["exposure_source"] == "hand_set_v1"
+        assert "components" in row
+
+
+def test_sector_report_guard_refuses_to_publish_without_validation_key():
+    """C1's guard extension: a valid schema-2 sector payload with no `validation` key at
+    all must refuse to publish -- this is the failure mode the screener's fail-closed loader
+    exists to catch, made loud on the writer's side too."""
+    from macro_engine.reports.writer import SchemaVersionFieldsMissing, require_schema_v2_fields
+
+    bad_payload = {
+        "schema_version": 2,
+        "valid": True,
+        "process_id": "MRI-07",
+        "coverage": 0.8,
+        "peakedness": 0.3,
+        "built_at": "2026-09-23T00:00:00+00:00",
+        "source_run_id": "run-1",
+        "scoring_mode": "calendar_asof",
+        "parameter_vintage": "none:softmax_v1",
+        "reasons": [],
+        "deprecations": [],
+        "sector_ranking": [],
+        # "validation" deliberately omitted.
+    }
+    with pytest.raises(SchemaVersionFieldsMissing, match="validation"):
+        require_schema_v2_fields(bad_payload)
+
+
 def test_macro_confidence_no_longer_changes_sector_score():
     # S1.2 (P0_0 §2.5): the confidence multiplier is deleted. Macro confidence is still
     # recorded on the row for information, but confidence_adjusted_score == raw_sector_score

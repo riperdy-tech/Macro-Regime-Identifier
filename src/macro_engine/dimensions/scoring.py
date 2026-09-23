@@ -56,7 +56,7 @@ def build_dimensions_from_features(
             continue
         dimension_contributions = _build_dimension_contributions(feature_frame, dimension, composition)
         contribution_records.extend(dimension_contributions.to_dict(orient="records"))
-        scores = _build_dimension_scores(dimension_contributions, dimension)
+        scores = _build_dimension_scores(dimension_contributions, dimension, composition)
         score_rows.extend(scores.to_dict(orient="records"))
         health_rows.extend(
             _build_dimension_health(scores, dimension_contributions, dimension).to_dict(
@@ -167,6 +167,7 @@ def _build_dimension_contributions(
 def _build_dimension_scores(
     contributions: pd.DataFrame,
     dimension: DimensionDefinition,
+    composition: CompositionRegistry | None = None,
 ) -> pd.DataFrame:
     rows: list[dict] = []
     total_weight = sum(feature.weight for feature in dimension.features)
@@ -203,6 +204,17 @@ def _build_dimension_scores(
         else:
             reason = "ok"
             score = float(valid_group["contribution"].sum())
+        # C3/C9 (MRI_S1_APPROVAL.md S8 item 2, S9 C3): publish the S1.4 composition registry's
+        # id for this (dimension, date), so `current_regime.json`'s `factors[dim].composition_id`
+        # names what was actually declared, not just whether it validated. None when the
+        # dimension carries no declared composition (registration is additive, not required
+        # of every dimension) -- same "not registered" case `declared_feature_ids` returns None
+        # for.
+        composition_id = (
+            composition.composition_id(dimension.dimension_id, pd.Timestamp(date).date())
+            if composition is not None
+            else None
+        )
         rows.append(
             {
                 "dimension_id": dimension.dimension_id,
@@ -215,6 +227,7 @@ def _build_dimension_scores(
                 "coverage_ratio": coverage,
                 "valid": valid,
                 "reason": reason,
+                "composition_id": composition_id,
             }
         )
     return pd.DataFrame(rows)

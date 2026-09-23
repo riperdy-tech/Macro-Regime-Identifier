@@ -1,13 +1,19 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
+from macro_engine.evaluation.config import load_evaluation_config
 from macro_engine.reports.config import load_report_config
-from macro_engine.reports.writer import require_schema_v2_fields
+from macro_engine.reports.writer import (
+    PARAMETER_VINTAGE_PRE_S3,
+    compute_composition_signature,
+    require_schema_v2_fields,
+)
 from macro_engine.sectors.config import SectorConfig, load_sector_config
 from macro_engine.storage.duckdb_store import DuckDBStore
 
@@ -16,6 +22,18 @@ SECTOR_DISCLAIMER = (
     "advice and does not provide trading, allocation, portfolio sizing, or security "
     "selection guidance. Proxy tickers are reporting references only."
 )
+
+# C1 (MRI_S1_APPROVAL.md §6): the method description published on the `validation` block,
+# so a consumer reading the block does not have to go find sectors/validation.py to know
+# what `rank_ic`/`t_overlap_corrected` mean.
+_VALIDATION_METHOD = {
+    "ic": (
+        "mean over dates of Spearman(tilt_score, relative forward return), 11 GICS rows "
+        "ranked among themselves"
+    ),
+    "t_overlap_corrected": "Newey-West (Bartlett kernel, lag = horizon_months - 1) on the per-date IC series",
+}
+_VALIDATION_T_METHOD = "newey_west_bartlett_lag_h_minus_1"
 
 
 def write_current_sector_report(
@@ -33,13 +51,17 @@ def write_current_sector_report(
         exposure_config_path=exposure_config_path,
         prior_config_path=prior_config_path,
     )
+    scoring_mode = load_evaluation_config(config_path).scoring_mode
     store = DuckDBStore(db_path)
     payload = build_current_sector_report(
         sector_scores=store.read_table("sector_scores"),
         components=store.read_table("sector_score_components"),
         health=store.read_table("sector_health"),
+        dimension_scores=store.read_table("dimension_scores"),
+        validation_summary=store.read_table("sector_validation_summary"),
         config=sector_config,
         max_contributors=report_config.max_contributors,
+        scoring_mode=scoring_mode,
     )
     require_schema_v2_fields(payload)
     markdown = current_sector_report_markdown(payload)
@@ -59,6 +81,9 @@ def build_current_sector_report(
     health: pd.DataFrame,
     config: SectorConfig,
     max_contributors: int = 5,
+    dimension_scores: pd.DataFrame | None = None,
+    validation_summary: pd.DataFrame | None = None,
+    scoring_mode: str = "calendar_asof",
 ) -> dict[str, Any]:
     if sector_scores.empty:
         return {
@@ -127,34 +152,63 @@ def build_current_sector_report(
         for row in invalid_health.to_dict(orient="records")
     )
     latest = latest_scores.iloc[0]
+    source_run_id = latest.get("source_run_id")
+
+    reasons: list[str] = []
+    macro_peakedness = _to_float(latest.get("macro_peakedness"))
+    if macro_peakedness is None:
+        reasons.append("peakedness_undefined")
+
+    composition_id = None
+    if dimension_scores is not None and not dimension_scores.empty:
+        dims = dimension_scores.copy()
+        dims["date"] = pd.to_datetime(dims["date"], errors="coerce")
+        composition_id, composition_reason = compute_composition_signature(
+            dims[dims["date"] == latest_date]
+        )
+        if composition_id is None:
+            reasons.append(composition_reason)
+    else:
+        reasons.append("composition_registry_unavailable")
+
+    validation_block = _build_validation_block(validation_summary, source_run_id)
+    reasons.extend(validation_block["reasons"])
+
     return _json_safe(
         {
             "schema_version": 2,
             "valid": True,
+            "process_id": "MRI-07",
             "date": str(latest_date.date()),
+            "built_at": datetime.now(timezone.utc).isoformat(),
+            "source_run_id": source_run_id,
+            "scoring_mode": scoring_mode,
+            "composition_id": composition_id,
+            "parameter_vintage": PARAMETER_VINTAGE_PRE_S3,
             "reported_macro_regime": latest["macro_reported_regime"],
             "raw_macro_leader": latest["macro_raw_dominant_regime"],
             "macro_confidence": macro_confidence,
             # S1.2 (P0_0 §2.5 / §1.3.2): copied from Layer 1, same owner semantics as
             # current_regime.json -- neither is multiplied into a score here.
             "coverage": _to_float(latest.get("macro_coverage")),
-            "peakedness": _to_float(latest.get("macro_peakedness")),
+            "peakedness": macro_peakedness,
             # C5 (MRI_S1_APPROVAL.md §5): present only when peakedness is null. The macro
             # date frame does not carry the Layer-1 row's specific reason through to the
             # sector artifact (only `macro_peakedness` itself is copied), so this is a
             # generic marker rather than the precise `peakedness_undefined:<n>_valid_
             # regimes` current_regime.json carries; it exists so the schema-2 guard can
             # tell "undefined, and named as such" from "silently missing".
-            **(
-                {"peakedness_reason": "peakedness_undefined"}
-                if _to_float(latest.get("macro_peakedness")) is None
-                else {}
-            ),
+            **({"peakedness_reason": "peakedness_undefined"} if macro_peakedness is None else {}),
             "sector_ranking": ranking,
             "subindustry_ranking": subindustry_ranking,
+            # C1 (MRI_S1_APPROVAL.md §6): always present. The screener's gate reads
+            # `validation.horizon_3m.rank_ic` and `validation.horizon_3m.t_overlap_corrected`
+            # and fails closed without them.
+            "validation": validation_block,
             "top_macro_supported_sectors": top_supported,
             "top_macro_pressured_sectors": top_pressured,
             "warnings": warnings,
+            "reasons": reasons,
             "deprecations": [
                 "raw_sector_score and confidence_adjusted_score are v1 aliases for tilt_score "
                 "(S1.2: the confidence multiplier is deleted, so all three are now the same "
@@ -165,6 +219,112 @@ def build_current_sector_report(
             "disclaimer": SECTOR_DISCLAIMER,
         }
     )
+
+
+def _build_validation_block(
+    validation_summary: pd.DataFrame | None,
+    source_run_id: Any,
+) -> dict[str, Any]:
+    """C1 (MRI_S1_APPROVAL.md §6). Always returns a dict with the full shape -- the
+    screener's guard (require_schema_v2_fields) refuses to publish without the key at all,
+    but a missing or stale validation is a normal, disclosed state: every numeric leaf null,
+    with a reason."""
+    null_horizons = {
+        "horizon_3m": _validation_horizon_payload(None),
+        "horizon_1m": _validation_horizon_payload(None),
+        "subindustry_6": {
+            "horizon_3m": _validation_horizon_payload(None),
+            "horizon_1m": _validation_horizon_payload(None),
+        },
+    }
+    if validation_summary is None or validation_summary.empty or "cross_section" not in validation_summary.columns:
+        return {
+            "cross_section": "gics_11",
+            "score_end_date": None,
+            "validated_run_id": None,
+            "method": _VALIDATION_METHOD,
+            "t_method": _VALIDATION_T_METHOD,
+            **null_horizons,
+            "reasons": ["validation_missing"],
+        }
+
+    gics = validation_summary[validation_summary["cross_section"] == "gics_11"]
+    subindustry = validation_summary[validation_summary["cross_section"] == "subindustry_6"]
+    if gics.empty:
+        return {
+            "cross_section": "gics_11",
+            "score_end_date": None,
+            "validated_run_id": None,
+            "method": _VALIDATION_METHOD,
+            "t_method": _VALIDATION_T_METHOD,
+            **null_horizons,
+            "reasons": ["validation_missing"],
+        }
+
+    validated_run_ids = gics["run_id"].dropna().unique().tolist() if "run_id" in gics.columns else []
+    validated_run_id = str(validated_run_ids[0]) if len(validated_run_ids) == 1 else None
+    score_end_dates = gics["score_end_date"].dropna().unique().tolist() if "score_end_date" in gics.columns else []
+    score_end_date = str(score_end_dates[0]) if score_end_dates else None
+
+    # C1 rule 4: a validation that ran against a DIFFERENT sector-scoring run than the one
+    # this ranking was just built from describes stale numbers -- every numeric field is
+    # null, named, rather than silently presented as current.
+    stale = (
+        validated_run_id is not None
+        and source_run_id is not None
+        and validated_run_id != str(source_run_id)
+    )
+    if stale:
+        return {
+            "cross_section": "gics_11",
+            "score_end_date": score_end_date,
+            "validated_run_id": validated_run_id,
+            "method": _VALIDATION_METHOD,
+            "t_method": _VALIDATION_T_METHOD,
+            **null_horizons,
+            "reasons": [f"validation_stale:{validated_run_id}"],
+        }
+
+    def row_for(frame: pd.DataFrame, horizon: str) -> dict[str, Any] | None:
+        match = frame[frame["horizon"] == horizon]
+        return None if match.empty else match.iloc[0].to_dict()
+
+    return {
+        "cross_section": "gics_11",
+        "score_end_date": score_end_date,
+        "validated_run_id": validated_run_id,
+        "method": _VALIDATION_METHOD,
+        "t_method": _VALIDATION_T_METHOD,
+        "horizon_3m": _validation_horizon_payload(row_for(gics, "3m")),
+        "horizon_1m": _validation_horizon_payload(row_for(gics, "1m")),
+        "subindustry_6": {
+            "horizon_3m": _validation_horizon_payload(row_for(subindustry, "3m")),
+            "horizon_1m": _validation_horizon_payload(row_for(subindustry, "1m")),
+        },
+        "reasons": [],
+    }
+
+
+def _validation_horizon_payload(row: dict[str, Any] | None) -> dict[str, Any]:
+    if row is None:
+        return {
+            "rank_ic": None,
+            "t_naive": None,
+            "t_overlap_corrected": None,
+            "n_dates": 0,
+            "n_obs": 0,
+            "positive_share": None,
+            "sd_per_date_ic": None,
+        }
+    return {
+        "rank_ic": _to_float(row.get("rank_ic_spearman")),
+        "t_naive": _to_float(row.get("t_naive")),
+        "t_overlap_corrected": _to_float(row.get("t_overlap_corrected")),
+        "n_dates": int(row.get("n_dates") or 0),
+        "n_obs": int(row.get("observation_count") or 0),
+        "positive_share": _to_float(row.get("positive_share")),
+        "sd_per_date_ic": _to_float(row.get("sd_per_date_ic")),
+    }
 
 
 def current_sector_report_markdown(payload: dict[str, Any]) -> str:
@@ -272,8 +432,14 @@ def _sector_rank_record(
         "macro_reported_regime": row["macro_reported_regime"],
         "macro_raw_dominant_regime": row["macro_raw_dominant_regime"],
         "macro_confidence": _to_float(row["macro_confidence"]),
+        # C3 (P0_0 §1.3.2): every component that fed the score, not just the top N -- so a
+        # consumer can see everything that moved, not only the highlights.
+        "components": _component_records(valid_components),
         "top_supporting_components": _component_records(supporting.head(max_contributors)),
         "top_opposing_components": _component_records(opposing.head(max_contributors)),
+        # C3 (P0_0 §1.3.2): S6 may promote fitted exposures; until then every sector uses
+        # the hand-set v1 exposure table (config/sector_exposures.yaml).
+        "exposure_source": "hand_set_v1",
     }
 
 
