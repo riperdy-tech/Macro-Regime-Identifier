@@ -596,6 +596,33 @@ def test_validation_missing_when_no_gics_11_rows():
     assert block["horizon_3m"]["t_overlap_corrected"] is None
 
 
+def test_validation_score_end_date_has_no_time_component_after_a_db_round_trip():
+    """score_end_date round-trips through a DuckDB DATE column, which pandas reads back as
+    a Timestamp -- str() on that carries a spurious "00:00:00" (the same defect class C3
+    fixed on current_regime.json's own `date` field)."""
+    from macro_engine.sectors.report import _build_validation_block
+
+    summary = pd.DataFrame(
+        [
+            {
+                "cross_section": "gics_11",
+                "horizon": "3m",
+                "observation_count": 100,
+                "rank_ic_spearman": 0.05,
+                "n_dates": 20,
+                "sd_per_date_ic": 0.3,
+                "t_naive": 0.7,
+                "t_overlap_corrected": 0.4,
+                "positive_share": 0.6,
+                "score_end_date": pd.Timestamp("2026-08-01"),  # as DuckDB hands it back
+                "run_id": "run-a",
+            }
+        ]
+    )
+    block = _build_validation_block(summary, "run-a")
+    assert block["score_end_date"] == "2026-08-01"
+
+
 def test_validation_stale_when_validated_run_id_differs_from_source_run_id():
     """C1 rule 4: a validation run against an OLDER sector-scoring run must not be
     presented as describing the current ranking -- every numeric leaf nulls out."""

@@ -264,7 +264,10 @@ def _build_validation_block(
     validated_run_ids = gics["run_id"].dropna().unique().tolist() if "run_id" in gics.columns else []
     validated_run_id = str(validated_run_ids[0]) if len(validated_run_ids) == 1 else None
     score_end_dates = gics["score_end_date"].dropna().unique().tolist() if "score_end_date" in gics.columns else []
-    score_end_date = str(score_end_dates[0]) if score_end_dates else None
+    # `score_end_date` round-trips through a DuckDB DATE column, which pandas reads back as
+    # a Timestamp -- str() on that carries a spurious "00:00:00", the same class of defect
+    # C3 fixed on current_regime.json's own `date` field.
+    score_end_date = str(pd.Timestamp(score_end_dates[0]).date()) if score_end_dates else None
 
     # C1 rule 4: a validation that ran against a DIFFERENT sector-scoring run than the one
     # this ranking was just built from describes stale numbers -- every numeric field is
