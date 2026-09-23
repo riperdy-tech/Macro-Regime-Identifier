@@ -9,11 +9,15 @@ import yaml
 
 
 def compute_taxonomy_version(config_path: str | Path = "config/shocks.yaml") -> str:
-    """Compute sha256 hex digest of the shocks.yaml configuration file."""
+    """Compute sha256 hex digest of the shocks.yaml configuration file.
+
+    Line endings are normalised to LF first: a Windows checkout (core.autocrlf) and the
+    Linux cloud runner hold the same committed file with different bytes, and the version
+    must identify the taxonomy, not the platform."""
     path = Path(config_path)
     if not path.exists():
         raise FileNotFoundError(f"Configuration file not found: {path}")
-    raw_bytes = path.read_bytes()
+    raw_bytes = path.read_bytes().replace(b"\r\n", b"\n")
     return hashlib.sha256(raw_bytes).hexdigest()
 
 
