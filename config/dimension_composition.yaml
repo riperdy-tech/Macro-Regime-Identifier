@@ -95,3 +95,15 @@ dimension_compositions:
       features:
         - feature_id: housing_starts_yoy_z
           weight: 1.00
+
+  # S5.1 (MRI_S5_SPEC.md): DFII10 begins 2003-01-02; with min_observations 504 the level
+  # feature validates 2005-02 and the 6-month change 2005-09 (measured 2026-09-23).
+  real_rates:
+    - composition_id: "real_rates:v1:2005-09-01.."
+      valid_from: "2005-09-01"
+      valid_to: null
+      features:
+        - feature_id: real_rate_10y_level_z
+          weight: 0.50
+        - feature_id: real_rate_10y_6m_change_z
+          weight: 0.50

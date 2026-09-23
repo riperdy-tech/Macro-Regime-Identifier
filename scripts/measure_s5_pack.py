@@ -414,7 +414,9 @@ def recession_leg(
     baseline_recession = baseline_full.regime_scores[
         baseline_full.regime_scores["regime_id"] == "recession"
     ].copy()
+    baseline_recession["date"] = pd.to_datetime(baseline_recession["date"])
     stored_recession = regime_scores_stored[regime_scores_stored["regime_id"] == "recession"].copy()
+    stored_recession["date"] = pd.to_datetime(stored_recession["date"])
     merged_check = baseline_recession.merge(
         stored_recession, on="date", suffixes=("_recomputed", "_stored")
     )
@@ -442,6 +444,7 @@ def recession_leg(
         dimension_scores_all_rows, arm_regimes, regime_config.scoring
     )
     arm_recession = arm_full.regime_scores[arm_full.regime_scores["regime_id"] == "recession"].copy()
+    arm_recession["date"] = pd.to_datetime(arm_recession["date"])
 
     # arm-neutral-where-invalid self-check (S5 STOP, part 2)
     candidate_rows = dimension_scores_all_rows[
@@ -456,7 +459,7 @@ def recession_leg(
         all_dates_with_scores - set(candidate_rows["date"])
     )
     cmp = baseline_recession.merge(arm_recession, on="date", suffixes=("_base", "_arm"))
-    cmp_invalid = cmp[cmp["date"].isin(invalid_or_missing_dates)]
+    cmp_invalid = cmp[pd.to_datetime(cmp["date"]).dt.date.isin(invalid_or_missing_dates)]
     if not cmp_invalid.empty:
         diffs = (cmp_invalid["probability_base"] - cmp_invalid["probability_arm"]).abs()
         diffs = diffs.combine_first(pd.Series(0.0, index=diffs.index))

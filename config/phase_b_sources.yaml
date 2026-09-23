@@ -384,6 +384,23 @@ features:
     enabled: true
     min_observations: 24
 
+  # --- S5 shadow inputs (MRI_S5_SPEC.md): feed shadow dimensions only -------
+  - feature_id: real_rate_10y_level_z
+    series_id: DFII10
+    transform: level
+    normalization: rolling_z_10y
+    direction: higher_is_real_rate_high
+    enabled: true
+    min_observations: 504      # 2 years of trading days; 60 would z-score 2003 on 3 months
+
+  - feature_id: real_rate_10y_6m_change_z
+    series_id: DFII10
+    transform: diff_6m
+    normalization: rolling_z_10y
+    direction: higher_is_real_rate_rising
+    enabled: true
+    min_observations: 504
+
 dimensions:
   - dimension_id: growth_momentum
     enabled: true
@@ -481,6 +498,20 @@ dimensions:
     features:
       - feature_id: housing_starts_yoy_z
         weight: 1.00
+        polarity: positive
+
+  # --- S5 shadow dimensions (required_for_regime: false; no regime, no exposure row) ---
+  - dimension_id: real_rates
+    enabled: true
+    required_for_regime: false
+    min_valid_features: 2
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: real_rate_10y_level_z
+        weight: 0.50
+        polarity: positive
+      - feature_id: real_rate_10y_6m_change_z
+        weight: 0.50
         polarity: positive
 
 regime_scoring:
