@@ -294,21 +294,27 @@ def _apply_transition_filter(
             pending_regime = None
             pending_count = 0
             filtered["transition_filter_reason"] = "raw_signal_confirmed"
-        elif raw_confidence >= threshold:
-            required_months = _required_confirmation_months(raw_confidence, filter_config)
+        else:
+            # C4a (MRI_S1_APPROVAL.md §3): the confirmation counter counts consecutive
+            # months of the same raw leader and is NOT reset by a sub-threshold month --
+            # only a change of raw leader (or a revert to current_regime, handled above)
+            # resets it. Previously a single month below `threshold` reset the counter to
+            # zero even when the raw leader was unchanged, so a persistent-but-quiet raw
+            # leader (for example six straight months of `recession` at 2019-10..2020-03)
+            # never accumulated enough consecutive months to confirm.
             pending_count = pending_count + 1 if pending_regime == raw_regime else 1
             pending_regime = raw_regime
-            if pending_count >= required_months:
-                current_regime = raw_regime
-                pending_regime = None
-                pending_count = 0
-                filtered["transition_filter_reason"] = "switch_confirmed"
+            if raw_confidence >= threshold:
+                required_months = _required_confirmation_months(raw_confidence, filter_config)
+                if pending_count >= required_months:
+                    current_regime = raw_regime
+                    pending_regime = None
+                    pending_count = 0
+                    filtered["transition_filter_reason"] = "switch_confirmed"
+                else:
+                    filtered["transition_filter_reason"] = "awaiting_confirmation"
             else:
-                filtered["transition_filter_reason"] = "awaiting_confirmation"
-        else:
-            pending_regime = None
-            pending_count = 0
-            filtered["transition_filter_reason"] = "held_below_min_confidence"
+                filtered["transition_filter_reason"] = "held_below_min_confidence"
 
         date = pd.Timestamp(row["date"])
         reported_probability = _probability_for_regime(scores, date, current_regime)

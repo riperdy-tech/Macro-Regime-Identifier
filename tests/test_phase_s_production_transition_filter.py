@@ -193,6 +193,74 @@ def test_pending_confirmation_resets_when_raw_leader_reverts():
     assert result.transitions.empty
 
 
+def test_confirmation_counter_survives_sub_threshold_months():
+    """C4a (MRI_S1_APPROVAL.md §3, `diagnostics/runner.py:308-311`): a raw leader that is
+    unchanged for six straight months must confirm even when some of those months dip below
+    `min_confidence_to_switch`. Reproduces the shape of 2019-10..2020-03 in the S1 store,
+    where `recession` was the raw leader every month at confidences 0.057, 0.077, 0.075,
+    0.094, 0.055, 0.122 -- four of six below the 0.08 threshold -- and the old reset-on-any-
+    sub-threshold-month rule never let the counter reach 2, so the switch never confirmed
+    until an unrelated April jump. The counter must not reset on a sub-threshold month; it
+    resets only when the raw leader itself changes (or reverts to the incumbent)."""
+    config = HistoricalDiagnosticConfig(
+        start_date="2019-09-01",
+        end_date="2020-03-01",
+        mode="revised_data",
+        min_valid_regimes=2,
+        low_confidence_threshold=0.05,
+        transition_filter={
+            "enabled": True,
+            "min_confidence_to_switch": 0.08,
+            "confirmation_months": 2,
+            "only_when_confidence_below": 0.15,
+        },
+    )
+    months = [
+        ("2019-09-01", "tightening", 0.30),
+        ("2019-10-01", "recession", 0.057),
+        ("2019-11-01", "recession", 0.077),
+        ("2019-12-01", "recession", 0.075),
+        ("2020-01-01", "recession", 0.094),
+        ("2020-02-01", "recession", 0.055),
+        ("2020-03-01", "recession", 0.122),
+    ]
+    scores = pd.DataFrame(
+        [
+            row
+            for date, regime, _confidence in months
+            for row in (
+                _score_row(date, regime, 0.30, 1),
+                _score_row(date, "goldilocks", 0.20, 2),
+            )
+        ]
+    )
+    health = pd.DataFrame(
+        [
+            _health_row(date, regime, 0.30, confidence)
+            for date, regime, confidence in months
+        ]
+    )
+
+    result = run_historical_diagnostic(scores, health, config)
+    timeline = result.timeline.set_index("date")
+
+    # Under the old rule this never confirms inside the window at all (Oct/Nov/Dec/Feb are
+    # each below threshold and used to zero the counter). With the fix, the consecutive-month
+    # count keeps accumulating across the sub-threshold months, so the switch confirms as
+    # soon as a counted month clears the 0.08 floor with the counter already at 2 -- 2020-01.
+    jan = timeline.loc[pd.Timestamp("2020-01-01").date()]
+    assert jan["raw_dominant_regime"] == "recession"
+    assert jan["reported_regime"] == "recession"
+    assert jan["transition_filter_reason"] == "switch_confirmed"
+
+    for date in ("2020-02-01", "2020-03-01"):
+        row = timeline.loc[pd.Timestamp(date).date()]
+        assert row["reported_regime"] == "recession"
+
+    assert len(result.transitions) == 1
+    assert result.transitions.iloc[0]["to_regime"] == "recession"
+
+
 def test_production_config_enables_two_month_confirmation_below_015():
     from macro_engine.diagnostics.config import load_historical_diagnostic_config
 
