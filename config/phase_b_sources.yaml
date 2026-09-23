@@ -509,6 +509,18 @@ historical_diagnostic:
     min_confidence_to_switch: 0.08
     confirmation_months: 2
     only_when_confidence_below: 0.15
+    # C4b (MRI_S1_APPROVAL.md §4; operator-delegated decision, 2026-09-23). Margin
+    # hysteresis, on top of C4a: a challenger must lead the incumbent's own probability by
+    # margin_threshold for confirmation_months, or persist persistence_months regardless of
+    # margin. Measured on the S1 store, ex-COVID basis (operator ruling: COVID is an
+    # exceptional case) over 0.02/0.03/0.04/0.05: 0.03 is the steadiest setting with zero
+    # recession months lost -- valid-only switches 30 -> 27, median spell 11.0 -> 12.5,
+    # goldilocks<->reflation switches 12 -> 5, precision (all valid months) 0.230 -> 0.248,
+    # recall (ex-COVID) unchanged at 0.784. 0.04 loses one recession month, 2001-04, for no
+    # further gain over 0.03 in goldilocks<->reflation switches. Judgement: chosen in-sample
+    # on four recessions.
+    margin_threshold: 0.03
+    persistence_months: 3
   smoothing:
     enabled: false
     min_months_before_switch: 2

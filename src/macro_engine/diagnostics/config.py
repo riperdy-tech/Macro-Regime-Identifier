@@ -23,15 +23,17 @@ class TransitionFilterConfig(BaseModel):
     # If set, confirmation only applies to switches below this confidence;
     # higher-confidence switches (for example crisis flips) stay immediate.
     only_when_confidence_below: float | None = Field(default=None, gt=0, le=1)
-    # C4b (MRI_S1_APPROVAL.md §4, measurement only -- NOT the shipped default): margin
-    # hysteresis. 0.0 (the default) is OFF and reproduces C4a exactly. When > 0, a
-    # challenger must lead the incumbent's probability by at least this margin for
-    # `confirmation_months` consecutive months (a switch that would otherwise confirm on
-    # confidence alone is also held to this margin); a gap of at least 2x the margin with
-    # raw peakedness >= 0.15 still switches immediately. Gates the goldilocks<->reflation
-    # near-tie flip-flop the entropy-only filter cannot see (it gates on the whole
-    # distribution's shape, not on the margin between the top two). The operator has not
-    # ruled on a nonzero value; this stays 0.0 in the shipped config.
+    # C4b (MRI_S1_APPROVAL.md §4): margin hysteresis. 0.0 is OFF and reproduces C4a
+    # exactly; the field default stays 0.0 so any caller that does not load the shipped
+    # config gets the no-op. When > 0, a challenger must lead the incumbent's probability
+    # by at least this margin for `confirmation_months` consecutive months (a switch that
+    # would otherwise confirm on confidence alone is also held to this margin); a gap of
+    # at least 2x the margin with raw peakedness >= 0.15 still switches immediately. Gates
+    # the goldilocks<->reflation near-tie flip-flop the entropy-only filter cannot see (it
+    # gates on the whole distribution's shape, not on the margin between the top two).
+    # Operator-delegated decision (2026-09-23): the shipped config sets this to 0.03 --
+    # see `config/phase_b_sources.yaml`'s `historical_diagnostic.transition_filter` for the
+    # measurement behind that value.
     margin_threshold: float = Field(default=0.0, ge=0, le=1)
     # C4b: if the raw leader persists for this many consecutive months regardless of
     # margin, switch anyway -- prevents an indefinite freeze when the margin never quite
