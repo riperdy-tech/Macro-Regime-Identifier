@@ -13,10 +13,11 @@ any printed line into a GitHub Issue.
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import glob
 import json
-import sys
 from pathlib import Path
+import sys
 from typing import Any
 
 _OK_GUARDRAIL = {"ok", "success", "pass", "passed", "", None}
@@ -41,26 +42,53 @@ def _guardrail(summary: dict[str, Any]) -> Any:
     return steps.get("guardrail_status") or summary.get("guardrail_status")
 
 
-def alert_message(outputs_dir: str | Path = "outputs") -> str:
+def alert_message(
+    outputs_dir: str | Path = "outputs",
+    *,
+    today: str | None = None,
+) -> str:
     """Return the alert text, or '' if nothing to alert."""
-    pattern = str(Path(outputs_dir) / "archive" / "*" / "*" / "daily_diagnostic_summary.json")
+    archive_dir = Path(outputs_dir) / "archive"
+    pattern = str(archive_dir / "*" / "*" / "daily_diagnostic_summary.json")
     summaries = sorted(glob.glob(pattern))
-    if not summaries:
-        return ""
-    current = _load(summaries[-1])
+
+    today_str = today or datetime.now(UTC).date().isoformat()
+    today_pattern = str(archive_dir / today_str / "*" / "daily_diagnostic_summary.json")
+    today_summaries = glob.glob(today_pattern)
+
     alerts: list[str] = []
-    guard = _guardrail(current)
-    if guard not in _OK_GUARDRAIL:
-        alerts.append(f"guardrail status = {guard}")
-    if len(summaries) >= 2:
-        prev_regime = _regime(_load(summaries[-2]))
-        regime = _regime(current)
-        if regime and prev_regime and regime != prev_regime:
-            alerts.append(f"regime change: {prev_regime} -> {regime}")
+
+    # Check 1: no archived daily_diagnostic_summary.json for today's UTC date
+    if not today_summaries:
+        alerts.append("daily run did not complete — DuckDB cache NOT saved")
+
+    if summaries:
+        current = _load(summaries[-1])
+        guard = _guardrail(current)
+        if guard not in _OK_GUARDRAIL:
+            alerts.append(f"guardrail status = {guard}")
+        if len(summaries) >= 2:
+            prev_regime = _regime(_load(summaries[-2]))
+            regime = _regime(current)
+            if regime and prev_regime and regime != prev_regime:
+                alerts.append(f"regime change: {prev_regime} -> {regime}")
+
+        # Check 2: pipeline shortfall warnings in latest summary
+        warnings = current.get("warnings") or []
+        shortfall_warnings = [
+            str(w)
+            for w in warnings
+            if any(k in str(w) for k in ("vintage_partial", "deadline_reached", "news_classification_deadline"))
+        ]
+        if shortfall_warnings:
+            alerts.append(f"pipeline warnings: {', '.join(shortfall_warnings)}")
+
     return "; ".join(alerts)
 
 
 if __name__ == "__main__":
-    message = alert_message(sys.argv[1] if len(sys.argv) > 1 else "outputs")
+    target = sys.argv[1] if len(sys.argv) > 1 else "outputs"
+    today_arg = sys.argv[2] if len(sys.argv) > 2 else None
+    message = alert_message(target, today=today_arg)
     if message:
         print(message)

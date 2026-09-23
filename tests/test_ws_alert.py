@@ -13,39 +13,57 @@ check_alert = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(check_alert)  # type: ignore[union-attr]
 
 
-def _write(outputs: Path, day: str, regime, guardrail="ok"):
+def _write(outputs: Path, day: str, regime, guardrail="ok", warnings=None):
     d = outputs / "archive" / day / f"{day}T000000Z-x"
     d.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "macro": {"reported_regime": regime},
+        "step_statuses": {"guardrail_status": guardrail},
+        "warnings": warnings or [],
+    }
     (d / "daily_diagnostic_summary.json").write_text(
-        json.dumps({"macro": {"reported_regime": regime}, "step_statuses": {"guardrail_status": guardrail}}),
+        json.dumps(payload),
         encoding="utf-8",
     )
 
 
 def test_no_alert_single_run(tmp_path: Path):
     _write(tmp_path, "2026-05-01", "reflation")
-    assert check_alert.alert_message(tmp_path) == ""
+    assert check_alert.alert_message(tmp_path, today="2026-05-01") == ""
 
 
 def test_no_alert_same_regime(tmp_path: Path):
     _write(tmp_path, "2026-05-01", "reflation")
     _write(tmp_path, "2026-05-02", "reflation")
-    assert check_alert.alert_message(tmp_path) == ""
+    assert check_alert.alert_message(tmp_path, today="2026-05-02") == ""
 
 
 def test_alert_on_regime_change(tmp_path: Path):
     _write(tmp_path, "2026-05-01", "reflation")
     _write(tmp_path, "2026-05-02", "recession")
-    msg = check_alert.alert_message(tmp_path)
+    msg = check_alert.alert_message(tmp_path, today="2026-05-02")
     assert "regime change: reflation -> recession" in msg
 
 
 def test_alert_on_guardrail_failure(tmp_path: Path):
     _write(tmp_path, "2026-05-01", "reflation", guardrail="ok")
     _write(tmp_path, "2026-05-02", "reflation", guardrail="failed")
-    msg = check_alert.alert_message(tmp_path)
+    msg = check_alert.alert_message(tmp_path, today="2026-05-02")
     assert "guardrail status = failed" in msg
 
 
-def test_no_archive_is_silent(tmp_path: Path):
-    assert check_alert.alert_message(tmp_path) == ""
+def test_alert_on_missing_today_archive(tmp_path: Path):
+    # No archive for today
+    msg = check_alert.alert_message(tmp_path, today="2026-05-01")
+    assert "daily run did not complete — DuckDB cache NOT saved" in msg
+
+
+def test_alert_on_vintage_partial_and_deadline_warnings(tmp_path: Path):
+    _write(
+        tmp_path,
+        "2026-05-01",
+        "reflation",
+        warnings=["vintage_partial:deferred=5:frontier=2020-01-01"],
+    )
+    msg = check_alert.alert_message(tmp_path, today="2026-05-01")
+    assert "vintage_partial" in msg

@@ -332,6 +332,17 @@ def build_daily_summary_payload(
     generated_paths: list[str],
     archive_path: str | None,
 ) -> dict[str, Any]:
+    from macro_engine.ingest.service import compute_vintage_backlog
+
+    vintage_backlog = compute_vintage_backlog(store)
+    if vintage_backlog.get("pending_pairs", 0) > 0:
+        print(
+            f"daily: vintage backlog pending_pairs={vintage_backlog['pending_pairs']} "
+            f"frontier={vintage_backlog.get('frontier_asof')} "
+            f"start={vintage_backlog.get('point_in_time_start')}",
+            flush=True,
+        )
+
     return _json_safe(
         {
             "run_id": run_id,
@@ -340,6 +351,7 @@ def build_daily_summary_payload(
             "step_statuses": statuses,
             "macro": _latest_macro(store),
             "feature_freshness": compute_feature_freshness(store),
+            "vintage_backlog": vintage_backlog,
             "sector_macro_top": _latest_sector_top(store),
             "news": _latest_news_summary(store),
             "combined_top": _latest_combined_top(store),

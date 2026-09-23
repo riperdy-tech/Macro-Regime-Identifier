@@ -74,11 +74,19 @@ def build_regime_status(
     if db_path is None:
         feature_freshness = _blank_feature_freshness()
         vintage_freshness: list[dict[str, Any]] = []
+        vintage_backlog = {
+            "pending_pairs": 0,
+            "frontier_asof": None,
+            "point_in_time_start": None,
+            "complete": True,
+        }
     else:
         store = DuckDBStore(db_path)
         store.initialize()
         feature_freshness = compute_feature_freshness(store)
         vintage_freshness = compute_vintage_freshness(store)
+        from macro_engine.ingest.service import compute_vintage_backlog
+        vintage_backlog = compute_vintage_backlog(store)
 
     return {
         "computed_at": datetime.now(UTC).isoformat(),
@@ -96,6 +104,7 @@ def build_regime_status(
         # stopped running is otherwise invisible until a regime score goes stale much later.
         "feature_freshness": feature_freshness,
         "vintage_freshness": vintage_freshness,
+        "vintage_backlog": vintage_backlog,
         "secular_theme_scores": secular.get("themes") or {},
         "secular_theme_computed_at": secular.get("computed_at"),
         # Additive: absent anchors surface as None rather than as a failure, the same

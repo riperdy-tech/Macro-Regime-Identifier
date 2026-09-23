@@ -252,3 +252,22 @@ def test_vintage_freshness_flags_a_series_trailing_by_120_days(tmp_path: Path):
     assert freshness[0]["series_id"] == "DGS10"
     assert freshness[0]["age_days"] == 120
     assert freshness[0]["stale"] is True
+
+
+def test_regime_status_surfaces_vintage_backlog(tmp_path: Path):
+    """B6: regime_status.json gains vintage_backlog = {pending_pairs, frontier_asof, point_in_time_start, complete}."""
+    status_no_db = build_regime_status(outputs_dir=tmp_path)
+    assert "vintage_backlog" in status_no_db
+    assert status_no_db["vintage_backlog"]["complete"] is True
+
+    db_path = tmp_path / "macro.duckdb"
+    from macro_engine.storage.duckdb_store import DuckDBStore
+    store = DuckDBStore(db_path)
+    store.initialize()
+    status_with_db = build_regime_status(outputs_dir=tmp_path, db_path=db_path)
+    assert "vintage_backlog" in status_with_db
+    backlog = status_with_db["vintage_backlog"]
+    assert "pending_pairs" in backlog
+    assert "frontier_asof" in backlog
+    assert "point_in_time_start" in backlog
+    assert "complete" in backlog
