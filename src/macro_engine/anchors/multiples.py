@@ -145,6 +145,25 @@ def build_regime_state_frame(
     return pd.DataFrame(rows).sort_values("date").reset_index(drop=True)
 
 
+def current_state_date(state_frame: pd.DataFrame, as_of: pd.Timestamp) -> pd.Timestamp | None:
+    """The date of the macro-state row `current_state` would resolve, or None.
+
+    Split out from `current_state` so the multiple-bands payload can disclose the
+    regime leg's own provenance (P0.3): `regime_state` is derived from the stored
+    dimension history, not the season label, but it is still a monthly read that can
+    go stale, and a consumer conditioning a discount multiple on it needs to know how
+    old that read is.
+    """
+    if state_frame.empty:
+        return None
+    frame = state_frame.copy()
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    frame = frame[frame["date"] <= normalize_asof(as_of)]
+    if frame.empty:
+        return None
+    return frame.sort_values("date")["date"].iloc[-1]
+
+
 def current_state(state_frame: pd.DataFrame, as_of: pd.Timestamp) -> dict[str, str]:
     if state_frame.empty:
         return {}
@@ -459,7 +478,35 @@ def build_multiple_bands_payload(
         reasons.append(PANEL_REQUIRED_NOTE)
     if not target_state:
         reasons.append("regime_state: no stored macro state at or before the as-of date")
-    degraded = resolved_panel_source == "unavailable" or check["justified_pe"] is None
+
+    # P0.3, folded into S2: the label left the growth anchor, but this payload's
+    # `regime_state` buckets still condition on the dimension-derived macro state
+    # (§5.4/§9), which is still a monthly read that can go stale. Deferred import: the
+    # constant's one owner is regime_status.py, which itself imports anchors.service.
+    from macro_engine.regime_status import CURRENT_REGIME_MAX_AGE_DAYS
+
+    state_date = current_state_date(state_frame, as_of)
+    stale = False
+    if state_date is None:
+        regime_leg: dict[str, object] = {
+            "used": True,
+            "date": None,
+            "regime_or_state": target_state or None,
+            "age_days": None,
+        }
+    else:
+        age_days = (normalize_asof(as_of) - state_date).days
+        stale = age_days > CURRENT_REGIME_MAX_AGE_DAYS
+        regime_leg = {
+            "used": True,
+            "date": state_date.date().isoformat(),
+            "regime_or_state": target_state or None,
+            "age_days": age_days,
+        }
+        if stale:
+            reasons.append(f"regime_leg_stale:{state_date.date().isoformat()}")
+
+    degraded = resolved_panel_source == "unavailable" or check["justified_pe"] is None or stale
 
     return SectorMultipleBandsPayload(
         asof=as_of.date().isoformat(),
@@ -481,5 +528,6 @@ def build_multiple_bands_payload(
                 "substitute for observation.",
                 PANEL_REQUIRED_NOTE,
             ],
+            regime_leg=regime_leg,
         ),
     )

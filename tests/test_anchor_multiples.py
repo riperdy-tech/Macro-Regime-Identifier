@@ -386,3 +386,73 @@ def test_payload_marks_the_market_observed_leg_unavailable_without_a_panel():
         "requires a valuation panel" in reason
         for reason in payload.provenance.degradation_reasons
     )
+
+
+# ── P0.3: the regime leg's own provenance and staleness (folded into S2) ───────────────────
+# The season LABEL left the growth anchor in S2 (P0_0 §5.2), but this payload's
+# `regime_state` buckets still condition on the dimension-derived macro state, so THAT
+# read must still disclose its own date/age and degrade when stale.
+
+
+def test_regime_leg_provenance_is_disclosed_and_not_stale_when_fresh():
+    fresh_state = _state_frame().copy()
+    fresh_state.loc[fresh_state.index[-1], "date"] = AS_OF - pd.Timedelta(days=10)
+    payload = build_multiple_bands_payload(
+        panel=_panel(),
+        state_frame=fresh_state,
+        sectors=["energy"],
+        config=load_anchor_config("config/anchors.yaml"),
+        as_of=AS_OF,
+        built_at="2026-04-30T00:00:00+00:00",
+        cost_of_equity=0.09,
+        growth=0.025,
+        panel_source="external_valuation_panel",
+    )
+    leg = payload.provenance.regime_leg
+    assert leg["used"] is True
+    assert leg["date"] == (AS_OF - pd.Timedelta(days=10)).date().isoformat()
+    assert leg["age_days"] == 10
+    assert leg["regime_or_state"] == current_state(fresh_state, AS_OF)
+    assert not any(r.startswith("regime_leg_stale:") for r in payload.provenance.degradation_reasons)
+
+
+def test_regime_leg_degrades_the_payload_once_it_crosses_the_max_age():
+    from macro_engine.regime_status import CURRENT_REGIME_MAX_AGE_DAYS
+
+    stale_state = _state_frame().copy()
+    stale_date = AS_OF - pd.Timedelta(days=CURRENT_REGIME_MAX_AGE_DAYS + 1)
+    stale_state.loc[stale_state.index[-1], "date"] = stale_date
+    payload = build_multiple_bands_payload(
+        panel=_panel(),
+        state_frame=stale_state,
+        sectors=["energy"],
+        config=load_anchor_config("config/anchors.yaml"),
+        as_of=AS_OF,
+        built_at="2026-04-30T00:00:00+00:00",
+        cost_of_equity=0.09,
+        growth=0.025,
+        panel_source="external_valuation_panel",
+    )
+    leg = payload.provenance.regime_leg
+    assert leg["used"] is True
+    assert leg["age_days"] == CURRENT_REGIME_MAX_AGE_DAYS + 1
+    assert payload.degraded is True
+    assert f"regime_leg_stale:{stale_date.date().isoformat()}" in payload.provenance.degradation_reasons
+
+
+def test_regime_leg_is_null_dated_when_no_macro_state_is_stored():
+    payload = build_multiple_bands_payload(
+        panel=pd.DataFrame(),
+        state_frame=pd.DataFrame(columns=["date", "growth", "inflation", "credit", "rate_band"]),
+        sectors=["energy"],
+        config=load_anchor_config("config/anchors.yaml"),
+        as_of=AS_OF,
+        built_at="2026-04-30T00:00:00+00:00",
+        cost_of_equity=0.09,
+        growth=0.025,
+        panel_source=None,
+    )
+    leg = payload.provenance.regime_leg
+    assert leg["used"] is True
+    assert leg["date"] is None
+    assert leg["age_days"] is None
