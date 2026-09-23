@@ -195,6 +195,12 @@ def _per_source_rollup(
     if history.empty:
         return sources_out, dead_by_source, provider_by_source
 
+    history = history.copy()
+    if "newest_published_at" in history.columns:
+        history["newest_published_at"] = pd.to_datetime(
+            history["newest_published_at"], errors="coerce", utc=True
+        )
+
     run_at_ts = pd.Timestamp(run_at)
     if run_at_ts.tzinfo is None:
         run_at_ts = run_at_ts.tz_localize("UTC")
@@ -214,12 +220,34 @@ def _per_source_rollup(
         consecutive_bad = _consecutive_bad_runs(src_hist)
         new_rows = src_hist[pd.to_numeric(src_hist["items_new"], errors="coerce").fillna(0) > 0]
         last_new_at = new_rows["run_at"].max() if not new_rows.empty else None
-        if last_new_at is not None and pd.notna(last_new_at):
-            hours_since_new = (run_at_ts - last_new_at).total_seconds() / 3600.0
+
+        # Freshness evidence is the latest of (a) a run that actually brought new
+        # items and (b) the newest `newest_published_at` this source has ever
+        # reported -- a feed that still lists a recent item is alive even if we
+        # had already stored it. Only when NEITHER exists do we fall back to
+        # judging staleness from how long we have been watching an unproven
+        # source (spec N1.6 rule 2): a cold source is not dead until its own
+        # history spans at least its stale_after_hours threshold.
+        if "newest_published_at" in src_hist.columns:
+            published_seen = src_hist["newest_published_at"].dropna()
+            newest_published_seen = published_seen.max() if not published_seen.empty else None
+        else:
+            newest_published_seen = None
+
+        evidence_candidates = [
+            ts for ts in (last_new_at, newest_published_seen) if ts is not None and pd.notna(ts)
+        ]
+        freshness_evidence_at = max(evidence_candidates) if evidence_candidates else None
+
+        if freshness_evidence_at is not None:
+            hours_since_new = (run_at_ts - freshness_evidence_at).total_seconds() / 3600.0
             exceeds_stale = hours_since_new > threshold
         else:
             hours_since_new = None
-            exceeds_stale = True
+            span_hours = (
+                src_hist["run_at"].max() - src_hist["run_at"].min()
+            ).total_seconds() / 3600.0
+            exceeds_stale = span_hours >= threshold
 
         is_stale_eligible = provider in _STALE_ELIGIBLE_PROVIDERS
         dead = is_stale_eligible and (

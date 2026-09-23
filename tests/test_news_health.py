@@ -19,6 +19,7 @@ def _row(
     status: str = "ok",
     items_fetched: int = 5,
     items_new: int = 5,
+    newest_published_at: datetime | None = None,
     undated_count: int = 0,
     error: str | None = None,
 ) -> dict:
@@ -31,7 +32,7 @@ def _row(
         "status": status,
         "items_fetched": items_fetched,
         "items_new": items_new,
-        "newest_published_at": run_at,
+        "newest_published_at": run_at if newest_published_at is None else newest_published_at,
         "undated_count": undated_count,
         "error": error,
         "elapsed_seconds": 1.0,
@@ -122,8 +123,10 @@ def test_d1_source_dead_via_consecutive_bad_runs():
 def test_d1_source_dead_via_stale_after_hours():
     old = BASE - timedelta(hours=200)
     rows = [
-        _row(run_id="run_old", run_at=old, source_id="feed_a", status="ok", items_new=3),
-        _row(run_id="run_today", run_at=BASE, source_id="feed_a", status="ok", items_new=0),
+        _row(run_id="run_old", run_at=old, source_id="feed_a", status="ok", items_new=3, newest_published_at=old),
+        # Genuinely stale: today's fetch still reports the same old item -- no
+        # new items, and no evidence of anything published more recently.
+        _row(run_id="run_today", run_at=BASE, source_id="feed_a", status="ok", items_new=0, newest_published_at=old),
         # A second source keeps the run from being an F1 blackout.
         _row(run_id="run_today", run_at=BASE, source_id="feed_b", status="ok", items_new=2),
     ]
@@ -137,6 +140,165 @@ def test_d1_source_dead_via_stale_after_hours():
     )
     assert "source_dead:feed_a" in result["reasons"]
     assert result["status"] == "degraded"
+
+
+def test_n16_fix_cold_run_with_fresh_published_evidence_is_not_dead():
+    """N1.6 fix: reproduces the fed_press_rss row from the 2026-09-23 cold-start
+    run -- a source's very first history row, 5 items fetched, none of them
+    new (a cold history has nothing to be "new" relative to yet), newest item
+    published 22h before run_at. 22h is well inside any real
+    stale_after_hours threshold, so this must not be flagged dead."""
+    published = BASE - timedelta(hours=22)
+    rows = [
+        _row(
+            run_id="run_today", run_at=BASE, source_id="fed_press_rss",
+            status="ok", items_fetched=5, items_new=0, newest_published_at=published,
+        ),
+        _row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2),
+    ]
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"fed_press_rss": 336, "feed_b": 72},
+            profile_groups={"macro_general": ["fed_press_rss", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "fed_press_rss")
+    assert source_row["dead"] is False
+    assert "source_dead:fed_press_rss" not in result["reasons"]
+
+
+def test_n16_fix_stale_published_evidence_with_no_new_items_is_dead():
+    old_published = BASE - timedelta(hours=200)
+    rows = [
+        _row(
+            run_id="run_a", run_at=BASE - timedelta(hours=100), source_id="feed_a",
+            status="ok", items_new=0, newest_published_at=old_published,
+        ),
+        _row(
+            run_id="run_today", run_at=BASE, source_id="feed_a",
+            status="ok", items_new=0, newest_published_at=old_published,
+        ),
+        _row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2),
+    ]
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"feed_a": 72, "feed_b": 72},
+            profile_groups={"macro_general": ["feed_a", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "feed_a")
+    assert source_row["dead"] is True
+    assert "source_dead:feed_a" in result["reasons"]
+
+
+def test_n16_fix_cold_empty_source_not_dead_on_first_run():
+    rows = [
+        _row(
+            run_id="run_today", run_at=BASE, source_id="feed_a",
+            status="empty", items_fetched=0, items_new=0, newest_published_at=pd.NaT,
+        ),
+        _row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2),
+    ]
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"feed_a": 72, "feed_b": 72},
+            profile_groups={"macro_general": ["feed_a", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "feed_a")
+    assert source_row["dead"] is False
+    assert source_row["consecutive_bad_runs"] == 1
+
+
+def test_n16_fix_cold_empty_source_dead_after_consecutive_bad_streak():
+    rows = [
+        _row(
+            run_id=f"run_{i}", run_at=BASE - timedelta(hours=3 - i), source_id="feed_a",
+            status="empty", items_fetched=0, items_new=0, newest_published_at=pd.NaT,
+        )
+        for i in range(3)
+    ]
+    rows.append(
+        _row(
+            run_id="run_today", run_at=BASE, source_id="feed_a",
+            status="empty", items_fetched=0, items_new=0, newest_published_at=pd.NaT,
+        )
+    )
+    rows.append(_row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2))
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"feed_a": 72, "feed_b": 72},
+            profile_groups={"macro_general": ["feed_a", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "feed_a")
+    assert source_row["dead"] is True
+    assert "source_dead:feed_a" in result["reasons"]
+
+
+def test_n16_fix_undated_only_source_within_threshold_span_not_dead():
+    """eia_energy_rss-shaped: every item is undated, so newest_published_at is
+    always NaT and there is no items_new evidence either. With no freshness
+    evidence at all, a cold source is judged by how long we have been
+    watching it (spec rule 2), not flagged dead outright."""
+    rows = [
+        _row(
+            run_id="run_early", run_at=BASE - timedelta(hours=48), source_id="eia_energy_rss",
+            status="ok", items_fetched=12, items_new=0, undated_count=12, newest_published_at=pd.NaT,
+        ),
+        _row(
+            run_id="run_today", run_at=BASE, source_id="eia_energy_rss",
+            status="ok", items_fetched=12, items_new=0, undated_count=12, newest_published_at=pd.NaT,
+        ),
+        _row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2),
+    ]
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"eia_energy_rss": 336, "feed_b": 72},
+            profile_groups={"macro_general": ["eia_energy_rss", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "eia_energy_rss")
+    assert source_row["dead"] is False
+    assert "source_dead:eia_energy_rss" not in result["reasons"]
+
+
+def test_n16_fix_no_evidence_history_beyond_threshold_span_is_dead():
+    """Same undated-only shape, but the history now spans more than
+    stale_after_hours with no evidence ever seen -- rule 2's own threshold
+    bites, independent of the consecutive-bad-runs leg (status stays 'ok')."""
+    rows = [
+        _row(
+            run_id="run_early", run_at=BASE - timedelta(hours=400), source_id="eia_energy_rss",
+            status="ok", items_fetched=12, items_new=0, undated_count=12, newest_published_at=pd.NaT,
+        ),
+        _row(
+            run_id="run_today", run_at=BASE, source_id="eia_energy_rss",
+            status="ok", items_fetched=12, items_new=0, undated_count=12, newest_published_at=pd.NaT,
+        ),
+        _row(run_id="run_today", run_at=BASE, source_id="feed_b", items_new=2),
+    ]
+    history = _history(rows)
+    result = compute_news_health(
+        **_base_kwargs(
+            source_runs_history=history,
+            stale_after_hours={"eia_energy_rss": 336, "feed_b": 72},
+            profile_groups={"macro_general": ["eia_energy_rss", "feed_b"]},
+        )
+    )
+    source_row = next(s for s in result["sources"] if s["source_id"] == "eia_energy_rss")
+    assert source_row["dead"] is True
+    assert "source_dead:eia_energy_rss" in result["reasons"]
 
 
 def test_d2_gdelt_dead_after_seven_consecutive_bad_runs():
