@@ -1,5 +1,5 @@
 {
-  "archive_path": "outputs/archive/2026-09-17/20260917T005420Z-da658919",
+  "archive_path": "outputs/archive/2026-09-23/20260923T070742Z-68d0f718",
   "combined_top": [
     {
       "combined_score": 0.980805633291871,
@@ -33,19 +33,24 @@
     }
   ],
   "disclaimer": "This daily package is a diagnostic research artifact. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
-  "errors": [
-    "news_classification: classification failure rate exceeded threshold: 3/13",
-    "classification failure rate exceeded threshold: 3/13"
-  ],
+  "errors": [],
+  "feature_freshness": {
+    "gap_days": 0,
+    "max_feature_date": "2026-09-22",
+    "max_raw_observation_date": "2026-09-22",
+    "stale": false
+  },
   "generated_artifacts": [
     "outputs/current_sector_ranking.json",
-    "outputs/current_sector_ranking.md"
+    "outputs/current_sector_ranking.md",
+    "outputs/news_classification_report.json",
+    "outputs/news_classification_report.md"
   ],
   "macro": {
-    "confidence": 0.0228362264404931,
+    "confidence": 0.02773723488065427,
     "date": "2026-09-01",
-    "raw_dominant_regime": "reflation",
-    "reported_regime": "tightening"
+    "raw_dominant_regime": "goldilocks",
+    "reported_regime": "goldilocks"
   },
   "monitoring": {
     "max_rank_change": 3,
@@ -58,109 +63,126 @@
     "top_sector_headwinds": [
       {
         "id": "consumer_discretionary",
-        "score": -3.968457971330341
+        "score": -1.384566349470405
       },
       {
         "id": "real_estate",
-        "score": -2.999581249196587
+        "score": -1.36638072132549
       },
       {
         "id": "consumer_staples",
-        "score": -0.5980843615281023
+        "score": -0.35567004675010067
       },
       {
         "id": "industrials",
-        "score": -0.4904813461756479
+        "score": -0.055560382864982966
       },
       {
-        "id": "communication_services",
-        "score": -0.14465724119873047
+        "id": "utilities",
+        "score": -0.022457893141112545
       }
     ],
     "top_sector_tailwinds": [
       {
         "id": "energy",
-        "score": 16.64088366692866
+        "score": 2.446502970616608
       },
       {
         "id": "information_technology",
-        "score": 9.628387470008656
-      },
-      {
-        "id": "materials",
-        "score": 0.8119060497602444
+        "score": 0.6952156120132127
       },
       {
         "id": "financials",
-        "score": 0.566904299872034
+        "score": 0.3333087192485609
       },
       {
-        "id": "health_care",
-        "score": 0.2025176129742911
+        "id": "communication_services",
+        "score": 0.2748736794233376
+      },
+      {
+        "id": "materials",
+        "score": 0.20189751027612957
       }
     ],
     "top_themes": [
       {
-        "id": "geopolitical_risk",
-        "score": 6.809504872061362
-      },
-      {
         "id": "inflation_pressure",
-        "score": 6.3891465806726755
+        "score": 3.006131017336912
       },
       {
-        "id": "energy_supply_shock",
-        "score": 4.350306342746344
-      },
-      {
-        "id": "growth_acceleration",
-        "score": 4.2555882044449
+        "id": "geopolitical_risk",
+        "score": 2.9807145210540478
       },
       {
         "id": "monetary_tightening",
-        "score": 3.79879850770089
+        "score": 2.5566967486300736
+      },
+      {
+        "id": "energy_supply_shock",
+        "score": 1.942401650816761
+      },
+      {
+        "id": "growth_acceleration",
+        "score": 1.2588824767233557
       }
     ]
   },
-  "run_date": "2026-09-17",
-  "run_id": "20260917T005420Z-da658919",
+  "run_date": "2026-09-23",
+  "run_id": "20260923T070742Z-68d0f718",
   "sector_macro_top": [
     {
-      "confidence_adjusted_score": 0.06524102082802459,
+      "confidence_adjusted_score": 0.10968649196286381,
       "rank": 1,
       "sector_id": "energy"
     },
     {
-      "confidence_adjusted_score": 0.05311211439429321,
+      "confidence_adjusted_score": 0.07066157635830611,
+      "rank": 1,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "confidence_adjusted_score": -0.0808498797763367,
       "rank": 2,
       "sector_id": "software"
     },
     {
-      "confidence_adjusted_score": 0.04961037241265348,
-      "rank": 3,
-      "sector_id": "oil_gas_ep"
-    },
-    {
-      "confidence_adjusted_score": 0.024594849619322987,
-      "rank": 4,
+      "confidence_adjusted_score": 0.012556734641803985,
+      "rank": 2,
       "sector_id": "consumer_staples"
     },
     {
-      "confidence_adjusted_score": 0.021077520429935034,
-      "rank": 5,
-      "sector_id": "utilities"
+      "confidence_adjusted_score": -0.1680139462794397,
+      "rank": 3,
+      "sector_id": "biotech"
     }
   ],
-  "status": "failed",
+  "status": "success_with_warnings",
   "step_statuses": {
-    "combined_status": "skipped",
-    "guardrail_status": "skipped",
+    "anchors_status": "skipped_deadline",
+    "combined_status": "skipped_deadline",
+    "guardrail_status": "skipped_deadline",
     "macro_status": "success",
-    "monitoring_status": "skipped",
-    "news_classification_status": "failed",
+    "monitoring_status": "skipped_deadline",
+    "news_classification_status": "success",
     "news_ingestion_status": "success",
-    "news_scoring_status": "skipped",
+    "news_report_status": "success",
+    "news_score_report_status": "skipped_deadline",
+    "news_scoring_status": "success",
     "sector_status": "success"
   },
-  "warnings": []
+  "vintage_backlog": {
+    "complete": false,
+    "frontier_asof": "2024-08-01",
+    "pending_pairs": 2509,
+    "point_in_time_start": "2014-02-01"
+  },
+  "warnings": [
+    "vintage_partial:deferred=2509:frontier=2024-08-01",
+    "news_classification_deadline:15/60",
+    "deadline_reached:skipped=news_score_report",
+    "deadline_reached:skipped=combined",
+    "deadline_reached:skipped=anchors",
+    "deadline_reached:skipped=monitoring",
+    "deadline_reached:skipped=guardrail"
+  ]
 }

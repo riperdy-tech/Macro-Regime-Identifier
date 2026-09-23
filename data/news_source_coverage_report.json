@@ -68,54 +68,48 @@
   "item_count_by_group": {
     "ai_compute": 26,
     "consumer": 179,
-    "credit_financial_conditions": 330,
+    "credit_financial_conditions": 341,
     "defensive_sectors": 125,
-    "energy_commodities": 1081,
-    "geopolitical": 1491,
-    "healthcare": 203,
-    "inflation_rates": 50,
-    "labor": 98,
-    "macro_general": 2345,
-    "manufacturing_industrials": 411,
-    "real_estate": 576,
-    "technology_ai": 672
+    "energy_commodities": 1107,
+    "geopolitical": 1511,
+    "healthcare": 214,
+    "inflation_rates": 56,
+    "labor": 100,
+    "macro_general": 2383,
+    "manufacturing_industrials": 423,
+    "real_estate": 586,
+    "technology_ai": 682
   },
   "latest_date_by_group": {
     "ai_compute": "2026-06-02T02:00:40+00:00",
     "consumer": "2026-09-16T19:17:38+00:00",
-    "credit_financial_conditions": "2026-09-16T21:23:51+00:00",
+    "credit_financial_conditions": "2026-09-23T00:58:16+00:00",
     "defensive_sectors": "2026-09-05T23:00:00+00:00",
-    "energy_commodities": "2026-09-17T00:00:00+00:00",
-    "geopolitical": "2026-09-17T00:40:17+00:00",
-    "healthcare": "2026-09-15T12:58:06+00:00",
-    "inflation_rates": "2026-09-03T00:15:00+00:00",
-    "labor": "2026-09-16T12:30:34+00:00",
-    "macro_general": "2026-09-17T00:33:15+00:00",
-    "manufacturing_industrials": "2026-09-16T20:00:36+00:00",
-    "real_estate": "2026-09-16T23:23:38+00:00",
-    "technology_ai": "2026-09-16T23:40:05+00:00"
+    "energy_commodities": "2026-09-23T06:29:00+00:00",
+    "geopolitical": "2026-09-23T07:02:52+00:00",
+    "healthcare": "2026-09-23T06:45:00+00:00",
+    "inflation_rates": "2026-09-23T06:45:00+00:00",
+    "labor": "2026-09-18T14:01:59+00:00",
+    "macro_general": "2026-09-23T07:00:30+00:00",
+    "manufacturing_industrials": "2026-09-22T23:00:01+00:00",
+    "real_estate": "2026-09-23T07:00:00+00:00",
+    "technology_ai": "2026-09-23T05:00:01+00:00"
   },
   "latest_item_count_by_group": {
-    "energy_commodities": 1,
-    "geopolitical": 6,
-    "macro_general": 4
+    "credit_financial_conditions": 1,
+    "energy_commodities": 6,
+    "geopolitical": 13,
+    "healthcare": 8,
+    "inflation_rates": 6,
+    "macro_general": 18,
+    "real_estate": 1,
+    "technology_ai": 1
   },
   "missing_configured_groups": [],
   "missing_data_groups": [],
   "old_item_count": 0,
   "old_item_pct": 0.0,
-  "overrepresented_groups": [
-    {
-      "item_count": 6,
-      "share": 0.5454545454545454,
-      "source_group": "geopolitical"
-    },
-    {
-      "item_count": 4,
-      "share": 0.36363636363636365,
-      "source_group": "macro_general"
-    }
-  ],
+  "overrepresented_groups": [],
   "required_source_groups": [
     "ai_compute",
     "consumer",
@@ -134,20 +128,21 @@
   "source_group_count": 13,
   "stale_groups": [
     "ai_compute",
+    "consumer",
     "defensive_sectors",
-    "inflation_rates"
+    "labor"
   ],
-  "stored_item_count": 7587,
+  "stored_item_count": 7733,
   "suggested_groups_needing_more_coverage": [
     "ai_compute",
+    "consumer",
     "defensive_sectors",
-    "inflation_rates"
+    "labor"
   ],
   "unmapped_item_count": 0,
   "unmapped_pct": 0.0,
   "valid": true,
   "warnings": [
-    "some source groups have stale stored items",
-    "latest stored items are concentrated in a small number of source groups"
+    "some source groups have stale stored items"
   ]
 }
