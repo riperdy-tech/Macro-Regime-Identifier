@@ -416,6 +416,11 @@ def _daily_services(tmp_path: Path, forbidden_report: bool = False) -> dict:
         # write; stubbed here like every other step so this suite stays hermetic.
         "run_sector_validation": lambda **_: None,
         "write_sector_report": lambda **_: write_pair("sector"),
+        # S6.3: the shadow fitted-exposures artifact, stubbed like every other writer so this
+        # suite stays hermetic (config.sector.config_path here is the real
+        # config/phase_b_sources.yaml, whose output_dir is NOT tmp_path -- leaving this
+        # unstubbed would write outputs/sector_exposures_fitted.json into the real repo tree).
+        "write_sector_fit_report": lambda **_: write_pair("sector_exposures_fitted"),
         "ingest_news": lambda **_: pd.DataFrame(),
         "classify_news": lambda **_: {},
         "write_news_report": lambda **_: write_pair("news"),

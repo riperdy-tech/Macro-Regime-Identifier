@@ -519,6 +519,10 @@ def test_daily_deadline_stops_classification_and_skips_later_steps(tmp_path, mon
         "build_sector_scores": lambda **_: None,
         "run_sector_validation": lambda **_: None,
         "write_sector_report": lambda **_: (output_dir / "s.json", output_dir / "s.md"),
+        # S6.3: stubbed like write_sector_report -- config_path here resolves to the real
+        # config/phase_b_sources.yaml, not tmp_path, so an unstubbed real writer would write
+        # into the repo's own outputs/ dir (tests/conftest.py's guard_repo_outputs_dir).
+        "write_sector_fit_report": lambda **_: (output_dir / "sf.json", output_dir / "sf.md"),
         "ingest_news": _mock_ingest,
         "classify_news": _mock_classify,
         "write_news_report": lambda **_: (output_dir / "nr.json", output_dir / "nr.md"),
