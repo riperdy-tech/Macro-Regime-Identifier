@@ -617,6 +617,24 @@ class DuckDBStore:
             )
             con.execute(
                 """
+                CREATE TABLE IF NOT EXISTS news_source_runs (
+                    run_id TEXT,
+                    run_at TIMESTAMP,
+                    source_id TEXT,
+                    provider TEXT,
+                    source_group TEXT,
+                    status TEXT,
+                    items_fetched INTEGER,
+                    items_new INTEGER,
+                    newest_published_at TIMESTAMP,
+                    undated_count INTEGER,
+                    error TEXT,
+                    elapsed_seconds DOUBLE
+                )
+                """
+            )
+            con.execute(
+                """
                 CREATE TABLE IF NOT EXISTS news_daily_theme_scores (
                     score_date DATE,
                     theme_id TEXT,
@@ -1836,6 +1854,46 @@ class DuckDBStore:
                 return set()
             return set(df["classification_id"].dropna().astype(str))
 
+    def insert_news_source_runs(self, runs: pd.DataFrame) -> dict[str, int]:
+        """Append-only insert of per-source ingestion telemetry, keyed on
+        (run_id, source_id). Rows already present (e.g. from a prior hydrate of
+        the same snapshot) are skipped rather than overwritten -- this table is
+        a record of what happened, never a place callers upgrade in place."""
+        result = {"inserted": 0, "skipped_existing": 0}
+        if runs.empty:
+            return result
+        required_cols = [
+            "run_id", "run_at", "source_id", "provider", "source_group", "status",
+            "items_fetched", "items_new", "newest_published_at", "undated_count",
+            "error", "elapsed_seconds",
+        ]
+        frame = runs.copy()
+        for col in required_cols:
+            if col not in frame.columns:
+                frame[col] = None
+        frame = frame[required_cols]
+        with self._connect() as con:
+            existing = con.execute("SELECT run_id, source_id FROM news_source_runs").fetchdf()
+            existing_keys = (
+                set(zip(existing["run_id"].astype(str), existing["source_id"].astype(str)))
+                if not existing.empty
+                else set()
+            )
+            keep_mask = [
+                (str(row["run_id"]), str(row["source_id"])) not in existing_keys
+                for row in frame.to_dict(orient="records")
+            ]
+            to_insert = frame[keep_mask]
+            result["skipped_existing"] = int(len(frame) - len(to_insert))
+            if not to_insert.empty:
+                con.register("news_source_runs_insert_frame", to_insert)
+                cols_str = ", ".join(required_cols)
+                con.execute(
+                    f"INSERT INTO news_source_runs ({cols_str}) "
+                    f"SELECT {cols_str} FROM news_source_runs_insert_frame"
+                )
+                result["inserted"] = int(len(to_insert))
+        return result
 
     def replace_news_score_outputs(
         self,

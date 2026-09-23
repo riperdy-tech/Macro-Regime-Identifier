@@ -35,6 +35,9 @@ class DailyNewsConfig(BaseModel):
     news_scoring_config: str = "config/news_scoring.yaml"
     allow_live_ai: bool = False
     mock_mode_default: bool = True
+    # N1.4: durable news history (export/hydrate). None disables both steps --
+    # existing configs that do not set this key are unaffected.
+    history_dir: str | None = None
 
 
 class DailyLiveAISafetyConfig(BaseModel):

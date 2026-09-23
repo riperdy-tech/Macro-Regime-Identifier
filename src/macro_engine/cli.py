@@ -1757,6 +1757,32 @@ def prune_news_history_cli(
     console.print_json(data=result)
 
 
+@app.command("export-news-history")
+def export_news_history_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    out_dir: Annotated[str, typer.Option("--out-dir")] = "outputs/news_history",
+) -> None:
+    """N1.4: export headline/link/date metadata and real classifications as durable
+    daily parquet partitions. No article body text, no raw AI response (OA-5)."""
+    from macro_engine.news.history import export_news_history
+
+    result = export_news_history(db_path=db_path, history_dir=out_dir)
+    console.print_json(data=result)
+
+
+@app.command("import-news-history")
+def import_news_history_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    snapshot_dir: Annotated[str, typer.Option("--snapshot-dir")] = "outputs/news_history",
+) -> None:
+    """N1.4: insert-if-absent hydrate of the durable snapshot into the local
+    store. Additive only -- never displaces an existing real classification."""
+    from macro_engine.news.history import import_news_history
+
+    result = import_news_history(db_path=db_path, history_dir=snapshot_dir)
+    console.print_json(data=result)
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:

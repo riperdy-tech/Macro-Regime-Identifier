@@ -88,6 +88,19 @@ def _is_short_body(body: str, min_words: int) -> bool:
     return len(str(body).split()) < min_words
 
 
+def _is_body_unavailable(raw_metadata_json: object) -> bool:
+    """A hydrated item (N1.4) whose body was never durable -- selection must
+    not spend the classification budget on a headline standing in for a body
+    that the classifier never actually sees."""
+    if not isinstance(raw_metadata_json, str) or not raw_metadata_json:
+        return False
+    try:
+        meta = json.loads(raw_metadata_json)
+    except (ValueError, TypeError):
+        return False
+    return bool(meta.get("body_unavailable")) if isinstance(meta, dict) else False
+
+
 def _is_likely_non_news(text: str) -> bool:
     return any(marker in text for marker in _NON_NEWS_MARKERS)
 

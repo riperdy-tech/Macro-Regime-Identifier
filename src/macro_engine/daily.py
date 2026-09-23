@@ -17,6 +17,7 @@ from macro_engine.guardrails import audit_markdown_reports
 from macro_engine.news.advisory import write_news_advisory_block
 from macro_engine.news.combined import build_stored_combined_sector_diagnostics
 from macro_engine.news.combined_report import write_combined_sector_report
+from macro_engine.news.history import export_news_history, hydrate_news_history
 from macro_engine.news.monitoring import (
     refresh_news_monitoring_from_stored_outputs,
     write_news_monitoring_report,
@@ -82,13 +83,16 @@ def run_daily_diagnostic(
     statuses = {
         "macro_status": "skipped",
         "sector_status": "skipped",
+        "news_history_hydrate_status": "skipped",
         "news_ingestion_status": "skipped",
         "news_classification_status": "skipped",
         "news_scoring_status": "skipped",
+        "news_history_export_status": "skipped",
         "combined_status": "skipped",
         "monitoring_status": "skipped",
         "guardrail_status": "skipped",
     }
+    news_history_result: dict[str, Any] = {}
 
     print(f"daily: run_id={run_id} date={run_day.isoformat()} starting", flush=True)
 
@@ -124,6 +128,22 @@ def run_daily_diagnostic(
             _check_live_ai_safety(config, live_ai=live_ai, mock_ai=mock_ai)
             store = DuckDBStore(db_path)
             store.initialize()
+            if config.news.history_dir:
+                # N1.4: hydrate BEFORE ingestion, so an item present in both the
+                # snapshot and today's fetch keeps the snapshot's first_seen_at,
+                # and a cold store never re-pays for an already-classified id.
+                # Deadline-exempt and optional: a bad snapshot must never take
+                # the macro/sector product down.
+                _run_step(
+                    "news_history_hydrate",
+                    statuses,
+                    errors,
+                    lambda: _run_news_history_hydrate(config, db_path, services, news_history_result),
+                    fail=False,
+                    optional=True,
+                    deadline=None,
+                    daily_warnings=warnings,
+                )
             if (not _daily_uses_live_ai(config, live_ai=live_ai, mock_ai=mock_ai)) and store.has_real_classifications():
                 statuses["news_ingestion_status"] = "skipped_live_store"
                 statuses["news_classification_status"] = "skipped_live_store"
@@ -137,6 +157,7 @@ def run_daily_diagnostic(
                         config_path=config.news.news_sources_config,
                         db_path=db_path,
                         profile=profile,
+                        run_id=run_id,
                     ),
                     fail=True,
                     deadline=run_deadline,
@@ -199,6 +220,20 @@ def run_daily_diagnostic(
                 deadline=run_deadline,
                 daily_warnings=warnings,
             )
+            if config.news.history_dir:
+                # N1.4: export runs after the last news write (classification,
+                # scoring) and before the summary is built, deadline-exempt so a
+                # slow run still gets its durable copy out.
+                _run_step(
+                    "news_history_export",
+                    statuses,
+                    errors,
+                    lambda: _run_news_history_export(config, db_path, services, news_history_result),
+                    fail=False,
+                    optional=True,
+                    deadline=None,
+                    daily_warnings=warnings,
+                )
         if config.combined.enabled:
             _run_step(
                 "combined",
@@ -269,6 +304,7 @@ def run_daily_diagnostic(
         errors=errors,
         generated_paths=outputs,
         archive_path=None,
+        news_history=news_history_result,
     )
     summary_json, summary_md = write_daily_summary(summary_payload, output_dir)
     outputs.extend([str(summary_json), str(summary_md)])
@@ -340,6 +376,7 @@ def build_daily_summary_payload(
     errors: list[str],
     generated_paths: list[str],
     archive_path: str | None,
+    news_history: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from macro_engine.ingest.service import compute_vintage_backlog
 
@@ -365,6 +402,7 @@ def build_daily_summary_payload(
             "news": _latest_news_summary(store),
             "combined_top": _latest_combined_top(store),
             "monitoring": _latest_monitoring(store),
+            "news_history": news_history or {},
             "warnings": warnings,
             "errors": errors,
             "generated_artifacts": generated_paths,
@@ -910,6 +948,28 @@ def _run_news_classification(
         done = result.get("completed_count", 0)
         selected = result.get("selected_count", 0)
         warnings.append(f"news_classification_deadline:{done}/{selected}")
+
+
+def _run_news_history_hydrate(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    services: dict[str, Callable],
+    result_holder: dict[str, Any],
+) -> None:
+    fn = services.get("hydrate_news_history", hydrate_news_history)
+    outcome = fn(db_path=db_path, history_dir=config.news.history_dir)
+    result_holder["hydrate"] = outcome
+
+
+def _run_news_history_export(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    services: dict[str, Callable],
+    result_holder: dict[str, Any],
+) -> None:
+    fn = services.get("export_news_history", export_news_history)
+    outcome = fn(db_path=db_path, history_dir=config.news.history_dir)
+    result_holder["export"] = outcome
 
 
 def _classification_limit(
