@@ -41,36 +41,29 @@ _REPO_ROOT = _SCRIPT_DIR.parents[1]
 if str(_REPO_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT / "src"))
 
-from macro_engine.sectors.validation import newey_west_t  # noqa: E402
+# S6.3 (MRI_PROBES_APPROVAL.md S3: "S6.3 is cheap ... because the probe IS most of
+# sectors/fit.py"): the leakage-safe kernel now lives in macro_engine.sectors.fit, the
+# production home. This probe imports it rather than carrying a second implementation --
+# every name below is re-exported unchanged, so this script's own behaviour (and its
+# byte-identical outputs/probes/sector_ceiling.{json,md}) is unaffected by the move.
+from macro_engine.sectors.fit import (  # noqa: E402
+    CORE_DIMENSION_IDS,
+    GICS_11_SECTOR_IDS,
+    MIN_SECTOR_OBSERVATIONS_TO_FIT,
+    MIN_TRAINING_MONTHS,
+    SUB_INDUSTRY_SECTOR_IDS,
+    compute_baseline,
+    compute_in_sample_ceiling,
+    compute_out_of_sample,
+    fit_linear_model,  # noqa: F401 (re-exported: tests/test_probe_sector_ceiling.py imports it from here)
+    prepare_cross_section_matrices,
+    spearman_ic,  # noqa: F401 (re-exported for callers of this module)
+    summarize_ic_series,  # noqa: F401 (re-exported for callers of this module)
+)
+from macro_engine.sectors.validation import newey_west_t  # noqa: E402,F401 (re-exported for callers)
 
 DEFAULT_DB_PATH = "data/macro_engine.duckdb"
 DEFAULT_OUT_DIR = "outputs/probes"
-
-SUB_INDUSTRY_SECTOR_IDS = frozenset(
-    {"semiconductors", "software", "banks", "biotech", "oil_gas_ep", "homebuilders"}
-)
-
-GICS_11_SECTOR_IDS = [
-    "communication_services",
-    "consumer_discretionary",
-    "consumer_staples",
-    "energy",
-    "financials",
-    "health_care",
-    "industrials",
-    "information_technology",
-    "materials",
-    "real_estate",
-    "utilities",
-]
-
-CORE_DIMENSION_IDS = [
-    "growth_momentum",
-    "inflation_pressure",
-    "policy_stance",
-    "credit_liquidity",
-    "yield_curve",
-]
 
 ALL_7_DIMENSION_IDS = [
     "credit_liquidity",
@@ -84,8 +77,6 @@ ALL_7_DIMENSION_IDS = [
 
 DEFAULT_HORIZONS = [1, 3]
 DEFAULT_SHRINKAGE_LAMBDAS = [0.0, 1.0, 5.0, 20.0]
-MIN_TRAINING_MONTHS = 60
-MIN_SECTOR_OBSERVATIONS_TO_FIT = 10
 _ROUND_NDIGITS = 6
 
 
@@ -140,257 +131,11 @@ def load_probe_data(db_path: str | Path) -> dict[str, pd.DataFrame]:
     }
 
 
-# ── Statistical and Econometric Kernels ──────────────────────────────────────
-
-
-def spearman_ic(left: np.ndarray, right: np.ndarray) -> float | None:
-    """Compute Spearman rank correlation between two vectors.
-
-    Returns None if fewer than 2 valid pairs or degenerate variation.
-    """
-    mask = ~(np.isnan(left) | np.isnan(right))
-    if np.sum(mask) < 2:
-        return None
-    x = left[mask]
-    y = right[mask]
-
-    r_x = pd.Series(x).rank().values
-    r_y = pd.Series(y).rank().values
-
-    std_x = np.std(r_x)
-    std_y = np.std(r_y)
-    if std_x <= 1e-12 or std_y <= 1e-12:
-        return None
-
-    corr = np.corrcoef(r_x, r_y)[0, 1]
-    return None if np.isnan(corr) else float(corr)
-
-
-def summarize_ic_series(ics: list[float], horizon_months: int) -> dict[str, Any]:
-    """Summarize a series of per-date rank ICs with Newey-West standard errors."""
-    if not ics:
-        return {
-            "mean_ic": None,
-            "sd_ic": None,
-            "t_stat": None,
-            "positive_share": None,
-            "n_dates": 0,
-        }
-
-    arr = np.asarray(ics, dtype=float)
-    n = len(arr)
-    mean_ic = float(np.mean(arr))
-    sd_ic = float(np.std(arr, ddof=1)) if n > 1 else None
-
-    # Newey-West lag = horizon - 1 (lag 0 for 1m, lag 2 for 3m)
-    lag = max(0, horizon_months - 1)
-    t_nw, _ = newey_west_t(list(arr), lag=lag)
-    pos_share = float(np.mean(arr > 0)) if n > 0 else None
-
-    return {
-        "mean_ic": _r(mean_ic),
-        "sd_ic": _r(sd_ic),
-        "t_stat": _r(t_nw),
-        "positive_share": _r(pos_share),
-        "n_dates": n,
-    }
-
-
-def fit_linear_model(
-    X: np.ndarray,
-    y: np.ndarray,
-    *,
-    shrinkage_lambda: float = 0.0,
-) -> tuple[float, np.ndarray]:
-    """Fit a linear model with ridge-style shrinkage of loadings toward zero.
-
-    The intercept alpha is unpenalized; loadings beta are shrunk by penalty lambda.
-    When shrinkage_lambda == 0.0, this is ordinary least squares (OLS).
-
-    Returns:
-        (alpha, beta) where alpha is a scalar intercept and beta is a loading vector.
-    """
-    n, p = X.shape
-    if n == 0:
-        return 0.0, np.zeros(p)
-
-    x_mean = np.mean(X, axis=0)
-    y_mean = float(np.mean(y))
-
-    X_c = X - x_mean
-    y_c = y - y_mean
-
-    if shrinkage_lambda <= 0.0:
-        beta, _, _, _ = np.linalg.lstsq(X_c, y_c, rcond=None)
-    else:
-        A = X_c.T @ X_c + shrinkage_lambda * np.eye(p)
-        b = X_c.T @ y_c
-        beta = np.linalg.solve(A, b)
-
-    alpha = y_mean - float(np.dot(x_mean, beta))
-    return alpha, beta
-
-
-# ── Core Probe Calculations ───────────────────────────────────────────────────
-
-
-def prepare_cross_section_matrices(
-    validation_returns: pd.DataFrame,
-    dimension_scores: pd.DataFrame,
-    *,
-    dimension_ids: list[str],
-    horizon_months: int,
-) -> tuple[list[pd.Timestamp], list[str], np.ndarray, np.ndarray, np.ndarray]:
-    """Prepare aligned matrices for evaluation dates, sectors, returns, features, and baseline scores.
-
-    Returns:
-        dates: sorted list of evaluation timestamps
-        sectors: sorted list of 11 GICS sector IDs
-        returns_mat: (n_dates, n_sectors) matrix of realised relative forward returns
-        features_mat: (n_dates, n_features) matrix of dimension scores known at each evaluation date
-        baseline_scores_mat: (n_dates, n_sectors) matrix of hand-set scores
-    """
-    col = f"relative_forward_{horizon_months}m_return"
-    g11_returns = validation_returns[
-        ~validation_returns["sector_id"].isin(SUB_INDUSTRY_SECTOR_IDS)
-        & validation_returns[col].notna()
-    ].copy()
-
-    g11_returns["score_date"] = pd.to_datetime(g11_returns["score_date"])
-    dates = sorted(g11_returns["score_date"].unique())
-    sectors = sorted(g11_returns["sector_id"].unique())
-
-    dim_frame = dimension_scores.copy()
-    dim_frame["date"] = pd.to_datetime(dim_frame["date"])
-    dim_pivot = dim_frame.pivot_table(index="date", columns="dimension_id", values="score", aggfunc="first")
-
-    # Reindex pivot to evaluation dates
-    features_mat = dim_pivot.loc[dates, dimension_ids].values
-
-    # Build return and baseline matrices
-    returns_pivot = g11_returns.pivot(index="score_date", columns="sector_id", values=col)
-    returns_pivot = returns_pivot.reindex(index=dates, columns=sectors)
-    returns_mat = returns_pivot.values
-
-    score_col = "confidence_adjusted_score"
-    scores_pivot = g11_returns.pivot(index="score_date", columns="sector_id", values=score_col)
-    scores_pivot = scores_pivot.reindex(index=dates, columns=sectors)
-    baseline_scores_mat = scores_pivot.values
-
-    return dates, sectors, returns_mat, features_mat, baseline_scores_mat
-
-
-def compute_in_sample_ceiling(
-    returns_mat: np.ndarray,
-    features_mat: np.ndarray,
-    horizon_months: int,
-) -> dict[str, Any]:
-    """Compute In-Sample Ceiling (A).
-
-    Fits OLS on the full sample per sector, scores each date, and computes rank IC.
-    """
-    n_dates, n_sectors = returns_mat.shape
-    predicted_scores = np.full((n_dates, n_sectors), np.nan)
-
-    for s_idx in range(n_sectors):
-        y_sec = returns_mat[:, s_idx]
-        valid_mask = ~np.isnan(y_sec)
-        if np.sum(valid_mask) < MIN_SECTOR_OBSERVATIONS_TO_FIT:
-            predicted_scores[:, s_idx] = 0.0
-            continue
-
-        X_valid = features_mat[valid_mask]
-        y_valid = y_sec[valid_mask]
-
-        alpha, beta = fit_linear_model(X_valid, y_valid, shrinkage_lambda=0.0)
-        predicted_scores[:, s_idx] = alpha + features_mat @ beta
-
-    ics: list[float] = []
-    for t_idx in range(n_dates):
-        ic = spearman_ic(predicted_scores[t_idx], returns_mat[t_idx])
-        if ic is not None:
-            ics.append(ic)
-
-    return summarize_ic_series(ics, horizon_months)
-
-
-def compute_out_of_sample(
-    dates: list[pd.Timestamp],
-    returns_mat: np.ndarray,
-    features_mat: np.ndarray,
-    horizon_months: int,
-    *,
-    shrinkage_lambda: float = 0.0,
-    min_training_months: int = MIN_TRAINING_MONTHS,
-) -> dict[str, Any]:
-    """Compute Out-Of-Sample expanding window skill (B / C).
-
-    Prevents lookahead and training-window leakage:
-        For evaluation date T, an earlier date d is eligible for training if and only
-        if d + horizon <= T. Any training row whose return window overlaps date T
-        (i.e. d + horizon > T) is strictly excluded.
-
-    Requires at least min_training_months eligible training dates to score.
-    """
-    n_dates, n_sectors = returns_mat.shape
-    dates_arr = np.array(dates)
-    cutoff_dates = [d - pd.DateOffset(months=horizon_months) for d in dates]
-
-    predicted_scores = np.full((n_dates, n_sectors), np.nan)
-    evaluated_dates_mask = np.zeros(n_dates, dtype=bool)
-
-    for t_idx, _ in enumerate(dates):
-        train_mask = dates_arr <= cutoff_dates[t_idx]
-        if np.sum(train_mask) < min_training_months:
-            continue
-
-        evaluated_dates_mask[t_idx] = True
-        X_tr = features_mat[train_mask]
-        x_te = features_mat[t_idx]
-
-        for s_idx in range(n_sectors):
-            y_tr_sec = returns_mat[train_mask, s_idx]
-            valid_sec = ~np.isnan(y_tr_sec)
-
-            if np.sum(valid_sec) < MIN_SECTOR_OBSERVATIONS_TO_FIT:
-                # Newly launched sector with insufficient history falls back to neutral
-                predicted_scores[t_idx, s_idx] = 0.0
-            else:
-                alpha, beta = fit_linear_model(
-                    X_tr[valid_sec],
-                    y_tr_sec[valid_sec],
-                    shrinkage_lambda=shrinkage_lambda,
-                )
-                predicted_scores[t_idx, s_idx] = alpha + float(np.dot(x_te, beta))
-
-    ics: list[float] = []
-    for t_idx in range(n_dates):
-        if not evaluated_dates_mask[t_idx]:
-            continue
-        ic = spearman_ic(predicted_scores[t_idx], returns_mat[t_idx])
-        if ic is not None:
-            ics.append(ic)
-
-    return summarize_ic_series(ics, horizon_months)
-
-
-def compute_baseline(
-    returns_mat: np.ndarray,
-    baseline_scores_mat: np.ndarray,
-    horizon_months: int,
-    *,
-    active_mask: np.ndarray | None = None,
-) -> dict[str, Any]:
-    """Compute rank IC of the hand-set scores (D)."""
-    n_dates = len(returns_mat)
-    ics: list[float] = []
-    for t_idx in range(n_dates):
-        if active_mask is not None and not active_mask[t_idx]:
-            continue
-        ic = spearman_ic(baseline_scores_mat[t_idx], returns_mat[t_idx])
-        if ic is not None:
-            ics.append(ic)
-    return summarize_ic_series(ics, horizon_months)
+# ── Statistical/estimation kernel: imported from macro_engine.sectors.fit (see above) ─────
+#
+# spearman_ic, summarize_ic_series, fit_linear_model, prepare_cross_section_matrices,
+# compute_in_sample_ceiling, compute_out_of_sample and compute_baseline all live in
+# macro_engine.sectors.fit now -- this probe is a consumer, not a second implementation.
 
 
 # ── Verdict Formulation ───────────────────────────────────────────────────────
