@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass
 
 import pandas as pd
@@ -46,6 +47,8 @@ def build_asof_feature_values(
     scoring_mode: str = "calendar_asof",
     publication_index: pd.DataFrame | None = None,
     point_in_time_start: str | None = None,
+    answered_asofs: dict[str, list[pd.Timestamp]] | None = None,
+    max_evidence_lag_days: int = 7,
 ) -> pd.DataFrame:
     """As-of feature values for every evaluation date in `calendar`.
 
@@ -74,6 +77,12 @@ def build_asof_feature_values(
     point_in_time_configured = scoring_mode == "point_in_time"
     boundary = pd.Timestamp(point_in_time_start) if point_in_time_start else None
     first_known = _first_known_lookup(publication_index) if point_in_time_configured else {}
+    answered_lookup: dict[str, list[pd.Timestamp]] | None = None
+    if answered_asofs is not None:
+        answered_lookup = {
+            s: sorted(set(pd.Timestamp(t).normalize() for t in ts))
+            for s, ts in answered_asofs.items()
+        }
 
     for evaluation_date in pd.to_datetime(calendar["evaluation_date"], errors="coerce"):
         # The configured basis is point-in-time; the APPLIED basis depends on this date.
@@ -95,6 +104,27 @@ def build_asof_feature_values(
                     )
                 )
                 continue
+
+            if point_in_time and answered_lookup is not None and not pd.isna(evaluation_date):
+                series_asofs = answered_lookup.get(feature.series_id, [])
+                window_start = evaluation_date.normalize() - pd.Timedelta(days=max_evidence_lag_days)
+                window_end = evaluation_date.normalize()
+                idx = bisect.bisect_left(series_asofs, window_start)
+                has_evidence = idx < len(series_asofs) and series_asofs[idx] <= window_end
+                if not has_evidence:
+                    rows.append(
+                        _asof_row(
+                            evaluation_date=evaluation_date,
+                            feature_id=feature.feature_id,
+                            source_observation_date=None,
+                            transformed_value=None,
+                            normalized_value=None,
+                            lag_days=None,
+                            valid=False,
+                            reason="pit_vintage_pending",
+                        )
+                    )
+                    continue
 
             frame = grouped_features.get(feature.feature_id)
             if frame is None or frame.empty:

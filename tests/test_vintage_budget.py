@@ -274,3 +274,131 @@ def test_pipeline_warning_and_status_on_deferred_vintages(tmp_path):
     run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
     assert run["status"] == "success_with_warnings"
 
+
+def test_asof_resolver_pit_vintage_pending_behavior():
+    """B4 / Resolver:
+    - A missing answered as-of at E (>= boundary) gives pit_vintage_pending.
+    - A present-date answer 1 day before E is usable (<= 7 days lag).
+    - Fully answered gives output identical to answered_asofs=None.
+    - Pre-boundary dates are unaffected."""
+    from macro_engine.evaluation.calendar import build_asof_feature_values
+    from macro_engine.evaluation.config import EvaluationCalendarConfig
+    from macro_engine.features.config import FeatureDefinition
+    from macro_engine.ingest.schemas import IngestionSource
+
+    feature_def = FeatureDefinition.model_validate(
+        {
+            "feature_id": "s1_feat",
+            "series_id": "S1",
+            "transform": "level",
+            "normalization": "none",
+            "direction": "higher_is_test_positive",
+            "enabled": True,
+            "min_observations": 1,
+        }
+    )
+    source = IngestionSource.model_validate(
+        {
+            "series_id": "S1",
+            "name": "S1",
+            "provider": "FRED",
+            "dimension": "growth",
+            "frequency": "monthly",
+            "required": True,
+            "enabled": True,
+            "stale_after_days": 45,
+            "unusable_after_days": 120,
+        }
+    )
+    features_df = pd.DataFrame(
+        {
+            "feature_id": ["s1_feat", "s1_feat"],
+            "date": [pd.Timestamp("2013-01-01"), pd.Timestamp("2024-05-01")],
+            "transformed_value": [1.5, 2.5],
+            "normalized_value": [1.5, 2.5],
+            "valid": [True, True],
+            "reason": ["ok", "ok"],
+        }
+    )
+    cal_df = pd.DataFrame(
+        {
+            "evaluation_date": [pd.Timestamp("2013-01-01"), pd.Timestamp("2024-06-01")],
+            "frequency": ["monthly", "monthly"],
+            "valid": [True, True],
+            "reason": ["ok", "ok"],
+        }
+    )
+    pub_idx = pd.DataFrame(
+        {
+            "series_id": ["S1"],
+            "date": [pd.Timestamp("2024-05-01")],
+            "first_known_date": [pd.Timestamp("2024-05-15")],
+        }
+    )
+    cal_cfg = EvaluationCalendarConfig()
+
+    # Case 1: missing answered as-of for E=2024-06-01 (>= boundary 2014-02-01)
+    asof_missing = build_asof_feature_values(
+        features=features_df,
+        feature_definitions=[feature_def],
+        sources=[source],
+        calendar=cal_df,
+        config=cal_cfg,
+        scoring_mode="point_in_time",
+        point_in_time_start="2014-02-01",
+        answered_asofs={"S1": []},
+        publication_index=pub_idx,
+    )
+    row_pre = asof_missing[asof_missing["evaluation_date"] == pd.Timestamp("2013-01-01")].iloc[0]
+    row_post = asof_missing[asof_missing["evaluation_date"] == pd.Timestamp("2024-06-01")].iloc[0]
+
+    # Pre-boundary is unaffected by answered_asofs
+    assert bool(row_pre["valid"]) is True
+    assert row_pre["reason"] == "ok"
+
+    # Post-boundary missing evidence gives pit_vintage_pending
+    assert bool(row_post["valid"]) is False
+    assert row_post["reason"] == "pit_vintage_pending"
+
+    # Case 2: present-date answer 1 day before E (2024-05-31 is <= 7 days before 2024-06-01)
+    asof_1day = build_asof_feature_values(
+        features=features_df,
+        feature_definitions=[feature_def],
+        sources=[source],
+        calendar=cal_df,
+        config=cal_cfg,
+        scoring_mode="point_in_time",
+        point_in_time_start="2014-02-01",
+        answered_asofs={"S1": [pd.Timestamp("2024-05-31")]},
+        publication_index=pub_idx,
+    )
+    row_post_1day = asof_1day[asof_1day["evaluation_date"] == pd.Timestamp("2024-06-01")].iloc[0]
+    assert bool(row_post_1day["valid"]) is True
+    assert row_post_1day["reason"] == "ok"
+
+    # Case 3: fully answered gives output identical to answered_asofs=None
+    asof_none = build_asof_feature_values(
+        features=features_df,
+        feature_definitions=[feature_def],
+        sources=[source],
+        calendar=cal_df,
+        config=cal_cfg,
+        scoring_mode="point_in_time",
+        point_in_time_start="2014-02-01",
+        answered_asofs=None,
+        publication_index=pub_idx,
+    )
+    asof_answered = build_asof_feature_values(
+        features=features_df,
+        feature_definitions=[feature_def],
+        sources=[source],
+        calendar=cal_df,
+        config=cal_cfg,
+        scoring_mode="point_in_time",
+        point_in_time_start="2014-02-01",
+        answered_asofs={"S1": [pd.Timestamp("2024-06-01")]},
+        publication_index=pub_idx,
+    )
+    pd.testing.assert_frame_equal(asof_none, asof_answered)
+
+
