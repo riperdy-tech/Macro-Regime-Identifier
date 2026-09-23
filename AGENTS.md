@@ -71,6 +71,12 @@ silently for anything that only checks the exit code. `scripts/run_daily_diagnos
 now check this first (`scripts/check_macro_engine_import.py`) and abort with both paths named
 before doing any real work. Fix: run `pip install -e .` from the repo root.
 
+Checks that read the **live** store (`data/macro_engine.duckdb`) rather than a fixture are skipped
+unless `MRI_STORE_CHECKS=1` is set: their result depends on which code last rebuilt the store, and
+the cloud job runs the tests before the pipeline, against a cached store. Before merging, rebuild the
+store with the code being merged and run `MRI_STORE_CHECKS=1 .venv/Scripts/python.exe -m pytest -q`,
+plus `python -m ruff check .` — the cloud job lints before it tests.
+
 ## Agent policy
 
 One agent works in this repository at a time. The orchestrating Claude session may delegate coding
