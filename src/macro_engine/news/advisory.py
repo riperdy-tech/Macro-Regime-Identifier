@@ -221,6 +221,31 @@ def _payload(
     }
 
 
+def rekey_theme_scores_by_group(
+    theme_scores: pd.DataFrame,
+    group_theme_ids: dict[str, list[str]],
+) -> dict[str, pd.DataFrame]:
+    """Re-key a `news_theme_scores`-shaped frame (`news_id, theme_id, direction, ...`,
+    one row per item per theme) from per-theme rows to per-group rows, for a caller whose
+    own taxonomy groups several themes under one id -- e.g. Layer 2's `shock_id ->
+    theme_ids` map in `config/shocks.yaml` (§3.5). A group's frame is empty (not missing)
+    when it maps to no theme_ids or none fired recently, so callers can iterate every
+    group uniformly.
+
+    Reused by `macro_engine.shocks.narrative` rather than reimplemented there -- the
+    sector advisory block above re-keys the same shape by `sector_id`, and duplicating
+    that join per caller is how the two would quietly drift apart."""
+    empty = theme_scores.iloc[0:0].copy()
+    return {
+        group_id: (
+            theme_scores[theme_scores["theme_id"].isin(theme_ids)].copy()
+            if theme_ids and not theme_scores.empty
+            else empty
+        )
+        for group_id, theme_ids in group_theme_ids.items()
+    }
+
+
 def _news_frame(
     daily_news_scores: pd.DataFrame,
     weekly_news_scores: pd.DataFrame,

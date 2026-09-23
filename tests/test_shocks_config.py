@@ -12,7 +12,11 @@ from macro_engine.shocks.config import (
 )
 
 _CONFIG_PATH = Path("config/shocks.yaml")
-EXPECTED_TAXONOMY_VERSION = "d8587595cc5c41a787225ee119b0c8ac042cd36f268bf20686a4534a551424a8"
+# S4.4: bumped when the narrative_themes and risk_flags blocks (the §3.5 theme map and
+# the T3 impact-study promotion) were added to config/shocks.yaml -- taxonomy_version is
+# a hash of the file's bytes, so any edit to it, including this one, is expected to move
+# this constant.
+EXPECTED_TAXONOMY_VERSION = "560fc4accd6be2d6dfa43c23ee513f2e32b71b39028eaaa3ec77790d1df9465d"
 
 
 def test_shocks_config_file_loads() -> None:

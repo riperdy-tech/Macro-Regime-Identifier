@@ -83,6 +83,9 @@ from macro_engine.sectors.validation import (
     run_stored_sector_validation,
 )
 from macro_engine.sectors.validation_report import write_sector_validation_report
+from macro_engine.shocks.service import (
+    build_and_write_shock_register as build_and_write_shock_register_service,
+)
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 app = typer.Typer(help="Macro Regime Intelligence Engine")
@@ -1348,6 +1351,39 @@ def build_combined_sector_diagnostics_cli(
             "component_rows": int(len(result.components)),
         }
     )
+
+
+@app.command("write-shock-register")
+def write_shock_register_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/shocks.yaml",
+    news_themes_config: Annotated[
+        str, typer.Option("--news-themes-config")
+    ] = "config/news_themes.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    output_dir: Annotated[str, typer.Option("--output-dir")] = "outputs",
+    as_of: Annotated[str | None, typer.Option("--as-of")] = None,
+    start_date: Annotated[str, typer.Option("--start-date")] = "1990-01-01",
+    end_date: Annotated[str | None, typer.Option("--end-date")] = None,
+    persist_history: Annotated[bool, typer.Option("--persist-history/--no-persist-history")] = True,
+    attach_news: Annotated[bool, typer.Option("--attach-news/--no-attach-news")] = True,
+    mock_ai: Annotated[bool, typer.Option("--mock-ai")] = False,
+) -> None:
+    """S4.4 (MRI-12): build the shock register (state machine over `start_date..end_date`,
+    default 1990 to the latest trading day), persist its history table, and publish
+    `outputs/shock_register.json` / `.md` for `--as-of` (default: the latest date built)."""
+    json_path, markdown_path = build_and_write_shock_register_service(
+        config_path=config,
+        news_themes_config_path=news_themes_config,
+        db_path=db_path,
+        output_dir=output_dir,
+        as_of=as_of,
+        start_date=start_date,
+        end_date=end_date,
+        persist_history=persist_history,
+        attach_news=attach_news,
+        mock_ai=mock_ai,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
 
 
 @app.command("current-combined-sector-ranking")

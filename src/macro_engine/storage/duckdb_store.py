@@ -898,6 +898,39 @@ class DuckDBStore:
                 )
                 """
             )
+            # S4.4 (MRI-12): the shock register history, one row per (shock_id, date).
+            # A rebuild replaces the whole table (`replace_shock_register`), same pattern
+            # as `replace_regime_outputs` -- the register is deterministic from
+            # raw_observations + config/shocks.yaml, so there is nothing to reconcile.
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS shock_register (
+                    shock_id TEXT,
+                    date DATE,
+                    series_id TEXT,
+                    measure TEXT,
+                    value DOUBLE,
+                    value_date DATE,
+                    direction TEXT,
+                    intensity DOUBLE,
+                    severity INTEGER,
+                    active BOOLEAN,
+                    state TEXT,
+                    onset_date DATE,
+                    age_days INTEGER,
+                    peak_intensity DOUBLE,
+                    peak_date DATE,
+                    proxy BOOLEAN,
+                    stale_input BOOLEAN,
+                    values_revised BOOLEAN,
+                    reason TEXT,
+                    taxonomy_version TEXT,
+                    source_run_id TEXT,
+                    built_at TIMESTAMP,
+                    PRIMARY KEY (shock_id, date)
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -1182,6 +1215,52 @@ class DuckDBStore:
                     FROM regime_health_frame
                     """
                 )
+
+    _SHOCK_REGISTER_COLUMNS = (
+        "shock_id", "date", "series_id", "measure", "value", "value_date", "direction",
+        "intensity", "severity", "active", "state", "onset_date", "age_days",
+        "peak_intensity", "peak_date", "proxy", "stale_input", "values_revised",
+        "reason", "taxonomy_version", "source_run_id", "built_at",
+    )
+
+    def replace_shock_register(self, history: pd.DataFrame) -> None:
+        """S4.4 (MRI-12): replace the full shock register history. `history` is one row
+        per (shock_id, date) in the shape `shocks.register.build_shock_register_history`
+        produces. Explicit column list on both sides (S1.2b precedent above).
+
+        An empty `history` (e.g. a daily run whose store copy has no VIXCLS yet -- the
+        register degrades to "no data" rather than raising, see `register.py`) leaves any
+        previously-persisted register untouched instead of deleting it: a transient
+        ingestion gap must never wipe out accumulated shock history."""
+        if history.empty:
+            return
+        columns_sql = ", ".join(self._SHOCK_REGISTER_COLUMNS)
+        with self._connect() as con:
+            con.execute("DELETE FROM shock_register")
+            frame = history[list(self._SHOCK_REGISTER_COLUMNS)].copy()
+            con.register("shock_register_frame", frame)
+            con.execute(
+                f"""
+                INSERT INTO shock_register ({columns_sql})
+                SELECT {columns_sql} FROM shock_register_frame
+                """
+            )
+
+    def read_shock_register(self, shock_id: str | None = None) -> pd.DataFrame:
+        with self._connect() as con:
+            if shock_id:
+                return con.execute(
+                    "SELECT * FROM shock_register WHERE shock_id = ? ORDER BY date",
+                    [shock_id],
+                ).fetchdf()
+            return con.execute("SELECT * FROM shock_register ORDER BY date, shock_id").fetchdf()
+
+    def read_shock_register_on_date(self, as_of: Any) -> pd.DataFrame:
+        with self._connect() as con:
+            return con.execute(
+                "SELECT * FROM shock_register WHERE date = ? ORDER BY shock_id",
+                [as_of],
+            ).fetchdf()
 
     def replace_diagnostic_outputs(
         self,

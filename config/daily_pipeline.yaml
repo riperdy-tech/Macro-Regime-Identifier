@@ -47,6 +47,16 @@ daily_pipeline:
       required: false
       config_path: config/sector_news_integration.yaml
 
+  # S4.4/S4.5 (MRI-12): the shock register. Additive, annotation-only -- a failure here
+  # is a warning, never a reason to fail the daily diagnostic (MRI_S4_PLAN.md S4.4 gate:
+  # no numeric consumer exists yet).
+  shocks:
+    enabled: true
+    required: false
+    config_path: config/shocks.yaml
+    news_themes_config_path: config/news_themes.yaml
+    start_date: "1990-01-01"
+
   monitoring:
     enabled: true
     config_path: config/news_monitoring.yaml

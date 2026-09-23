@@ -244,3 +244,38 @@ shocks:
           percentile: 2.1
           sample_window: "2003-01..2026-09"
           episodes: 3
+
+# S4.4 (§3.5): each shock_id's news theme_ids for the read-only narrative attachment.
+# Owner MRI-12; the theme vocabulary itself stays owned by config/news_themes.yaml. A
+# shock with no genuinely matching theme in that vocabulary (dollar_shock -- there is no
+# FX-specific macro theme today) gets an empty list rather than a forced, loose match;
+# its `narrative` stays absent (§1.3.4: "absent when no news is attached").
+narrative_themes:
+  volatility_shock: [financial_stability_risk, geopolitical_risk]
+  credit_shock: [credit_stress, credit_easing]
+  rates_shock: [monetary_tightening, monetary_easing, yield_curve_steepening, yield_curve_flattening]
+  oil_shock: [energy_supply_shock, commodity_pressure]
+  dollar_shock: []
+  labour_shock: [labor_weakness, labor_strength]
+  inflation_shock: [inflation_pressure, disinflation]
+
+# S4.4: the one risk flag the impact study promoted (MRI_S4_PLAN.md "Impact study results
+# and decision", 2026-09-24). T1 (recession) and T2 (sector) found no passing shock; T3
+# (forward risk) found exactly one shock-outcome pair. Effect numbers read verbatim from
+# $SCR\s4_impact\t3.json (volatility_shock -> fwd_3m_realized_vol row) at build time --
+# never hard-coded in Python. `active` is computed live from the register (severity >= 1
+# on `source_shock`), not stored here.
+risk_flags:
+  - id: elevated_volatility_ahead
+    source_shock: volatility_shock
+    measured_effect:
+      outcome: fwd_3m_realized_vol_annualised
+      delta_points: 10.6
+      nw_t: 4.57
+      n_months: 417
+      half_sample_deltas: [4.9, 12.6]
+      window: "1990-01..2026-08 ex 2020-02..2021-06"
+      study: "MRI_S4 impact T3"
+    meaning: >-
+      Expect higher market turbulence over the next 3 months. No evidence of lower
+      returns or deeper drawdowns.

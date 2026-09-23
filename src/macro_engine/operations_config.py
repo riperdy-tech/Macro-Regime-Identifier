@@ -90,6 +90,17 @@ class DailyAnchorsConfig(BaseModel):
     advisory_block: DailyAdvisoryBlockConfig = Field(default_factory=DailyAdvisoryBlockConfig)
 
 
+class DailyShocksConfig(BaseModel):
+    """S4.4 (MRI-12): the shock register -- additive, annotation-only, never a pipeline
+    blocker (MRI_S4_PLAN.md S4.4/S4.5 gate: no numeric consumer exists yet)."""
+
+    enabled: bool = True
+    required: bool = False
+    config_path: str = "config/shocks.yaml"
+    news_themes_config_path: str = "config/news_themes.yaml"
+    start_date: str = "1990-01-01"
+
+
 class DailyMonitoringConfig(BaseModel):
     enabled: bool = True
     config_path: str = "config/news_monitoring.yaml"
@@ -150,6 +161,7 @@ class DailyPipelineConfig(BaseModel):
     live_ai_safety: DailyLiveAISafetyConfig = Field(default_factory=DailyLiveAISafetyConfig)
     combined: DailyCombinedConfig = Field(default_factory=DailyCombinedConfig)
     anchors: DailyAnchorsConfig = Field(default_factory=DailyAnchorsConfig)
+    shocks: DailyShocksConfig = Field(default_factory=DailyShocksConfig)
     monitoring: DailyMonitoringConfig = Field(default_factory=DailyMonitoringConfig)
     outputs: DailyOutputsConfig = Field(default_factory=DailyOutputsConfig)
     safety: DailySafetyConfig = Field(default_factory=DailySafetyConfig)

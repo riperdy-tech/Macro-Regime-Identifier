@@ -24,6 +24,18 @@ import duckdb
 import numpy as np
 import pandas as pd
 
+# S4.4: the transform functions moved to macro_engine.shocks.transforms so the daily
+# register builder (src/macro_engine/shocks/register.py) reuses the exact code these
+# thresholds were measured with, instead of a second implementation. Re-exported here
+# (not just called qualified) so this script's own top-level name still resolves the
+# same way for callers and for tests/test_measure_shocks.py.
+from macro_engine.shocks.transforms import (  # noqa: F401
+    claims_spike_pct,
+    diff_63d_bp,
+    log_change_63d_pct,
+    stitch_dollar,
+)
+
 # Default provisional thresholds per MRI_S4_PLAN D1 / architecture §3.2
 DEFAULT_PROVISIONAL_THRESHOLDS: dict[str, Any] = {
     "volatility_shock": {
@@ -111,71 +123,9 @@ DEFAULT_PROVISIONAL_THRESHOLDS: dict[str, Any] = {
 
 
 # -----------------------------------------------------------------------------
-# Pure Transform Functions
+# Pure Transform Functions -- moved to macro_engine.shocks.transforms (S4.4);
+# imported above and re-exported at module level.
 # -----------------------------------------------------------------------------
-
-
-def diff_63d_bp(values: pd.Series) -> pd.Series:
-    """63-trading-day change in basis points: (x[t] - x[t-63]) * 100."""
-    return (values - values.shift(63)) * 100.0
-
-
-def log_change_63d_pct(values: pd.Series) -> pd.Series:
-    """63-trading-day log change in percent: ln(x[t] / x[t-63]) * 100."""
-    with np.errstate(divide="ignore", invalid="ignore"):
-        ratio = values / values.shift(63)
-        # Non-positive values cannot be logged
-        log_ratio = np.where(ratio > 0, np.log(ratio), np.nan)
-    return pd.Series(log_ratio * 100.0, index=values.index)
-
-
-def claims_spike_pct(weekly_values: pd.Series) -> pd.Series:
-    """Initial claims spike: (4-week mean / trailing 52-week min - 1) * 100."""
-    mean_4w = weekly_values.rolling(4).mean()
-    min_52w = weekly_values.rolling(52).min()
-    return (mean_4w / min_52w - 1.0) * 100.0
-
-
-def stitch_dollar(
-    df_newer: pd.DataFrame,
-    df_older: pd.DataFrame,
-    overlap_start: str = "2006-01-01",
-    overlap_end: str = "2019-12-31",
-) -> tuple[pd.DataFrame, float, float]:
-    """Stitch daily broad dollar indices per §3.3.
-
-    Newer: DTWEXBGS (goods and services, 2006-01 onward).
-    Older: DTWEXB (goods only, 1995-01-04 to 2019-12-31).
-
-    Computes mean log ratio over overlapping trading days, shifts older index,
-    and returns (stitched_df, mean_shift, residual_sd).
-    """
-    newer_clean = df_newer[df_newer["value"].notna()].copy()
-    older_clean = df_older[df_older["value"].notna()].copy()
-
-    newer_clean["date"] = pd.to_datetime(newer_clean["date"])
-    older_clean["date"] = pd.to_datetime(older_clean["date"])
-
-    overlap = pd.merge(newer_clean, older_clean, on="date", suffixes=("_newer", "_older"))
-    overlap = overlap[
-        (overlap["date"] >= overlap_start) & (overlap["date"] <= overlap_end)
-    ]
-
-    log_ratio = np.log(overlap["value_newer"] / overlap["value_older"])
-    mean_shift = float(log_ratio.mean())
-    residual_sd = float(log_ratio.std(ddof=1)) if len(log_ratio) > 1 else 0.0
-
-    older_pre = older_clean[older_clean["date"] < overlap_start].copy()
-    older_pre["value"] = np.exp(np.log(older_pre["value"]) + mean_shift)
-
-    newer_post = newer_clean[newer_clean["date"] >= overlap_start].copy()
-
-    stitched = (
-        pd.concat([older_pre[["date", "value"]], newer_post[["date", "value"]]])
-        .sort_values("date")
-        .reset_index(drop=True)
-    )
-    return stitched, mean_shift, residual_sd
 
 
 def group_episodes(

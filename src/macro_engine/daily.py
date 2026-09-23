@@ -33,6 +33,7 @@ from macro_engine.sectors.fit import write_sector_fit_report
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.service import build_stored_sector_scores
 from macro_engine.sectors.validation import run_stored_sector_validation
+from macro_engine.shocks.service import build_and_write_shock_register
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -90,6 +91,7 @@ def run_daily_diagnostic(
         "news_history_export_status": "skipped",
         "news_health_status": "skipped",
         "combined_status": "skipped",
+        "shocks_status": "skipped",
         "monitoring_status": "skipped",
         "guardrail_status": "skipped",
     }
@@ -305,6 +307,20 @@ def run_daily_diagnostic(
                 lambda: _run_anchors(config, db_path, outputs, services),
                 fail=config.anchors.required,
                 optional=not config.anchors.required,
+                deadline=run_deadline,
+                daily_warnings=warnings,
+            )
+        if config.shocks.enabled:
+            # S4.4/S4.5 (MRI-12): the shock register is annotation-only -- a failure is a
+            # warning, never a reason to fail the daily diagnostic (`required: false` by
+            # design, same shape as `anchors` above).
+            _run_step(
+                "shocks",
+                statuses,
+                errors,
+                lambda: _run_shocks(config, db_path, output_dir, outputs, services),
+                fail=config.shocks.required,
+                optional=not config.shocks.required,
                 deadline=run_deadline,
                 daily_warnings=warnings,
             )
@@ -902,6 +918,25 @@ def _run_anchors(
                 db_path=db_path,
             ),
         )
+
+
+def _run_shocks(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    output_dir: str | Path,
+    outputs: list[str],
+    services: dict[str, Callable],
+) -> None:
+    json_path, markdown_path = services.get(
+        "build_and_write_shock_register", build_and_write_shock_register
+    )(
+        config_path=config.shocks.config_path,
+        news_themes_config_path=config.shocks.news_themes_config_path,
+        db_path=db_path,
+        output_dir=output_dir,
+        start_date=config.shocks.start_date,
+    )
+    _append_paths(outputs, (json_path, markdown_path))
 
 
 def _run_monitoring(
