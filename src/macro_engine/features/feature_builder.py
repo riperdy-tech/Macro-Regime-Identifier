@@ -168,6 +168,9 @@ def apply_feature_transform(
         return values.pct_change(_periods_for_months(frequency, 12), fill_method=None) * 100
     if transform == "spread":
         return values
+    if transform == "yoy_log_change":
+        positive = values.where(values > 0)
+        return np.log(positive).diff(_periods_for_months(frequency, 12)) * 100
     raise ValueError(f"unsupported transform {transform}")
 
 

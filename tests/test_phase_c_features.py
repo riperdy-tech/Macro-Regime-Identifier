@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 from typer.testing import CliRunner
@@ -91,6 +92,34 @@ def test_yoy_pct_change_works():
     result = apply_feature_transform(values, "yoy_pct_change", "monthly")
 
     assert result.iloc[12] == pytest.approx(12.0)
+
+
+def test_yoy_log_change_works():
+    values = pd.Series([100.0] * 12 + [110.0])
+
+    result = apply_feature_transform(values, "yoy_log_change", "monthly")
+
+    assert result.iloc[12] == pytest.approx(100.0 * np.log(1.1), abs=1e-9)
+
+
+def test_yoy_log_change_nonpositive_is_invalid():
+    raw = _raw_monthly(periods=26)
+    raw.loc[raw["date"] == pd.Timestamp("2020-06-01"), "value"] = 0.0
+    raw.loc[raw["date"] == pd.Timestamp("2020-10-01"), "value"] = -37.6
+
+    result = build_features_from_raw(
+        raw,
+        [_monthly_source()],
+        [_feature(transform="yoy_log_change", normalization="none", min_observations=1)],
+    )
+
+    frame = result.features.set_index("date")
+    bad_dates = [pd.Timestamp("2020-06-01").date(), pd.Timestamp("2020-10-01").date()]
+    later_dates = [pd.Timestamp("2021-06-01").date(), pd.Timestamp("2021-10-01").date()]
+    for date in bad_dates + later_dates:
+        row = frame.loc[date]
+        assert pd.isna(row["transformed_value"])
+        assert bool(row["valid"]) is False
 
 
 def test_rolling_z_5y_uses_no_future_data():

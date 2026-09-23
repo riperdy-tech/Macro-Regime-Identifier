@@ -9,7 +9,9 @@ from pydantic import BaseModel, Field, model_validator
 from macro_engine.ingest.registry import load_ingestion_sources
 from macro_engine.ingest.schemas import Frequency, IngestionSource
 
-TransformName = Literal["level", "diff_3m", "diff_6m", "diff_12m", "yoy_pct_change", "spread"]
+TransformName = Literal[
+    "level", "diff_3m", "diff_6m", "diff_12m", "yoy_pct_change", "yoy_log_change", "spread"
+]
 NormalizationName = Literal[
     "none",
     "rolling_z_3y",
