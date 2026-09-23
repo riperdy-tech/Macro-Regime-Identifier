@@ -73,6 +73,7 @@ from macro_engine.reports.service import (
     write_current_regime_report as write_current_regime_report_service,
     write_historical_diagnostic_report as write_historical_diagnostic_report_service,
 )
+from macro_engine.sectors.fit import write_sector_fit_report
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.calibration import run_sector_calibration_experiments
 from macro_engine.sectors.service import build_stored_sector_scores
@@ -734,6 +735,33 @@ def write_sector_report(
 ) -> None:
     """v0.2: write current sector ranking JSON and Markdown reports."""
     json_path, markdown_path = write_current_sector_report(
+        config_path=config,
+        sector_config_path=sector_config,
+        exposure_config_path=exposure_config,
+        prior_config_path=prior_config,
+        db_path=db_path,
+    )
+    console.print_json(data={"json_path": str(json_path), "markdown_path": str(markdown_path)})
+
+
+@app.command("write-sector-fit-report")
+def write_sector_fit_report_cli(
+    config: Annotated[str, typer.Option("--config")] = "config/phase_b_sources.yaml",
+    sector_config: Annotated[str, typer.Option("--sector-config")] = "config/sectors.yaml",
+    exposure_config: Annotated[
+        str,
+        typer.Option("--exposure-config"),
+    ] = "config/sector_exposures.yaml",
+    prior_config: Annotated[
+        str,
+        typer.Option("--prior-config"),
+    ] = "config/sector_regime_priors.yaml",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """S6.3: write the shadow fitted-sector-exposures report (mode: shadow,
+    affects_quotas: false). A NEW artifact, outputs/sector_exposures_fitted.{json,md} --
+    never touches current_sector_ranking.json."""
+    json_path, markdown_path = write_sector_fit_report(
         config_path=config,
         sector_config_path=sector_config,
         exposure_config_path=exposure_config,

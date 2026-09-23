@@ -28,6 +28,7 @@ from macro_engine.news.service import classify_stored_news, ingest_stored_news
 from macro_engine.operations_config import DailyPipelineConfig, load_daily_pipeline_config
 from macro_engine.pipeline_runner import run_pipeline
 from macro_engine.regime_status import compute_feature_freshness
+from macro_engine.sectors.fit import write_sector_fit_report
 from macro_engine.sectors.report import write_current_sector_report
 from macro_engine.sectors.service import build_stored_sector_scores
 from macro_engine.sectors.validation import run_stored_sector_validation
@@ -716,6 +717,21 @@ def _run_sector(
     _append_paths(
         outputs,
         services.get("write_sector_report", write_current_sector_report)(
+            config_path=config.sector.config_path,
+            sector_config_path=config.sector.sector_config_path,
+            exposure_config_path=config.sector.exposure_config_path,
+            prior_config_path=config.sector.prior_config_path,
+            db_path=db_path,
+        ),
+    )
+    # S6.3: the shadow fitted-exposures artifact. Cheap (the fit itself is annual; scoring
+    # today against the frozen vintage is one dot product per sector) and strictly additive --
+    # it reads dimension_scores/sector_validation_returns and writes a NEW file,
+    # outputs/sector_exposures_fitted.json, never current_sector_ranking.json (mode: shadow,
+    # affects_quotas: false).
+    _append_paths(
+        outputs,
+        services.get("write_sector_fit_report", write_sector_fit_report)(
             config_path=config.sector.config_path,
             sector_config_path=config.sector.sector_config_path,
             exposure_config_path=config.sector.exposure_config_path,
