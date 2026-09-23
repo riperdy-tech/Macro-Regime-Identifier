@@ -21,7 +21,6 @@ from macro_engine.anchors.growth import (
     advance_rung_state,
     build_long_run_growth_anchor,
     log_linear_trend_annualized,
-    resolve_growth_rung_state,
     trailing_12m_mean_of_monthly_mean,
 )
 

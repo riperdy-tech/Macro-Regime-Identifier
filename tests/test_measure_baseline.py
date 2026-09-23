@@ -23,7 +23,7 @@ def _build_fixture_store(db_path: Path) -> None:
     try:
         dates = pd.date_range("2020-01-01", periods=6, freq="MS")
 
-        timeline = pd.DataFrame(
+        timeline = pd.DataFrame(  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
             {
                 "date": dates,
                 "dominant_regime": ["recession", "recession", "goldilocks", "goldilocks", "reflation", "reflation"],
@@ -65,7 +65,7 @@ def _build_fixture_store(db_path: Path) -> None:
                         "reason": "ok",
                     }
                 )
-        regime_scores = pd.DataFrame(regime_rows)
+        regime_scores = pd.DataFrame(regime_rows)  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
         con.execute("CREATE TABLE regime_scores AS SELECT * FROM regime_scores")
 
         dimension_ids = ["growth_momentum", "inflation_pressure", "policy_stance", "credit_liquidity", "yield_curve"]
@@ -88,7 +88,7 @@ def _build_fixture_store(db_path: Path) -> None:
                             "reason": "ok",
                         }
                     )
-        regime_dimension_contributions = pd.DataFrame(contribution_rows)
+        regime_dimension_contributions = pd.DataFrame(contribution_rows)  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
         con.execute(
             "CREATE TABLE regime_dimension_contributions AS SELECT * FROM regime_dimension_contributions"
         )
@@ -110,11 +110,11 @@ def _build_fixture_store(db_path: Path) -> None:
                         "reason": "ok",
                     }
                 )
-        dimension_scores = pd.DataFrame(dimension_rows)
+        dimension_scores = pd.DataFrame(dimension_rows)  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
         con.execute("CREATE TABLE dimension_scores AS SELECT * FROM dimension_scores")
 
         rate_dates = pd.date_range("2019-12-01", periods=10, freq="MS")
-        raw_observations = pd.DataFrame(
+        raw_observations = pd.DataFrame(  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
             {
                 "series_id": ["DGS10"] * len(rate_dates),
                 "date": rate_dates,
@@ -161,11 +161,11 @@ def _build_fixture_store(db_path: Path) -> None:
                         "reason": "ok",
                     }
                 )
-        sector_scores = pd.DataFrame(sector_score_rows)
+        sector_scores = pd.DataFrame(sector_score_rows)  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
         con.execute("CREATE TABLE sector_scores AS SELECT * FROM sector_scores")
 
         price_dates = pd.date_range("2019-12-01", periods=260, freq="B")
-        sector_proxy_prices = pd.DataFrame(
+        sector_proxy_prices = pd.DataFrame(  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
             {
                 "ticker": ["SPY"] * len(price_dates),
                 "date": price_dates,
@@ -194,7 +194,7 @@ def _build_fixture_store(db_path: Path) -> None:
                         "reason": "ok",
                     }
                 )
-        sector_validation_returns = pd.DataFrame(validation_rows)
+        sector_validation_returns = pd.DataFrame(validation_rows)  # noqa: F841 (read by name from SQL via DuckDB replacement scan)
         con.execute(
             "CREATE TABLE sector_validation_returns AS SELECT * FROM sector_validation_returns"
         )

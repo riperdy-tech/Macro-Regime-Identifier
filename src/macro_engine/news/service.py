@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import sys
 import time
-from typing import Callable
+from typing import Any, Callable
 
 import pandas as pd
 
