@@ -261,6 +261,96 @@ def test_confirmation_counter_survives_sub_threshold_months():
     assert result.transitions.iloc[0]["to_regime"] == "recession"
 
 
+def test_margin_threshold_zero_reproduces_c4a_exactly():
+    """C4b (MRI_S1_APPROVAL.md §4, measurement only): margin_threshold defaults to 0.0,
+    which must be a true no-op -- the shipped filter behaves exactly as C4a alone."""
+    config = _confirmation_config(end_date="2026-03-01")
+    assert config.transition_filter.margin_threshold == 0.0
+    assert config.transition_filter.persistence_months is None
+
+    scores = pd.DataFrame(
+        [
+            _score_row("2026-01-01", "goldilocks", 0.60, 1),
+            _score_row("2026-01-01", "tightening", 0.30, 2),
+            _score_row("2026-02-01", "tightening", 0.51, 1),
+            _score_row("2026-02-01", "goldilocks", 0.49, 2),
+            _score_row("2026-03-01", "tightening", 0.52, 1),
+            _score_row("2026-03-01", "goldilocks", 0.48, 2),
+        ]
+    )
+    health = pd.DataFrame(
+        [
+            _health_row("2026-01-01", "goldilocks", 0.60, 0.30),
+            _health_row("2026-02-01", "tightening", 0.51, 0.10),
+            _health_row("2026-03-01", "tightening", 0.52, 0.10),
+        ]
+    )
+    result = run_historical_diagnostic(scores, health, config)
+    march = result.timeline.set_index("date").loc[pd.Timestamp("2026-03-01").date()]
+
+    # Same outcome as test_low_confidence_switch_requires_two_month_confirmation, which
+    # exercises the identical scenario with margin_threshold left at its implicit default.
+    assert march["reported_regime"] == "tightening"
+    assert march["transition_filter_reason"] == "switch_confirmed"
+
+
+def test_margin_threshold_holds_a_near_tie_switch_until_persistence_fallback():
+    """C4b: a challenger that clears the confidence/confirmation-month bar but never
+    clears the margin over the incumbent must not switch -- until it has persisted long
+    enough to trip the persistence fallback. Without the margin gate (delta=0), the same
+    data switches after 2 months (confirmation_months); with it, the switch is held to
+    month 3 (persistence_months) instead."""
+    scores_rows = [_score_row("2026-01-01", "goldilocks", 0.60, 1), _score_row("2026-01-01", "reflation", 0.30, 2)]
+    health_rows = [_health_row("2026-01-01", "goldilocks", 0.60, 0.30)]
+    # Three months where `reflation` leads `goldilocks` by a margin of 0.02 -- above the
+    # 0.02 min_confidence_to_switch floor and enough to confirm under plain confirmation-
+    # month counting, but below a 0.05 margin threshold.
+    for date, reflation_p, goldilocks_p in [
+        ("2026-02-01", 0.51, 0.49),
+        ("2026-03-01", 0.51, 0.49),
+        ("2026-04-01", 0.51, 0.49),
+    ]:
+        scores_rows.append(_score_row(date, "reflation", reflation_p, 1))
+        scores_rows.append(_score_row(date, "goldilocks", goldilocks_p, 2))
+        health_row = _health_row(date, "reflation", reflation_p, 0.20)
+        health_row["peakedness"] = 0.05  # below 0.15: no immediate-switch escape hatch
+        health_rows.append(health_row)
+    scores = pd.DataFrame(scores_rows)
+    health = pd.DataFrame(health_rows)
+
+    off_config = _confirmation_config(end_date="2026-04-01")
+    off_result = run_historical_diagnostic(scores, health, off_config)
+    off_timeline = off_result.timeline.set_index("date")
+    # margin_threshold=0 (off): ordinary confirmation-month counting switches at month 2.
+    assert off_timeline.loc[pd.Timestamp("2026-03-01").date()]["reported_regime"] == "reflation"
+
+    gated_config = HistoricalDiagnosticConfig(
+        start_date="2026-01-01",
+        end_date="2026-04-01",
+        mode="revised_data",
+        min_valid_regimes=2,
+        low_confidence_threshold=0.05,
+        transition_filter={
+            "enabled": True,
+            "min_confidence_to_switch": 0.02,
+            "confirmation_months": 2,
+            "only_when_confidence_below": 0.15,
+            "margin_threshold": 0.05,
+            "persistence_months": 3,
+        },
+    )
+    gated_result = run_historical_diagnostic(scores, health, gated_config)
+    gated_timeline = gated_result.timeline.set_index("date")
+
+    march = gated_timeline.loc[pd.Timestamp("2026-03-01").date()]
+    assert march["reported_regime"] == "goldilocks"
+    assert march["transition_filter_reason"] == "held_below_margin"
+
+    april = gated_timeline.loc[pd.Timestamp("2026-04-01").date()]
+    assert april["reported_regime"] == "reflation"
+    assert april["transition_filter_reason"] == "switch_confirmed_persistence"
+
+
 def test_production_config_enables_two_month_confirmation_below_015():
     from macro_engine.diagnostics.config import load_historical_diagnostic_config
 

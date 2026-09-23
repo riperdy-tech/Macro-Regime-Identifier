@@ -272,6 +272,7 @@ def _apply_transition_filter(
     pending_count = 0
     filter_config = config.transition_filter
     threshold = filter_config.min_confidence_to_switch
+    margin_threshold = filter_config.margin_threshold
     scores = regime_scores.copy()
     scores["date"] = pd.to_datetime(scores["date"], errors="coerce")
 
@@ -285,6 +286,8 @@ def _apply_transition_filter(
 
         raw_regime = row["raw_dominant_regime"]
         raw_confidence = float(row.get("raw_confidence") or 0.0)
+        raw_peakedness = float(row.get("peakedness") or 0.0)
+        date = pd.Timestamp(row["date"])
         if current_regime is None:
             current_regime = raw_regime
             pending_regime = None
@@ -304,8 +307,28 @@ def _apply_transition_filter(
             # never accumulated enough consecutive months to confirm.
             pending_count = pending_count + 1 if pending_regime == raw_regime else 1
             pending_regime = raw_regime
-            if raw_confidence >= threshold:
-                required_months = _required_confirmation_months(raw_confidence, filter_config)
+            required_months = _required_confirmation_months(raw_confidence, filter_config)
+
+            # C4b (MRI_S1_APPROVAL.md §4, measurement only): margin hysteresis, gated
+            # entirely behind margin_threshold so the default (0.0) reproduces C4a
+            # exactly. `margin` is the challenger's lead over the incumbent's own
+            # probability on this date -- the quantity the entropy-only filter cannot
+            # see, since peakedness gates on the shape of the whole distribution, not on
+            # the gap between the top two.
+            margin_ok = True
+            if margin_threshold > 0:
+                incumbent_probability = _probability_for_regime(scores, date, current_regime)
+                raw_leader_probability = row.get("raw_dominant_probability")
+                margin = (
+                    float(raw_leader_probability) - float(incumbent_probability)
+                    if incumbent_probability is not None and raw_leader_probability is not None
+                    else None
+                )
+                margin_ok = margin is not None and margin >= margin_threshold
+                if margin is not None and margin >= 2 * margin_threshold and raw_peakedness >= 0.15:
+                    required_months = 1
+
+            if raw_confidence >= threshold and margin_ok:
                 if pending_count >= required_months:
                     current_regime = raw_regime
                     pending_regime = None
@@ -313,10 +336,22 @@ def _apply_transition_filter(
                     filtered["transition_filter_reason"] = "switch_confirmed"
                 else:
                     filtered["transition_filter_reason"] = "awaiting_confirmation"
+            elif (
+                margin_threshold > 0
+                and filter_config.persistence_months is not None
+                and pending_count >= filter_config.persistence_months
+            ):
+                # C4b persistence fallback: the same raw leader has persisted long enough
+                # that a margin which never quite clears should stop freezing the label.
+                current_regime = raw_regime
+                pending_regime = None
+                pending_count = 0
+                filtered["transition_filter_reason"] = "switch_confirmed_persistence"
+            elif margin_threshold > 0 and not margin_ok:
+                filtered["transition_filter_reason"] = "held_below_margin"
             else:
                 filtered["transition_filter_reason"] = "held_below_min_confidence"
 
-        date = pd.Timestamp(row["date"])
         reported_probability = _probability_for_regime(scores, date, current_regime)
         filtered["dominant_regime"] = current_regime
         filtered["reported_regime"] = current_regime
