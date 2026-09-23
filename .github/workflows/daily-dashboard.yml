@@ -68,8 +68,8 @@ jobs:
       - name: Restore accumulated database
         # Persist the DuckDB across runs so news accumulates (readiness advances,
         # classify-only-unclassified avoids re-paying DeepSeek). Rolling key:
-        # restores the most recent cache, saves a fresh one at job end.
-        uses: actions/cache@v4
+        # restores the most recent cache; saved at job end with actions/cache/save.
+        uses: actions/cache/restore@v4
         with:
           path: data/macro_engine.duckdb
           key: mgi-duckdb-${{ github.run_id }}
@@ -302,3 +302,12 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: dashboard/dist
+
+      - name: Save accumulated database
+        # Persist DuckDB progress even if earlier steps failed or the job was cancelled.
+        # Uses the exact same path and unique rolling key scheme so caches remain restorable.
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/macro_engine.duckdb
+          key: mgi-duckdb-${{ github.run_id }}
