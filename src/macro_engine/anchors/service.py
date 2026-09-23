@@ -20,7 +20,7 @@ import yaml
 
 from macro_engine.anchors.config import load_anchor_config
 from macro_engine.anchors.cost_of_capital import build_cost_of_capital_anchor
-from macro_engine.anchors.growth import build_long_run_growth_anchor, current_regime_label
+from macro_engine.anchors.growth import build_long_run_growth_anchor
 from macro_engine.anchors.models import (
     AnchorBundle,
     CostOfCapitalAnchor,
@@ -135,15 +135,18 @@ def build_anchors(
     benchmark = sector_validation.benchmark_ticker
     sectors = _tracked_sectors(sector_config_path, proxies)
 
-    timeline = store.read_table("historical_regime_timeline")
-    regime_label = current_regime_label(timeline, resolved_as_of)
+    # v0.3: no regime label read here any more (P0_0 §5.2). The only state this anchor
+    # carries across builds is its own previously published rung_state, read back from
+    # anchor_runs so a rebuild does not silently reset the dead-band confirmation
+    # counter (§5.2, "rung_state is persisted in anchor_runs").
+    prior_rung_state = _prior_growth_rung_state(store, resolved_as_of)
 
     growth_anchor = build_long_run_growth_anchor(
         observations=observations,
         config=config,
         as_of=resolved_as_of,
         built_at=built_at,
-        regime_label=regime_label,
+        prior_rung_state=prior_rung_state,
         scoring_mode=scoring_mode,
         vintages=vintages,
         source_files=[macro_config_path, config_path],
@@ -273,6 +276,40 @@ def _resolve_as_of(as_of: str | None, observations: pd.DataFrame) -> pd.Timestam
     if dates.empty:
         return today
     return min(normalize_asof(dates.max()), today)
+
+
+def _prior_growth_rung_state(store: DuckDBStore, resolved_as_of: pd.Timestamp) -> dict[str, Any] | None:
+    """The most recently published `long_run_growth.rung_state`, strictly before this build.
+
+    `anchor_runs` holds one row per (as_of, scoring_mode); the rung mechanism is a
+    single state machine regardless of scoring mode, so this reads across both and
+    takes whichever row's `as_of` is the latest that is still before the current
+    build's as_of. None on the very first build (or if the table is unreadable),
+    which `advance_rung_state` treats as "seed the rung, do not confirm anything".
+    """
+    try:
+        runs = store.read_anchor_runs()
+    except Exception:  # noqa: BLE001 - a missing/corrupt table means "no prior state"
+        return None
+    if runs.empty or "as_of" not in runs.columns or "long_run_growth_json" not in runs.columns:
+        return None
+    frame = runs.copy()
+    frame["as_of"] = pd.to_datetime(frame["as_of"], errors="coerce")
+    frame = frame.dropna(subset=["as_of"])
+    frame = frame[frame["as_of"] < normalize_asof(resolved_as_of)]
+    if frame.empty:
+        return None
+    latest = frame.sort_values("as_of").iloc[-1]
+    payload = latest["long_run_growth_json"]
+    if isinstance(payload, str):
+        try:
+            payload = json.loads(payload)
+        except (TypeError, ValueError):
+            return None
+    if not isinstance(payload, dict):
+        return None
+    state = payload.get("rung_state")
+    return state if isinstance(state, dict) and state else None
 
 
 def _tracked_sectors(sector_config_path: str | Path, proxies: dict[str, str]) -> list[str]:

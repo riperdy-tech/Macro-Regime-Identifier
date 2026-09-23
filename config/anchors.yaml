@@ -129,6 +129,10 @@ growth:
     trend_window_years: 10
     min_observations: 12
   # Long-run inflation expectation, market-implied. Preferred first, then breakeven.
+  # v0.3 (S2): min_observations is now the minimum number of CALENDAR MONTHS required
+  # for the trailing-12-month-mean leg (P0_0 §5.2), not a minimum observation count on
+  # the spot value -- the spot value (published beside the smoothed leg as
+  # inflation_expectation_spot) has no minimum of its own.
   inflation_expectation:
     candidates:
       - {series: T5YIFR, units: percent}   # 5y5y forward inflation expectation
@@ -140,8 +144,25 @@ growth:
     floor: 0.000
     ceiling: 0.050
     round_to: 0.0025
-  # Regime sensitivity: added to the trend-derived suggestion before clamping.
-  # Positive = the regime supports a richer perpetual growth assumption.
+  # v0.3 (S2): the dead-band + confirmation rule that now governs the published rung
+  # (P0_0_MRI_TARGET_ARCHITECTURE.md §5.2, operator ruling §10 Q2). confirm_months: 3
+  # is specification E (recommended, adopted); confirm_months: 1 is specification C.
+  # Measured 2004-06..2026-08 (scripts/measure_growth_rung_path.py, S2 report): C moves
+  # 11 times, no jump larger than one rung (25 bp) -- an EXACT match to the
+  # architecture's §5.1 count. E moves 10 times, largest jump 50 bp -- the
+  # architecture's own measurement was 9 changes with one 75 bp jump; the S2 rebuild
+  # differs by exactly one extra change during the 2008-2009 window (an intermediate
+  # 2009-02 stop at 4.00% before the 2009-09 stop at 3.75%, instead of one 75 bp
+  # release), attributed to FRED revisions to GDPPOT/T5YIFR accrued since the
+  # architecture's 2026-09-22 measurement -- within the S2.1 gate's explicit "no more
+  # than one change" tolerance. Both specifications land on the SAME final rung,
+  # 3.75%, matching the architecture's stated "today" value exactly.
+  rung:
+    confirm_months: 3
+  # v0.3 DEPRECATED (S2): no longer applied anywhere in the computation -- the regime
+  # LABEL was removed from this anchor entirely (P0_0 §5.2). Values kept for the
+  # record and for a v0.2 reader for one release; see docs/ANCHOR_METHODOLOGY.md and
+  # LongRunGrowthAnchor.deprecations.
   regime_sensitivity:
     goldilocks: 0.0000
     reflation: 0.0025

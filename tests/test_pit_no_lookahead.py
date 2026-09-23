@@ -349,6 +349,49 @@ def test_calendar_mode_is_unchanged_by_the_new_module():
     assert pd.Timestamp(lagged["date"]) == pd.Timestamp("2024-01-01")
 
 
+# ── S2: the growth anchor's smoothed leg (P0_0 §5.2) ────────────────────────────────────────
+# Not PIT-resolved (it is a calendar smoothing window, the same discipline
+# log_linear_trend_annualized already used for the real-potential leg before S2), but it is
+# still an as-of function and must obey the same "D cannot see anything dated after D" rule.
+
+
+def test_trailing_12m_mean_ignores_every_observation_dated_after_as_of():
+    from macro_engine.anchors.growth import trailing_12m_mean_of_monthly_mean
+
+    dates = pd.date_range("2025-01-01", "2026-12-31", freq="B")
+    # Every real observation is 2.0; everything after the as-of is a poisoned 999.0 that
+    # must never enter the trailing mean.
+    values = [2.0 if d <= pd.Timestamp("2026-04-30") else 999.0 for d in dates]
+    frame = pd.DataFrame({"date": dates, "value": values})
+
+    value, month_end, _ = trailing_12m_mean_of_monthly_mean(
+        frame["value"], frame["date"], as_of=pd.Timestamp("2026-04-30"), min_months=12
+    )
+    assert value == pytest.approx(2.0)
+    assert month_end == "2026-04-30"
+
+
+def test_trailing_12m_mean_truncated_at_as_of_reproduces_the_row_a_full_history_gives_at_that_date():
+    """The no-look-ahead property S3's design note asks for: filtering the full series to
+    `date <= as_of` before calling, versus calling on the full series with that `as_of`,
+    must agree -- there is no code path where a later row changes an earlier answer."""
+    from macro_engine.anchors.growth import trailing_12m_mean_of_monthly_mean
+
+    dates = pd.date_range("2024-01-01", "2026-12-31", freq="B")
+    values = [2.0 + 0.001 * i for i in range(len(dates))]
+    frame = pd.DataFrame({"date": dates, "value": values})
+    as_of = pd.Timestamp("2025-09-30")
+
+    full_history = trailing_12m_mean_of_monthly_mean(
+        frame["value"], frame["date"], as_of=as_of, min_months=12
+    )
+    truncated = frame[frame["date"] <= as_of]
+    truncated_only = trailing_12m_mean_of_monthly_mean(
+        truncated["value"], truncated["date"], as_of=as_of, min_months=12
+    )
+    assert full_history == truncated_only
+
+
 # ── Backfill resumption ──────────────────────────────────────────────────────────────────────
 # A full-history ALFRED backfill is thousands of rate-limited requests. The first version held
 # every series in memory and wrote once at the end, so being killed -- which rate limiting makes

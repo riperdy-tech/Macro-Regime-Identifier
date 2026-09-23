@@ -37,6 +37,13 @@ class AnchorProvenance(BaseModel):
     degradation_reasons: list[str] = Field(default_factory=list)
     # Anything a consumer would need to reproduce the build.
     notes: list[str] = Field(default_factory=list)
+    # P0.3 / P0_0 §1.3.5: whether this anchor still reads the regime layer, and what it read.
+    # Growth (v0.3): {"used": false, "reason": "label_channel_removed_v0.3"} -- the label no
+    # longer reaches this anchor. Multiple bands: {"used": true, "date", "regime_or_state",
+    # "age_days"} -- the bands still condition on the dimension-derived `regime_state`, so its
+    # staleness must still be disclosed. None when an anchor has no regime leg at all
+    # (cost_of_capital).
+    regime_leg: dict[str, Any] | None = None
 
 
 class CostOfCapitalAnchor(BaseModel):
@@ -137,17 +144,36 @@ class LongRunGrowthAnchor(BaseModel):
     """
 
     anchor_id: Literal["long_run_growth"] = "long_run_growth"
-    version: str = "0.2"
+    version: str = "0.3"
     asof: str
     built_at: str
     nominal_gdp_trend: float | None = None
-    # real_potential, inflation_expectation
+    # real_potential, inflation_expectation (the smoothed, trailing-12m leg that now DRIVES
+    # the trend -- see inflation_expectation_spot for the un-smoothed single-observation leg)
     components: dict[str, float | None] = Field(default_factory=dict)
+    # The single latest observation of the inflation-expectation series, published beside the
+    # smoothed leg so a reader can see how far the smoothing has pulled the number. Not
+    # consumed by any computation below.
+    inflation_expectation_spot: float | None = None
+    # v0.3: equals terminal_g_rung. The consumer (rs2 terminal_g()) reads this field by name;
+    # the name is preserved even though the value is now the confirmed rung, not a freshly
+    # rounded one-shot number.
     terminal_g_suggestion: float | None = None
-    # Per-regime adjustment actually applied to reach terminal_g_suggestion.
+    # The published rung after the dead-band + confirmation rule (P0_0 §5.2). Same value as
+    # terminal_g_suggestion; carried as its own field because it is the object the rung_state
+    # below is state for.
+    terminal_g_rung: float | None = None
+    # Dead-band + confirmation state, persisted across builds (anchor_runs) so a rebuild does
+    # not silently reset the confirmation counter. See advance_rung_state().
+    rung_state: dict[str, Any] = Field(default_factory=dict)
+    # v0.3 DEPRECATED: removed from the computation. Kept for one release so a v1/v0.2 reader
+    # (rs2_data.anchor_terminal_g() reads only terminal_g_suggestion/degraded/asof and is
+    # unaffected either way) does not see the keys vanish outright. See `deprecations`.
     regime_sensitivity: dict[str, float] = Field(default_factory=dict)
     regime_applied: str | None = None
     regime_adjustment: float | None = None
+    # 0.85 x the smoothed nominal trend, UNCLAMPED and UNROUNDED -- the input to the rung, not
+    # the published rung itself.
     raw_trend_g: float | None = None
     clamp: dict[str, float] = Field(default_factory=dict)
     # The downstream constant this anchor exists to replace, disclosed for delta.
@@ -156,6 +182,7 @@ class LongRunGrowthAnchor(BaseModel):
     degraded: bool = False
     source_files: list[str] = Field(default_factory=list)
     provenance: AnchorProvenance = Field(default_factory=AnchorProvenance)
+    deprecations: list[str] = Field(default_factory=list)
 
 
 class AnchorBundle(BaseModel):

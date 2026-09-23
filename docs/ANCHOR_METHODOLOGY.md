@@ -285,29 +285,68 @@ Two measurement notes that cost bugs:
 
 ## 4. Long-run growth anchor
 
+**v0.3 (S2, 2026-09-23) — the regime label was removed from this computation.** The
+published regime (`goldilocks` 0.287, over `reflation` 0.243 — a contested call) was
+moving a *perpetual* growth rate through `regime_sensitivity`, and the label changes
+every ~13 months on the clean timeline. `P0_0_MRI_TARGET_ARCHITECTURE.md` §5 measured
+that the trend-only channel, taken at the single latest observation, is **not** slow
+enough to replace it outright (89 rung changes in 268 months, one of 225 bp, in the
+2009-01 TIPS-liquidity collapse) — so v0.3 both removes the label AND smooths the leg
+it now depends on entirely:
+
 ```
-real_potential         = log-linear OLS trend of log(observed potential output), annualised
-inflation_expectation  = market-implied long-run forward rate (5y5y), else the 10y breakeven
-nominal_gdp_trend      = real_potential + inflation_expectation
-raw_trend_g            = nominal_gdp_trend × max_share_of_nominal_trend
-terminal_g_suggestion  = clamp(raw_trend_g + regime_sensitivity[regime], floor, ceiling)
-delta                  = terminal_g_suggestion − downstream_prior_in_use
+real_potential            = log-linear OLS trend of log(observed potential output), annualised
+inflation_expectation_12m = trailing 12-calendar-month mean of the monthly mean of T5YIFR,
+                             else T10YIE (inflation_expectation_spot is the single latest
+                             observation, published beside it, consumed by nothing)
+nominal_gdp_trend         = real_potential + inflation_expectation_12m
+raw_trend_g               = nominal_gdp_trend × max_share_of_nominal_trend        (unchanged, 0.85)
+candidate_rung            = round(clamp(raw_trend_g, floor, ceiling) / round_to) × round_to
+rung_state                = advance_rung_state(candidate_rung, prior published rung_state)
+terminal_g_suggestion     = terminal_g_rung = rung_state.current_rung
+delta                     = terminal_g_suggestion − downstream_prior_in_use
 ```
 
+`advance_rung_state` (`src/macro_engine/anchors/growth.py`) is a dead-band + N-consecutive
+-monthly-build confirmation rule: the rung changes only once the clamped raw trend is
+beyond the *far* edge of the current rung (`abs(raw − current) > round_to`, not merely
+past the midpoint — that distinction is specifications B vs C below) **and** that
+departure holds for `growth.rung.confirm_months` consecutive monthly builds (default 3,
+specification E, the operator's ruling on §10 Q2; `confirm_months: 1` is specification
+C). State (`current_rung`, `candidate_rung`, `months_confirmed`, `last_change_date`,
+`changes_last_10y`) is persisted in `anchor_runs.long_run_growth_json.rung_state` and
+read back by `anchors/service.py` on every build, so a rebuild does not silently reset
+the confirmation counter. A daily pipeline calling `build-anchors` more than once inside
+a calendar month advances the state at most once (`last_evaluated_month`).
+
+**Measured (`scripts/measure_growth_rung_path.py`, S2 report), 2004-06 → 2026-08, 267
+months, on the S0 store:**
+
+| specification | rung changes | largest single change | today's rung |
+| --- | --- | --- | --- |
+| B (smoothed leg, no dead-band, naive round-to-nearest) | 19 | 25 bp | — |
+| C (`confirm_months: 1`, dead-band only) | **11** — exact match to the architecture's §5.1 count | 25 bp | 3.75% |
+| E (`confirm_months: 3`, adopted) | **10** vs. the architecture's measured 9 | 50 bp | 3.75% |
+
+E differs from the architecture's own 2026-09-22 measurement by exactly one extra
+change (an intermediate 2009-02 stop at 4.00% before the 2009-09 stop at 3.75%, in
+place of one 75 bp release straight from 4.50% to 3.75%), inside the S2.1 gate's
+explicit "no more than one change" tolerance; both specifications land on the **same
+final rung, 3.75%**, matching the architecture's stated value exactly. Attributed to
+FRED revisions to `GDPPOT`/`T5YIFR` accrued in the eleven months since the
+architecture's measurement, not to a difference in mechanism.
+
 Sources: `GDPPOT` (CBO Real Potential GDP, quarterly) for the real leg; `T5YIFR` with
-`T10YIE` as the documented fallback for the inflation leg. Both are observed series, which
-makes the **entire** growth anchor FRED-provable — the one anchor with no equity-side
-dependency at all. As published: real potential 2.06%, inflation expectation 2.32%, nominal
-trend 4.38%, **terminal g suggestion 3.5%** against the 2.5% constant it replaces
-(**delta +1.0pt**).
+`T10YIE` as the documented fallback for the inflation leg. Both are observed series,
+which makes the **entire** growth anchor FRED-provable — the one anchor with no
+equity-side dependency at all.
 
 **A trap worth naming: `GDPPOT` carries projections.** FRED publishes CBO's Real Potential GDP
 out to roughly a decade ahead — the stored series runs to **2036**. Before the as-of cap, the
 newest stored observation *was* that projection, the build dated itself **2036-10-01**, and
 every `date <= as_of` filter silently admitted projected values. The anchor would have
-restated CBO's forecast while presenting itself as an observation — terminal g read 3.0% off
-that basis. An anchor describes what IS KNOWN, so `_resolve_as_of` now caps at today and
-published the correct 3.5% from realised history.
+restated CBO's forecast while presenting itself as an observation. An anchor describes what IS
+KNOWN, so `_resolve_as_of` now caps at today.
 
 **Why the trend is fitted, not differenced.** An endpoint CAGR lets one bad quarter define
 a decade. Measured on a synthetic 2%/yr series with a 30% spike in the final quarter: the
@@ -319,13 +358,26 @@ a single perpetual rate across issuers is physically correct. The defect was nev
 cross-sectional uniformity — it was that the constant had no source, no version and no
 revision path *while feeding every issuer's `expectations_gap_pts`* through the implied-growth
 solver. A wrong value there shifts every name in the same direction, which is precisely why
-this now ships sourced, versioned, revisable, and with its delta against the constant it
+this ships sourced, versioned, revisable, and with its delta against the constant it
 replaces disclosed.
 
-Regime sensitivity (`regime_sensitivity` in `config/anchors.yaml`) is a **judgemental**
-adjustment, and it is labelled as such in the payload (`regime_adjustment`,
-`regime_applied`). The observed legs are not judgemental; this term is. An unknown regime
-applies zero adjustment and says so rather than guessing.
+**`regime_sensitivity`, `regime_applied`, `regime_adjustment` are v0.3 DEPRECATED.**
+Always `{}` / `null` / `null` now — the label has no code path to any field of this
+anchor (enforced by `tests/test_anchor_service.py`, which flips the stored regime label
+and rebuilds the whole bundle). Kept for one release so a v0.2 reader does not see the
+keys disappear outright; `rs2_data.anchor_terminal_g()` reads only
+`terminal_g_suggestion`, `degraded` and `asof`, so it is unaffected either way. See
+`LongRunGrowthAnchor.deprecations` and `provenance.regime_leg =
+{"used": false, "reason": "label_channel_removed_v0.3"}`.
+
+**P0.3 (anchors disclose and degrade on a stale regime leg) — where it still applies.**
+The growth anchor has no regime leg left to go stale (`provenance.regime_leg.used ==
+false`). `sector_multiple_bands.json`'s `regime_state` buckets still condition on the
+dimension-derived macro state (§5, unchanged by S2), so *that* payload's
+`provenance.regime_leg` carries `{date, regime_or_state, age_days}` from the state row
+actually used, and the payload goes `degraded: true` with a
+`regime_leg_stale:<date>` reason once `age_days` exceeds `regime_status.
+CURRENT_REGIME_MAX_AGE_DAYS` (45, the one owner).
 
 ---
 
@@ -649,9 +701,10 @@ tz-aware value reaching a comparison is impossible rather than unlikely.
 | File | What it pins |
 | --- | --- |
 | `tests/test_anchor_cost_of_capital.py` | decomposition, units, the breakeven identity, solve convergence, domain clipping, withheld-ERP statuses, the loading provenance gate, beta correctness |
-| `tests/test_anchor_growth.py` | component arithmetic, trend recovery, endpoint-noise resistance, regime sensitivity direction, clamps, delta disclosure, null-not-constant degradation |
-| `tests/test_anchor_multiples.py` | state derivation, as-of state lookup, conditioning actually conditioning, ladder rung reporting, floor enforcement, Gordon consistency and refusal |
-| `tests/test_pit_no_lookahead.py` | as-of D cannot see a later vintage, on two real revision patterns; loud failure without vintages; the calendar rule unchanged |
+| `tests/test_anchor_growth.py` | component arithmetic, trend recovery, endpoint-noise resistance, the trailing-12-month smoothing, the dead-band + confirmation rung state machine (specifications C and E), clamps, delta disclosure, null-not-constant degradation, the v0.3 deprecated-field values |
+| `tests/test_anchor_service.py` | end-to-end: flipping the stored regime label through `build_anchors` leaves every growth-anchor numeric field byte-identical (P0_0 §1.2 rule 5) |
+| `tests/test_anchor_multiples.py` | state derivation, as-of state lookup, conditioning actually conditioning, ladder rung reporting, floor enforcement, Gordon consistency and refusal, the P0.3 `regime_leg` staleness disclosure |
+| `tests/test_pit_no_lookahead.py` | as-of D cannot see a later vintage, on two real revision patterns; loud failure without vintages; the calendar rule unchanged; the smoothed growth leg never sees a month after as-of |
 | `tests/test_dashboard_export_optional.py` | `data_status` is structurally immune to the anchors; the publish guard; regime_status tolerance |
 
 Three defects were found by these tests during implementation and fixed at the source: the

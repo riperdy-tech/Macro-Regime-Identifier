@@ -119,10 +119,24 @@ class TerminalGConfig(BaseModel):
     round_to: float = Field(default=0.0025, gt=0)
 
 
+class RungConfig(BaseModel):
+    """Dead-band + confirmation rule for the published terminal-g rung (P0_0 §5.2).
+
+    `confirm_months` is the one config flag the architecture calls out: 3 is
+    specification E (recommended, operator ruling §10 Q2), 1 is specification C
+    (change as soon as the dead-band is cleared, no confirmation wait).
+    """
+
+    confirm_months: int = Field(default=3, ge=1)
+
+
 class GrowthConfig(BaseModel):
     real_potential: RealPotentialConfig = RealPotentialConfig()
     inflation_expectation: InflationExpectationConfig = InflationExpectationConfig()
     terminal_g: TerminalGConfig = TerminalGConfig()
+    rung: RungConfig = RungConfig()
+    # Kept for one release (v0.3 deprecation): no longer applied to the computation.
+    # See docs/ANCHOR_METHODOLOGY.md and P0_0_MRI_TARGET_ARCHITECTURE.md §5.2.
     regime_sensitivity: dict[str, float] = Field(default_factory=dict)
     downstream_prior_in_use: float | None = None
 
