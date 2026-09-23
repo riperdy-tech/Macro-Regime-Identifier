@@ -61,7 +61,7 @@ def _seed(db: Path) -> None:
     with store._connect() as con:  # noqa: SLF001
         con.execute("DELETE FROM news_classifications")
         con.register("rows", rows)
-        con.execute("INSERT INTO news_classifications SELECT * FROM rows")
+        con.execute("INSERT INTO news_classifications BY NAME SELECT * FROM rows")
 
 
 def test_prune_nulls_old_keeps_recent(tmp_path: Path):
