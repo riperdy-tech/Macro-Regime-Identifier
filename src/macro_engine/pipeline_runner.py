@@ -132,7 +132,11 @@ def run_pipeline(
             flush=True,
         )
         if vintage_summary.failed_count > 0:
-            if vintage_summary.vintage_rows == 0:
+            if (
+                vintage_summary.vintage_rows == 0
+                and vintage_summary.requests_made > 0
+                and vintage_summary.failed_count >= vintage_summary.requests_made
+            ):
                 # Every requested fetch failed: proceeding would silently build on whatever
                 # archive already existed, which is the exact failure the required vintage
                 # step exists to make loud (an ALFRED outage, a revoked key, or a

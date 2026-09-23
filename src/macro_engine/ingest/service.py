@@ -185,41 +185,59 @@ def _fetch_vintages(
     every day until ALFRED catches up. It is kept apart from `error` so the caller never counts
     it as a fetch failure.
     """
-    if not as_of_dates:
+def _fetch_date_vintages(
+    as_of: str,
+    sources: list[IngestionSource],
+    client: FredClient,
+    observation_start: str | None,
+    observation_end: str | None,
+    max_workers: int,
+    pace: _RequestPace,
+    deadline: float | None,
+) -> list[tuple[str, IngestionSource, pd.DataFrame | None, str | None, bool, bool]]:
+    """Fetch vintages for all requested sources as of a single date.
+
+    Returns list of:
+    (as_of, source, frame, error, skip_not_yet_published, is_deferred)
+    """
+    if not sources:
         return []
 
     def fetch(
-        as_of: str, worker_client: FredClient
-    ) -> tuple[str, pd.DataFrame | None, str | None, bool]:
+        source: IngestionSource, worker_client: FredClient
+    ) -> tuple[str, IngestionSource, pd.DataFrame | None, str | None, bool, bool]:
+        if deadline is not None and time.monotonic() >= deadline:
+            return as_of, source, None, None, False, True
         pace.wait()
+        if deadline is not None and time.monotonic() >= deadline:
+            return as_of, source, None, None, False, True
         try:
             frame = worker_client.get_series_observations_vintage(
-                series_id,
+                source.series_id,
                 as_of=as_of,
                 observation_start=observation_start,
                 observation_end=observation_end,
             )
         except VintageNotYetPublished:
-            return as_of, None, None, True
+            return as_of, source, None, None, True, False
         except FredError as exc:
-            return as_of, None, str(exc), False
-        return as_of, frame, None, False
+            return as_of, source, None, str(exc), False, False
+        return as_of, source, frame, None, False, False
 
-    workers = min(max(max_workers, 1), len(as_of_dates))
+    workers = min(max(max_workers, 1), len(sources))
     if workers == 1:
-        return [fetch(as_of, client) for as_of in as_of_dates]
+        return [fetch(source, client) for source in sources]
 
     pool_clients = _worker_clients(client, workers)
-    results: dict[str, tuple[str, pd.DataFrame | None, str | None]] = {}
+    results: list[tuple[str, IngestionSource, pd.DataFrame | None, str | None, bool, bool]] = []
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [
-            pool.submit(fetch, as_of, pool_clients[index % workers])
-            for index, as_of in enumerate(as_of_dates)
+            pool.submit(fetch, source, pool_clients[index % workers])
+            for index, source in enumerate(sources)
         ]
         for future in futures:
-            outcome = future.result()
-            results[outcome[0]] = outcome
-    return [results[as_of] for as_of in as_of_dates]
+            results.append(future.result())
+    return results
 
 
 def run_fred_vintage_ingestion(
@@ -236,6 +254,7 @@ def run_fred_vintage_ingestion(
     resume: bool = True,
     progress: bool = False,
     max_workers: int = 1,
+    time_budget_seconds: float | None = None,
 ) -> VintageIngestionSummary:
     """Backfill ALFRED vintages for exactly the as-of dates the diagnostics use.
 
@@ -244,20 +263,15 @@ def run_fred_vintage_ingestion(
     calendar actually asks about. Writes go to the separate `raw_observation_vintages` table (see
     DuckDBStore), leaving the daily revisioned `raw_observations` path completely untouched.
 
-    FLUSHED PER SERIES, AND RESUMABLE. The first version accumulated every series in memory and
-    wrote once at the end, so a full-history backfill -- ~6,500 requests -- held its only copy in
-    memory for hours, and FRED rate-limits long runs, which makes being killed a real possibility
-    rather than a hypothetical. Each series now lands in the database as soon as it is fetched,
-    and `resume=True` skips (series, as-of) pairs already stored, so a restart costs only the work
-    that had not completed.
-
-    CONCURRENT FETCH, SERIAL WRITE. `max_workers > 1` fetches a series' pending vintages in
-    parallel (paced below FRED's per-key request limit) and still stores them on the calling
-    thread, so an operator can kill the run at any point without leaving a partial series behind.
-
-    Idempotent either way: repeated writes replace the same
-    (series_id, date, realtime_start, realtime_end) rows.
+    NEWEST-FIRST, DATE-MAJOR, BUDGETED, AND FLUSHED PER DATE (S2 / B2).
+    Dates are evaluated newest first across all enabled series. A time budget halts new requests
+    at the deadline; in-flight requests finish, and unstarted pairs are marked deferred.
+    Flushes happen serially on the calling thread after each as-of date completes, ensuring a local
+    kill or exception loses at most one date's in-flight pairs (<= 20).
     """
+    started_at = time.monotonic()
+    deadline = (started_at + time_budget_seconds) if time_budget_seconds is not None else None
+
     load_dotenv()
     run_id = datetime.now(timezone.utc).isoformat()
     all_sources = load_ingestion_sources(config_path)
@@ -268,62 +282,77 @@ def run_fred_vintage_ingestion(
     fred = client or FredClient(api_key or os.getenv("FRED_API_KEY", ""))
     pace = _RequestPace(_FRED_REQUESTS_PER_MINUTE)
     unique_dates = sorted({str(value) for value in as_of_dates})
+    reversed_dates = sorted(unique_dates, reverse=True)
     already_stored = _stored_vintage_pairs(store) if resume else set()
     absent_known = _absent_vintage_pairs(store) if resume else set()
     answered = already_stored | absent_known
+
+    all_pairs = [(source.series_id, as_of) for as_of in unique_dates for source in sources]
+    skipped_pairs = sum(1 for p in all_pairs if p in answered)
+    skipped_absent_pairs = sum(1 for p in all_pairs if p in absent_known)
+
+    requests_made = 0
+    deferred_pairs: list[tuple[str, str]] = []
     errors: list[dict[str, str]] = []
     empty_vintages: list[dict[str, str]] = []
     not_yet_published: list[dict[str, str]] = []
+    stored_series: set[str] = set()
     vintage_rows = 0
-    skipped_pairs = 0
-    skipped_absent_pairs = 0
-    stored_series: list[str] = []
 
-    for source in sources:
-        frames: list[pd.DataFrame] = []
-        fetched = 0
-        started = time.monotonic()
-        pending = [as_of for as_of in unique_dates if (source.series_id, as_of) not in answered]
-        skipped_pairs += len(unique_dates) - len(pending)
-        skipped_absent_pairs += sum(
-            1 for as_of in unique_dates if (source.series_id, as_of) in absent_known
+    for date_idx, as_of in enumerate(reversed_dates):
+        if deadline is not None and time.monotonic() >= deadline:
+            for rem_as_of in reversed_dates[date_idx:]:
+                for source in sources:
+                    if (source.series_id, rem_as_of) not in answered:
+                        deferred_pairs.append((rem_as_of, source.series_id))
+            break
+
+        pending_sources = [source for source in sources if (source.series_id, as_of) not in answered]
+        if not pending_sources:
+            continue
+
+        date_results = _fetch_date_vintages(
+            as_of=as_of,
+            sources=pending_sources,
+            client=fred,
+            observation_start=observation_start,
+            observation_end=observation_end,
+            max_workers=max_workers,
+            pace=pace,
+            deadline=deadline,
         )
-        for as_of, observations, error, skip_not_yet_published in _fetch_vintages(
-            source.series_id, pending, fred, observation_start, observation_end, max_workers, pace
-        ):
-            if skip_not_yet_published:
-                # Not a failure and not an ordinary empty vintage: ALFRED just has not
-                # published this as-of date yet (today, or later). It is not memoised as an
-                # absence either -- unlike a genuinely nonexistent vintage, this one becomes
-                # available later, often later the same day.
-                not_yet_published.append({"series_id": source.series_id, "as_of": as_of})
-                continue
-            if error is not None:
-                errors.append({"series_id": source.series_id, "as_of": as_of, "error": error})
-                continue
-            if observations is None or observations.empty:
-                empty_vintages.append({"series_id": source.series_id, "as_of": as_of})
-                continue
-            frames.append(_vintage_frame(observations, source))
-            fetched += 1
-        if frames:
-            # Flush THIS series now: a multi-hour run must not hold its only copy in memory.
-            chunk = pd.concat(frames, ignore_index=True)
+
+        date_frames: list[pd.DataFrame] = []
+        date_empty: list[dict[str, str]] = []
+        for res_as_of, source, frame, error, is_nyp, is_deferred in date_results:
+            if is_deferred:
+                deferred_pairs.append((res_as_of, source.series_id))
+            else:
+                requests_made += 1
+                if is_nyp:
+                    not_yet_published.append({"series_id": source.series_id, "as_of": res_as_of})
+                elif error is not None:
+                    errors.append({"series_id": source.series_id, "as_of": res_as_of, "error": error})
+                elif frame is None or frame.empty:
+                    empty_vintages.append({"series_id": source.series_id, "as_of": res_as_of})
+                    date_empty.append({"series_id": source.series_id, "as_of": res_as_of})
+                else:
+                    date_frames.append(_vintage_frame(frame, source))
+                    stored_series.add(source.series_id)
+
+        # Flush serially on the calling thread after each as-of date completes
+        if date_frames:
+            chunk = pd.concat(date_frames, ignore_index=True)
             store.upsert_raw_observation_vintages(chunk)
             vintage_rows += int(len(chunk))
-            stored_series.append(source.series_id)
-        emptied = [
-            item for item in empty_vintages if item["series_id"] == source.series_id
-        ]
-        if emptied:
-            # Remember the negatives so the next run does not re-ask thousands of dead dates.
-            store.upsert_vintage_absence(_absence_frame(emptied))
+        if date_empty:
+            store.upsert_vintage_absence(_absence_frame(date_empty))
+
         if progress:
-            elapsed = time.monotonic() - started
-            rate = f"{len(pending) / elapsed * 60:.0f}/min" if pending and elapsed > 0 else "n/a"
+            elapsed = time.monotonic() - started_at
+            rate = f"{requests_made / elapsed * 60:.0f}/min" if requests_made and elapsed > 0 else "n/a"
             print(
-                f"vintages: {source.series_id} fetched={fetched} "
-                f"skipped_or_empty={len(unique_dates) - fetched} "
+                f"vintages: date={as_of} requests_made={requests_made} "
                 f"rows_stored_total={vintage_rows} "
                 f"elapsed={elapsed:.0f}s rate={rate}",
                 flush=True,
@@ -334,9 +363,13 @@ def run_fred_vintage_ingestion(
         _export_vintage_parquet(store, parquet_dir)
 
     for as_of in sorted({item["as_of"] for item in not_yet_published}):
-        # Recorded, not warned: this is expected to recur every day until ALFRED publishes,
-        # so it must not inflate warning_count or fail the run (see VintageNotYetPublished).
         print(f"vintages: vintage_skipped:not_yet_published:{as_of}", flush=True)
+
+    elapsed_seconds = round(time.monotonic() - started_at, 3)
+    deferred_count = len(deferred_pairs)
+    deferred_oldest_asof = min((p[0] for p in deferred_pairs), default=None)
+    deferred_newest_asof = max((p[0] for p in deferred_pairs), default=None)
+    budget_exhausted = deferred_count > 0
 
     return VintageIngestionSummary(
         run_id=run_id,
@@ -349,10 +382,16 @@ def run_fred_vintage_ingestion(
         skipped_absent_pairs=skipped_absent_pairs,
         failed_count=len(errors),
         storage_path=str(parquet_dir),
-        series_stored=stored_series,
+        series_stored=sorted(stored_series),
         failed_series=sorted({error["series_id"] for error in errors}),
         not_yet_published_count=len(not_yet_published),
         not_yet_published_dates=sorted({item["as_of"] for item in not_yet_published}),
+        requests_made=requests_made,
+        elapsed_seconds=elapsed_seconds,
+        deferred_count=deferred_count,
+        deferred_oldest_asof=deferred_oldest_asof,
+        deferred_newest_asof=deferred_newest_asof,
+        budget_exhausted=budget_exhausted,
     )
 
 
@@ -366,6 +405,7 @@ def run_vintage_backfill(
     api_key: str | None = None,
     client: FredClient | None = None,
     max_workers: int = _DEFAULT_VINTAGE_BACKFILL_WORKERS,
+    time_budget_seconds: float | None = None,
 ) -> VintageIngestionSummary:
     """Refresh ALFRED vintages for every enabled series, over the as-of dates the stored
     evaluation calendar actually asks about (`vintage_asof_dates`).
@@ -410,6 +450,7 @@ def run_vintage_backfill(
         resume=True,
         progress=False,
         max_workers=max_workers,
+        time_budget_seconds=time_budget_seconds,
     )
 
 

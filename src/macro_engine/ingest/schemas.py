@@ -75,3 +75,10 @@ class VintageIngestionSummary(BaseModel):
     # the pipeline runs before ALFRED catches up, and it resolves itself without a code change.
     not_yet_published_count: int = 0
     not_yet_published_dates: list[str] = Field(default_factory=list)
+    # B2: Rate and budget metrics
+    requests_made: int = 0
+    elapsed_seconds: float = 0.0
+    deferred_count: int = 0
+    deferred_oldest_asof: str | None = None
+    deferred_newest_asof: str | None = None
+    budget_exhausted: bool = False
