@@ -233,7 +233,7 @@ def test_specification_e_waits_for_three_consecutive_departures_then_can_release
     )
     assert state["current_rung"] == pytest.approx(0.0375)
     assert state["months_confirmed"] == 0
-    assert state["last_change_date"] == "2026-03-31"
+    assert state["last_change_date"] == "2026-03-01"
     assert state["changes_last_10y"] == 1
 
 
@@ -255,6 +255,77 @@ def test_a_departure_that_reverts_before_confirming_resets_the_counter():
     assert state["months_confirmed"] == 0
 
 
+def test_candidate_change_during_departure_resets_the_counter_under_candidate_rule():
+    """Specification E: candidate confirmation resets when candidate changes."""
+    state = {"current_rung": 0.0450, "candidate_rung": 0.0450, "months_confirmed": 0,
+              "last_change_date": None, "last_evaluated_month": "2025-12", "changes_last_10y": 0,
+              "change_history": []}
+    # Month 1: raw 0.0402 -> cand 0.0400
+    s1 = advance_rung_state(
+        raw_trend_g_clamped=0.0402, as_of=pd.Timestamp("2026-01-01"),
+        prior_state=state, round_to=0.0025, confirm_months=3, rule="candidate",
+    )
+    assert s1["months_confirmed"] == 1
+    assert s1["candidate_rung"] == pytest.approx(0.0400)
+
+    # Month 2: raw drops further to 0.0374 -> cand becomes 0.0375
+    s2 = advance_rung_state(
+        raw_trend_g_clamped=0.0374, as_of=pd.Timestamp("2026-02-01"),
+        prior_state=s1, round_to=0.0025, confirm_months=3, rule="candidate",
+    )
+    # Counter must reset to 1 because candidate changed!
+    assert s2["months_confirmed"] == 1
+    assert s2["candidate_rung"] == pytest.approx(0.0375)
+    assert s2["current_rung"] == pytest.approx(0.0450)
+
+    # Month 3: raw 0.0374 -> cand holds 0.0375
+    s3 = advance_rung_state(
+        raw_trend_g_clamped=0.0374, as_of=pd.Timestamp("2026-03-01"),
+        prior_state=s2, round_to=0.0025, confirm_months=3, rule="candidate",
+    )
+    assert s3["months_confirmed"] == 2
+    assert s3["current_rung"] == pytest.approx(0.0450)
+
+    # Month 4: raw 0.0374 -> cand holds 0.0375 for 3rd month -> CONFIRMS
+    s4 = advance_rung_state(
+        raw_trend_g_clamped=0.0374, as_of=pd.Timestamp("2026-04-01"),
+        prior_state=s3, round_to=0.0025, confirm_months=3, rule="candidate",
+    )
+    assert s4["months_confirmed"] == 0
+    assert s4["current_rung"] == pytest.approx(0.0375)
+    assert s4["last_change_date"] == "2026-04-01"
+
+
+def test_departure_rule_advances_count_even_when_candidate_changes():
+    """Alternative 'departure' rule: counts departures from current rung regardless of candidate."""
+    state = {"current_rung": 0.0450, "candidate_rung": 0.0450, "months_confirmed": 0,
+              "last_change_date": None, "last_evaluated_month": "2025-12", "changes_last_10y": 0,
+              "change_history": []}
+    s1 = advance_rung_state(
+        raw_trend_g_clamped=0.0402, as_of=pd.Timestamp("2026-01-01"),
+        prior_state=state, round_to=0.0025, confirm_months=3, rule="departure",
+    )
+    assert s1["months_confirmed"] == 1
+    assert s1["candidate_rung"] == pytest.approx(0.0400)
+
+    s2 = advance_rung_state(
+        raw_trend_g_clamped=0.0374, as_of=pd.Timestamp("2026-02-01"),
+        prior_state=s1, round_to=0.0025, confirm_months=3, rule="departure",
+    )
+    # Under departure rule, departure streak continues!
+    assert s2["months_confirmed"] == 2
+    assert s2["candidate_rung"] == pytest.approx(0.0375)
+
+    s3 = advance_rung_state(
+        raw_trend_g_clamped=0.0374, as_of=pd.Timestamp("2026-03-01"),
+        prior_state=s2, round_to=0.0025, confirm_months=3, rule="departure",
+    )
+    # Under departure rule, confirms on month 3!
+    assert s3["months_confirmed"] == 0
+    assert s3["current_rung"] == pytest.approx(0.0375)
+    assert s3["last_change_date"] == "2026-03-01"
+
+
 def test_a_same_calendar_month_rebuild_does_not_double_count_a_confirmation_month():
     """The daily pipeline may call build-anchors more than once a month; the
     architecture's 'three consecutive monthly builds' means three months, not three
@@ -272,15 +343,16 @@ def test_a_same_calendar_month_rebuild_does_not_double_count_a_confirmation_mont
 
 def test_changes_last_10y_drops_changes_older_than_the_window():
     state = {"current_rung": 0.0350, "candidate_rung": 0.0350, "months_confirmed": 0,
-              "last_change_date": "2015-06-30", "last_evaluated_month": "2015-06",
-              "changes_last_10y": 1, "change_history": ["2015-06-30"]}
+              "last_change_date": "2015-06-01", "last_evaluated_month": "2015-06",
+              "changes_last_10y": 1, "change_history": ["2015-06-01"]}
     moved = advance_rung_state(
         raw_trend_g_clamped=0.0300, as_of=pd.Timestamp("2026-04-30"),
         prior_state=state, round_to=0.0025, confirm_months=1,
     )
     # The 2015 change is now >10y old and must not be counted, even though a new one just fired.
     assert moved["changes_last_10y"] == 1
-    assert moved["change_history"] == ["2026-04-30"]
+    assert moved["change_history"] == ["2026-04-01"]
+
 
 
 # ── build_long_run_growth_anchor: components, clamp, degradation ───────────────────

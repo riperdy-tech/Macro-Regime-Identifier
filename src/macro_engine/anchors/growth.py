@@ -144,11 +144,13 @@ def advance_rung_state(
     prior_state: dict[str, Any] | None,
     round_to: float,
     confirm_months: int,
+    rule: str = "candidate",
 ) -> dict[str, Any]:
     """One step of the dead-band + N-consecutive-monthly-build confirmation rule.
 
-    P0_0_MRI_TARGET_ARCHITECTURE.md §5.2 / §10 Q2 (specification E, the operator's
-    choice; `confirm_months=1` is specification C). Pure function of the previously
+    P0_0_MRI_TARGET_ARCHITECTURE.md §5.2 / §10 Q2 (specification E as ruled,
+    confirm_months=3, rule="candidate"; confirm_months=1 is specification C;
+    rule="departure" is the departure variant). Pure function of the previously
     PUBLISHED rung state and this build's clamped raw trend, so the exact same
     function drives one live step (from `anchor_runs`) and a full historical replay
     (`scripts/measure_growth_rung_path.py`).
@@ -157,23 +159,27 @@ def advance_rung_state(
     current rung's cell, i.e. `abs(raw - current_rung) > round_to` -- not merely past
     the midpoint to the next rung, which is what an unbanded round-to-nearest already
     does (measured as specification B, 19 changes; the dead-band alone, C, is 11).
-    Confirmation: that departure must hold for `confirm_months` CONSECUTIVE monthly
-    builds before the rung actually moves; the candidate used on the confirming month
-    is that month's own rung, not the first month's, so a long hold can release more
-    than one rung's worth of movement at once (E's 2009-06 step, +75 bp after a
-    dead-band hold).
+    Confirmation: under the candidate rule (default), the candidate rung must hold for
+    `confirm_months` CONSECUTIVE monthly builds beyond the dead-band before the rung
+    moves; if the candidate changes during a departure, the counter resets. Under the
+    departure rule, departure alone advances the count.
 
     Guarded to at most one step per calendar month (`last_evaluated_month`): the daily
     pipeline may call `build-anchors` more than once inside the same month, and
     "monthly build" in the architecture's own measurement means one evaluation per
     calendar month, not one per pipeline run.
     """
+    if rule not in ("candidate", "departure"):
+        raise ValueError(f"unknown rung rule: {rule!r}, expected 'candidate' or 'departure'")
+
     candidate_rung = round(raw_trend_g_clamped / round_to) * round_to
-    as_of_month = as_of.strftime("%Y-%m")
-    as_of_iso = as_of.date().isoformat()
+    month_m = pd.Timestamp(as_of).to_period("M").start_time
+    as_of_month = month_m.strftime("%Y-%m")
+    m_iso = month_m.date().isoformat()
 
     if not prior_state or prior_state.get("current_rung") is None:
         # First build ever: nothing to confirm against, the rung is seeded.
+        gap_bp = round((raw_trend_g_clamped - candidate_rung) * 1e4)
         return {
             "current_rung": candidate_rung,
             "candidate_rung": candidate_rung,
@@ -182,6 +188,9 @@ def advance_rung_state(
             "last_evaluated_month": as_of_month,
             "changes_last_10y": 0,
             "change_history": [],
+            "gap_bp": gap_bp,
+            "rule": rule,
+            "method_version": 1,
         }
 
     if prior_state.get("last_evaluated_month") == as_of_month:
@@ -189,24 +198,44 @@ def advance_rung_state(
         # republish, do not advance or re-count the confirmation streak.
         state = dict(prior_state)
         state["candidate_rung"] = candidate_rung
+        current = float(state["current_rung"])
+        state["gap_bp"] = round((raw_trend_g_clamped - current) * 1e4)
+        state["rule"] = rule
+        state["method_version"] = 1
         return state
 
     current_rung = float(prior_state["current_rung"])
     months_confirmed = int(prior_state.get("months_confirmed", 0))
     history = list(prior_state.get("change_history", []))
-
-    departed = abs(raw_trend_g_clamped - current_rung) > round_to + 1e-9
-    months_confirmed = months_confirmed + 1 if departed else 0
     last_change_date = prior_state.get("last_change_date")
 
-    if departed and months_confirmed >= confirm_months and candidate_rung != current_rung:
-        current_rung = candidate_rung
-        last_change_date = as_of_iso
-        history = [*history, as_of_iso]
-        months_confirmed = 0
+    departed = abs(raw_trend_g_clamped - current_rung) > round_to + 1e-9
 
-    cutoff = as_of - pd.DateOffset(years=10)
+    if rule == "departure":
+        months_confirmed = months_confirmed + 1 if departed else 0
+        if departed and months_confirmed >= confirm_months and candidate_rung != current_rung:
+            current_rung = candidate_rung
+            last_change_date = m_iso
+            history.append(m_iso)
+            months_confirmed = 0
+    else:  # "candidate"
+        if departed:
+            months_confirmed = (
+                (months_confirmed + 1)
+                if (months_confirmed > 0 and prior_state.get("candidate_rung") == candidate_rung)
+                else 1
+            )
+            if months_confirmed >= confirm_months:
+                current_rung = candidate_rung
+                last_change_date = m_iso
+                history.append(m_iso)
+                months_confirmed = 0
+        else:
+            months_confirmed = 0
+
+    cutoff = month_m - pd.DateOffset(years=10)
     history = [d for d in history if pd.Timestamp(d) > cutoff]
+    gap_bp = round((raw_trend_g_clamped - current_rung) * 1e4)
 
     return {
         "current_rung": current_rung,
@@ -216,7 +245,11 @@ def advance_rung_state(
         "last_evaluated_month": as_of_month,
         "changes_last_10y": len(history),
         "change_history": history,
+        "gap_bp": gap_bp,
+        "rule": rule,
+        "method_version": 1,
     }
+
 
 
 def build_long_run_growth_anchor(
@@ -244,6 +277,11 @@ def build_long_run_growth_anchor(
     input_dates: dict[str, str] = {}
     reasons: list[str] = []
 
+    # Month-start grid: evaluation month M is the first calendar day of the build month.
+    as_of_dt = pd.Timestamp(as_of)
+    month_m = as_of_dt.to_period("M").start_time
+    last_complete_month_end = month_m - pd.Timedelta(days=1)
+
     real_series = growth.real_potential.series
     real_frame = _series_slice(observations, real_series)
     real_potential, real_date, real_n = log_linear_trend_annualized(
@@ -251,7 +289,7 @@ def build_long_run_growth_anchor(
         real_frame["date"] if not real_frame.empty else pd.Series(dtype="datetime64[ns]"),
         window_years=growth.real_potential.trend_window_years,
         min_observations=growth.real_potential.min_observations,
-        as_of=as_of,
+        as_of=month_m,
     )
     if real_potential is None:
         reasons.append(
@@ -263,6 +301,7 @@ def build_long_run_growth_anchor(
 
     # Smoothed leg (drives the trend) and spot leg (published for comparison only),
     # taken from the SAME candidate series so the two numbers describe one input.
+    # The inflation leg is the mean over the 12 complete calendar months before month M.
     inflation_expectation = None
     inflation_expectation_spot = None
     inflation_series_used = None
@@ -272,7 +311,7 @@ def build_long_run_growth_anchor(
         smoothed, month_end, n_months = trailing_12m_mean_of_monthly_mean(
             frame["value"] if not frame.empty else pd.Series(dtype="float64"),
             frame["date"] if not frame.empty else pd.Series(dtype="datetime64[ns]"),
-            as_of=as_of,
+            as_of=last_complete_month_end,
             min_months=growth.inflation_expectation.min_observations,
         )
         if smoothed is None:
@@ -322,10 +361,11 @@ def build_long_run_growth_anchor(
         clamped = min(max(raw_trend_g, clamp.floor), clamp.ceiling)
         rung_state = advance_rung_state(
             raw_trend_g_clamped=clamped,
-            as_of=as_of,
+            as_of=month_m,
             prior_state=prior_rung_state,
             round_to=clamp.round_to,
             confirm_months=growth.rung.confirm_months,
+            rule=growth.rung.rule,
         )
         suggestion = round(rung_state["current_rung"], 6)
     else:

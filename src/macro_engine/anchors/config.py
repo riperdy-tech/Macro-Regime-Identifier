@@ -125,9 +125,14 @@ class RungConfig(BaseModel):
     `confirm_months` is the one config flag the architecture calls out: 3 is
     specification E (recommended, operator ruling §10 Q2), 1 is specification C
     (change as soon as the dead-band is cleared, no confirmation wait).
+    `rule` is candidate (default, specification E as ruled) or departure
+    (alternative).
+    `replay_start` is the historical seed date ('2004-06-01').
     """
 
     confirm_months: int = Field(default=3, ge=1)
+    rule: Literal["candidate", "departure"] = "candidate"
+    replay_start: str = "2004-06-01"
 
 
 class GrowthConfig(BaseModel):

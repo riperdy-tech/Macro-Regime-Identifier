@@ -159,6 +159,8 @@ growth:
   # 3.75%, matching the architecture's stated "today" value exactly.
   rung:
     confirm_months: 3
+    rule: candidate
+    replay_start: "2004-06-01"
   # v0.3 DEPRECATED (S2): no longer applied anywhere in the computation -- the regime
   # LABEL was removed from this anchor entirely (P0_0 §5.2). Values kept for the
   # record and for a v0.2 reader for one release; see docs/ANCHOR_METHODOLOGY.md and
