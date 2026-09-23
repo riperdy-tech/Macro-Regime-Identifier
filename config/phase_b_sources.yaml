@@ -253,6 +253,17 @@ sources:
     unusable_after_days: 120
     publication_lag_days: 35
 
+  - series_id: NNUSBIS
+    name: Narrow Effective Exchange Rate for United States (BIS, nominal)
+    provider: FRED
+    dimension: dollar
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+    publication_lag_days: 52
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
@@ -421,6 +432,14 @@ features:
     enabled: true
     min_observations: 24
 
+  - feature_id: usd_narrow_yoy_z
+    series_id: NNUSBIS
+    transform: yoy_log_change
+    normalization: rolling_z_5y
+    direction: higher_is_dollar_strengthening
+    enabled: true
+    min_observations: 24
+
 dimensions:
   - dimension_id: growth_momentum
     enabled: true
@@ -541,6 +560,16 @@ dimensions:
     min_coverage_ratio: 1.00
     features:
       - feature_id: oil_wti_yoy_z
+        weight: 1.00
+        polarity: positive
+
+  - dimension_id: dollar
+    enabled: true
+    required_for_regime: false
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: usd_narrow_yoy_z
         weight: 1.00
         polarity: positive
 

@@ -117,3 +117,13 @@ dimension_compositions:
       features:
         - feature_id: oil_wti_yoy_z
           weight: 1.00
+
+  # S5.3: NNUSBIS from 1964-01. ALFRED archive begins 2014-02-18, so 2014-02-01 is expected
+  # invalid (not_yet_published) -- one month, disclosed, not a composition break.
+  dollar:
+    - composition_id: "dollar:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: usd_narrow_yoy_z
+          weight: 1.00
