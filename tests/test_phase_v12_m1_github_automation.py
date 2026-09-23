@@ -170,12 +170,56 @@ class TestGitHubWorkflowConfig:
             "Export dashboard data with automation summary"
         )
 
-    def test_workflow_writes_source_coverage_report(self):
+    def test_workflow_no_longer_writes_source_coverage_report(self):
+        """N1.7 item 9 / OA-1: config/news_source_watchlist.yaml never matched
+        the live profile's real sources, so this step's coverage is
+        superseded by N1.6's news_health.groups/sources. Retired with OA-1."""
         workflow = Path(".github/workflows/daily-dashboard.yml")
         content = workflow.read_text()
-        assert "write-news-source-coverage-report" in content
-        assert "outputs/news_source_coverage_report.json" in content
-        assert "outputs/news_source_coverage_report.md" in content
+        assert "write-news-source-coverage-report" not in content
+
+    def test_workflow_oa1_persists_news_history_with_if_always(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        persist_start = content.index("Persist run-audit snapshot")
+        persist_end = content.index("Alert on regime change")
+        persist_step = content[persist_start:persist_end]
+        assert "if: always()" in persist_step
+        assert (
+            "if [ -d outputs/news_history ]; then mkdir -p .run-history/outputs/news_history "
+            "&& cp -R outputs/news_history/. .run-history/outputs/news_history/; fi"
+        ) in persist_step
+        # The exact snippet has no `|| true` -- a failed copy must be loud.
+        assert "news_history" in persist_step and "|| true" not in persist_step.split(
+            "news_history"
+        )[1].split("\n")[0]
+
+    def test_workflow_oa2_manual_default_is_not_mock(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        dispatch_start = content.index("workflow_dispatch")
+        dispatch_end = content.index("schedule:")
+        dispatch_block = content[dispatch_start:dispatch_end]
+        assert "mock" not in dispatch_block
+        assert 'default: "live"' in dispatch_block
+
+    def test_workflow_oa3_job_timeout_is_45_minutes(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        assert "timeout-minutes: 45" in content
+
+    def test_workflow_oa4_fails_run_on_failed_status_or_news_health(self):
+        workflow = Path(".github/workflows/daily-dashboard.yml")
+        content = workflow.read_text()
+        gate_index = content.index("Fail the run on a failed daily status")
+        # Placed after both the dashboard publish and the cache save.
+        assert content.index("Publish to GitHub Pages") < gate_index
+        assert content.index("Save accumulated database") < gate_index
+        gate_step = content[gate_index:]
+        assert "if: always()" in gate_step
+        assert "status == 'failed'" in gate_step
+        assert "news_health_status == 'failed'" in gate_step
+        assert "sys.exit(1)" in gate_step
 
     def test_alert_step_reuses_open_mgi_alert_issue(self):
         workflow = Path(".github/workflows/daily-dashboard.yml")
@@ -253,6 +297,17 @@ class TestGitHubDailyPipelineConfig:
         assert news["mock_mode_default"] is False
         assert news["source_profile"] == "live_rss"
         assert news["news_ai_config"] == "config/news_ai_live.yaml"
+
+    def test_oa3_run_deadline_is_30_minutes_on_both_github_configs(self):
+        """OA-3 (2026-09-23, approved): 15 -> 30, paired with the workflow's
+        timeout-minutes 30 -> 45 (tested in TestGitHubWorkflowConfig)."""
+        for path in (
+            "config/daily_pipeline_github.yaml",
+            "config/daily_pipeline_github_live.yaml",
+        ):
+            content = yaml.safe_load(Path(path).read_text())
+            safety = content["daily_pipeline"]["safety"]
+            assert safety["overall_run_timeout_minutes"] == 30
 
     def test_github_live_ai_config_uses_real_classifier(self):
         config = load_news_ai_config("config/news_ai_live.yaml")

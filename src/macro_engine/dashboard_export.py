@@ -14,7 +14,6 @@ DASHBOARD_OUTPUT_FILES = [
     "combined_sector_diagnostic.json",
     "news_monitoring_report.json",
     "news_accumulation_report.json",
-    "news_source_coverage_report.json",
     "secular_theme_scores.json",
     "regime_status.json",
     "regime_timeline.json",
@@ -41,6 +40,12 @@ OPTIONAL_OUTPUT_FILES = [
     "sector_multiple_bands.json",
     "rs2_repair_package.json",
     "news_advisory_block.json",
+    # N1.7: the cloud workflow no longer runs write-news-source-coverage-report
+    # (config/news_source_watchlist.yaml never matched the live profile's real
+    # sources); its coverage is superseded by news_health.groups/sources
+    # (N1.6), read straight from daily_diagnostic_summary.json. A local run
+    # can still produce this file, so it stays optional rather than removed.
+    "news_source_coverage_report.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"
 

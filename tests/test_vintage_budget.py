@@ -403,9 +403,10 @@ def test_asof_resolver_pit_vintage_pending_behavior():
 
 
 def test_config_github_defaults_and_step_timeout_rejected():
-    """B5 / Config (Test 9.3 #8):
+    """B5 / Config (Test 9.3 #8), updated by N1 OA-3 (2026-09-23, approved):
     - Each config/daily_pipeline_github*.yaml loads with an effective
-      overall_run_timeout_minutes <= 20 and vintage_budget_minutes <= 6.
+      overall_run_timeout_minutes <= 30 (raised from 20 so live classification
+      can reach its 60-item/day cap) and vintage_budget_minutes <= 6.
     - step_timeout_minutes is rejected."""
     from macro_engine.operations_config import (
         DailySafetyConfig,
@@ -417,7 +418,7 @@ def test_config_github_defaults_and_step_timeout_rejected():
         "config/daily_pipeline_github_live.yaml",
     ]:
         cfg = load_daily_pipeline_config(path)
-        assert cfg.safety.overall_run_timeout_minutes <= 20.0
+        assert cfg.safety.overall_run_timeout_minutes <= 30.0
         assert cfg.macro.vintage_budget_minutes <= 6.0
 
     with pytest.raises(ValueError, match="step_timeout_minutes has been removed"):

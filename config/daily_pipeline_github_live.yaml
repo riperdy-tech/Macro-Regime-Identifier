@@ -42,10 +42,15 @@ daily_pipeline:
     source_profile: live_rss
 
   safety:
-    # Measured 2026-09-23 (run 35829508938, 28m40s total): tests 6m14s, daily diagnostic 21m03s
-    # at a 20-min deadline (~1 min of post-cutoff steps), everything else ~1.4 min. At 15 min:
-    # ~6.2 + ~16 + ~1.4 = ~23.6 min, leaving ~6 min under the 30-min job timeout.
-    overall_run_timeout_minutes: 15
+    # OA-3 (2026-09-23, approved): raised from a 15-min deadline / 30-min job
+    # timeout so live classification can reach its existing 60-item/day cap
+    # instead of ~15 (§0.2 of NEWS_PART1_SPEC.md). Budget at the new settings:
+    # setup+tests ~6.7m (measured, run 35829508938) + daily diagnostic up to
+    # ~31m (30-min deadline plus the scoring step's measured overrun past it)
+    # + after-steps ~1.5m =~ 40m against the 45-min job timeout (~5m margin).
+    # Not yet verified against a real run at these settings -- re-measure
+    # after the first live run and tighten this comment.
+    overall_run_timeout_minutes: 30
     fail_on_guardrail_violation: true
 
   outputs:

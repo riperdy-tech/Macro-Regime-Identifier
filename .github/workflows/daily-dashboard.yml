@@ -13,9 +13,8 @@ on:
         description: "Run mode"
         required: true
         type: choice
-        default: "mock"
+        default: "live"
         options:
-          - mock
           - live
       max_live_items:
         description: "Max live AI classification items (live mode only)"
@@ -43,7 +42,7 @@ concurrency:
 jobs:
   daily:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -148,9 +147,6 @@ jobs:
       - name: Write accumulation report
         run: python -m macro_engine.cli write-news-accumulation-report --config config/news_accumulation.yaml
 
-      - name: Write source coverage report
-        run: python -m macro_engine.cli write-news-source-coverage-report --config config/news_source_watchlist.yaml
-
       - name: Build secular theme tracker
         run: python -m macro_engine.cli build-secular-theme-scores --config config/news_scoring.yaml
 
@@ -203,7 +199,12 @@ jobs:
         # run-history branch so history_index accumulates across runs without
         # polluting master's commit history. The ledger + artifact survive even
         # if the DuckDB cache is LRU-evicted; the ledger merges with the
-        # restored copy on each run.
+        # restored copy on each run. N1.4/OA-1: also copy outputs/news_history
+        # (the durable news snapshot) -- this is the ONLY place it is
+        # committed, so this step must run even on a failed/cancelled job
+        # (if: always()), or a run's exported history is thrown away with the
+        # runner.
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -220,6 +221,7 @@ jobs:
           cp outputs/confidence_calibration_ledger.parquet .run-history/outputs/ 2>/dev/null || true
           cp outputs/confidence_calibration_artifact.json .run-history/outputs/ 2>/dev/null || true
           cp outputs/confidence_calibration.json outputs/confidence_calibration.md .run-history/outputs/ 2>/dev/null || true
+          if [ -d outputs/news_history ]; then mkdir -p .run-history/outputs/news_history && cp -R outputs/news_history/. .run-history/outputs/news_history/; fi
           cd .run-history
           git add -A outputs
           if git diff --cached --quiet; then
@@ -277,8 +279,6 @@ jobs:
             outputs/daily_diagnostic_summary.md
             outputs/news_accumulation_report.json
             outputs/news_accumulation_report.md
-            outputs/news_source_coverage_report.json
-            outputs/news_source_coverage_report.md
             outputs/secular_theme_scores.json
             outputs/secular_theme_tracker_*.md
             outputs/regime_status.json
@@ -311,3 +311,27 @@ jobs:
         with:
           path: data/macro_engine.duckdb
           key: mgi-duckdb-${{ github.run_id }}
+
+      - name: Fail the run on a failed daily status or news_health (OA-4)
+        # Placed LAST (after the dashboard publish and cache save) so a failed
+        # news gate never blocks those -- it only turns the Actions run red,
+        # which GitHub emails on. `run-daily-diagnostic` itself always exits 0
+        # regardless of `status` (§0.1 #13); this step is what actually gates.
+        if: always()
+        run: |
+          python -c "
+          import json, sys
+          path = 'outputs/daily_diagnostic_summary.json'
+          try:
+              with open(path, encoding='utf-8') as handle:
+                  summary = json.load(handle)
+          except (OSError, json.JSONDecodeError):
+              print(f'No readable {path}; nothing to gate on.')
+              sys.exit(0)
+          status = summary.get('status')
+          news_health_status = (summary.get('news_health') or {}).get('status')
+          if status == 'failed' or news_health_status == 'failed':
+              print(f'Daily status={status} news_health.status={news_health_status}')
+              sys.exit(1)
+          print(f'Daily status={status} news_health.status={news_health_status}: ok')
+          "
