@@ -1,0 +1,246 @@
+# MRI Shock Register: Taxonomy, Thresholds, and State Machine Configuration
+# Source: P0_0_MRI_TARGET_ARCHITECTURE.md §3.2-§3.4 and MRI_S4_PLAN.md (orchestrator decisions).
+# taxonomy_version is the sha256 hex digest of this file on disk.
+
+taxonomy_version: null  # dynamically resolved as sha256 of config/shocks.yaml
+
+shocks:
+  volatility_shock:
+    name: "Equity Volatility (VIX)"
+    series_id: VIXCLS
+    transform: level
+    measure: "month-end / latest level"
+    unit: index
+    signed: false
+    R: 10
+    retire_level: 25.0
+    sunset_days: 120
+    sample_window: "1990-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 30.0
+          percentile: 92.5
+          sample_window: "1990-01..2026-09"
+          episodes: 13
+        severity_2:
+          threshold: 40.0
+          percentile: 97.5
+          sample_window: "1990-01..2026-09"
+          episodes: 4
+
+  credit_shock:
+    name: "Corporate Credit Spread (BAA - 10Y Treasury)"
+    series_id: BAA10Y
+    transform: diff_63d_bp
+    measure: "63-trading-day change, bp"
+    unit: bp
+    signed: false
+    R: 10
+    retire_level: 0.0
+    sunset_days: 180
+    sample_window: "1986-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 50.0
+          percentile: 93.4
+          sample_window: "1986-01..2026-09"
+          episodes: 16
+        severity_2:
+          threshold: 75.0
+          percentile: 97.5
+          sample_window: "1986-01..2026-09"
+          episodes: 5
+
+  rates_shock:
+    name: "Real Interest Rates (10Y TIPS yield; proxy 2Y Treasury)"
+    series_id: DFII10
+    proxy_series_id: DGS2
+    transform: diff_63d_bp
+    measure: "63-trading-day change, bp, signed"
+    unit: bp
+    signed: true
+    R: 10
+    retire_level: 25.0
+    sunset_days: 240
+    sample_window: "2003-01..2026-09 (DFII10); 1990-01..2026-09 (DGS2)"
+    thresholds:
+      dfii10:
+        up:
+          severity_1:
+            threshold: 75.0
+            percentile: 95.7
+            sample_window: "2003-01..2026-09"
+            episodes: 4
+          severity_2:
+            threshold: 100.0
+            percentile: 97.2
+            sample_window: "2003-01..2026-09"
+            episodes: 3
+        down:
+          severity_1:
+            threshold: -60.0
+            percentile: 4.3
+            sample_window: "2003-01..2026-09"
+            episodes: 7
+          severity_2:
+            threshold: -70.0
+            percentile: 2.1
+            sample_window: "2003-01..2026-09"
+            episodes: 3
+      dgs2:
+        up:
+          severity_1:
+            threshold: 100.0
+            percentile: 96.8
+            sample_window: "1990-01..2026-09"
+            episodes: 7
+          severity_2:
+            threshold: 150.0
+            percentile: 99.1
+            sample_window: "1990-01..2026-09"
+            episodes: 3
+        down:
+          severity_1:
+            threshold: -100.0
+            percentile: 5.2
+            sample_window: "1990-01..2026-09"
+            episodes: 12
+          severity_2:
+            threshold: -150.0
+            percentile: 0.7
+            sample_window: "1990-01..2026-09"
+            episodes: 1
+
+  oil_shock:
+    name: "Crude Oil (WTI Spot)"
+    series_id: DCOILWTICO
+    transform: log_change_63d_pct
+    measure: "63-trading-day log change, %, signed"
+    unit: "%"
+    signed: true
+    R: 10
+    retire_level: 10.0
+    sunset_days: 180
+    sample_window: "1986-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 30.0
+          percentile: 94.4
+          sample_window: "1986-01..2026-09"
+          episodes: 11
+        severity_2:
+          threshold: 40.0
+          percentile: 97.9
+          sample_window: "1986-01..2026-09"
+          episodes: 5
+      down:
+        severity_1:
+          threshold: -30.0
+          percentile: 4.5
+          sample_window: "1986-01..2026-09"
+          episodes: 10
+        severity_2:
+          threshold: -40.0
+          percentile: 2.7
+          sample_window: "1986-01..2026-09"
+          episodes: 6
+
+  dollar_shock:
+    name: "Trade-Weighted U.S. Dollar Index (Stitched Broad)"
+    series_id: usd_stitched
+    component_series:
+      - DTWEXBGS
+      - DTWEXB
+    transform: log_change_63d_pct
+    measure: "63-trading-day log change, %, signed"
+    unit: "%"
+    signed: true
+    R: 10
+    retire_level: 2.5
+    sunset_days: 120
+    sample_window: "1995-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 5.0
+          percentile: 95.5
+          sample_window: "1995-01..2026-09"
+          episodes: 8
+        severity_2:
+          threshold: 6.0
+          percentile: 97.4
+          sample_window: "1995-01..2026-09"
+          episodes: 6
+      down:
+        severity_1:
+          threshold: -5.0
+          percentile: 3.2
+          sample_window: "1995-01..2026-09"
+          episodes: 8
+        severity_2:
+          threshold: -6.0
+          percentile: 0.5
+          sample_window: "1995-01..2026-09"
+          episodes: 2
+
+  labour_shock:
+    name: "Initial Jobless Claims (Weekly Spike)"
+    series_id: ICSA
+    transform: claims_spike_pct
+    measure: "4-week mean / trailing 52-week min - 1, %"
+    unit: "%"
+    signed: false
+    R: 10
+    retire_level: 10.0
+    sunset_days: 365
+    sample_window: "1990-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 30.0
+          percentile: 90.0
+          sample_window: "1990-01..2026-09"
+          episodes: 5
+        severity_2:
+          threshold: 40.0
+          percentile: 92.7
+          sample_window: "1990-01..2026-09"
+          episodes: 5
+
+  inflation_shock:
+    name: "Inflation Expectations (10Y Breakeven)"
+    series_id: T10YIE
+    transform: diff_63d_bp
+    measure: "63-trading-day change, bp, signed"
+    unit: bp
+    signed: true
+    R: 10
+    retire_level: 20.0
+    sunset_days: 120
+    sample_window: "2003-01..2026-09"
+    thresholds:
+      up:
+        severity_1:
+          threshold: 45.0
+          percentile: 95.7
+          sample_window: "2003-01..2026-09"
+          episodes: 6
+        severity_2:
+          threshold: 55.0
+          percentile: 97.9
+          sample_window: "2003-01..2026-09"
+          episodes: 4
+      down:
+        severity_1:
+          threshold: -45.0
+          percentile: 4.6
+          sample_window: "2003-01..2026-09"
+          episodes: 7
+        severity_2:
+          threshold: -60.0
+          percentile: 2.1
+          sample_window: "2003-01..2026-09"
+          episodes: 3

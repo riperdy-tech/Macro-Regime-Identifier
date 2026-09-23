@@ -856,6 +856,11 @@ def main(argv: list[str] | None = None) -> int:
         help="output directory for artifacts",
     )
     parser.add_argument(
+        "--config",
+        default="config/shocks.yaml",
+        help="path to shocks.yaml configuration file",
+    )
+    parser.add_argument(
         "--thresholds-file",
         default=None,
         help="optional custom JSON file with provisional thresholds",
@@ -865,10 +870,17 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # Load or write provisional thresholds
+    # Load thresholds from custom file, shocks.yaml, or defaults
     if args.thresholds_file and Path(args.thresholds_file).exists():
         with open(args.thresholds_file, "r", encoding="utf-8") as f:
             thresholds_cfg = json.load(f)
+    elif args.config and Path(args.config).exists():
+        from macro_engine.shocks.config import load_shocks_config, to_measurement_thresholds
+
+        yaml_cfg = load_shocks_config(args.config)
+        thresholds_cfg = to_measurement_thresholds(yaml_cfg)
+        with open(out_dir / "shocks_config_snapshot.json", "w", encoding="utf-8") as f:
+            json.dump(thresholds_cfg, f, indent=2)
     else:
         thresholds_cfg = DEFAULT_PROVISIONAL_THRESHOLDS
         # Write default provisional_thresholds.json to out_dir
