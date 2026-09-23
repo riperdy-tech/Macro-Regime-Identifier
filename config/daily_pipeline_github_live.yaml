@@ -43,6 +43,8 @@ daily_pipeline:
     source_profile: live_rss
 
   safety:
+    # job timeout 30 min, setup ~4 min, deadline 20 min, archive ~0.5 min, margin >= 5 min.
+    overall_run_timeout_minutes: 20
     fail_on_guardrail_violation: true
 
   outputs:
