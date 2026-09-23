@@ -1,0 +1,72 @@
+{
+  "anchor_id": "cost_of_capital",
+  "asof": "2026-09-23",
+  "built_at": "2026-09-23T12:23:17.570109+00:00",
+  "degraded": true,
+  "equity_aggregate": null,
+  "erp_basis": "unavailable",
+  "erp_history": null,
+  "erp_history_source": null,
+  "erp_percentile_vs_history": null,
+  "erp_source": "unavailable",
+  "implied_cost_of_equity": null,
+  "implied_erp": null,
+  "inflation": {
+    "cpi_yoy": 0.0335,
+    "pce_yoy": 0.037
+  },
+  "loading_source": "beta_vs_SPY_5y",
+  "market_implied_coe": null,
+  "market_implied_erp": null,
+  "provenance": {
+    "degradation_reasons": [
+      "erp: implied method configured but no equity aggregate is available at 'data/anchors/equity_aggregate.json'; MRI holds no equity data by design",
+      "erp_history: no ERP history file at data/anchors/erp_history.csv"
+    ],
+    "input_dates": {
+      "CPIAUCSL": "2026-08-01",
+      "DFII10": "2026-09-21",
+      "DGS10": "2026-09-21",
+      "PCEPI": "2026-07-01",
+      "T10YIE": "2026-09-22",
+      "THREEFYTP10": "2026-09-18"
+    },
+    "notes": [
+      "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
+    ],
+    "regime_leg": null,
+    "scoring_mode": "point_in_time"
+  },
+  "risk_free": {
+    "breakeven_10y": 0.0233,
+    "nominal_10y": 0.0496,
+    "real_10y": 0.0262,
+    "term_premium": 0.009595
+  },
+  "sector_loadings": {
+    "banks": 1.012,
+    "biotech": 1.131,
+    "communication_services": 1.0,
+    "consumer_discretionary": 1.22,
+    "consumer_staples": 0.363,
+    "energy": 0.567,
+    "financials": 0.843,
+    "health_care": 0.535,
+    "homebuilders": 1.126,
+    "industrials": 0.866,
+    "information_technology": 1.374,
+    "materials": 0.85,
+    "oil_gas_ep": 0.821,
+    "real_estate": 0.698,
+    "semiconductors": 1.737,
+    "software": 1.315,
+    "utilities": 0.437
+  },
+  "source_files": [
+    "config/phase_b_sources.yaml",
+    "config/anchors.yaml",
+    "config/sector_validation.yaml"
+  ],
+  "term_premium_source": "observed:THREEFYTP10",
+  "version": "0.2"
+}

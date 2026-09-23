@@ -1,0 +1,99 @@
+{
+  "adoption_gates": [
+    "All legs the consumer uses must be non-null; a null leg means the input was not measurable, and the consumer must keep its existing constant.",
+    "terminal_g_suggestion must be adopted only when long_run_growth.degraded is false.",
+    "Sector spreads stay with the consumer: adopt the LEVEL, keep the spread structure, and treat sector_loadings as information.",
+    "Re-run the MoS rank-correlation impact audit before and after adoption."
+  ],
+  "anchor_files": {
+    "cost_of_capital": "cost_of_capital_anchor.json",
+    "long_run_growth": "long_run_growth_anchor.json",
+    "sector_multiple_bands": "sector_multiple_bands.json"
+  },
+  "constants": [
+    {
+      "constant": "TERMINAL_G",
+      "current": 0.025,
+      "fallback": 0.025,
+      "location": "valuation_backbone.py",
+      "replacement": "long_run_growth_anchor.terminal_g_suggestion"
+    },
+    {
+      "constant": "SECTOR_WACC",
+      "current": "integer table, 7-11 (%)",
+      "fallback": "current table",
+      "location": "valuation_backbone.py",
+      "note": "Equity cost of capital LEVEL only. Sector SPREADS are preserved: the anchors publish loadings, never a replacement spread table.",
+      "replacement": "cost_of_capital_anchor level (risk_free + ERP)"
+    },
+    {
+      "constant": "DEFAULT_WACC",
+      "current": 10.0,
+      "fallback": 10.0,
+      "location": "valuation_backbone.py",
+      "replacement": "cost_of_capital_anchor level"
+    },
+    {
+      "constant": "UTIL_COE",
+      "current": 0.07,
+      "fallback": 0.07,
+      "location": "valuation_backbone.py",
+      "replacement": "cost_of_capital_anchor level, utilities loading"
+    },
+    {
+      "constant": "FIN_COE",
+      "current": 0.1,
+      "fallback": 0.1,
+      "location": "valuation_backbone.py",
+      "replacement": "cost_of_capital_anchor level, financials loading"
+    }
+  ],
+  "degradation_reasons": [
+    "erp: implied method configured but no equity aggregate is available at 'data/anchors/equity_aggregate.json'; MRI holds no equity data by design",
+    "erp_history: no ERP history file at data/anchors/erp_history.csv",
+    "gordon: cost of equity or growth unavailable; no justified multiple",
+    "The market-observed band requires a valuation panel (date, sector, forward multiple). MRI's local sector ETF file is price-only by construction, so no multiple can be derived from it; see docs/ANCHOR_METHODOLOGY.md \u00a75.",
+    "panel: no valuation panel file at data/anchors/sector_multiple_panel.csv"
+  ],
+  "degraded": true,
+  "generated_from": {
+    "asof": "2026-09-23",
+    "built_at": "2026-09-23T12:23:17.570109+00:00",
+    "scoring_mode": "point_in_time"
+  },
+  "known_findings": [
+    "outputs/current_regime.json can carry a synthetic future `date` (observed 2031-08-01). The anchors avoid it by dating themselves from the stored observation history. Recorded here, deliberately NOT fixed in the anchor change."
+  ],
+  "package_version": "0.2",
+  "rollback": [
+    "Delete or rename the anchor JSON files: the consumer falls back to its own constants, which remain in the code unchanged.",
+    "The anchors are additive outputs; no MRI output schema changed, so no MRI rollback is required."
+  ],
+  "values": {
+    "level_cost_of_equity": null,
+    "market_implied_erp": null,
+    "risk_free_10y": 0.0496,
+    "sector_loadings": {
+      "banks": 1.012,
+      "biotech": 1.131,
+      "communication_services": 1.0,
+      "consumer_discretionary": 1.22,
+      "consumer_staples": 0.363,
+      "energy": 0.567,
+      "financials": 0.843,
+      "health_care": 0.535,
+      "homebuilders": 1.126,
+      "industrials": 0.866,
+      "information_technology": 1.374,
+      "materials": 0.85,
+      "oil_gas_ep": 0.821,
+      "real_estate": 0.698,
+      "semiconductors": 1.737,
+      "software": 1.315,
+      "utilities": 0.437
+    },
+    "terminal_g_delta": 0.0125,
+    "terminal_g_prior_in_use": 0.025,
+    "terminal_g_suggestion": 0.0375
+  }
+}

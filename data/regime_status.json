@@ -1,15 +1,566 @@
 {
   "capital_market_anchors": {
-    "available": false,
-    "cost_of_capital": null,
-    "degraded": false,
-    "level_cost_of_equity": null,
-    "level_cost_of_equity_source": "unavailable",
-    "long_run_growth": null,
-    "sector_multiple_bands": null,
-    "terminal_g_suggestion": null
+    "available": true,
+    "cost_of_capital": {
+      "anchor_id": "cost_of_capital",
+      "asof": "2026-09-23",
+      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "degraded": true,
+      "equity_aggregate": null,
+      "erp_basis": "unavailable",
+      "erp_history": null,
+      "erp_history_source": null,
+      "erp_percentile_vs_history": null,
+      "erp_source": "unavailable",
+      "implied_cost_of_equity": null,
+      "implied_erp": null,
+      "inflation": {
+        "cpi_yoy": 0.0335,
+        "pce_yoy": 0.037
+      },
+      "loading_source": "beta_vs_SPY_5y",
+      "market_implied_coe": null,
+      "market_implied_erp": null,
+      "provenance": {
+        "degradation_reasons": [
+          "erp: implied method configured but no equity aggregate is available at 'data/anchors/equity_aggregate.json'; MRI holds no equity data by design",
+          "erp_history: no ERP history file at data/anchors/erp_history.csv"
+        ],
+        "input_dates": {
+          "CPIAUCSL": "2026-08-01",
+          "DFII10": "2026-09-21",
+          "DGS10": "2026-09-21",
+          "PCEPI": "2026-07-01",
+          "T10YIE": "2026-09-22",
+          "THREEFYTP10": "2026-09-18"
+        },
+        "notes": [
+          "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
+        ],
+        "regime_leg": null,
+        "scoring_mode": "point_in_time"
+      },
+      "risk_free": {
+        "breakeven_10y": 0.0233,
+        "nominal_10y": 0.0496,
+        "real_10y": 0.0262,
+        "term_premium": 0.009595
+      },
+      "sector_loadings": {
+        "banks": 1.012,
+        "biotech": 1.131,
+        "communication_services": 1.0,
+        "consumer_discretionary": 1.22,
+        "consumer_staples": 0.363,
+        "energy": 0.567,
+        "financials": 0.843,
+        "health_care": 0.535,
+        "homebuilders": 1.126,
+        "industrials": 0.866,
+        "information_technology": 1.374,
+        "materials": 0.85,
+        "oil_gas_ep": 0.821,
+        "real_estate": 0.698,
+        "semiconductors": 1.737,
+        "software": 1.315,
+        "utilities": 0.437
+      },
+      "source_files": [
+        "config/phase_b_sources.yaml",
+        "config/anchors.yaml",
+        "config/sector_validation.yaml"
+      ],
+      "term_premium_source": "observed:THREEFYTP10",
+      "version": "0.2"
+    },
+    "degraded": true,
+    "level_cost_of_equity": 0.0496,
+    "level_cost_of_equity_source": "risk_free_10y_only_not_a_cost_of_equity",
+    "long_run_growth": {
+      "anchor_id": "long_run_growth",
+      "asof": "2026-09-23",
+      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "clamp": {
+        "ceiling": 0.05,
+        "floor": 0.0,
+        "max_share_of_nominal_trend": 0.85
+      },
+      "components": {
+        "inflation_expectation": 0.0222,
+        "real_potential": 0.0224
+      },
+      "degraded": false,
+      "delta": 0.0125,
+      "deprecations": [
+        "regime_sensitivity, regime_applied and regime_adjustment are always empty/null in v0.3: the regime label was removed from this anchor's computation (P0_0_MRI_TARGET_ARCHITECTURE.md \u00a75.2). Kept for one release for a v1/v0.2 reader; rs2_data.anchor_terminal_g() reads only terminal_g_suggestion, degraded and asof, so it is unaffected."
+      ],
+      "downstream_prior_in_use": 0.025,
+      "inflation_expectation_spot": 0.0234,
+      "nominal_gdp_trend": 0.0446,
+      "provenance": {
+        "degradation_reasons": [],
+        "input_dates": {
+          "GDPPOT": "2026-07-01",
+          "T5YIFR": "2026-08-31"
+        },
+        "notes": [
+          "A uniform perpetual growth rate across issuers is deliberate: no company outgrows its economy forever. This anchor replaces an unsourced constant with a sourced, versioned and revisable one.",
+          "v0.3: the regime label no longer moves this anchor. terminal_g_suggestion is the published rung after a dead-band + 3-consecutive-monthly-build confirmation rule over the smoothed (trailing 12-month) inflation-expectation leg.",
+          "inflation_expectation leg taken from T5YIFR, trailing 12 months"
+        ],
+        "regime_leg": {
+          "reason": "label_channel_removed_v0.3",
+          "used": false
+        },
+        "scoring_mode": "point_in_time"
+      },
+      "raw_trend_g": 0.037947,
+      "regime_adjustment": null,
+      "regime_applied": null,
+      "regime_sensitivity": {},
+      "rung_state": {
+        "candidate_rung": 0.0375,
+        "change_history": [
+          "2018-09-01",
+          "2022-02-01",
+          "2024-06-01"
+        ],
+        "changes_last_10y": 3,
+        "current_rung": 0.0375,
+        "gap_bp": 4,
+        "last_change_date": "2024-06-01",
+        "last_evaluated_month": "2026-09",
+        "method_version": 1,
+        "months_confirmed": 0,
+        "rule": "candidate"
+      },
+      "source_files": [
+        "config/phase_b_sources.yaml",
+        "config/anchors.yaml"
+      ],
+      "terminal_g_rung": 0.0375,
+      "terminal_g_suggestion": 0.0375,
+      "version": "0.3"
+    },
+    "sector_multiple_bands": {
+      "anchor_id": "sector_multiple_bands",
+      "asof": "2026-09-23",
+      "bands": [
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "banks"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "biotech"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "communication_services"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "consumer_discretionary"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "consumer_staples"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "energy"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "financials"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "health_care"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "homebuilders"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "industrials"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "information_technology"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "materials"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "oil_gas_ep"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "real_estate"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "semiconductors"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "software"
+        },
+        {
+          "arithmetic_check": {
+            "coe": null,
+            "g": 0.0375,
+            "justified_pe": null,
+            "payout_ratio": 0.6,
+            "sanity_high": 60.0,
+            "sanity_low": 5.0
+          },
+          "conditioning_level": [],
+          "measure": "pe_ttm",
+          "measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+          "n_obs": 0,
+          "ntm_pe": {},
+          "regime_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "sector_id": "utilities"
+        }
+      ],
+      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "degraded": true,
+      "panel_measure": "pe_ttm",
+      "panel_measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
+      "panel_meta": {
+        "meta_error": "panel meta not found at data/anchors/sector_multiple_panel.meta.json"
+      },
+      "panel_source": "unavailable",
+      "provenance": {
+        "degradation_reasons": [
+          "gordon: cost of equity or growth unavailable; no justified multiple",
+          "The market-observed band requires a valuation panel (date, sector, forward multiple). MRI's local sector ETF file is price-only by construction, so no multiple can be derived from it; see docs/ANCHOR_METHODOLOGY.md \u00a75.",
+          "panel: no valuation panel file at data/anchors/sector_multiple_panel.csv"
+        ],
+        "input_dates": {},
+        "notes": [
+          "Market-observed quantiles come only from a configured valuation panel. The arithmetic Gordon leg is an independent cross-check, never a substitute for observation.",
+          "The market-observed band requires a valuation panel (date, sector, forward multiple). MRI's local sector ETF file is price-only by construction, so no multiple can be derived from it; see docs/ANCHOR_METHODOLOGY.md \u00a75."
+        ],
+        "regime_leg": {
+          "age_days": 22,
+          "date": "2026-09-01",
+          "regime_or_state": {
+            "credit": "loose",
+            "growth": "neutral",
+            "inflation": "neutral",
+            "rate_band": "high"
+          },
+          "used": true
+        },
+        "scoring_mode": "point_in_time"
+      },
+      "source_files": [
+        "config/anchors.yaml"
+      ],
+      "version": "0.2"
+    },
+    "terminal_g_suggestion": 0.0375
   },
-  "computed_at": "2026-09-23T07:28:53.641743+00:00",
+  "computed_at": "2026-09-23T12:23:30.951262+00:00",
   "confidence": 0.02773723488065427,
   "current_regime_age_days": 22,
   "current_regime_date": "2026-09-01",
@@ -28,12 +579,12 @@
   "raw_regime_probability": 0.28656613188718905,
   "readiness_label": "monitor_ready",
   "regime_probability": 0.28656613188718905,
-  "secular_theme_computed_at": "2026-09-23T07:28:51.057078+00:00",
+  "secular_theme_computed_at": "2026-09-23T12:23:27.987677+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.6151515151515152,
-      "avg_severity": 0.4174242424242424,
-      "item_count": 132,
+      "avg_confidence": 0.6150735294117647,
+      "avg_severity": 0.41875,
+      "item_count": 136,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -50,31 +601,31 @@
           "score": 6.596215584381224
         },
         {
-          "avg_confidence": 0.6535714285714285,
-          "item_count": 14,
+          "avg_confidence": 0.6444444444444444,
+          "item_count": 18,
           "period_start": "2026-09-01",
-          "score": 2.8827138108776706
+          "score": 4.0127138108776705
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6151515151515152,
-          "item_count": 132,
+          "avg_confidence": 0.6150735294117647,
+          "item_count": 136,
           "period_start": "2026-07-01",
-          "score": 13.305627937392257
+          "score": 14.435627937392256
         }
       ],
-      "raw_score": 55.1,
-      "score": 13.305627937392257,
+      "raw_score": 56.95,
+      "score": 14.435627937392256,
       "source_mix": {
         "cnbc_economy": 1,
-        "cnbc_finance": 12,
+        "cnbc_finance": 13,
         "cnbc_health": 1,
         "cnbc_markets": 28,
-        "cnbc_tech": 49,
+        "cnbc_tech": 51,
         "housingwire": 6,
         "marketwatch": 5,
-        "nasdaq_markets": 7,
+        "nasdaq_markets": 8,
         "oilprice": 15,
         "scmp": 7,
         "zerohedge.com": 1
@@ -84,8 +635,8 @@
         "news_63e403a5308f5cd1",
         "news_8ea27b2013d6d215",
         "news_9766d0cf41e3cbe0",
-        "news_1b542b97be12ba9e",
-        "news_49972e091aeac62c"
+        "news_a154e9cc04718b6d",
+        "news_1b542b97be12ba9e"
       ],
       "top_news_items": [
         {
@@ -113,23 +664,23 @@
           "title": "Fed approves interest rate hike, signals one more to come this year"
         },
         {
+          "confidence": 0.65,
+          "news_id": "news_a154e9cc04718b6d",
+          "score_component": 0.35,
+          "source": "cnbc_finance",
+          "source_url": "https://www.cnbc.com/2026/09/23/trump-xi-meeting-why-chinas-self-sufficiency-changes-the-calculus.html",
+          "title": "Trump-Xi meeting: Why China's self-sufficiency changes the calculus"
+        },
+        {
           "confidence": 0.9,
           "news_id": "news_1b542b97be12ba9e",
           "score_component": 0.3376086406989323,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/nvidia-wows-wall-street-with-a-strong-quarter-eye-popping-sales-forecast.html",
           "title": "Nvidia wows Wall Street with a strong quarter and an eye-popping sales forecast"
-        },
-        {
-          "confidence": 0.7,
-          "news_id": "news_49972e091aeac62c",
-          "score_component": 0.3016303812695045,
-          "source": "scmp",
-          "source_url": "https://www.scmp.com/news/china/diplomacy/article/3366162/trump-calls-xis-washington-visit-exciting-claims-us-leads-china-ai-race?utm_source=rss_feed",
-          "title": "Trump calls Xi\u2019s Washington visit \u2018exciting\u2019, but claims US leads China in AI race"
         }
       ],
-      "trend_30d": -2.547840361242298
+      "trend_30d": -1.5678403612422969
     },
     "cloud_software": {
       "avg_confidence": 0.6166666666666668,
@@ -315,9 +866,9 @@
       "trend_30d": 1.564762717627121
     },
     "energy_transition": {
-      "avg_confidence": 0.5659090909090908,
-      "avg_severity": 0.3795454545454545,
-      "item_count": 44,
+      "avg_confidence": 0.5622222222222221,
+      "avg_severity": 0.37555555555555553,
+      "item_count": 45,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -334,24 +885,24 @@
           "score": 1.780485750729755
         },
         {
-          "avg_confidence": 0.5444444444444445,
-          "item_count": 9,
+          "avg_confidence": 0.53,
+          "item_count": 10,
           "period_start": "2026-09-01",
-          "score": 1.1590118852730291
+          "score": 1.2255109169644522
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5659090909090908,
-          "item_count": 44,
+          "avg_confidence": 0.5622222222222221,
+          "item_count": 45,
           "period_start": "2026-07-01",
-          "score": 3.9764785307730937
+          "score": 4.042977562464516
         }
       ],
-      "raw_score": 16.7,
-      "score": 3.9764785307730937,
+      "raw_score": 16.9,
+      "score": 4.042977562464516,
       "source_mix": {
-        "cnbc_business": 1,
+        "cnbc_business": 2,
         "cnbc_markets": 1,
         "eia_energy": 3,
         "oilprice": 34,
@@ -408,7 +959,7 @@
           "title": "China's New Five-Year Plan Preps the Nation for Peak Oil"
         }
       ],
-      "trend_30d": -0.8416943779630435
+      "trend_30d": -0.7751953462716199
     },
     "glp1_metabolic": {
       "avg_confidence": 0.5666666666666668,
@@ -570,9 +1121,9 @@
       "trend_30d": 0.3956788967539285
     },
     "physical_ai": {
-      "avg_confidence": 0.5136363636363636,
-      "avg_severity": 0.35454545454545455,
-      "item_count": 11,
+      "avg_confidence": 0.5125,
+      "avg_severity": 0.34166666666666673,
+      "item_count": 12,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -589,23 +1140,24 @@
           "score": 0.44919061295780766
         },
         {
-          "avg_confidence": 0.525,
-          "item_count": 2,
+          "avg_confidence": 0.5166666666666667,
+          "item_count": 3,
           "period_start": "2026-09-01",
-          "score": 0.3623114441334491
+          "score": 0.4600274409768737
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5136363636363636,
-          "item_count": 11,
+          "avg_confidence": 0.5125,
+          "item_count": 12,
           "period_start": "2026-07-01",
-          "score": 1.0529902931127895
+          "score": 1.1507062899562142
         }
       ],
-      "raw_score": 3.9000000000000004,
-      "score": 1.0529902931127895,
+      "raw_score": 4.1000000000000005,
+      "score": 1.1507062899562142,
       "source_mix": {
+        "cnbc_business": 1,
         "cnbc_economy": 1,
         "cnbc_finance": 3,
         "cnbc_markets": 2,
@@ -664,7 +1216,7 @@
           "title": "Automation Could Start Eating Into U.S. Diesel Demand"
         }
       ],
-      "trend_30d": 0.2912110631185739
+      "trend_30d": 0.3889270599619985
     },
     "quantum_computing": {
       "avg_confidence": null,
@@ -683,9 +1235,9 @@
       "trend_30d": 0.0
     },
     "space_economy": {
-      "avg_confidence": 0.5142857142857143,
-      "avg_severity": 0.24285714285714288,
-      "item_count": 7,
+      "avg_confidence": 0.51875,
+      "avg_severity": 0.225,
+      "item_count": 8,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -702,26 +1254,27 @@
           "score": 0.18315903479768714
         },
         {
-          "avg_confidence": 0.6,
-          "item_count": 1,
+          "avg_confidence": 0.575,
+          "item_count": 2,
           "period_start": "2026-09-01",
-          "score": 0.234518392424219
+          "score": 0.289518392424219
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5142857142857143,
-          "item_count": 7,
+          "avg_confidence": 0.51875,
+          "item_count": 8,
           "period_start": "2026-07-01",
-          "score": 0.5224068395039688
+          "score": 0.5774068395039689
         }
       ],
-      "raw_score": 1.7000000000000002,
-      "score": 0.5224068395039688,
+      "raw_score": 1.8,
+      "score": 0.5774068395039689,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_tech": 1,
         "housingwire": 1,
+        "nasdaq_markets": 1,
         "scmp": 4
       },
       "theme_id": "space_economy",
@@ -729,8 +1282,8 @@
         "news_ff6b37ee817db7a3",
         "news_d18eae07a6cd8265",
         "news_6a4d80883256fc6a",
-        "news_9421db697735f8c6",
-        "news_bc83edb34ce57e8e"
+        "news_38dca2a580593ca3",
+        "news_9421db697735f8c6"
       ],
       "top_news_items": [
         {
@@ -758,39 +1311,39 @@
           "title": "Reusable rocket milestone opens a door for Hong Kong\u2019s space ambitions"
         },
         {
+          "confidence": 0.55,
+          "news_id": "news_38dca2a580593ca3",
+          "score_component": 0.05500000000000001,
+          "source": "nasdaq_markets",
+          "source_url": "https://www.nasdaq.com/articles/im-cannabis-acquire-51-space-defense-innovations-stock-surges-pre-market",
+          "title": "IM Cannabis To Acquire 51% Of Space Defense Innovations, Stock Surges In Pre-Market"
+        },
+        {
           "confidence": 0.4,
           "news_id": "news_9421db697735f8c6",
           "score_component": 0.04387299918778505,
           "source": "scmp",
           "source_url": "https://www.scmp.com/tech/article/3365534/chinas-commercial-space-sector-expands-global-footprint-thailand-deal?utm_source=rss_feed",
           "title": "China\u2019s commercial space sector expands global footprint with Thailand deal"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_bc83edb34ce57e8e",
-          "score_component": 0.034460950649911046,
-          "source": "bbc_world",
-          "source_url": "https://www.bbc.co.uk/news/articles/ce87e55vgpjo?at_medium=RSS&at_campaign=rss",
-          "title": "'A giant leap forward': Nasa launches powerful new space telescope"
         }
       ],
-      "trend_30d": 0.2181676805195648
+      "trend_30d": 0.2731676805195648
     }
   },
   "source_files": {
-    "cost_of_capital_anchor": null,
+    "cost_of_capital_anchor": "cost_of_capital_anchor.json",
     "current_regime": "current_regime.json",
     "daily_diagnostic_summary": "daily_diagnostic_summary.json",
-    "long_run_growth_anchor": null,
+    "long_run_growth_anchor": "long_run_growth_anchor.json",
     "news_accumulation_report": "news_accumulation_report.json",
-    "sector_multiple_bands": null,
+    "sector_multiple_bands": "sector_multiple_bands.json",
     "secular_theme_scores": "secular_theme_scores.json"
   },
   "status": "monitor_ready",
   "vintage_backlog": {
     "complete": false,
-    "frontier_asof": "2024-08-01",
-    "pending_pairs": 2509,
+    "frontier_asof": "2022-06-01",
+    "pending_pairs": 1985,
     "point_in_time_start": "2014-02-01"
   },
   "vintage_freshness": [

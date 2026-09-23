@@ -1,0 +1,66 @@
+{
+  "anchor_id": "long_run_growth",
+  "asof": "2026-09-23",
+  "built_at": "2026-09-23T12:23:17.570109+00:00",
+  "clamp": {
+    "ceiling": 0.05,
+    "floor": 0.0,
+    "max_share_of_nominal_trend": 0.85
+  },
+  "components": {
+    "inflation_expectation": 0.0222,
+    "real_potential": 0.0224
+  },
+  "degraded": false,
+  "delta": 0.0125,
+  "deprecations": [
+    "regime_sensitivity, regime_applied and regime_adjustment are always empty/null in v0.3: the regime label was removed from this anchor's computation (P0_0_MRI_TARGET_ARCHITECTURE.md \u00a75.2). Kept for one release for a v1/v0.2 reader; rs2_data.anchor_terminal_g() reads only terminal_g_suggestion, degraded and asof, so it is unaffected."
+  ],
+  "downstream_prior_in_use": 0.025,
+  "inflation_expectation_spot": 0.0234,
+  "nominal_gdp_trend": 0.0446,
+  "provenance": {
+    "degradation_reasons": [],
+    "input_dates": {
+      "GDPPOT": "2026-07-01",
+      "T5YIFR": "2026-08-31"
+    },
+    "notes": [
+      "A uniform perpetual growth rate across issuers is deliberate: no company outgrows its economy forever. This anchor replaces an unsourced constant with a sourced, versioned and revisable one.",
+      "v0.3: the regime label no longer moves this anchor. terminal_g_suggestion is the published rung after a dead-band + 3-consecutive-monthly-build confirmation rule over the smoothed (trailing 12-month) inflation-expectation leg.",
+      "inflation_expectation leg taken from T5YIFR, trailing 12 months"
+    ],
+    "regime_leg": {
+      "reason": "label_channel_removed_v0.3",
+      "used": false
+    },
+    "scoring_mode": "point_in_time"
+  },
+  "raw_trend_g": 0.037947,
+  "regime_adjustment": null,
+  "regime_applied": null,
+  "regime_sensitivity": {},
+  "rung_state": {
+    "candidate_rung": 0.0375,
+    "change_history": [
+      "2018-09-01",
+      "2022-02-01",
+      "2024-06-01"
+    ],
+    "changes_last_10y": 3,
+    "current_rung": 0.0375,
+    "gap_bp": 4,
+    "last_change_date": "2024-06-01",
+    "last_evaluated_month": "2026-09",
+    "method_version": 1,
+    "months_confirmed": 0,
+    "rule": "candidate"
+  },
+  "source_files": [
+    "config/phase_b_sources.yaml",
+    "config/anchors.yaml"
+  ],
+  "terminal_g_rung": 0.0375,
+  "terminal_g_suggestion": 0.0375,
+  "version": "0.3"
+}

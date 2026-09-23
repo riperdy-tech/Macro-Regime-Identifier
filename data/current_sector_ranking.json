@@ -1,5 +1,5 @@
 {
-  "built_at": "2026-09-23T07:15:16.411458+00:00",
+  "built_at": "2026-09-23T12:13:03.646381+00:00",
   "composition_id": "6d99e3027c699219",
   "coverage": 1.0,
   "date": "2026-09-01",
@@ -1935,7 +1935,7 @@
       ]
     }
   ],
-  "source_run_id": "2026-09-23T07:15:14.886138+00:00",
+  "source_run_id": "2026-09-23T12:12:52.173141+00:00",
   "subindustry_ranking": [
     {
       "components": [
@@ -4434,51 +4434,51 @@
   "validation": {
     "cross_section": "gics_11",
     "horizon_1m": {
-      "n_dates": 0,
-      "n_obs": 0,
-      "positive_share": null,
-      "rank_ic": null,
-      "sd_per_date_ic": null,
-      "t_naive": null,
-      "t_overlap_corrected": null
+      "n_dates": 226,
+      "n_obs": 2124,
+      "positive_share": 0.5442477876106194,
+      "rank_ic": 0.010907750067042112,
+      "sd_per_date_ic": 0.41513841607075463,
+      "t_naive": 0.3949994344804577,
+      "t_overlap_corrected": 0.3958762378556275
     },
     "horizon_3m": {
-      "n_dates": 0,
-      "n_obs": 0,
-      "positive_share": null,
-      "rank_ic": null,
-      "sd_per_date_ic": null,
-      "t_naive": null,
-      "t_overlap_corrected": null
+      "n_dates": 224,
+      "n_obs": 2102,
+      "positive_share": 0.4732142857142857,
+      "rank_ic": -0.00209686147186148,
+      "sd_per_date_ic": 0.4175535655014706,
+      "t_naive": -0.07515909682926228,
+      "t_overlap_corrected": -0.05434605937142741
     },
     "method": {
       "ic": "mean over dates of Spearman(tilt_score, relative forward return), 11 GICS rows ranked among themselves",
       "t_overlap_corrected": "Newey-West (Bartlett kernel, lag = horizon_months - 1) on the per-date IC series"
     },
     "reasons": [],
-    "score_end_date": null,
+    "score_end_date": "2026-08-01",
     "subindustry_6": {
       "horizon_1m": {
-        "n_dates": 0,
-        "n_obs": 0,
-        "positive_share": null,
-        "rank_ic": null,
-        "sd_per_date_ic": null,
-        "t_naive": null,
-        "t_overlap_corrected": null
+        "n_dates": 195,
+        "n_obs": 965,
+        "positive_share": 0.48205128205128206,
+        "rank_ic": -0.023223443223443215,
+        "sd_per_date_ic": 0.6547241071032323,
+        "t_naive": -0.4953196809108287,
+        "t_overlap_corrected": -0.4965946371535385
       },
       "horizon_3m": {
-        "n_dates": 0,
-        "n_obs": 0,
-        "positive_share": null,
-        "rank_ic": null,
-        "sd_per_date_ic": null,
-        "t_naive": null,
-        "t_overlap_corrected": null
+        "n_dates": 193,
+        "n_obs": 953,
+        "positive_share": 0.47150259067357514,
+        "rank_ic": -0.008512213175425618,
+        "sd_per_date_ic": 0.6457791369765561,
+        "t_naive": -0.18312057171668913,
+        "t_overlap_corrected": -0.14400028045915242
       }
     },
     "t_method": "newey_west_bartlett_lag_h_minus_1",
-    "validated_run_id": "2026-09-23T07:15:14.886138+00:00"
+    "validated_run_id": "2026-09-23T12:12:52.173141+00:00"
   },
   "warnings": [
     "Macro confidence is low; sector ranking should be treated as a weak diagnostic signal."
