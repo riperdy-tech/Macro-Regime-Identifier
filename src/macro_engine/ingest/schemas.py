@@ -69,3 +69,9 @@ class VintageIngestionSummary(BaseModel):
     # Which series had at least one failed vintage fetch in THIS run, so a caller can name
     # the failure in a warning instead of only counting it.
     failed_series: list[str] = Field(default_factory=list)
+    # (series, as_of) pairs ALFRED rejected because `as_of` is not yet published (today, or any
+    # date past ALFRED's own current date). Distinct from both `failed_count` (a real fetch
+    # failure) and `empty_vintage_count` (a permanent, memoised absence): this recurs every day
+    # the pipeline runs before ALFRED catches up, and it resolves itself without a code change.
+    not_yet_published_count: int = 0
+    not_yet_published_dates: list[str] = Field(default_factory=list)

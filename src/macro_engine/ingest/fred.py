@@ -24,8 +24,26 @@ class NoVintageAvailable(FredError):
     """
 
 
+class VintageNotYetPublished(FredError):
+    """ALFRED has not published a vintage for this as-of date yet.
+
+    A fact about the calendar, not a failure: the evaluation calendar's as-of dates always
+    include today (`pit_calendar.vintage_asof_dates`), and ALFRED rejects a realtime bound past
+    its own "today" -- HTTP 400, "realtime_start/realtime_end can not be after today's date" --
+    until it has finished publishing for the day. It recurs every day the pipeline runs before
+    that happens, so it is a distinct type: callers must not count it as a fetch failure (it
+    would fail the run outright once all older dates are already cached and today is the only
+    pending one) or as an ordinary warning (it would fire every single day).
+    """
+
+
 # ALFRED's wording for "this series has no archive covering the requested realtime range".
 _NOT_IN_ALFRED = "does not exist in ALFRED"
+
+# ALFRED's wording for "this as-of date is later than ALFRED's own current date" -- i.e. today's
+# vintage has not been published yet. Observed verbatim: "Variable realtime_start can not be
+# after today's date (2026-09-22) unless it's equal to the real-time max date 9999-12-31."
+_NOT_YET_PUBLISHED = "can not be after today's date"
 
 
 # Retried on transient FRED responses (rate limit + server errors).
@@ -90,6 +108,10 @@ class FredClient:
         date: a series that did not yet exist is a fact about the past, not a fault. ALFRED
         reports that case as HTTP 400 rather than an empty list, so it is caught here and
         converted -- the contract above is what callers actually depend on.
+
+        Raises `VintageNotYetPublished` (not converted here) when `as_of` is today, or any date
+        past ALFRED's own current date: the caller needs to tell that apart from a genuine fetch
+        failure, so it is left to propagate rather than silently emptied.
         """
         try:
             payload = self._get(
@@ -187,6 +209,11 @@ class FredClient:
                     raise NoVintageAvailable(
                         f"ALFRED has no archive for {params.get('series_id')} over "
                         f"{params.get('realtime_start')}..{params.get('realtime_end')}"
+                    )
+                if response.status_code == 400 and _NOT_YET_PUBLISHED in response.text:
+                    raise VintageNotYetPublished(
+                        f"ALFRED has not published a vintage for {params.get('series_id')} as of "
+                        f"{params.get('realtime_start')} yet"
                     )
                 raise FredError(
                     f"FRED request failed with HTTP {response.status_code}: {response.text}"

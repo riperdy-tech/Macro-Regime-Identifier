@@ -233,6 +233,116 @@ def test_run_pipeline_fails_the_run_when_every_vintage_fetch_fails(tmp_path):
     assert run["failed_step"] == "vintages"
 
 
+def test_run_fred_vintage_ingestion_skips_not_yet_published_dates(tmp_path):
+    """S1-fix item 1 (NEW DEFECT). `vintage_asof_dates` always includes today, and ALFRED does
+    not publish a same-day vintage until later. A client that raises `VintageNotYetPublished`
+    for that date must be counted separately from a real failure: zero fetch failures, zero
+    rows, and the date named in `not_yet_published_dates` -- not `failed_series`."""
+    from macro_engine.ingest.fred import VintageNotYetPublished
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+
+    class _NotYetPublishedClient:
+        def get_series_observations_vintage(
+            self, series_id, as_of, observation_start=None, observation_end=None
+        ):
+            raise VintageNotYetPublished(f"ALFRED has not published {series_id} as of {as_of}")
+
+    summary = run_fred_vintage_ingestion(
+        as_of_dates=["2026-09-23"],
+        config_path="config/phase_b_sources.yaml",
+        db_path=tmp_path / "macro.duckdb",
+        parquet_dir=tmp_path / "alfred",
+        client=_NotYetPublishedClient(),
+    )
+
+    assert summary.failed_count == 0
+    assert summary.failed_series == []
+    assert summary.vintage_rows == 0
+    assert summary.not_yet_published_count > 0
+    assert summary.not_yet_published_dates == ["2026-09-23"]
+
+
+def test_run_pipeline_succeeds_when_only_the_not_yet_published_date_is_pending(tmp_path):
+    """The real-store case this defect broke: every historical as-of date is already cached,
+    and the only pending fetch is today, which ALFRED has not published yet. Before this fix,
+    `vintage_rows == 0` with `failed_count > 0` failed the run outright every morning. It must
+    now succeed."""
+    from macro_engine.ingest.fred import VintageNotYetPublished
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+
+    class _NotYetPublishedClient:
+        def get_series_observations_vintage(
+            self, series_id, as_of, observation_start=None, observation_end=None
+        ):
+            raise VintageNotYetPublished(f"ALFRED has not published {series_id} as of {as_of}")
+
+    def _same_day_vintages(*, config_path, db_path, parquet_dir, start, end):
+        return run_fred_vintage_ingestion(
+            as_of_dates=["2026-09-23"],
+            config_path=config_path,
+            db_path=db_path,
+            parquet_dir=parquet_dir,
+            client=_NotYetPublishedClient(),
+        )
+
+    db_path = tmp_path / "macro.duckdb"
+
+    summary = run_pipeline(
+        config_path=_redirected_config(tmp_path),
+        db_path=db_path,
+        parquet_dir=tmp_path / "fred",
+        mode="mock",
+        ingest_runner=_mock_ingest,
+        vintage_runner=_same_day_vintages,
+    )
+
+    assert summary.status in {"success", "success_with_warnings"}
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] != "failed"
+    assert run["failed_step"] is None or pd.isna(run["failed_step"])
+
+
+def test_run_pipeline_still_fails_on_a_genuine_failure_amid_a_not_yet_published_skip(tmp_path):
+    """The skip classification must never mask a real failure: a genuine fetch failure on an
+    already-published date still stops the run, even when today's not-yet-published date is
+    fetched in the same batch."""
+    from macro_engine.ingest.fred import FredError, VintageNotYetPublished
+    from macro_engine.ingest.service import run_fred_vintage_ingestion
+
+    class _MixedClient:
+        def get_series_observations_vintage(
+            self, series_id, as_of, observation_start=None, observation_end=None
+        ):
+            if as_of == "2026-09-23":
+                raise VintageNotYetPublished(f"ALFRED has not published {series_id} as of {as_of}")
+            raise FredError("ALFRED down")
+
+    def _mixed_vintages(*, config_path, db_path, parquet_dir, start, end):
+        return run_fred_vintage_ingestion(
+            as_of_dates=["2020-01-01", "2026-09-23"],
+            config_path=config_path,
+            db_path=db_path,
+            parquet_dir=parquet_dir,
+            client=_MixedClient(),
+        )
+
+    db_path = tmp_path / "macro.duckdb"
+
+    with pytest.raises(FredError, match="vintage backfill failed"):
+        run_pipeline(
+            config_path=_redirected_config(tmp_path),
+            db_path=db_path,
+            parquet_dir=tmp_path / "fred",
+            mode="mock",
+            ingest_runner=_mock_ingest,
+            vintage_runner=_mixed_vintages,
+        )
+
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] == "failed"
+    assert run["failed_step"] == "vintages"
+
+
 def test_run_pipeline_warns_and_continues_on_a_partial_vintage_failure(tmp_path):
     """§0.3 item 1's other half: a PARTIAL vintage failure (some series fetched, some
     failed) must not stop the run outright -- it downgrades to success_with_warnings and

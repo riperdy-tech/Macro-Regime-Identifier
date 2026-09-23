@@ -141,3 +141,24 @@ def test_a_genuine_400_is_still_a_failure():
     session = _FakeSession([_Resp(400, text='{"error_code":400,"error_message":"Bad API key"}')])
     with pytest.raises(FredError, match="HTTP 400"):
         _client(session).get_series_observations_vintage("DFII10", as_of="1995-01-01")
+
+
+_ALFRED_NOT_YET_PUBLISHED = (
+    '{"error_code":400,"error_message":"Bad Request.  Variable realtime_start can not be after '
+    "today's date (2026-09-22) unless it's equal to the real-time max date 9999-12-31.\"}"
+)
+
+
+def test_alfred_not_yet_published_is_not_swallowed_to_empty_or_a_generic_failure():
+    """S1-fix item 1 (NEW DEFECT). The evaluation calendar's as-of dates always include today
+    (`pit_calendar.vintage_asof_dates`), and ALFRED rejects a realtime bound past its own
+    current date with this exact HTTP 400 text until it has published for the day. This must
+    raise a distinct `VintageNotYetPublished`, not the generic `FredError` a real outage raises,
+    and not the empty frame a genuinely nonexistent vintage returns -- the caller needs to tell
+    "wait for ALFRED to publish" apart from both."""
+    from macro_engine.ingest.fred import VintageNotYetPublished
+
+    session = _FakeSession([_Resp(400, text=_ALFRED_NOT_YET_PUBLISHED)])
+    with pytest.raises(VintageNotYetPublished, match="has not published"):
+        _client(session).get_series_observations_vintage("FEDFUNDS", as_of="2026-09-23")
+    assert session.calls == 1  # not retried: the answer will not change until ALFRED catches up

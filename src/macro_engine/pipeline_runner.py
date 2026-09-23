@@ -126,7 +126,11 @@ def run_pipeline(
             start=start,
             end=end,
         )
-        print(f"pipeline: vintages done (rows={vintage_summary.vintage_rows})", flush=True)
+        print(
+            f"pipeline: vintages done (rows={vintage_summary.vintage_rows}, "
+            f"not_yet_published={vintage_summary.not_yet_published_count})",
+            flush=True,
+        )
         if vintage_summary.failed_count > 0:
             if vintage_summary.vintage_rows == 0:
                 # Every requested fetch failed: proceeding would silently build on whatever

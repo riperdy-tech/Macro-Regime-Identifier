@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 from dotenv import load_dotenv
 
-from macro_engine.ingest.fred import FredClient, FredError
+from macro_engine.ingest.fred import FredClient, FredError, VintageNotYetPublished
 from macro_engine.ingest.health import build_source_health
 from macro_engine.ingest.registry import load_ingestion_sources, select_sources
 from macro_engine.ingest.schemas import (
@@ -167,8 +167,9 @@ def _fetch_vintages(
     observation_end: str | None,
     max_workers: int,
     pace: _RequestPace,
-) -> list[tuple[str, pd.DataFrame | None, str | None]]:
-    """Fetch one series' vintages and return `(as_of, frame, error)` in DATE ORDER.
+) -> list[tuple[str, pd.DataFrame | None, str | None, bool]]:
+    """Fetch one series' vintages and return `(as_of, frame, error, not_yet_published)` in DATE
+    ORDER.
 
     Why concurrent: ALFRED's per-request latency is wildly uneven for the SAME series -- a
     2015 vintage returns in 0.3 s while a 2018 vintage of the same series takes 17-19 s
@@ -178,11 +179,18 @@ def _fetch_vintages(
 
     Writes stay serial: the caller stores each series on its own thread once every pair for
     that series has landed, so concurrency changes how fast bytes arrive, never what is stored.
+
+    `not_yet_published` is true when ALFRED rejected `as_of` as later than its own current date
+    (`VintageNotYetPublished`) -- the evaluation calendar always asks about today, so this recurs
+    every day until ALFRED catches up. It is kept apart from `error` so the caller never counts
+    it as a fetch failure.
     """
     if not as_of_dates:
         return []
 
-    def fetch(as_of: str, worker_client: FredClient) -> tuple[str, pd.DataFrame | None, str | None]:
+    def fetch(
+        as_of: str, worker_client: FredClient
+    ) -> tuple[str, pd.DataFrame | None, str | None, bool]:
         pace.wait()
         try:
             frame = worker_client.get_series_observations_vintage(
@@ -191,9 +199,11 @@ def _fetch_vintages(
                 observation_start=observation_start,
                 observation_end=observation_end,
             )
+        except VintageNotYetPublished:
+            return as_of, None, None, True
         except FredError as exc:
-            return as_of, None, str(exc)
-        return as_of, frame, None
+            return as_of, None, str(exc), False
+        return as_of, frame, None, False
 
     workers = min(max(max_workers, 1), len(as_of_dates))
     if workers == 1:
@@ -263,6 +273,7 @@ def run_fred_vintage_ingestion(
     answered = already_stored | absent_known
     errors: list[dict[str, str]] = []
     empty_vintages: list[dict[str, str]] = []
+    not_yet_published: list[dict[str, str]] = []
     vintage_rows = 0
     skipped_pairs = 0
     skipped_absent_pairs = 0
@@ -277,9 +288,16 @@ def run_fred_vintage_ingestion(
         skipped_absent_pairs += sum(
             1 for as_of in unique_dates if (source.series_id, as_of) in absent_known
         )
-        for as_of, observations, error in _fetch_vintages(
+        for as_of, observations, error, skip_not_yet_published in _fetch_vintages(
             source.series_id, pending, fred, observation_start, observation_end, max_workers, pace
         ):
+            if skip_not_yet_published:
+                # Not a failure and not an ordinary empty vintage: ALFRED just has not
+                # published this as-of date yet (today, or later). It is not memoised as an
+                # absence either -- unlike a genuinely nonexistent vintage, this one becomes
+                # available later, often later the same day.
+                not_yet_published.append({"series_id": source.series_id, "as_of": as_of})
+                continue
             if error is not None:
                 errors.append({"series_id": source.series_id, "as_of": as_of, "error": error})
                 continue
@@ -315,6 +333,11 @@ def run_fred_vintage_ingestion(
         # Keep the Parquet mirror current even when this run only skipped over stored work.
         _export_vintage_parquet(store, parquet_dir)
 
+    for as_of in sorted({item["as_of"] for item in not_yet_published}):
+        # Recorded, not warned: this is expected to recur every day until ALFRED publishes,
+        # so it must not inflate warning_count or fail the run (see VintageNotYetPublished).
+        print(f"vintages: vintage_skipped:not_yet_published:{as_of}", flush=True)
+
     return VintageIngestionSummary(
         run_id=run_id,
         series_requested=len(sources),
@@ -328,6 +351,8 @@ def run_fred_vintage_ingestion(
         storage_path=str(parquet_dir),
         series_stored=stored_series,
         failed_series=sorted({error["series_id"] for error in errors}),
+        not_yet_published_count=len(not_yet_published),
+        not_yet_published_dates=sorted({item["as_of"] for item in not_yet_published}),
     )
 
 
