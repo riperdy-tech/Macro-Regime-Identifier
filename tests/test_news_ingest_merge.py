@@ -145,7 +145,7 @@ def test_fake_fulltext_fetcher_never_called_for_stored_id(tmp_path: Path, monkey
     # Pre-store item_1
     store.merge_news_items(pd.DataFrame([_sample_news_item_dict("item_1", body="Stored short body")]))
 
-    # Mock load_news_items_from_config to return item_1 (stored) and item_2 (new)
+    # Mock load_news_items_with_report to return item_1 (stored) and item_2 (new)
     item_1_obj = NewsItem(
         news_id="item_1",
         source="reuters",
@@ -170,8 +170,8 @@ def test_fake_fulltext_fetcher_never_called_for_stored_id(tmp_path: Path, monkey
     )
 
     monkeypatch.setattr(
-        "macro_engine.news.service.load_news_items_from_config",
-        lambda *a, **kw: [item_1_obj, item_2_obj],
+        "macro_engine.news.service.load_news_items_with_report",
+        lambda *a, **kw: ([item_1_obj, item_2_obj], []),
     )
 
     fake_fetcher = MagicMock(return_value="<html><body>Full article text for item</body></html>")

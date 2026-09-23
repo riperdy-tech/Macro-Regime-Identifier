@@ -123,6 +123,7 @@ news_sources:
     source_group: macro_general
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 96  # measured max gap 55.0h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: cnbc_markets_rss
     provider: rss
@@ -134,6 +135,7 @@ news_sources:
     source_group: macro_general
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 192  # measured max gap 117.8h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: cnbc_finance_rss
     provider: rss
@@ -145,6 +147,7 @@ news_sources:
     source_group: credit_financial_conditions
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 120  # measured max gap 68.6h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: fed_press_rss
     provider: rss
@@ -156,6 +159,7 @@ news_sources:
     source_group: credit_financial_conditions
     max_items: 10
     lookback_days: 7
+    stale_after_hours: 336  # measured max gap 210.5h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: bls_latest_rss
     provider: rss
@@ -167,6 +171,7 @@ news_sources:
     source_group: labor
     max_items: 10
     lookback_days: 7
+    stale_after_hours: 336  # n/a: only 1 item in the feed at probe time (2026-09-23); held to the 336h fed_press-tier ceiling
 
   - source_id: dol_releases_rss
     provider: rss
@@ -178,6 +183,7 @@ news_sources:
     source_group: labor
     max_items: 10
     lookback_days: 7
+    stale_after_hours: 264  # measured max gap 168.0h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: eia_energy_rss
     provider: rss
@@ -189,6 +195,7 @@ news_sources:
     source_group: energy_commodities
     max_items: 12
     lookback_days: 5
+    stale_after_hours: 336  # n/a: all 18 probed items undated (2026-09-23); held to the 336h fed_press-tier ceiling
 
   - source_id: oilprice_rss
     provider: rss
@@ -200,6 +207,7 @@ news_sources:
     source_group: energy_commodities
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: housingwire_rss
     provider: rss
@@ -211,6 +219,7 @@ news_sources:
     source_group: real_estate
     max_items: 10
     lookback_days: 5
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: cnbc_technology_rss
     provider: rss
@@ -222,6 +231,7 @@ news_sources:
     source_group: technology_ai
     max_items: 10
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: cnbc_health_rss
     provider: rss
@@ -233,6 +243,7 @@ news_sources:
     source_group: healthcare
     max_items: 10
     lookback_days: 3
+    stale_after_hours: 168  # measured max gap 111.1h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: bbc_world_rss
     provider: rss
@@ -244,6 +255,7 @@ news_sources:
     source_group: geopolitical
     max_items: 10
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: cnbc_retail_rss
     provider: rss
@@ -255,6 +267,7 @@ news_sources:
     source_group: consumer
     max_items: 10
     lookback_days: 3
+    stale_after_hours: 240  # measured max gap 147.2h, probed 2026-09-23; 1.5x rounded up to whole days
 
   # --- Added from the FinancialJuice list (validated fresh + free) ----------
   - source_id: fed_speeches_rss
@@ -267,6 +280,7 @@ news_sources:
     source_group: credit_financial_conditions
     max_items: 10
     lookback_days: 14
+    stale_after_hours: 840  # measured max gap 545.9h, probed 2026-09-23; 1.5x rounded up to whole days
 
   - source_id: nasdaq_markets_rss
     provider: rss
@@ -278,6 +292,7 @@ news_sources:
     source_group: macro_general
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: marketwatch_top_rss
     provider: rss
@@ -289,6 +304,7 @@ news_sources:
     source_group: macro_general
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: scmp_news_rss
     provider: rss
@@ -300,6 +316,7 @@ news_sources:
     source_group: geopolitical
     max_items: 10
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   # --- Added to widen live coverage -----------------------------------------
   # Probed reachable + parse to title/body/date via load_rss_source. Bodies are
@@ -316,6 +333,7 @@ news_sources:
     source_group: energy_commodities
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: cnbc_business_rss
     provider: rss
@@ -327,6 +345,7 @@ news_sources:
     source_group: manufacturing_industrials
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
   - source_id: marketwatch_pulse_rss
     provider: rss
@@ -338,6 +357,7 @@ news_sources:
     source_group: macro_general
     max_items: 12
     lookback_days: 3
+    stale_after_hours: 72  # n/a: feed returned 0 items at probe time (2026-09-23); floor value pending N1.6 dead-feed flagging
 
   - source_id: manual_text_example
     provider: manual_text
@@ -425,6 +445,7 @@ news_sources:
     source_group: macro_general
     max_items: 15
     lookback_days: 2
+    stale_after_hours: 72  # n/a: not an RSS feed; floor value, no cadence measurement taken
 
 # Fetch full article text for items whose RSS/GDELT body is only a headline
 # or short snippet. Bounded per run; failures keep the original snippet.

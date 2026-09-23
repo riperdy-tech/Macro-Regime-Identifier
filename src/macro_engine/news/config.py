@@ -49,6 +49,11 @@ class NewsSourceDefinition(BaseModel):
     # finnhub provider: news category and the env var holding the API key.
     category: str = "general"
     api_key_env: str = "FINNHUB_API_KEY"
+    # N1.5: hours since this source's last new item before news_health calls it
+    # D1 `source_dead`. Per-feed, set from the measured publishing cadence
+    # (news/cadence.py); the 72h floor is 1.5x the largest gap seen among the
+    # frequent feeds.
+    stale_after_hours: int = Field(default=72, ge=24)
 
     @model_validator(mode="after")
     def validate_provider_fields(self):

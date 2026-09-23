@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 import json
 import sys
 import time
 from typing import Any, Callable
+from uuid import uuid4
 
 import pandas as pd
 
@@ -20,7 +22,7 @@ from macro_engine.news.config import (
 )
 from macro_engine.news.config import load_news_sources_config
 from macro_engine.news.fulltext import enrich_items_with_fulltext
-from macro_engine.news.ingest import load_news_items_from_config
+from macro_engine.news.ingest import SourceResult, load_news_items_with_report
 from macro_engine.news.selection import rank_and_select
 from macro_engine.news.providers.openai_classifier import DeepSeekNewsClassifier
 from macro_engine.storage.duckdb_store import DuckDBStore
@@ -35,6 +37,7 @@ def ingest_stored_news(
     config_path: str | Path = "config/news_sources.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
     profile: str | None = None,
+    run_id: str | None = None,
 ) -> pd.DataFrame:
     store = DuckDBStore(db_path)
     store.initialize()
@@ -44,7 +47,7 @@ def ingest_stored_news(
         if not stored_items.empty
         else set()
     )
-    items = load_news_items_from_config(config_path, profile=profile)
+    items, source_results = load_news_items_with_report(config_path, profile=profile)
     sources_config = load_news_sources_config(config_path)
     new_items = [item for item in items if str(item.news_id) not in stored_ids]
     enriched_new_items = enrich_items_with_fulltext(
@@ -54,7 +57,59 @@ def ingest_stored_news(
     final_items = [enriched_by_id.get(item.news_id, item) for item in items]
     frame = pd.DataFrame([item.model_dump() for item in final_items])
     store.merge_news_items(frame)
+
+    # N1.5: one news_source_runs row per source this run, so a cold cache
+    # never loses what happened -- health (N1.6) and accumulation read this,
+    # not the ephemeral SourceResult list.
+    run_at = datetime.now(UTC)
+    resolved_run_id = run_id or f"{run_at.strftime('%Y%m%dT%H%M%SZ')}-{uuid4().hex[:8]}"
+    _record_source_runs(
+        store,
+        final_items,
+        source_results,
+        stored_ids,
+        run_id=resolved_run_id,
+        run_at=run_at,
+    )
     return frame
+
+
+def _record_source_runs(
+    store: DuckDBStore,
+    final_items: list[Any],
+    source_results: list[SourceResult],
+    stored_ids: set[str],
+    *,
+    run_id: str,
+    run_at: datetime,
+) -> None:
+    items_new_by_source: dict[str, int] = {}
+    for item in final_items:
+        if str(item.news_id) in stored_ids:
+            continue
+        source_id = item.raw_metadata.get("source_id") or item.source
+        items_new_by_source[source_id] = items_new_by_source.get(source_id, 0) + 1
+
+    if not source_results:
+        return
+    rows = [
+        {
+            "run_id": run_id,
+            "run_at": run_at,
+            "source_id": result.source_id,
+            "provider": result.provider,
+            "source_group": result.source_group,
+            "status": result.status,
+            "items_fetched": result.items_fetched,
+            "items_new": items_new_by_source.get(result.source_id, 0),
+            "newest_published_at": result.newest_published_at,
+            "undated_count": result.undated_count,
+            "error": result.error,
+            "elapsed_seconds": result.elapsed_seconds,
+        }
+        for result in source_results
+    ]
+    store.insert_news_source_runs(pd.DataFrame(rows))
 
 
 def classify_stored_news(

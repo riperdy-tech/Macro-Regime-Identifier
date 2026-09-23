@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
-from typing import Any, Callable
-from urllib.error import URLError
+from typing import Any, Callable, Literal
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import xml.etree.ElementTree as ET
 
 import pandas as pd
+from pydantic import BaseModel, Field
 
 from macro_engine.news.config import (
     REQUIRED_NEWS_SOURCE_GROUPS,
@@ -31,37 +33,165 @@ FINNHUB_NEWS_URL = "https://finnhub.io/api/v1/news"
 # Takes a fully-formed URL and returns the raw response text (injectable for tests).
 HttpFetchFn = Callable[[str], str]
 
+_ERROR_MAX_CHARS = 300
+
+
+class SourceResult(BaseModel):
+    """N1.5 per-source ingestion telemetry for one daily run."""
+
+    source_id: str
+    provider: str
+    source_group: str | None = None
+    status: Literal["ok", "empty", "error", "rate_limited", "circuit_open", "missing_key"]
+    items_fetched: int = 0
+    newest_published_at: datetime | None = None
+    undated_count: int = 0
+    error: str | None = Field(default=None, max_length=_ERROR_MAX_CHARS)
+    elapsed_seconds: float = 0.0
+
 
 def load_news_items_from_config(
     config_path: str | Path = "config/news_sources.yaml",
     profile: str | None = None,
 ) -> list[NewsItem]:
+    """Thin wrapper kept for existing callers that only want the items."""
+    items, _ = load_news_items_with_report(config_path, profile=profile)
+    return items
+
+
+def load_news_items_with_report(
+    config_path: str | Path = "config/news_sources.yaml",
+    profile: str | None = None,
+    *,
+    run_date: date | None = None,
+    gdelt_fetch: HttpFetchFn | None = None,
+    finnhub_fetch: HttpFetchFn | None = None,
+) -> tuple[list[NewsItem], list[SourceResult]]:
+    """Fetch every selected source and return both the deduped items AND one
+    `SourceResult` per source (N1.5). GDELT sources get a run-level circuit
+    breaker: once one source's retry ALSO hits 429, every remaining GDELT
+    source this run is `circuit_open` with no request made.
+
+    `gdelt_fetch` / `finnhub_fetch` are test-only network injection points
+    (mirrors `load_gdelt_source`/`load_finnhub_source`'s own `fetch` param);
+    production callers leave them unset."""
     config = load_news_sources_config(config_path)
+    selected = [source for source in config.news_sources if _source_selected(source, profile)]
+    non_gdelt = [source for source in selected if source.provider != "gdelt"]
+    gdelt = _rotate_gdelt_sources(
+        [source for source in selected if source.provider == "gdelt"],
+        run_date or datetime.now(UTC).date(),
+    )
+
     items: list[NewsItem] = []
-    for source in config.news_sources:
-        if not _source_selected(source, profile):
+    results: list[SourceResult] = []
+
+    for source in non_gdelt:
+        source_items, result = _load_one_source(
+            source, config.source_group_rules, finnhub_fetch=finnhub_fetch
+        )
+        items.extend(source_items)
+        results.append(result)
+
+    circuit_open = False
+    for source in gdelt:
+        if circuit_open:
+            results.append(
+                SourceResult(
+                    source_id=source.source_id,
+                    provider=source.provider,
+                    source_group=source.source_group,
+                    status="circuit_open",
+                )
+            )
             continue
-        try:
-            if source.provider == "local_csv":
-                items.extend(load_local_csv_source(source, rules=config.source_group_rules))
-            elif source.provider == "local_json":
-                items.extend(load_local_json_source(source, rules=config.source_group_rules))
-            elif source.provider == "manual_text":
-                items.extend(load_manual_text_source(source, rules=config.source_group_rules))
-            elif source.provider == "rss":
-                items.extend(load_rss_source(source, rules=config.source_group_rules))
-            elif source.provider == "gdelt":
-                items.extend(load_gdelt_source(source, rules=config.source_group_rules))
-            elif source.provider == "finnhub":
-                items.extend(load_finnhub_source(source, rules=config.source_group_rules))
-            else:
-                raise ValueError(f"unsupported news provider {source.provider}")
-        except Exception as exc:  # noqa: BLE001 - one bad source must not abort the run
-            # A flaky feed or unsupported provider is skipped, not fatal. Thin
-            # coverage then surfaces through the monitoring/coverage warnings.
-            print(f"WARN news source {source.source_id} skipped: {exc}", file=sys.stderr)
-            continue
-    return dedupe_news_items(items)
+        source_items, result = _load_one_source(
+            source, config.source_group_rules, gdelt_fetch=gdelt_fetch
+        )
+        items.extend(source_items)
+        results.append(result)
+        if result.status == "rate_limited":
+            circuit_open = True
+
+    return dedupe_news_items(items), results
+
+
+def _rotate_gdelt_sources(
+    sources: list[NewsSourceDefinition], run_date: date
+) -> list[NewsSourceDefinition]:
+    if not sources:
+        return sources
+    start = run_date.toordinal() % len(sources)
+    return sources[start:] + sources[:start]
+
+
+def _load_one_source(
+    source: NewsSourceDefinition,
+    rules: list[NewsSourceGroupRule],
+    *,
+    gdelt_fetch: HttpFetchFn | None = None,
+    finnhub_fetch: HttpFetchFn | None = None,
+) -> tuple[list[NewsItem], SourceResult]:
+    started = time.monotonic()
+    try:
+        if source.provider == "local_csv":
+            raw_items = load_local_csv_source(source, rules=rules)
+        elif source.provider == "local_json":
+            raw_items = load_local_json_source(source, rules=rules)
+        elif source.provider == "manual_text":
+            raw_items = load_manual_text_source(source, rules=rules)
+        elif source.provider == "rss":
+            raw_items = load_rss_source(source, rules=rules)
+        elif source.provider == "gdelt":
+            raw_items = load_gdelt_source(source, rules=rules, fetch=gdelt_fetch)
+        elif source.provider == "finnhub":
+            raw_items = load_finnhub_source(source, rules=rules, fetch=finnhub_fetch)
+        else:
+            raise ValueError(f"unsupported news provider {source.provider}")
+    except HTTPError as exc:
+        elapsed = time.monotonic() - started
+        status = "rate_limited" if exc.code == 429 else "error"
+        print(f"WARN news source {source.source_id} skipped: {exc}", file=sys.stderr)
+        return [], SourceResult(
+            source_id=source.source_id,
+            provider=source.provider,
+            source_group=source.source_group,
+            status=status,
+            error=_truncate_error(str(exc)),
+            elapsed_seconds=elapsed,
+        )
+    except Exception as exc:  # noqa: BLE001 - one bad source must not abort the run
+        # A flaky feed or unsupported provider is skipped, not fatal. Thin
+        # coverage then surfaces through the monitoring/coverage warnings.
+        elapsed = time.monotonic() - started
+        print(f"WARN news source {source.source_id} skipped: {exc}", file=sys.stderr)
+        status = "missing_key" if source.provider == "finnhub" and "is not set" in str(exc) else "error"
+        return [], SourceResult(
+            source_id=source.source_id,
+            provider=source.provider,
+            source_group=source.source_group,
+            status=status,
+            error=_truncate_error(str(exc)),
+            elapsed_seconds=elapsed,
+        )
+
+    elapsed = time.monotonic() - started
+    dated = [item.published_at for item in raw_items if item.published_at is not None]
+    result = SourceResult(
+        source_id=source.source_id,
+        provider=source.provider,
+        source_group=source.source_group,
+        status="ok" if raw_items else "empty",
+        items_fetched=len(raw_items),
+        newest_published_at=max(dated) if dated else None,
+        undated_count=len(raw_items) - len(dated),
+        elapsed_seconds=elapsed,
+    )
+    return raw_items, result
+
+
+def _truncate_error(message: str) -> str:
+    return message if len(message) <= _ERROR_MAX_CHARS else message[: _ERROR_MAX_CHARS - 3] + "..."
 
 
 def validate_news_input_config(
@@ -497,9 +627,15 @@ def _news_item_from_mapping(
         ingested_at=datetime.now(UTC),
         provider=provider,
         raw_metadata={
-            str(key): _json_safe(value)
-            for key, value in record.items()
-            if key not in {"title", "body", "source", "source_url", "published_at"}
+            **{
+                str(key): _json_safe(value)
+                for key, value in record.items()
+                if key not in {"title", "body", "source", "source_url", "published_at"}
+            },
+            # N1.5: the owning config source_id, so `items_new` can be attributed
+            # per source without guessing from the display `source` field. Not
+            # allow-listed for N1.4 export (internal engineering metadata only).
+            "source_id": fallback_source_id,
         },
         content_hash=content_hash,
     )
