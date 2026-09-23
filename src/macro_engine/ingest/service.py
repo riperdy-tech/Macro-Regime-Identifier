@@ -377,13 +377,22 @@ def run_vintage_backfill(
     # Imported locally, not at module scope, only to keep ingest/ from acquiring a
     # module-load-time dependency on anchors/ for what is otherwise a one-line lookup.
     from macro_engine.anchors.pit_calendar import vintage_asof_dates
+    from macro_engine.evaluation.config import load_evaluation_config
+
+    evaluation_config = load_evaluation_config(config_path)
+    if (
+        start is None
+        and evaluation_config.scoring_mode == "point_in_time"
+        and evaluation_config.point_in_time_start
+    ):
+        start = evaluation_config.point_in_time_start
 
     as_of_dates = vintage_asof_dates(db_path=db_path, start=start, end=end)
     series = [
         source.series_id
         for source in select_sources(load_ingestion_sources(config_path))
     ]
-    observation_start = start or (
+    observation_start = (
         (pd.Timestamp(as_of_dates[0]) - pd.DateOffset(years=1)).date().isoformat()
         if as_of_dates
         else None

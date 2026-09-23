@@ -446,3 +446,78 @@ def test_optional_live_pipeline_smoke(tmp_path):
     )
 
     assert summary.series_succeeded is not None
+
+
+def test_run_vintage_backfill_restricts_to_point_in_time_start(tmp_path, monkeypatch):
+    """B1: run_vintage_backfill restricts requested dates to >= point_in_time_start
+    when scoring_mode == 'point_in_time' and no start was explicitly passed."""
+    from macro_engine.ingest.service import run_vintage_backfill
+
+    monkeypatch.setattr("macro_engine.ingest.service._FRED_REQUESTS_PER_MINUTE", 0)
+
+    db_path = tmp_path / "macro.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    cal_dates = pd.date_range("1990-01-01", "2026-05-01", freq="MS")
+    store.replace_evaluation_outputs(
+        pd.DataFrame(
+            {
+                "evaluation_date": cal_dates,
+                "frequency": "monthly",
+                "valid": True,
+                "reason": None,
+            }
+        ),
+        pd.DataFrame(
+            columns=["feature_id", "as_of", "value", "valid", "reason"]
+        ),
+    )
+
+    cfg_path = tmp_path / "sources.yaml"
+    cfg_content = """
+scoring_mode: point_in_time
+point_in_time_start: "2014-02-01"
+sources:
+  - series_id: DGS10
+    name: 10-Year Treasury
+    provider: FRED
+    dimension: rates
+    frequency: daily
+    required: true
+    enabled: true
+    stale_after_days: 10
+    unusable_after_days: 20
+"""
+    cfg_path.write_text(cfg_content, encoding="utf-8")
+
+    requested_calls = []
+
+    class _RecordingClient:
+        def get_series_observations_vintage(
+            self, series_id, as_of, observation_start=None, observation_end=None
+        ):
+            requested_calls.append((series_id, as_of, observation_start))
+            return pd.DataFrame(
+                columns=["date", "value", "realtime_start", "realtime_end"]
+            )
+
+    client = _RecordingClient()
+    run_vintage_backfill(
+        config_path=cfg_path,
+        db_path=db_path,
+        parquet_dir=tmp_path / "alfred",
+        client=client,
+    )
+
+    assert len(requested_calls) > 0
+    min_as_of = min(call[1] for call in requested_calls)
+    assert min_as_of == "2014-02-01"
+    # Observation start formula is oldest requested as-of - 1 year (2013-02-01)
+    obs_starts = {call[2] for call in requested_calls}
+    assert obs_starts == {"2013-02-01"}
+    # Expected dates >= 2014-02-01 are all present
+    expected_dates = [d.strftime("%Y-%m-%d") for d in cal_dates if d >= pd.Timestamp("2014-02-01")]
+    for d in expected_dates:
+        assert ("DGS10", d, "2013-02-01") in requested_calls
+
+
