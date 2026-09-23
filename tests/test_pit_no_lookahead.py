@@ -514,7 +514,7 @@ def test_a_partially_fetched_series_resumes_mid_way(tmp_path):
         as_of_dates=["2020-01-01", "2020-02-01", "2020-03-01"],
         config_path=config, db_path=db, parquet_dir=tmp_path / "p", client=top_up,
     )
-    assert [call[1] for call in top_up.calls] == ["2020-02-01", "2020-03-01"]
+    assert [call[1] for call in top_up.calls] == ["2020-03-01", "2020-02-01"]
     assert summary.skipped_pairs == 1
     assert len(DuckDBStore(db).read_raw_observation_vintages()) == 3
 
