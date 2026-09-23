@@ -339,10 +339,12 @@ def test_current_regime_report_schema_v2_fields_are_present():
         "applied": payload["transition_filter_applied"],
         "reason": payload["transition_filter_reason"],
     }
-    # Layer 2 has not been built -- null is the spec-defined representation, named in
-    # reasons, not a silent absence.
+    # S4.4: this call passes no `shock_register` frame (as this test's other
+    # `build_current_regime_report` calls did not, before S4 shipped) -- null is the
+    # spec-defined representation for "the register was unavailable to this build", named
+    # in reasons, not a silent absence.
     assert payload["active_shocks_on_date"] is None
-    assert any("shock_register_not_built" in reason for reason in payload["reasons"])
+    assert any("shock_register_unavailable" in reason for reason in payload["reasons"])
     for dimension_id, factor in payload["factors"].items():
         assert set(factor.keys()) == {"score", "valid", "coverage", "reason", "composition_id"}
 

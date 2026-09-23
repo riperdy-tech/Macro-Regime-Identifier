@@ -44,6 +44,7 @@ def write_current_regime_report(
         config=config,
         scoring_mode=scoring_mode,
         recession_threshold=recession_threshold,
+        shock_register=store.read_table("shock_register"),
     )
     markdown = current_report_markdown(payload)
     return write_report_outputs(

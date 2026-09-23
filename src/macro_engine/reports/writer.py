@@ -60,6 +60,7 @@ def build_current_regime_report(
     timeline: pd.DataFrame | None = None,
     scoring_mode: str = "calendar_asof",
     recession_threshold: float = 0.25,
+    shock_register: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     valid_health = regime_health[regime_health["valid"]].sort_values("date")
     if valid_health.empty:
@@ -131,9 +132,16 @@ def build_current_regime_report(
         headline_margin = None
         reasons.append("headline_margin_undefined:fewer_than_2_valid_regimes")
 
-    # C3 (P0_0 §1.3.4): Layer 2 (the shock register, S4) has not been built yet -- null is
-    # the spec-defined representation for "the register was unavailable", not an omission.
-    reasons.append("shock_register_not_built:S4_not_shipped")
+    # C3 (P0_0 §1.3.4): S4 shipped the shock register (MRI-12) -- `active_shocks_on_date`
+    # is the list of shock ids active (severity >= 1 or decaying) on this artifact's date,
+    # ids only, provenance only. Still null with a reason when the register has no row for
+    # this exact date (e.g. the daily shocks step failed or was skipped that day --
+    # annotation-only, so this never blocks the Layer-1 artifact itself).
+    active_shocks_on_date, active_shocks_reason = _active_shocks_for_date(
+        shock_register, latest_date
+    )
+    if active_shocks_reason is not None:
+        reasons.append(active_shocks_reason)
 
     payload = {
         "schema_version": 2,
@@ -196,7 +204,7 @@ def build_current_regime_report(
             "applied": reported["transition_filter_applied"],
             "reason": reported["transition_filter_reason"],
         },
-        "active_shocks_on_date": None,
+        "active_shocks_on_date": active_shocks_on_date,
         "top_supporting_dimensions": _contribution_records(
             supporting.head(config.max_contributors)
         ),
@@ -543,6 +551,23 @@ def _reported_state_for_date(timeline: pd.DataFrame | None, latest_raw) -> dict[
         "transition_filter_applied": bool(row.get("transition_filter_applied", False)),
         "transition_filter_reason": row.get("transition_filter_reason", "unknown"),
     }
+
+
+def _active_shocks_for_date(
+    shock_register: pd.DataFrame | None, latest_date: Any
+) -> tuple[list[str] | None, str | None]:
+    """S4 (§1.3.4): `active_shocks_on_date` is ids only, provenance only -- an empty list
+    is a value (no shock active that day), `None` means the register had no row for this
+    date, with the reason travelling in the caller's `reasons` list (rule 2)."""
+    if shock_register is None or shock_register.empty:
+        return None, "shock_register_unavailable"
+    rows = shock_register[
+        pd.to_datetime(shock_register["date"], errors="coerce") == pd.Timestamp(latest_date)
+    ]
+    if rows.empty:
+        return None, "shock_register_no_row_for_date"
+    active_ids = sorted(rows.loc[rows["active"].astype(bool), "shock_id"].astype(str).unique().tolist())
+    return active_ids, None
 
 
 def _json_safe(value: Any) -> Any:

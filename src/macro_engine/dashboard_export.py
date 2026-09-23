@@ -40,6 +40,11 @@ OPTIONAL_OUTPUT_FILES = [
     "sector_multiple_bands.json",
     "rs2_repair_package.json",
     "news_advisory_block.json",
+    # S4.5 (MRI-12): the shock register, read-only. Annotation only -- no numeric
+    # consumer reads this file (MRI_S4_PLAN.md S4.5 gate), so it is optional by the same
+    # construction as the anchors above: absent, degraded or present never touches
+    # `_data_status()` or any existing consumer's contract.
+    "shock_register.json",
     # N1.7: the cloud workflow no longer runs write-news-source-coverage-report
     # (config/news_source_watchlist.yaml never matched the live profile's real
     # sources); its coverage is superseded by news_health.groups/sources
