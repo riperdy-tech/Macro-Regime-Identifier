@@ -558,8 +558,18 @@ def run_pipeline(
     mode: Annotated[str, typer.Option("--mode")] = "live",
     start: Annotated[str | None, typer.Option("--start")] = None,
     end: Annotated[str | None, typer.Option("--end")] = None,
+    vintage_budget_minutes: Annotated[
+        float | None,
+        typer.Option(
+            "--vintage-budget-minutes",
+            help="Time budget in minutes for vintage ingestion before deferring remaining pairs.",
+        ),
+    ] = None,
 ) -> None:
     """Phase H: orchestrate ingestion through reports using existing pipeline layers."""
+    vintage_budget_seconds = (
+        vintage_budget_minutes * 60.0 if vintage_budget_minutes is not None else None
+    )
     try:
         summary = run_full_pipeline(
             config_path=config,
@@ -568,6 +578,7 @@ def run_pipeline(
             mode=mode,
             start=start,
             end=end,
+            vintage_time_budget_seconds=vintage_budget_seconds,
         )
     except FredError as exc:
         raise typer.BadParameter(str(exc)) from exc

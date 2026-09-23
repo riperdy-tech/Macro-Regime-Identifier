@@ -40,6 +40,7 @@ class PipelineSummary:
     dominant_regime: str | None = None
     confidence: float | None = None
     outputs: list[str] | None = None
+    vintage_deferred_pairs: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -57,6 +58,7 @@ class PipelineSummary:
             "dominant_regime": self.dominant_regime,
             "confidence": self.confidence,
             "outputs": self.outputs or [],
+            "vintage_deferred_pairs": self.vintage_deferred_pairs,
         }
 
 
@@ -72,6 +74,7 @@ def run_pipeline(
     ingest_runner: Callable | None = None,
     vintage_runner: Callable | None = None,
     load_env: bool = True,
+    vintage_time_budget_seconds: float | None = None,
 ) -> PipelineSummary:
     if load_env:
         load_dotenv()
@@ -119,15 +122,28 @@ def run_pipeline(
         failed_step = "vintages"
         print("pipeline: vintages start", flush=True)
         vrunner = vintage_runner or run_vintage_backfill
-        vintage_summary = vrunner(
-            config_path=config_path,
-            db_path=db_path,
-            parquet_dir=vintage_parquet_dir,
-            start=start,
-            end=end,
-        )
+        v_kwargs: dict[str, Any] = {
+            "config_path": config_path,
+            "db_path": db_path,
+            "parquet_dir": vintage_parquet_dir,
+            "start": start,
+            "end": end,
+        }
+        if vintage_time_budget_seconds is not None:
+            import inspect
+
+            sig = inspect.signature(vrunner)
+            if any(
+                p.kind == inspect.Parameter.VAR_KEYWORD or p.name == "time_budget_seconds"
+                for p in sig.parameters.values()
+            ):
+                v_kwargs["time_budget_seconds"] = vintage_time_budget_seconds
+        vintage_summary = vrunner(**v_kwargs)
         print(
             f"pipeline: vintages done (rows={vintage_summary.vintage_rows}, "
+            f"requests={vintage_summary.requests_made}, "
+            f"deferred={vintage_summary.deferred_count}, "
+            f"elapsed={vintage_summary.elapsed_seconds:.1f}s, "
             f"not_yet_published={vintage_summary.not_yet_published_count})",
             flush=True,
         )
@@ -146,6 +162,14 @@ def run_pipeline(
                     f"({vintage_summary.failed_count} failed fetches, 0 vintage rows stored)"
                 )
             warnings.extend(_vintage_partial_warnings(vintage_summary))
+        if vintage_summary.deferred_count > 0:
+            from macro_engine.ingest.service import compute_vintage_backlog
+
+            backlog = compute_vintage_backlog(store, config_path)
+            frontier = backlog.get("frontier_asof") or "none"
+            warnings.append(
+                f"vintage_partial:deferred={vintage_summary.deferred_count}:frontier={frontier}"
+            )
 
         failed_step = "build-asof-features"
         print("pipeline: build-asof-features start", flush=True)
@@ -221,6 +245,7 @@ def run_pipeline(
             dominant_regime=latest.get("dominant_regime"),
             confidence=latest.get("confidence"),
             outputs=outputs,
+            vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
         )
     except Exception:
         status = "failed"
@@ -233,6 +258,7 @@ def run_pipeline(
             mode=mode,
             output_dir=output_dir,
             outputs=outputs,
+            vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
         )
         _record_pipeline_summary(store, summary, started_at)
         raise

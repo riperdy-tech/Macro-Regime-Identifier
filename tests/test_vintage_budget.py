@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -217,3 +219,58 @@ sources:
     assert summary.skipped_pairs == 1
     assert summary.requests_made == 1
     assert requested == [("2026-09-23", "S1")]
+
+
+def test_pipeline_warning_and_status_on_deferred_vintages(tmp_path):
+    """B3: When vintage ingestion has deferred pairs, the pipeline records
+    vintage_partial:deferred={n}:frontier={frontier} warning and finishes
+    with success_with_warnings status."""
+    from macro_engine.ingest.schemas import VintageIngestionSummary
+    from macro_engine.pipeline_runner import run_pipeline
+
+    def _mock_ingest(*args, **kwargs):
+        class _IngestSumm:
+            series_requested = 1
+            series_succeeded = 1
+            stale_series = []
+        return _IngestSumm()
+
+    def _deferred_vrunner(*args, **kwargs):
+        return VintageIngestionSummary(
+            run_id="run1",
+            series_requested=1,
+            as_of_dates=["2026-09-01"],
+            vintage_rows=10,
+            vintage_series=1,
+            empty_vintage_count=0,
+            failed_count=0,
+            storage_path=str(tmp_path / "alfred"),
+            deferred_count=15,
+            deferred_oldest_asof="2014-02-01",
+            deferred_newest_asof="2020-01-01",
+            budget_exhausted=True,
+            requests_made=5,
+        )
+
+    output_dir = tmp_path / "outputs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cfg_text = Path("config/phase_b_sources.yaml").read_text(encoding="utf-8")
+    cfg_text = cfg_text.replace("output_dir: outputs", f"output_dir: {output_dir.as_posix()}")
+    cfg_path = tmp_path / "sources_redirected.yaml"
+    cfg_path.write_text(cfg_text, encoding="utf-8")
+
+    db_path = tmp_path / "macro.duckdb"
+    summary = run_pipeline(
+        config_path=cfg_path,
+        db_path=db_path,
+        parquet_dir=tmp_path / "fred",
+        mode="mock",
+        ingest_runner=_mock_ingest,
+        vintage_runner=_deferred_vrunner,
+    )
+
+    assert summary.status == "success_with_warnings"
+    assert summary.vintage_deferred_pairs == 15
+    run = DuckDBStore(db_path).read_table("pipeline_runs").iloc[-1]
+    assert run["status"] == "success_with_warnings"
+

@@ -583,3 +583,60 @@ def _observation_frame(
             "units",
         ]
     ]
+
+
+def compute_vintage_backlog(
+    store: DuckDBStore,
+    config_path: str | Path = "config/phase_b_sources.yaml",
+) -> dict[str, Any]:
+    """Compute point-in-time vintage backlog for regime_status and pipeline warnings.
+
+    P0_0_MRI_TARGET_ARCHITECTURE.md §8 (S2 / B6):
+    - pending_pairs: calendar dates >= point_in_time_start * enabled PIT series minus answered pairs.
+    - frontier_asof: oldest consecutive calendar date (from present backwards) that is fully answered.
+    """
+    from macro_engine.anchors.pit_calendar import vintage_asof_dates
+    from macro_engine.evaluation.config import load_evaluation_config
+
+    eval_config = load_evaluation_config(config_path)
+    if eval_config.scoring_mode != "point_in_time" or not eval_config.point_in_time_start:
+        return {
+            "pending_pairs": 0,
+            "frontier_asof": None,
+            "point_in_time_start": None,
+            "complete": True,
+        }
+
+    pit_start = eval_config.point_in_time_start
+    cal_dates = vintage_asof_dates(db_path=store.db_path, start=pit_start, include_present=False)
+    sources = [
+        source.series_id
+        for source in select_sources(load_ingestion_sources(config_path))
+        if source.enabled
+    ]
+
+    already_stored = _stored_vintage_pairs(store)
+    absent_known = _absent_vintage_pairs(store)
+    answered = already_stored | absent_known
+
+    pending_count = 0
+    reversed_cal = sorted(cal_dates, reverse=True)
+    frontier = None
+    streak_intact = True
+
+    for as_of in reversed_cal:
+        missing_for_date = sum(1 for s in sources if (s, as_of) not in answered)
+        if missing_for_date == 0:
+            if streak_intact:
+                frontier = as_of
+        else:
+            streak_intact = False
+            pending_count += missing_for_date
+
+    return {
+        "pending_pairs": pending_count,
+        "frontier_asof": frontier,
+        "point_in_time_start": pit_start,
+        "complete": pending_count == 0,
+    }
+

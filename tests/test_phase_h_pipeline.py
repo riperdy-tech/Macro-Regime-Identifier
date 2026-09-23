@@ -432,6 +432,7 @@ def test_pipeline_summary_is_deterministic_shape(tmp_path):
         "dominant_regime",
         "confidence",
         "outputs",
+        "vintage_deferred_pairs",
     }
     assert summary["mode"] == "mock"
 
