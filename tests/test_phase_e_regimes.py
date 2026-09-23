@@ -270,6 +270,27 @@ def test_remaining_weights_renormalize_when_coverage_sufficient():
     assert score["raw_score"] == pytest.approx(1.0)
 
 
+def test_peakedness_is_null_with_a_reason_when_fewer_than_two_regimes_are_valid():
+    """C5 (MRI_S1_APPROVAL.md §5): `_normalized_peakedness` used to return 1.0 (maximum
+    conviction) when fewer than two regimes were valid -- the opposite of what a single
+    surviving regime means. It must be null instead, with a reason, and `confidence`
+    (the deprecated peakedness*coverage product) must be null too since the product is
+    undefined. `coverage` is unaffected -- it is well-defined with one valid regime."""
+    result = build_regimes_from_dimensions(
+        _dimension_scores(),
+        [_regime()],
+        RegimeScoringConfig(softmax_temperature=1.0),
+    )
+    health = result.regime_health.iloc[0]
+
+    assert bool(health["valid"]) is True
+    assert health["valid_regime_count"] == 1
+    assert health["coverage"] is not None
+    assert health["peakedness"] is None
+    assert health["confidence"] is None
+    assert health["reason"] == "peakedness_undefined:1_valid_regimes"
+
+
 def test_probabilities_sum_and_dominant_confidence_are_computed():
     regimes = [
         _regime("growth_regime"),
@@ -350,9 +371,12 @@ def test_regime_rows_are_stored(tmp_path):
     db_path = tmp_path / "macro.duckdb"
     store = DuckDBStore(db_path)
     store.initialize()
+    # C5 (MRI_S1_APPROVAL.md §5): peakedness is null when fewer than two regimes are
+    # valid, so this persistence round-trip needs two valid regimes to exercise a
+    # non-null peakedness value (a single-regime fixture would legitimately be null).
     result = build_regimes_from_dimensions(
         _dimension_scores(),
-        [_regime()],
+        [_regime(), _regime("test_regime_2")],
         RegimeScoringConfig(softmax_temperature=1.0),
     )
 
@@ -362,8 +386,8 @@ def test_regime_rows_are_stored(tmp_path):
         result.regime_health,
     )
 
-    assert len(store.read_table("regime_dimension_contributions")) == 2
-    assert len(store.read_table("regime_scores")) == 1
+    assert len(store.read_table("regime_dimension_contributions")) == 4
+    assert len(store.read_table("regime_scores")) == 2
     assert len(store.read_table("regime_health")) == 1
 
     # S1.2b: coverage/peakedness compute correctly in memory but were never persisted --

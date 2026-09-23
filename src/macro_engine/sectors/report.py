@@ -139,6 +139,17 @@ def build_current_sector_report(
             # current_regime.json -- neither is multiplied into a score here.
             "coverage": _to_float(latest.get("macro_coverage")),
             "peakedness": _to_float(latest.get("macro_peakedness")),
+            # C5 (MRI_S1_APPROVAL.md §5): present only when peakedness is null. The macro
+            # date frame does not carry the Layer-1 row's specific reason through to the
+            # sector artifact (only `macro_peakedness` itself is copied), so this is a
+            # generic marker rather than the precise `peakedness_undefined:<n>_valid_
+            # regimes` current_regime.json carries; it exists so the schema-2 guard can
+            # tell "undefined, and named as such" from "silently missing".
+            **(
+                {"peakedness_reason": "peakedness_undefined"}
+                if _to_float(latest.get("macro_peakedness")) is None
+                else {}
+            ),
             "sector_ranking": ranking,
             "subindustry_ranking": subindustry_ranking,
             "top_macro_supported_sectors": top_supported,

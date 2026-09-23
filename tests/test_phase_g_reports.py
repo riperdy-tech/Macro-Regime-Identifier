@@ -384,6 +384,25 @@ def test_require_schema_v2_fields_allows_non_v2_and_invalid_payloads():
     require_schema_v2_fields({"schema_version": 2, "valid": True, "coverage": 0.8, "peakedness": 0.3})
 
 
+def test_require_schema_v2_fields_allows_null_peakedness_with_a_reason():
+    # C5 (MRI_S1_APPROVAL.md §5): peakedness is nullable, coverage is not. A null
+    # peakedness is fine as long as it is named; a null peakedness with no reason is
+    # exactly the "silently null" failure mode the guard exists to catch.
+    require_schema_v2_fields(
+        {
+            "schema_version": 2,
+            "valid": True,
+            "coverage": 0.8,
+            "peakedness": None,
+            "peakedness_reason": "peakedness_undefined:1_valid_regimes",
+        }
+    )
+    with pytest.raises(SchemaVersionFieldsMissing):
+        require_schema_v2_fields(
+            {"schema_version": 2, "valid": True, "coverage": 0.8, "peakedness": None}
+        )
+
+
 def test_report_cli_commands_work(tmp_path):
     db_path = tmp_path / "macro.duckdb"
     _seed_store(db_path)

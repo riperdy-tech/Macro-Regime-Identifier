@@ -233,14 +233,27 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
         top_probability = float(top["probability"])
         average_coverage = float(valid["coverage_ratio"].mean())
         entropy = _entropy(valid["probability"].astype(float).tolist())
+        valid_regime_count = int(len(valid))
         # S1.2 (P0_0 §2.5): confidence used to be the one published number -- a
         # data-completeness fact (coverage) multiplied by a distribution-shape fact
         # (peakedness) -- and a downstream consumer then treated the product as a
         # magnitude multiplier. coverage and peakedness are now published separately;
         # `confidence` is kept, computed the same way, as a deprecated alias for one
         # release (no consumer may treat it as a multiplier going forward).
-        peakedness = _normalized_peakedness(entropy, int(len(valid)))
-        confidence = peakedness * average_coverage
+        # C5 (MRI_S1_APPROVAL.md §5): peakedness is undefined, not maximally peaked, when
+        # fewer than two regimes are valid -- `_normalized_peakedness` used to return 1.0
+        # (maximum conviction) for that case, which is the opposite of what a single
+        # surviving regime means. `coverage` stays non-null (it is a data-completeness
+        # fact, well-defined even with one valid regime); `peakedness` and the deprecated
+        # `confidence` product are null with a reason instead.
+        if valid_regime_count < 2:
+            peakedness = None
+            confidence = None
+            reason = f"peakedness_undefined:{valid_regime_count}_valid_regimes"
+        else:
+            peakedness = _normalized_peakedness(entropy, valid_regime_count)
+            confidence = peakedness * average_coverage
+            reason = "ok"
         rows.append(
             {
                 "date": pd.Timestamp(date).date(),
@@ -251,8 +264,8 @@ def _build_regime_health(scores: pd.DataFrame) -> pd.DataFrame:
                 "coverage": average_coverage,
                 "peakedness": peakedness,
                 "entropy": entropy,
-                "valid_regime_count": int(len(valid)),
-                "reason": "ok",
+                "valid_regime_count": valid_regime_count,
+                "reason": reason,
             }
         )
     return pd.DataFrame(rows, columns=_health_columns())

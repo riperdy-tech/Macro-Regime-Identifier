@@ -70,6 +70,15 @@ def build_current_regime_report(
         "confidence": _to_float(reported["reported_confidence"]),
         "coverage": _to_float(latest.get("coverage")),
         "peakedness": _to_float(latest.get("peakedness")),
+        # C5 (MRI_S1_APPROVAL.md §5): present only when peakedness is null, naming why --
+        # `regimes/scoring.py` sets `reason` to `peakedness_undefined:<n>_valid_regimes`
+        # for that case (the row's overall `reason` is "ok" whenever peakedness is
+        # defined, so this never fires on a routine valid row).
+        **(
+            {"peakedness_reason": latest.get("reason")}
+            if _to_float(latest.get("peakedness")) is None
+            else {}
+        ),
         "reported_regime": dominant,
         "reported_regime_probability": _to_float(reported["reported_regime_probability"]),
         "reported_confidence": _to_float(reported["reported_confidence"]),
@@ -244,17 +253,23 @@ Date range: {payload["start_date"]} to {payload["end_date"]}
 
 
 class SchemaVersionFieldsMissing(ValueError):
-    """A payload declares `schema_version: 2` but a field that defines version 2 is null.
+    """A payload declares `schema_version: 2` but a field that defines version 2 is null
+    without a reason, or a non-nullable field is null at all.
 
     S1.2 (P0_0 S1.2b) split `confidence` into `coverage` and `peakedness`. A consumer that
     branches on `schema_version` reads a null field as a real value, so a v2 payload with
-    either missing must not publish -- that is worse than not having shipped the split."""
+    a silently-null field must not publish -- that is worse than not having shipped the
+    split. `coverage` is a data-completeness fact and is always defined when `valid` is
+    true, so it is never nullable. `peakedness` (C5, MRI_S1_APPROVAL.md §5) is undefined
+    -- not maximal -- when fewer than two regimes are valid; the architecture makes it
+    nullable, but only alongside a reason naming why."""
 
 
-# The fields that define schema_version 2 across the artifacts that declare it
-# (current_regime.json, current_sector_ranking.json). Neither is nullable once the payload
-# claims the version.
-SCHEMA_V2_REQUIRED_FIELDS = ("coverage", "peakedness")
+# The field that defines schema_version 2 across the artifacts that declare it
+# (current_regime.json, current_sector_ranking.json) and is never nullable once the
+# payload claims the version. `peakedness` is checked separately below: it may be null,
+# but only with a `peakedness_reason` explaining why (C5).
+SCHEMA_V2_REQUIRED_FIELDS = ("coverage",)
 
 
 def require_schema_v2_fields(payload: dict[str, Any]) -> dict[str, Any]:
@@ -264,11 +279,14 @@ def require_schema_v2_fields(payload: dict[str, Any]) -> dict[str, Any]:
     invalid payload (`valid: False`) never carries these fields in the first place."""
     if payload.get("schema_version") == 2 and payload.get("valid"):
         missing = [field for field in SCHEMA_V2_REQUIRED_FIELDS if payload.get(field) is None]
+        if payload.get("peakedness") is None and not payload.get("peakedness_reason"):
+            missing.append("peakedness (or peakedness_reason)")
         if missing:
             raise SchemaVersionFieldsMissing(
                 f"schema_version 2 payload is missing required field(s) {missing}: "
-                "coverage and peakedness must be non-null when schema_version is 2 and "
-                "valid is true (P0_0 S1.2b guard)"
+                "coverage must be non-null, and peakedness must be non-null or carry "
+                "peakedness_reason, when schema_version is 2 and valid is true "
+                "(P0_0 S1.2b guard)"
             )
     return payload
 
