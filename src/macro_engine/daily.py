@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 import shutil
+import time
 from typing import Any, Callable
 from uuid import uuid4
 
@@ -72,6 +73,7 @@ def run_daily_diagnostic(
     started_at = datetime.now(UTC)
     run_id = _run_id(started_at)
     run_day = _coerce_run_date(run_date)
+    run_deadline = time.monotonic() + config.safety.overall_run_timeout_minutes * 60.0
     outputs: list[str] = []
     warnings: list[str] = []
     errors: list[str] = []
@@ -94,8 +96,16 @@ def run_daily_diagnostic(
                 "macro",
                 statuses,
                 errors,
-                lambda: _run_macro(config, db_path, services),
+                lambda: _run_macro(
+                    config,
+                    db_path,
+                    services,
+                    run_deadline=run_deadline,
+                    warnings=warnings,
+                ),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
         if config.sector.enabled:
             _run_step(
@@ -104,6 +114,8 @@ def run_daily_diagnostic(
                 errors,
                 lambda: _run_sector(config, db_path, outputs, services),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
         if config.news.enabled:
             profile = source_profile or config.news.source_profile
@@ -118,37 +130,29 @@ def run_daily_diagnostic(
                     profile=profile,
                 ),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
+            )
+            classification_deadline = (
+                run_deadline - config.safety.post_classification_reserve_minutes * 60.0
             )
             _run_step(
                 "news_classification",
                 statuses,
                 errors,
-                lambda: services.get("classify_news", classify_stored_news)(
-                    ai_config_path=config.news.news_ai_config,
-                    themes_config_path=config.news.news_themes_config,
-                    db_path=db_path,
-                    limit=_classification_limit(
-                        config,
-                        live_ai=live_ai,
-                        mock_ai=mock_ai,
-                        max_live_items=max_live_items,
-                    ),
-                    only_unclassified=_classification_only_unclassified(
-                        config,
-                        live_ai=live_ai,
-                        mock_ai=mock_ai,
-                    ),
-                    progress=True,
-                    continue_on_individual_failure=(
-                        config.live_ai_safety.continue_on_individual_failure
-                    ),
-                    stop_on_failure_rate_above=(
-                        config.live_ai_safety.stop_on_failure_rate_above
-                    ),
-                    selection_config_path="config/news_selection.yaml",
-                    sources_config_path=config.news.news_sources_config,
+                lambda: _run_news_classification(
+                    config,
+                    db_path,
+                    services,
+                    live_ai=live_ai,
+                    mock_ai=mock_ai,
+                    max_live_items=max_live_items,
+                    deadline_monotonic=classification_deadline,
+                    warnings=warnings,
                 ),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
             _run_step(
                 "news_report",
@@ -159,6 +163,8 @@ def run_daily_diagnostic(
                     db_path=db_path,
                 )),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
             _run_step(
                 "news_scoring",
@@ -169,6 +175,8 @@ def run_daily_diagnostic(
                     db_path=db_path,
                 ),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
             _run_step(
                 "news_score_report",
@@ -179,6 +187,8 @@ def run_daily_diagnostic(
                     db_path=db_path,
                 )),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
         if config.combined.enabled:
             _run_step(
@@ -187,6 +197,8 @@ def run_daily_diagnostic(
                 errors,
                 lambda: _run_combined(config, db_path, outputs, services),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
         if config.anchors.enabled:
             # The macro step above already ran run_pipeline's required vintages step (F3),
@@ -204,6 +216,8 @@ def run_daily_diagnostic(
                 lambda: _run_anchors(config, db_path, outputs, services),
                 fail=config.anchors.required,
                 optional=not config.anchors.required,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
         if config.monitoring.enabled:
             _run_step(
@@ -212,13 +226,19 @@ def run_daily_diagnostic(
                 errors,
                 lambda: _run_monitoring(config, db_path, outputs, source_profile, services),
                 fail=True,
+                deadline=run_deadline,
+                daily_warnings=warnings,
             )
-        guardrail = audit_markdown_reports([path for path in outputs if str(path).endswith(".md")])
-        statuses["guardrail_status"] = guardrail.status
-        if not guardrail.passed:
-            errors.extend([f"{item['path']}:{item['term']}" for item in guardrail.violations])
-            if config.safety.fail_on_guardrail_violation:
-                raise ValueError("daily report guardrail audit failed")
+        if time.monotonic() < run_deadline:
+            guardrail = audit_markdown_reports([path for path in outputs if str(path).endswith(".md")])
+            statuses["guardrail_status"] = guardrail.status
+            if not guardrail.passed:
+                errors.extend([f"{item['path']}:{item['term']}" for item in guardrail.violations])
+                if config.safety.fail_on_guardrail_violation:
+                    raise ValueError("daily report guardrail audit failed")
+        else:
+            statuses["guardrail_status"] = "skipped_deadline"
+            warnings.append("deadline_reached:skipped=guardrail")
         feature_freshness = compute_feature_freshness(store)
         if feature_freshness.get("stale"):
             warnings.append(
@@ -607,11 +627,48 @@ def archive_outputs(
     return str(archive_dir)
 
 
-def _run_macro(config: DailyPipelineConfig, db_path: str | Path, services: dict[str, Callable]) -> None:
+def _run_macro(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    services: dict[str, Callable],
+    *,
+    run_deadline: float | None = None,
+    warnings: list[str] | None = None,
+) -> None:
     runner = services.get("run_pipeline", run_pipeline)
     print("daily: macro pipeline (ingest → features → dimensions → regimes → reports)", flush=True)
-    summary = runner(config_path=config.macro.config_path, db_path=db_path, mode=config.macro.mode)
+
+    vintage_time_budget_seconds: float | None = None
+    if run_deadline is not None:
+        seconds_left = max(0.0, run_deadline - time.monotonic())
+        reserve_seconds = config.safety.post_classification_reserve_minutes * 60.0
+        vintage_time_budget_seconds = min(
+            config.macro.vintage_budget_minutes * 60.0,
+            max(0.0, seconds_left - reserve_seconds),
+        )
+    else:
+        vintage_time_budget_seconds = config.macro.vintage_budget_minutes * 60.0
+
+    kwargs: dict[str, Any] = {
+        "config_path": config.macro.config_path,
+        "db_path": db_path,
+        "mode": config.macro.mode,
+    }
+    import inspect
+    sig = inspect.signature(runner)
+    if "vintage_time_budget_seconds" in sig.parameters or any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    ):
+        kwargs["vintage_time_budget_seconds"] = vintage_time_budget_seconds
+
+    summary = runner(**kwargs)
     print(f"daily: macro pipeline status={summary.status}", flush=True)
+
+    if warnings is not None:
+        for w in getattr(summary, "warnings", ()):
+            if str(w).startswith("vintage_"):
+                warnings.append(str(w))
+
     if summary.status == "success_with_warnings":
         return
     if summary.status != "success":
@@ -740,8 +797,16 @@ def _run_step(
     *,
     fail: bool,
     optional: bool = False,
+    deadline: float | None = None,
+    daily_warnings: list[str] | None = None,
 ) -> None:
     status_key = f"{step}_status"
+    if deadline is not None and time.monotonic() >= deadline:
+        statuses[status_key] = "skipped_deadline"
+        if daily_warnings is not None:
+            daily_warnings.append(f"deadline_reached:skipped={step}")
+        print(f"daily: {step} skipped (run deadline reached)", flush=True)
+        return
     print(f"daily: {step} start", flush=True)
     try:
         func()
@@ -758,6 +823,57 @@ def _run_step(
     else:
         statuses[status_key] = "success"
         print(f"daily: {step} done", flush=True)
+
+
+def _run_news_classification(
+    config: DailyPipelineConfig,
+    db_path: str | Path,
+    services: dict[str, Callable],
+    *,
+    live_ai: bool | None,
+    mock_ai: bool | None,
+    max_live_items: int | None,
+    deadline_monotonic: float | None,
+    warnings: list[str],
+) -> None:
+    fn = services.get("classify_news", classify_stored_news)
+    kwargs: dict[str, Any] = {
+        "ai_config_path": config.news.news_ai_config,
+        "themes_config_path": config.news.news_themes_config,
+        "db_path": db_path,
+        "limit": _classification_limit(
+            config,
+            live_ai=live_ai,
+            mock_ai=mock_ai,
+            max_live_items=max_live_items,
+        ),
+        "only_unclassified": _classification_only_unclassified(
+            config,
+            live_ai=live_ai,
+            mock_ai=mock_ai,
+        ),
+        "progress": True,
+        "continue_on_individual_failure": (
+            config.live_ai_safety.continue_on_individual_failure
+        ),
+        "stop_on_failure_rate_above": (
+            config.live_ai_safety.stop_on_failure_rate_above
+        ),
+        "selection_config_path": "config/news_selection.yaml",
+        "sources_config_path": config.news.news_sources_config,
+    }
+    import inspect
+    sig = inspect.signature(fn)
+    if "deadline_monotonic" in sig.parameters or any(
+        p.kind == inspect.Parameter.VAR_KEYWORD for p in sig.parameters.values()
+    ):
+        kwargs["deadline_monotonic"] = deadline_monotonic
+
+    result = fn(**kwargs)
+    if isinstance(result, dict) and result.get("deadline_hit"):
+        done = result.get("completed_count", 0)
+        selected = result.get("selected_count", 0)
+        warnings.append(f"news_classification_deadline:{done}/{selected}")
 
 
 def _classification_limit(
@@ -808,10 +924,15 @@ def _status_from_steps(
     if any(value == "failed" for value in statuses.values()):
         return "failed"
     optional_failure = any(value == "failed_optional" for value in statuses.values())
-    if (warnings or optional_failure) and not (config.safety.allow_success_with_warnings or continue_on_warning):
+    skipped_deadline = any(value == "skipped_deadline" for value in statuses.values())
+    if (warnings or optional_failure or skipped_deadline) and not (
+        config.safety.allow_success_with_warnings or continue_on_warning
+    ):
         return "failed"
     return (
-        "success_with_warnings" if (warnings or optional_failure) else "success"
+        "success_with_warnings"
+        if (warnings or optional_failure or skipped_deadline)
+        else "success"
     )
 
 

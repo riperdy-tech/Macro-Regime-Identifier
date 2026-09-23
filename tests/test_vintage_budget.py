@@ -402,3 +402,144 @@ def test_asof_resolver_pit_vintage_pending_behavior():
     pd.testing.assert_frame_equal(asof_none, asof_answered)
 
 
+def test_config_github_defaults_and_step_timeout_rejected():
+    """B5 / Config (Test 9.3 #8):
+    - Each config/daily_pipeline_github*.yaml loads with an effective
+      overall_run_timeout_minutes <= 20 and vintage_budget_minutes <= 6.
+    - step_timeout_minutes is rejected."""
+    from macro_engine.operations_config import (
+        DailySafetyConfig,
+        load_daily_pipeline_config,
+    )
+
+    for path in [
+        "config/daily_pipeline_github.yaml",
+        "config/daily_pipeline_github_live.yaml",
+    ]:
+        cfg = load_daily_pipeline_config(path)
+        assert cfg.safety.overall_run_timeout_minutes <= 20.0
+        assert cfg.macro.vintage_budget_minutes <= 6.0
+
+    with pytest.raises(ValueError, match="step_timeout_minutes has been removed"):
+        DailySafetyConfig.model_validate({"step_timeout_minutes": 20})
+
+
+def test_run_macro_propagates_vintage_partial_warning():
+    """B5 / _run_macro (Test 9.3 #9):
+    _run_macro propagates vintage_partial:* warnings into daily warnings."""
+    from macro_engine.daily import _run_macro
+    from macro_engine.operations_config import DailyPipelineConfig
+    from macro_engine.pipeline_runner import PipelineSummary
+
+    class _MockRunner:
+        def __call__(self, *args, **kwargs):
+            return PipelineSummary(
+                run_id="run1",
+                status="success_with_warnings",
+                failed_step=None,
+                warning_count=1,
+                config_path="config.yaml",
+                mode="mock",
+                output_dir="outputs",
+                vintage_deferred_pairs=5,
+                warnings=("vintage_partial:deferred=5:frontier=2020-01-01", "unrelated_warning"),
+            )
+
+    cfg = DailyPipelineConfig()
+    warnings: list[str] = []
+    _run_macro(
+        cfg,
+        db_path="data/macro_engine.duckdb",
+        services={"run_pipeline": _MockRunner()},
+        warnings=warnings,
+    )
+    assert "vintage_partial:deferred=5:frontier=2020-01-01" in warnings
+    assert "unrelated_warning" not in warnings
+
+
+def test_daily_deadline_stops_classification_and_skips_later_steps(tmp_path, monkeypatch):
+    """B5 / Deadline (Test 9.3 #7):
+    With a fake clock, classification stops at deadline - reserve;
+    the warning is present; later steps are skipped_deadline;
+    the status is success_with_warnings."""
+    from macro_engine.daily import run_daily_diagnostic
+    from macro_engine.pipeline_runner import PipelineSummary
+
+    output_dir = tmp_path / "outputs"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    cfg_text = Path("config/daily_pipeline.yaml").read_text(encoding="utf-8")
+    cfg_text = cfg_text.replace("archive_root: outputs/archive", f"archive_root: {(tmp_path / 'archive').as_posix()}")
+    cfg_text = cfg_text.replace("overall_run_timeout_minutes: 60", "overall_run_timeout_minutes: 20")
+    cfg_path = tmp_path / "daily_pipeline_test.yaml"
+    cfg_path.write_text(cfg_text, encoding="utf-8")
+
+    db_path = tmp_path / "macro.duckdb"
+
+    # Simulated clock: starts at 0.0
+    current_time = [0.0]
+    monkeypatch.setattr("time.monotonic", lambda: current_time[0])
+
+    def _mock_pipeline(**kwargs):
+        # Macro finishes when clock is still early
+        current_time[0] = 100.0
+        return PipelineSummary(
+            run_id="pipe1",
+            status="success",
+            failed_step=None,
+            warning_count=0,
+            config_path="",
+            mode="mock",
+            output_dir=str(output_dir),
+        )
+
+    def _mock_ingest(**kwargs):
+        # Ingestion finishes right before classification; advance clock past classification deadline (1020s)
+        current_time[0] = 1050.0
+        return pd.DataFrame()
+
+    def _mock_classify(**kwargs):
+        deadline = kwargs.get("deadline_monotonic")
+        assert deadline is not None
+        # Assert clock is past classification deadline (1020s) but before run deadline (1200s)
+        assert current_time[0] >= deadline
+        assert current_time[0] < 1200.0
+        # Classification stops at deadline and advances clock past run deadline (1200s)
+        current_time[0] = 1250.0
+        return {
+            "classifications": pd.DataFrame(),
+            "theme_scores": pd.DataFrame(),
+            "sector_impacts": pd.DataFrame(),
+            "selected_count": 10,
+            "completed_count": 2,
+            "deadline_hit": True,
+        }
+
+    mock_services = {
+        "run_pipeline": _mock_pipeline,
+        "build_sector_scores": lambda **_: None,
+        "run_sector_validation": lambda **_: None,
+        "write_sector_report": lambda **_: (output_dir / "s.json", output_dir / "s.md"),
+        "ingest_news": _mock_ingest,
+        "classify_news": _mock_classify,
+        "write_news_report": lambda **_: (output_dir / "nr.json", output_dir / "nr.md"),
+        "build_news_scores": lambda **_: None,
+        "write_news_score_report": lambda **_: (output_dir / "ns.json", output_dir / "ns.md"),
+        "run_combined": lambda **_: None,
+        "run_anchors": lambda **_: None,
+        "run_monitoring": lambda **_: None,
+    }
+
+    result = run_daily_diagnostic(
+        config_path=cfg_path,
+        db_path=db_path,
+        services=mock_services,
+        output_dir=output_dir,
+    )
+
+    assert result.status == "success_with_warnings"
+    assert any("news_classification_deadline:2/10" in w for w in result.warnings)
+    assert any("deadline_reached:skipped=news_report" in w for w in result.warnings)
+    assert any("deadline_reached:skipped=news_scoring" in w for w in result.warnings)
+
+
+

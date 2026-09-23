@@ -41,6 +41,7 @@ class PipelineSummary:
     confidence: float | None = None
     outputs: list[str] | None = None
     vintage_deferred_pairs: int = 0
+    warnings: tuple[str, ...] = ()
 
     def to_dict(self) -> dict:
         return {
@@ -59,6 +60,7 @@ class PipelineSummary:
             "confidence": self.confidence,
             "outputs": self.outputs or [],
             "vintage_deferred_pairs": self.vintage_deferred_pairs,
+            "warnings": list(self.warnings),
         }
 
 
@@ -246,6 +248,7 @@ def run_pipeline(
             confidence=latest.get("confidence"),
             outputs=outputs,
             vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
+            warnings=tuple(warnings),
         )
     except Exception:
         status = "failed"
@@ -259,6 +262,7 @@ def run_pipeline(
             output_dir=output_dir,
             outputs=outputs,
             vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
+            warnings=tuple(warnings),
         )
         _record_pipeline_summary(store, summary, started_at)
         raise

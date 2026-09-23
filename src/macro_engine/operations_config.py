@@ -11,6 +11,7 @@ class DailyMacroConfig(BaseModel):
     enabled: bool = True
     config_path: str = "config/phase_b_sources.yaml"
     mode: str = "live"
+    vintage_budget_minutes: float = 6.0
 
 
 class DailySectorConfig(BaseModel):
@@ -84,12 +85,25 @@ class DailyOutputsConfig(BaseModel):
 
 
 class DailySafetyConfig(BaseModel):
-    overall_run_timeout_minutes: int = Field(default=60, ge=1)
-    step_timeout_minutes: int = Field(default=20, ge=1)
+    # Code default 20 minutes (down from 60): only the two GitHub configs rely on the default.
+    # config/daily_pipeline.yaml and _replay_news_only.yaml set their timeout explicitly.
+    overall_run_timeout_minutes: float = Field(default=20.0, ge=1.0)
+    post_classification_reserve_minutes: float = Field(default=3.0, ge=0.0)
     fail_on_guardrail_violation: bool = True
     fail_on_missing_api_key_if_live_ai_enabled: bool = True
     fail_on_macro_pipeline_failure: bool = True
     allow_success_with_warnings: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_step_timeout_minutes(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "step_timeout_minutes" in data:
+            raise ValueError(
+                "step_timeout_minutes has been removed (synchronous steps cannot be "
+                "interrupted in-process). Use overall_run_timeout_minutes for run deadline "
+                "and macro.vintage_budget_minutes / post_classification_reserve_minutes instead."
+            )
+        return data
 
 
 class DailyPipelineConfig(BaseModel):

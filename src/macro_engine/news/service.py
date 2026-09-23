@@ -59,7 +59,8 @@ def classify_stored_news(
     stop_on_failure_rate_above: float | None = None,
     selection_config_path: str | Path | None = None,
     sources_config_path: str | Path = "config/news_sources.yaml",
-) -> dict[str, pd.DataFrame]:
+    deadline_monotonic: float | None = None,
+) -> dict[str, Any]:
     ai_config = load_news_ai_config(ai_config_path)
     themes = load_news_themes_config(themes_config_path)
     use_mock = should_use_mock_classifier(ai_config)
@@ -103,7 +104,13 @@ def classify_stored_news(
         enabled=progress,
         callback=progress_callback,
     )
+    deadline_hit = False
     for index, row in enumerate(rows, start=1):
+        if deadline_monotonic is not None and time.monotonic() >= deadline_monotonic:
+            deadline_hit = True
+            done = len(records)
+            print(f"classify-news: deadline reached after {done}/{total}", flush=True)
+            break
         started = time.monotonic()
         item = _news_item_from_stored_row(row)
         _emit_progress(
@@ -165,6 +172,9 @@ def classify_stored_news(
         "classifications": classifications,
         "theme_scores": theme_scores,
         "sector_impacts": sector_impacts,
+        "selected_count": total,
+        "completed_count": len(records),
+        "deadline_hit": deadline_hit,
     }
 
 
