@@ -340,11 +340,9 @@ daily_pipeline:
     mock_mode_default: {str(not allow_live_ai).lower()}
   live_ai_safety:
     max_items_per_run: 25
-    batch_size: 5
     classify_only_unclassified: true
     continue_on_individual_failure: true
     stop_on_failure_rate_above: 0.20
-    stop_on_timeout_count_above: 3
   combined:
     enabled: true
     config_path: config/sector_news_integration.yaml
@@ -360,13 +358,8 @@ daily_pipeline:
   outputs:
     archive_enabled: true
     archive_root: {(tmp_path / "archive").as_posix()}
-    include_json: true
-    include_markdown: true
-    include_run_summary: true
   safety:
     fail_on_guardrail_violation: true
-    fail_on_missing_api_key_if_live_ai_enabled: true
-    fail_on_macro_pipeline_failure: true
     allow_success_with_warnings: true
 """,
         encoding="utf-8",
@@ -379,17 +372,8 @@ def _accumulation_config(tmp_path: Path) -> Path:
     path.write_text(
         f"""
 news_accumulation:
-  enabled: true
-  source_profile: synthetic_sample
   min_items_per_run: 1
-  target_items_per_day: 5
-  max_items_per_day: 50
   min_source_count: 1
-  min_source_groups: 0
-  dedupe_across_runs: true
-  retain_raw_items: true
-  retain_classifications: true
-  output_history_report: true
   output_dir: {(tmp_path / "outputs").as_posix()}
 """,
         encoding="utf-8",

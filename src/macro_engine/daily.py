@@ -996,7 +996,7 @@ def _run_news_classification(
         "stop_on_failure_rate_above": (
             config.live_ai_safety.stop_on_failure_rate_above
         ),
-        "selection_config_path": "config/news_selection.yaml",
+        "selection_config_path": config.news.news_selection_config,
         "sources_config_path": config.news.news_sources_config,
     }
     import inspect

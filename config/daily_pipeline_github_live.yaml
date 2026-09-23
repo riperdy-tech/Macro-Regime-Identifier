@@ -28,11 +28,9 @@ daily_pipeline:
 
   live_ai_safety:
     max_items_per_run: 60
-    batch_size: 5
     classify_only_unclassified: true
     continue_on_individual_failure: true
     stop_on_failure_rate_above: 0.20
-    stop_on_timeout_count_above: 3
 
   combined:
     enabled: true

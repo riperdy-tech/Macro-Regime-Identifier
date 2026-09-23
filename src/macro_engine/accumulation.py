@@ -41,6 +41,10 @@ def run_news_accumulation(
     store = DuckDBStore(db_path)
     store.initialize()
     classifications, _, _ = store.read_effective_news_classifications()
+    try:
+        source_runs = store.read_table("news_source_runs")
+    except Exception:
+        source_runs = pd.DataFrame()
     result = build_news_accumulation_outputs(
         config=config,
         news_items=store.read_table("news_items"),
@@ -50,6 +54,7 @@ def run_news_accumulation(
         combined_diagnostics=store.read_table("combined_sector_diagnostics"),
         sector_scores=store.read_table("sector_scores"),
         run_date=_coerce_run_date(run_date),
+        new_items_this_run=_latest_run_new_items(source_runs),
     )
     store.upsert_news_accumulation_outputs(
         result.runs,
@@ -69,6 +74,7 @@ def build_news_accumulation_outputs(
     combined_diagnostics: pd.DataFrame,
     sector_scores: pd.DataFrame,
     run_date: date,
+    new_items_this_run: int | None = None,
 ) -> NewsAccumulationResult:
     created_at = datetime.now(UTC)
     runs = _accumulation_run_frame(
@@ -77,6 +83,7 @@ def build_news_accumulation_outputs(
         classifications=classifications,
         run_date=run_date,
         created_at=created_at,
+        new_items_this_run=new_items_this_run,
     )
     news_history = _news_score_history_frame(
         daily_theme_scores,
@@ -223,6 +230,7 @@ def _accumulation_run_frame(
     classifications: pd.DataFrame,
     run_date: date,
     created_at: datetime,
+    new_items_this_run: int | None = None,
 ) -> pd.DataFrame:
     dates = _date_range(news_items, "published_at")
     raw_count = len(news_items)
@@ -231,8 +239,12 @@ def _accumulation_run_frame(
     failed = _failure_count(classifications)
     success_rate = _classification_success_rate(classifications)
     warnings = []
-    if raw_count < config.min_items_per_run:
-        warnings.append("raw item count below configured minimum")
+    # N1.7: gated on THIS RUN's new items (news_source_runs), not the whole
+    # store -- comparing min_items_per_run against the accumulated store size
+    # meant the gate could never fire. None means no telemetry exists yet
+    # (legacy store / news_source_runs not populated): absence, not a zero.
+    if new_items_this_run is not None and new_items_this_run < config.min_items_per_run:
+        warnings.append("new items this run below configured minimum")
     if _source_count(news_items) < config.min_source_count:
         warnings.append("source count below configured minimum")
     if success_rate < config.quality_status_thresholds.min_success_rate:
@@ -246,6 +258,7 @@ def _accumulation_run_frame(
                 "raw_item_count": raw_count,
                 "new_unique_items": int(unique_count),
                 "duplicate_items": int(raw_count - unique_count),
+                "new_items_this_run": new_items_this_run,
                 "classified_items": classified,
                 "failed_items": failed,
                 "success_rate": success_rate,
@@ -259,6 +272,21 @@ def _accumulation_run_frame(
             }
         ]
     )
+
+
+def _latest_run_new_items(source_runs: pd.DataFrame) -> int | None:
+    """Sum of items_new across every source in the most recent run_id, or
+    None when news_source_runs has no usable rows yet (absence, not zero)."""
+    if source_runs.empty or "run_at" not in source_runs.columns:
+        return None
+    frame = source_runs.copy()
+    frame["run_at"] = pd.to_datetime(frame["run_at"], errors="coerce", utc=True)
+    frame = frame.dropna(subset=["run_at"])
+    if frame.empty:
+        return None
+    latest_run_id = frame.sort_values("run_at")["run_id"].iloc[-1]
+    latest_rows = frame[frame["run_id"] == latest_run_id]
+    return int(pd.to_numeric(latest_rows["items_new"], errors="coerce").fillna(0).sum())
 
 
 def _news_score_history_frame(

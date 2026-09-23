@@ -148,12 +148,13 @@ def classify_stored_news(
             news_items = news_items[~news_items["news_id"].astype(str).isin(real_ids)].copy()
     if limit is not None:
         if selection_config_path is not None and not news_items.empty:
-            # Importance-ranked selection within the budget (pure, no LLM). The
-            # live_ai_safety cap stays authoritative: never exceed `limit`.
+            # Importance-ranked selection within the budget (pure, no LLM).
+            # N1.7: live_ai_safety.max_items_per_run (this `limit`) is the
+            # single spend cap -- news_selection.daily_cap was removed because
+            # it never bound anything tighter.
             sel_cfg = load_news_selection_config(selection_config_path)
-            sel_cfg = sel_cfg.model_copy(update={"daily_cap": min(limit, sel_cfg.daily_cap)})
             news_items = rank_and_select(
-                news_items, config=sel_cfg, sources_config_path=sources_config_path
+                news_items, config=sel_cfg, cap=limit, sources_config_path=sources_config_path
             )
         else:
             news_items = news_items.sort_values("published_at", na_position="last").tail(limit)

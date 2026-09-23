@@ -343,24 +343,36 @@ class SectorNewsIntegrationConfig(BaseModel):
 
 class NewsMonitoringSourceGroup(BaseModel):
     group_id: str
-    target_item_count: int = Field(default=0, ge=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "target_item_count" in data:
+            raise ValueError(
+                "news_monitoring.source_groups[].target_item_count has been removed (N1.7: "
+                "unread by any code path). No replacement is needed."
+            )
+        return data
 
 
 class NewsMonitoringFreshnessRules(BaseModel):
     max_age_days: int = Field(default=30, ge=0)
     reject_future_dates: bool = True
-    warn_old_items: bool = True
-    warn_short_body: bool = True
 
-
-class NewsMonitoringDuplicateHandling(BaseModel):
-    content_hash_dedupe: bool = True
-    title_dedupe: bool = True
-    source_url_dedupe: bool = True
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key in ("warn_old_items", "warn_short_body"):
+                if key in data:
+                    raise ValueError(
+                        f"news_monitoring.freshness_rules.{key} has been removed (N1.7: unread "
+                        "by any code path). No replacement is needed."
+                    )
+        return data
 
 
 class NewsMonitoringQualityThresholds(BaseModel):
-    min_body_length: int = Field(default=25, ge=0)
     max_failed_classification_rate: float = Field(default=0.10, ge=0.0, le=1.0)
     max_retry_rate: float = Field(default=0.20, ge=0.0, le=1.0)
     max_repair_rate: float = Field(default=0.20, ge=0.0, le=1.0)
@@ -378,6 +390,16 @@ class NewsMonitoringQualityThresholds(BaseModel):
     max_rank_change: int = Field(default=3, ge=0)
     max_avg_abs_rank_change: float = Field(default=1.5, ge=0.0)
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "min_body_length" in data:
+            raise ValueError(
+                "news_monitoring.quality_thresholds.min_body_length has been removed (N1.7: "
+                "unread by any code path). No replacement is needed."
+            )
+        return data
+
 
 class NewsMonitoringConfig(BaseModel):
     output_dir: str = "outputs"
@@ -391,12 +413,20 @@ class NewsMonitoringConfig(BaseModel):
     freshness_rules: NewsMonitoringFreshnessRules = Field(
         default_factory=NewsMonitoringFreshnessRules
     )
-    duplicate_handling: NewsMonitoringDuplicateHandling = Field(
-        default_factory=NewsMonitoringDuplicateHandling
-    )
     quality_thresholds: NewsMonitoringQualityThresholds = Field(
         default_factory=NewsMonitoringQualityThresholds
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "duplicate_handling" in data:
+            raise ValueError(
+                "news_monitoring.duplicate_handling has been removed in full (N1.7: "
+                "content_hash_dedupe/title_dedupe/source_url_dedupe were all unread). No "
+                "replacement is needed."
+            )
+        return data
 
     @model_validator(mode="after")
     def validate_source_groups(self):
@@ -412,7 +442,6 @@ class NewsMonitoringConfig(BaseModel):
 class NewsSelectionConfig(BaseModel):
     """Pure (no-LLM) prioritization of news items for the classification budget."""
 
-    daily_cap: int = Field(default=120, ge=1)
     min_priority: float = Field(default=0.15, ge=0.0)
     half_life_days: float = Field(default=4.0, gt=0.0)
     max_age_days: int = Field(default=14, ge=0)
@@ -432,6 +461,17 @@ class NewsSelectionConfig(BaseModel):
     novelty_similarity_threshold: float = Field(default=0.6, ge=0.0, le=1.0)
     # Multiplier applied to a near-duplicate's priority (0 = drop, 1 = no penalty).
     novelty_penalty: float = Field(default=0.4, ge=0.0, le=1.0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "daily_cap" in data:
+            raise ValueError(
+                "news_selection.daily_cap has been removed (N1.7: it never bound anything "
+                "tighter than live_ai_safety.max_items_per_run, the single spend cap). Pass "
+                "the cap explicitly to rank_and_select()/select_within_budget() instead."
+            )
+        return data
 
 
 def load_news_sources_config(path: str | Path = "config/news_sources.yaml") -> NewsSourcesConfig:

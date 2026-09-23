@@ -217,11 +217,8 @@ news_monitoring:
   source_profile: synthetic_sample
   source_groups:
     - group_id: macro_general
-      target_item_count: 2
     - group_id: inflation_rates
-      target_item_count: 2
   quality_thresholds:
-    min_body_length: 25
     max_failed_classification_rate: 0.10
     max_retry_rate: 0.20
     max_repair_rate: 0.20

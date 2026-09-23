@@ -265,16 +265,21 @@ def assign_event_ids(
     return event_of
 
 
-def select_within_budget(scored: pd.DataFrame, *, config: NewsSelectionConfig) -> pd.DataFrame:
-    """Apply per-group quotas + global fill, capped at daily_cap. Input must have
-    `source_group`, `selection_score`, `eligible` columns (from score_items)."""
+def select_within_budget(
+    scored: pd.DataFrame, *, config: NewsSelectionConfig, cap: int
+) -> pd.DataFrame:
+    """Apply per-group quotas + global fill, capped at `cap`. Input must have
+    `source_group`, `selection_score`, `eligible` columns (from score_items).
+
+    N1.7: `cap` is now always the caller's live_ai_safety.max_items_per_run --
+    the config used to carry its own daily_cap, but it never bound anything
+    tighter than that single spend cap, so the field was removed."""
     pool = scored[scored["eligible"]].copy()
     if pool.empty:
         return pool
     pool = pool.sort_values(
         ["selection_score", "published_at"], ascending=[False, False], na_position="last"
     )
-    cap = config.daily_cap
     present = list(pool["source_group"].unique())
     weights = {g: config.group_quota_weights.get(g, _DEFAULT_GROUP_WEIGHT) for g in present}
     total_w = sum(weights.values()) or 1.0
@@ -302,11 +307,12 @@ def rank_and_select(
     items: pd.DataFrame,
     *,
     config: NewsSelectionConfig,
+    cap: int,
     sources_config_path: str | Path = "config/news_sources.yaml",
     now: datetime | None = None,
 ) -> pd.DataFrame:
     """End-to-end: score then select within budget. Returns the chosen rows
-    (original columns plus source_group/selection_score), capped at daily_cap."""
+    (original columns plus source_group/selection_score), capped at `cap`."""
     lexicon = load_macro_keyword_lexicon(sources_config_path)
     scored = score_items(items, config=config, lexicon=lexicon, now=now)
-    return select_within_budget(scored, config=config)
+    return select_within_budget(scored, config=config, cap=cap)

@@ -21,7 +21,6 @@ LEX = {"inflation", "fed", "jobs", "oil", "rate"}
 
 def _cfg(**over) -> NewsSelectionConfig:
     base = dict(
-        daily_cap=10,
         min_priority=0.15,
         half_life_days=4.0,
         max_age_days=14,
@@ -88,7 +87,7 @@ def test_important_older_outranks_trivial_newer():
     s = dict(zip(scored["news_id"], scored["selection_score"]))
     assert s["important"] > s["trivial"]
     # cap=1: quotas floor to 0, global fill takes the single highest priority.
-    sel = select_within_budget(scored, config=_cfg(daily_cap=1))
+    sel = select_within_budget(scored, config=_cfg(), cap=1)
     assert list(sel["news_id"]) == ["important"]
 
 
@@ -105,9 +104,9 @@ def test_group_quota_caps_overrepresented_group():
         rows.append(_row(f"l{i}", source="bls_latest", group="labor",
                          title="Jobs report shows hiring",
                          body="The latest jobs report shows continued hiring across sectors today", days_ago=1))
-    cfg = _cfg(daily_cap=4, group_quota_weights={"macro_general": 1.0, "labor": 1.0})
+    cfg = _cfg(group_quota_weights={"macro_general": 1.0, "labor": 1.0})
     scored = score_items(_df(rows), config=cfg, lexicon=LEX, now=NOW)
-    sel = select_within_budget(scored, config=cfg)
+    sel = select_within_budget(scored, config=cfg, cap=4)
     counts = sel["source_group"].value_counts().to_dict()
     assert counts.get("macro_general", 0) == 2  # capped by quota, not all 10
     assert counts.get("labor", 0) == 2
@@ -143,13 +142,15 @@ def test_selection_never_exceeds_cap():
              body="Inflation rate fed jobs oil with plenty more words to satisfy length", days_ago=1)
         for i in range(50)
     ]
-    cfg = _cfg(daily_cap=12)
-    sel = select_within_budget(score_items(_df(rows), config=cfg, lexicon=LEX, now=NOW), config=cfg)
+    cfg = _cfg()
+    sel = select_within_budget(
+        score_items(_df(rows), config=cfg, lexicon=LEX, now=NOW), config=cfg, cap=12
+    )
     assert len(sel) <= 12
 
 
 def test_empty_input_safe():
-    sel = rank_and_select(pd.DataFrame(), config=_cfg(), now=NOW)
+    sel = rank_and_select(pd.DataFrame(), config=_cfg(), cap=10, now=NOW)
     assert sel.empty
 
 
@@ -276,5 +277,5 @@ def test_rank_and_select_uses_real_keyword_lexicon():
              title="A developer demo recap",
              body="A developer demo recap with enough words present to pass the length gate", days_ago=1),
     ]
-    sel = rank_and_select(_df(rows), config=_cfg(daily_cap=1), now=NOW)
+    sel = rank_and_select(_df(rows), config=_cfg(), cap=1, now=NOW)
     assert list(sel["news_id"]) == ["macro"]

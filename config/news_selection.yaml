@@ -14,8 +14,11 @@
 # ALL numbers below are HAND-SET PRIORS (editorial judgement), not measured.
 
 news_selection:
-  # Hard ceiling per run. ~120/day x 30 ~= $1.2/month at flash rates (< $5 cap).
-  daily_cap: 120
+  # N1.7: the hard ceiling per run used to be set HERE (daily_cap). It never
+  # bound anything tighter than live_ai_safety.max_items_per_run (the single
+  # spend cap; see operations_config.py's DailyLiveAISafetyConfig for the cost
+  # comment), so the field was removed -- the cap is passed to rank_and_select
+  # explicitly by the caller now.
 
   # Drop items whose priority is below this. Keeps quiet days cheap.
   min_priority: 0.15
@@ -46,7 +49,8 @@ news_selection:
     nvidia_developer_blog: 0.7
     google_cloud_blog: 0.7
 
-  # Relative share of the daily_cap given to each source_group. Items with no
+  # Relative share of the run's cap (live_ai_safety.max_items_per_run) given
+  # to each source_group. Items with no
   # mapped group use `unmapped`. Weights are normalized over groups actually
   # present in the candidate pool; leftover budget is filled by global priority.
   group_quota_weights:

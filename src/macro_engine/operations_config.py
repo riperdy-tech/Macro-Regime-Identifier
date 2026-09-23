@@ -33,6 +33,8 @@ class DailyNewsConfig(BaseModel):
     news_ai_config: str = "config/news_ai.yaml"
     news_themes_config: str = "config/news_themes.yaml"
     news_scoring_config: str = "config/news_scoring.yaml"
+    # N1.7: was hard-coded "config/news_selection.yaml" in daily.py.
+    news_selection_config: str = "config/news_selection.yaml"
     allow_live_ai: bool = False
     mock_mode_default: bool = True
     # N1.4: durable news history (export/hydrate). None disables both steps --
@@ -41,12 +43,27 @@ class DailyNewsConfig(BaseModel):
 
 
 class DailyLiveAISafetyConfig(BaseModel):
+    # The single spend cap for live classification (N1.7 removed
+    # news_selection.daily_cap, which never bound anything tighter than this).
+    # ~60/day x 30 ~= $1.2/month at flash rates for the mock/local 25-cap
+    # config; the live 60-cap config is ~half that per the config comment
+    # (unverified against an actual DeepSeek bill -- OA-3).
     max_items_per_run: int = Field(default=25, ge=1)
-    batch_size: int = Field(default=5, ge=1)
     classify_only_unclassified: bool = True
     continue_on_individual_failure: bool = True
     stop_on_failure_rate_above: float = Field(default=0.20, ge=0.0, le=1.0)
-    stop_on_timeout_count_above: int = Field(default=3, ge=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key in ("batch_size", "stop_on_timeout_count_above"):
+                if key in data:
+                    raise ValueError(
+                        f"live_ai_safety.{key} has been removed (N1.7: unread by any code "
+                        "path). No replacement is needed."
+                    )
+        return data
 
 
 class DailyCombinedConfig(BaseModel):
@@ -82,9 +99,18 @@ class DailyMonitoringConfig(BaseModel):
 class DailyOutputsConfig(BaseModel):
     archive_enabled: bool = True
     archive_root: str = "outputs/archive"
-    include_json: bool = True
-    include_markdown: bool = True
-    include_run_summary: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key in ("include_json", "include_markdown", "include_run_summary"):
+                if key in data:
+                    raise ValueError(
+                        f"outputs.{key} has been removed (N1.7: unread by any code path; "
+                        "both files are always written). No replacement is needed."
+                    )
+        return data
 
 
 class DailySafetyConfig(BaseModel):
@@ -93,18 +119,26 @@ class DailySafetyConfig(BaseModel):
     overall_run_timeout_minutes: float = Field(default=20.0, ge=1.0)
     post_classification_reserve_minutes: float = Field(default=3.0, ge=0.0)
     fail_on_guardrail_violation: bool = True
-    fail_on_missing_api_key_if_live_ai_enabled: bool = True
-    fail_on_macro_pipeline_failure: bool = True
     allow_success_with_warnings: bool = True
 
     @model_validator(mode="before")
     @classmethod
-    def reject_step_timeout_minutes(cls, data: Any) -> Any:
+    def reject_dead_keys(cls, data: Any) -> Any:
         if isinstance(data, dict) and "step_timeout_minutes" in data:
             raise ValueError(
                 "step_timeout_minutes has been removed (synchronous steps cannot be "
                 "interrupted in-process). Use overall_run_timeout_minutes for run deadline "
                 "and macro.vintage_budget_minutes / post_classification_reserve_minutes instead."
+            )
+        if isinstance(data, dict) and "fail_on_missing_api_key_if_live_ai_enabled" in data:
+            raise ValueError(
+                "safety.fail_on_missing_api_key_if_live_ai_enabled has been removed (N1.7: "
+                "unread by any code path). No replacement is needed."
+            )
+        if isinstance(data, dict) and "fail_on_macro_pipeline_failure" in data:
+            raise ValueError(
+                "safety.fail_on_macro_pipeline_failure has been removed (N1.7: the macro step "
+                "is hard-coded fail=True in daily.py; this flag was never read)."
             )
         return data
 
@@ -137,33 +171,53 @@ class DailyPipelineConfig(BaseModel):
 
 class AccumulationQualityThresholds(BaseModel):
     min_success_rate: float = Field(default=0.90, ge=0.0, le=1.0)
-    max_retry_rate: float = Field(default=0.20, ge=0.0, le=1.0)
-    max_repair_rate: float = Field(default=0.20, ge=0.0, le=1.0)
-    max_failure_rate: float = Field(default=0.10, ge=0.0, le=1.0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key in ("max_retry_rate", "max_repair_rate", "max_failure_rate"):
+                if key in data:
+                    raise ValueError(
+                        f"news_accumulation.quality_status_thresholds.{key} has been removed "
+                        "(N1.7: unread by any code path; news/config.py's "
+                        "NewsMonitoringQualityThresholds is the equivalent that is actually "
+                        "read). No replacement is needed."
+                    )
+        return data
 
 
 class NewsAccumulationConfig(BaseModel):
-    enabled: bool = True
-    source_profile: str = "synthetic_sample"
+    # N1.5/N1.7: compared against this run's new items (news_source_runs),
+    # not the whole store -- min_items_per_run could never fire before.
     min_items_per_run: int = Field(default=1, ge=0)
-    target_items_per_day: int = Field(default=25, ge=0)
-    max_items_per_day: int = Field(default=300, ge=1)
     min_source_count: int = Field(default=1, ge=0)
-    min_source_groups: int = Field(default=1, ge=0)
-    dedupe_across_runs: bool = True
-    retain_raw_items: bool = True
-    retain_classifications: bool = True
-    output_history_report: bool = True
     output_dir: str = "outputs"
     quality_status_thresholds: AccumulationQualityThresholds = Field(
         default_factory=AccumulationQualityThresholds
     )
 
-    @model_validator(mode="after")
-    def validate_item_limits(self):
-        if self.target_items_per_day > self.max_items_per_day:
-            raise ValueError("target_items_per_day cannot exceed max_items_per_day")
-        return self
+    @model_validator(mode="before")
+    @classmethod
+    def reject_dead_keys(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            for key in (
+                "enabled",
+                "source_profile",
+                "target_items_per_day",
+                "max_items_per_day",
+                "min_source_groups",
+                "dedupe_across_runs",
+                "retain_raw_items",
+                "retain_classifications",
+                "output_history_report",
+            ):
+                if key in data:
+                    raise ValueError(
+                        f"news_accumulation.{key} has been removed (N1.7: unread by any code "
+                        "path). No replacement is needed."
+                    )
+        return data
 
 
 def load_daily_pipeline_config(path: str | Path = "config/daily_pipeline.yaml") -> DailyPipelineConfig:

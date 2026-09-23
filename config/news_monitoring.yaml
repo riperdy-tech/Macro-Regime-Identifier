@@ -9,45 +9,24 @@ news_monitoring:
 
   source_groups:
     - group_id: macro_general
-      target_item_count: 12
     - group_id: inflation_rates
-      target_item_count: 10
     - group_id: labor
-      target_item_count: 8
     - group_id: energy_commodities
-      target_item_count: 8
     - group_id: credit_financial_conditions
-      target_item_count: 8
     - group_id: real_estate
-      target_item_count: 6
     - group_id: consumer
-      target_item_count: 6
     - group_id: manufacturing_industrials
-      target_item_count: 6
     - group_id: geopolitical
-      target_item_count: 6
     - group_id: technology_ai
-      target_item_count: 6
     - group_id: healthcare
-      target_item_count: 6
     - group_id: defensive_sectors
-      target_item_count: 6
     - group_id: ai_compute
-      target_item_count: 6
 
   freshness_rules:
     max_age_days: 30
     reject_future_dates: true
-    warn_old_items: true
-    warn_short_body: true
-
-  duplicate_handling:
-    content_hash_dedupe: true
-    title_dedupe: true
-    source_url_dedupe: true
 
   quality_thresholds:
-    min_body_length: 25
     max_failed_classification_rate: 0.10
     max_retry_rate: 0.20
     max_repair_rate: 0.20
