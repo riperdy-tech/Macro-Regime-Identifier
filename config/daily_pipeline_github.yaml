@@ -46,8 +46,10 @@ daily_pipeline:
     source_profile: synthetic_sample
 
   safety:
-    # job timeout 30 min, setup ~4 min, deadline 20 min, archive ~0.5 min, margin >= 5 min.
-    overall_run_timeout_minutes: 20
+    # Measured 2026-09-23 (run 35829508938, 28m40s total): tests 6m14s, daily diagnostic 21m03s
+    # at a 20-min deadline (~1 min of post-cutoff steps), everything else ~1.4 min. At 15 min:
+    # ~6.2 + ~16 + ~1.4 = ~23.6 min, leaving ~6 min under the 30-min job timeout.
+    overall_run_timeout_minutes: 15
     fail_on_guardrail_violation: true
 
   outputs:
