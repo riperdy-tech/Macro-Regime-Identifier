@@ -307,34 +307,46 @@ terminal_g_suggestion     = terminal_g_rung = rung_state.current_rung
 delta                     = terminal_g_suggestion − downstream_prior_in_use
 ```
 
-`advance_rung_state` (`src/macro_engine/anchors/growth.py`) is a dead-band + N-consecutive
--monthly-build confirmation rule: the rung changes only once the clamped raw trend is
-beyond the *far* edge of the current rung (`abs(raw − current) > round_to`, not merely
-past the midpoint — that distinction is specifications B vs C below) **and** that
-departure holds for `growth.rung.confirm_months` consecutive monthly builds (default 3,
-specification E, the operator's ruling on §10 Q2; `confirm_months: 1` is specification
-C). State (`current_rung`, `candidate_rung`, `months_confirmed`, `last_change_date`,
-`changes_last_10y`) is persisted in `anchor_runs.long_run_growth_json.rung_state` and
-read back by `anchors/service.py` on every build, so a rebuild does not silently reset
-the confirmation counter. A daily pipeline calling `build-anchors` more than once inside
-a calendar month advances the state at most once (`last_evaluated_month`).
+`advance_rung_state` and `resolve_growth_rung_state` (`src/macro_engine/anchors/growth.py`)
+implement a dead-band + N-consecutive-monthly-build candidate-confirmation rule: the rung
+changes only once the clamped raw trend is beyond the *far* edge of the current rung
+(`abs(raw − current) > round_to`, not merely past the midpoint — that distinction is
+specifications B vs C below) **and** that specific candidate rung holds for
+`growth.rung.confirm_months` consecutive monthly builds (default 3, specification E, the
+operator's ruling on §10 Q2; `confirm_months: 1` is specification C). Under candidate
+confirmation (`growth.rung.rule: candidate`), if raw departs but the candidate rung shifts from
+one month to the next, confirmation resets for the new candidate. To make a held rung visible
+when raw moves faster than confirmation, `rung_state.gap_bp` publishes `round((raw − current) × 1e4)`.
 
-**Measured (`scripts/measure_growth_rung_path.py`, S2 report), 2004-06 → 2026-08, 267
-months, on the S0 store:**
+State (`current_rung`, `candidate_rung`, `months_confirmed`, `last_change_date`, `changes_last_10y`,
+`gap_bp`, `rule`, `method_version`) is persisted in `anchor_runs.long_run_growth_json.rung_state`
+and read back by `anchors/service.py` on every build. When prior state lacks `rule == "candidate"`
+and `method_version == 1`, state is seeded by historical replay from `growth.rung.replay_start`
+(`2004-06-01`). Any missed calendar months between builds are caught up in sequential calendar
+order, so a multi-month gap between builds arrives at the same state as consecutive monthly builds.
 
-| specification | rung changes | largest single change | today's rung |
-| --- | --- | --- | --- |
-| B (smoothed leg, no dead-band, naive round-to-nearest) | 19 | 25 bp | — |
-| C (`confirm_months: 1`, dead-band only) | **11** — exact match to the architecture's §5.1 count | 25 bp | 3.75% |
-| E (`confirm_months: 3`, adopted) | **10** vs. the architecture's measured 9 | 50 bp | 3.75% |
+**Measured (`scripts/measure_growth_rung_path.py`), 2004-06 → 2026-09, 268
+months, on the live store (month-start grid, complete months inflation leg):**
 
-E differs from the architecture's own 2026-09-22 measurement by exactly one extra
-change (an intermediate 2009-02 stop at 4.00% before the 2009-09 stop at 3.75%, in
-place of one 75 bp release straight from 4.50% to 3.75%), inside the S2.1 gate's
-explicit "no more than one change" tolerance; both specifications land on the **same
-final rung, 3.75%**, matching the architecture's stated value exactly. Attributed to
-FRED revisions to `GDPPOT`/`T5YIFR` accrued in the eleven months since the
-architecture's measurement, not to a difference in mechanism.
+| specification | rung changes | largest single change | largest gap (raw − published rung) | changes last 10y | today's rung |
+| --- | --- | --- | --- | --- | --- |
+| B (smoothed leg, no dead-band, naive round-to-nearest) | 19 | 25 bp | 25 bp | 4 | — |
+| C (`confirm_months: 1`, dead-band only) | 11 | 25 bp | 25 bp | 3 | 3.75% |
+| E (`confirm_months: 3`, candidate confirmation, adopted) | **9** | **75 bp** (2009-06) | **69 bp** (2009-05) | **3** | **3.75%** |
+| Shipped variant (`confirm_months: 3`, departure confirmation) | 10 | 50 bp | 48 bp | 3 | 3.75% |
+
+Specification E exactly reproduces the target architecture's §5.2 9-date path (including the 75 bp
+step from 4.50% to 3.75% in 2009-06, 3 changes in the last ten years, and today's rung at 3.75%).
+An earlier report observed 10 changes and attributed the difference to FRED revisions accrued in
+the intervening months; measurement shows that the difference was purely mechanical:
+1. Candidate confirmation vs departure confirmation: candidate confirmation requires the
+   *candidate* rung to hold for 3 consecutive months, whereas departure confirmation only
+   required raw to stay departed from the current rung for 3 months regardless of candidate shifts.
+   When raw moves rapidly (e.g. 2008-2009), the candidate changes frequently, so the rung holds
+   longer and releases in a larger step.
+2. Grid definition: evaluation on a month-start grid (first calendar day of month) using only
+   complete calendar months for the inflation leg (`[M-12mo, M-1mo]`) avoids partial-month leakage
+   and future timestamps in provenance.
 
 Sources: `GDPPOT` (CBO Real Potential GDP, quarterly) for the real leg; `T5YIFR` with
 `T10YIE` as the documented fallback for the inflation leg. Both are observed series,

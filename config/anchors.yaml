@@ -147,16 +147,15 @@ growth:
   # v0.3 (S2): the dead-band + confirmation rule that now governs the published rung
   # (P0_0_MRI_TARGET_ARCHITECTURE.md §5.2, operator ruling §10 Q2). confirm_months: 3
   # is specification E (recommended, adopted); confirm_months: 1 is specification C.
-  # Measured 2004-06..2026-08 (scripts/measure_growth_rung_path.py, S2 report): C moves
-  # 11 times, no jump larger than one rung (25 bp) -- an EXACT match to the
-  # architecture's §5.1 count. E moves 10 times, largest jump 50 bp -- the
-  # architecture's own measurement was 9 changes with one 75 bp jump; the S2 rebuild
-  # differs by exactly one extra change during the 2008-2009 window (an intermediate
-  # 2009-02 stop at 4.00% before the 2009-09 stop at 3.75%, instead of one 75 bp
-  # release), attributed to FRED revisions to GDPPOT/T5YIFR accrued since the
-  # architecture's 2026-09-22 measurement -- within the S2.1 gate's explicit "no more
-  # than one change" tolerance. Both specifications land on the SAME final rung,
-  # 3.75%, matching the architecture's stated "today" value exactly.
+  # The rule is candidate confirmation (confirm the candidate rung, not merely departing the
+  # current rung), evaluated on a month-start grid (as-of = 1st of month for both legs)
+  # with inflation smoothed over the 12 complete calendar months before the evaluation month.
+  # Measured 2004-06..2026-08 (scripts/measure_growth_rung_path.py):
+  # C moves 11 times, no jump larger than 25 bp.
+  # E moves 9 times, exactly reproducing the architecture's §5.2 9-date path (including the
+  # 75 bp jump in 2009-06, 3 changes in last 10y, today's rung at 3.75%).
+  # The previously reported 10-change path was a departure-confirmation variant evaluated on a
+  # month-end grid; the difference was mechanical, not caused by FRED revisions or data drift.
   rung:
     confirm_months: 3
     rule: candidate
