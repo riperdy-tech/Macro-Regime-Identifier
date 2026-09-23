@@ -241,6 +241,18 @@ sources:
     unusable_after_days: 30
     publication_lag_days: 5
 
+  # --- S5 shadow inputs (MRI_S5_SPEC.md) ------------------------------------
+  - series_id: MCOILWTICO
+    name: Crude Oil Prices, West Texas Intermediate (WTI) - Cushing, Oklahoma, monthly average
+    provider: FRED
+    dimension: commodity
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+    publication_lag_days: 35
+
 features:
   - feature_id: industrial_production_yoy_z
     series_id: INDPRO
@@ -401,6 +413,14 @@ features:
     enabled: true
     min_observations: 504
 
+  - feature_id: oil_wti_yoy_z
+    series_id: MCOILWTICO
+    transform: yoy_log_change
+    normalization: rolling_z_5y
+    direction: higher_is_oil_price_rising
+    enabled: true
+    min_observations: 24
+
 dimensions:
   - dimension_id: growth_momentum
     enabled: true
@@ -512,6 +532,16 @@ dimensions:
         polarity: positive
       - feature_id: real_rate_10y_6m_change_z
         weight: 0.50
+        polarity: positive
+
+  - dimension_id: commodity        # v1 is oil only
+    enabled: true
+    required_for_regime: false
+    min_valid_features: 1
+    min_coverage_ratio: 1.00
+    features:
+      - feature_id: oil_wti_yoy_z
+        weight: 1.00
         polarity: positive
 
 regime_scoring:

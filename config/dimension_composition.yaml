@@ -107,3 +107,13 @@ dimension_compositions:
           weight: 0.50
         - feature_id: real_rate_10y_6m_change_z
           weight: 0.50
+
+  # S5.2: MCOILWTICO from 1986-01; year-on-year from 1987-01; 24-month z minimum -> valid
+  # before the 1990-01 calendar start.
+  commodity:
+    - composition_id: "commodity:v1:1990-01-01.."
+      valid_from: "1990-01-01"
+      valid_to: null
+      features:
+        - feature_id: oil_wti_yoy_z
+          weight: 1.00
