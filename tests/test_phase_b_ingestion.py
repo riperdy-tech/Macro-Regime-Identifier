@@ -72,7 +72,7 @@ def test_load_production_controlled_source_set():
     sources = load_ingestion_sources("config/phase_b_sources.yaml")
     selected = select_sources(sources)
 
-    assert len(selected) == 20
+    assert len(selected) == 22
     assert {source.series_id for source in selected} == {
         "INDPRO",
         "PAYEMS",
@@ -100,6 +100,10 @@ def test_load_production_controlled_source_set():
         "DTB3",
         "GDPPOT",
         "THREEFYTP10",
+        # S5 shadow inputs (MRI_S5_SPEC.md): feed shadow dimensions only, no regime,
+        # no sector exposure.
+        "MCOILWTICO",
+        "NNUSBIS",
     }
 
 
