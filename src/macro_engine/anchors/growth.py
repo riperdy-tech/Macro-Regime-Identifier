@@ -250,6 +250,172 @@ def advance_rung_state(
         "method_version": 1,
     }
 
+def compute_raw_trend_g_at_month(
+    observations: pd.DataFrame,
+    config: AnchorConfig,
+    month_m: pd.Timestamp,
+    real_frame: pd.DataFrame | None = None,
+    candidate_frames: list[tuple[Any, pd.DataFrame]] | None = None,
+) -> tuple[float | None, float | None, str | None]:
+    """Compute (raw_trend_g_clamped, inflation_smoothed, inflation_series_used) at month M."""
+    growth = config.growth
+    if real_frame is None:
+        real_frame = _series_slice(observations, growth.real_potential.series)
+    if candidate_frames is None:
+        candidate_frames = [
+            (ref, _series_slice(observations, ref.series))
+            for ref in growth.inflation_expectation.candidates
+        ]
+
+    real_potential, _, _ = log_linear_trend_annualized(
+        real_frame["value"] if not real_frame.empty else pd.Series(dtype="float64"),
+        real_frame["date"] if not real_frame.empty else pd.Series(dtype="datetime64[ns]"),
+        window_years=growth.real_potential.trend_window_years,
+        min_observations=growth.real_potential.min_observations,
+        as_of=month_m,
+    )
+    if real_potential is None:
+        return None, None, None
+
+    last_complete_month_end = month_m - pd.Timedelta(days=1)
+    inflation = None
+    series_used = None
+    for ref, frame in candidate_frames:
+        smoothed, _, _ = trailing_12m_mean_of_monthly_mean(
+            frame["value"] if not frame.empty else pd.Series(dtype="float64"),
+            frame["date"] if not frame.empty else pd.Series(dtype="datetime64[ns]"),
+            as_of=last_complete_month_end,
+            min_months=growth.inflation_expectation.min_observations,
+        )
+        if smoothed is not None:
+            inflation = ref.to_decimal(smoothed)
+            series_used = ref.series
+            break
+    if inflation is None:
+        return None, None, None
+
+    nominal_trend = real_potential + inflation
+    raw = nominal_trend * growth.terminal_g.max_share_of_nominal_trend
+    clamped = min(max(raw, growth.terminal_g.floor), growth.terminal_g.ceiling)
+    return clamped, inflation, series_used
+
+
+def resolve_growth_rung_state(
+    *,
+    observations: pd.DataFrame,
+    config: AnchorConfig,
+    as_of: pd.Timestamp,
+    prior_rung_state: dict[str, Any] | None,
+    current_clamped: float | None = None,
+) -> dict[str, Any]:
+    """Resolve or advance the rung state with full historical replay seeding and missed-month catch-up.
+
+    P0_0_MRI_TARGET_ARCHITECTURE.md §5.2 / MRI_S2_APPROVAL.md §8 C2:
+    - When no prior state carries rule == config.growth.rung.rule (e.g. 'candidate') and method_version == 1,
+      rebuild the state by replaying from rung.replay_start (2004-06-01) through the current month.
+    - When the prior last_evaluated_month is older than the previous month, step through every missed month.
+    - When the prior is the current month (same-month rebuild), republish.
+    """
+    growth = config.growth
+    month_m = pd.Timestamp(as_of).to_period("M").start_time
+    target_month = month_m.to_period("M")
+    round_to = growth.terminal_g.round_to
+    confirm_months = growth.rung.confirm_months
+    rule = growth.rung.rule
+
+    is_valid_prior = (
+        isinstance(prior_rung_state, dict)
+        and prior_rung_state.get("rule") == rule
+        and prior_rung_state.get("method_version") == 1
+        and prior_rung_state.get("current_rung") is not None
+        and prior_rung_state.get("last_evaluated_month") is not None
+    )
+
+    real_frame = _series_slice(observations, growth.real_potential.series)
+    cand_frames = [
+        (ref, _series_slice(observations, ref.series))
+        for ref in growth.inflation_expectation.candidates
+    ]
+
+    if not is_valid_prior:
+        # Full replay from replay_start
+        start_month = pd.Timestamp(growth.rung.replay_start).to_period("M").start_time
+        month_grid = pd.date_range(start_month, month_m, freq="MS")
+        state = None
+        for m in month_grid:
+            if m == month_m and current_clamped is not None:
+                r = current_clamped
+            else:
+                r, _, _ = compute_raw_trend_g_at_month(observations, config, m, real_frame, cand_frames)
+            if r is None:
+                continue
+            state = advance_rung_state(
+                raw_trend_g_clamped=r,
+                as_of=m,
+                prior_state=state,
+                round_to=round_to,
+                confirm_months=confirm_months,
+                rule=rule,
+            )
+        return state or {}
+
+    prior_period = pd.Period(prior_rung_state["last_evaluated_month"], freq="M")
+    if prior_period == target_month:
+        # Same-month rebuild
+        r = (
+            current_clamped
+            if current_clamped is not None
+            else compute_raw_trend_g_at_month(observations, config, month_m, real_frame, cand_frames)[0]
+        )
+        if r is None:
+            return dict(prior_rung_state)
+        return advance_rung_state(
+            raw_trend_g_clamped=r,
+            as_of=month_m,
+            prior_state=prior_rung_state,
+            round_to=round_to,
+            confirm_months=confirm_months,
+            rule=rule,
+        )
+
+    if prior_period > target_month:
+        # Evaluation date in past relative to prior state
+        r = (
+            current_clamped
+            if current_clamped is not None
+            else compute_raw_trend_g_at_month(observations, config, month_m, real_frame, cand_frames)[0]
+        )
+        if r is None:
+            return dict(prior_rung_state)
+        return advance_rung_state(
+            raw_trend_g_clamped=r,
+            as_of=month_m,
+            prior_state=None,
+            round_to=round_to,
+            confirm_months=confirm_months,
+            rule=rule,
+        )
+
+    # Catch up missed months (and step current month)
+    missed_periods = pd.period_range(prior_period + 1, target_month, freq="M")
+    state = dict(prior_rung_state)
+    for p in missed_periods:
+        m = p.start_time
+        if m == month_m and current_clamped is not None:
+            r = current_clamped
+        else:
+            r, _, _ = compute_raw_trend_g_at_month(observations, config, m, real_frame, cand_frames)
+        if r is None:
+            continue
+        state = advance_rung_state(
+            raw_trend_g_clamped=r,
+            as_of=m,
+            prior_state=state,
+            round_to=round_to,
+            confirm_months=confirm_months,
+            rule=rule,
+        )
+    return state
 
 
 def build_long_run_growth_anchor(
@@ -359,17 +525,18 @@ def build_long_run_growth_anchor(
     if nominal_trend is not None:
         raw_trend_g = nominal_trend * clamp.max_share_of_nominal_trend
         clamped = min(max(raw_trend_g, clamp.floor), clamp.ceiling)
-        rung_state = advance_rung_state(
-            raw_trend_g_clamped=clamped,
+        rung_state = resolve_growth_rung_state(
+            observations=observations,
+            config=config,
             as_of=month_m,
-            prior_state=prior_rung_state,
-            round_to=clamp.round_to,
-            confirm_months=growth.rung.confirm_months,
-            rule=growth.rung.rule,
+            prior_rung_state=prior_rung_state,
+            current_clamped=clamped,
         )
         suggestion = round(rung_state["current_rung"], 6)
     else:
         reasons.append("terminal_g_rung: no nominal trend, the previously published rung_state is republished unchanged")
+
+
 
     prior = growth.downstream_prior_in_use
     delta = None if suggestion is None or prior is None else round(suggestion - prior, 6)

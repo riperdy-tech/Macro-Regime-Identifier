@@ -21,6 +21,7 @@ from macro_engine.anchors.growth import (
     advance_rung_state,
     build_long_run_growth_anchor,
     log_linear_trend_annualized,
+    resolve_growth_rung_state,
     trailing_12m_mean_of_monthly_mean,
 )
 
@@ -513,3 +514,48 @@ def test_rung_state_persists_across_builds_via_prior_rung_state():
     # confirmation counter is not reset by the second build.
     assert second.rung_state["current_rung"] == pytest.approx(first.rung_state["current_rung"])
     assert second.terminal_g_suggestion == pytest.approx(first.terminal_g_suggestion)
+
+
+def test_missed_month_catch_up_equals_consecutive_builds():
+    """C2: A multi-month gap between builds catches up through missed months and arrives
+    at the exact same state as consecutive monthly builds."""
+    observations = _observations(
+        {
+            "GDPPOT": _potential_output(0.018),
+            "T5YIFR": _flat_monthly_series(2.30, AS_OF),
+        }
+    )
+    # Build at 2026-01-31
+    b1 = _build(observations, as_of=pd.Timestamp("2026-01-31"))
+
+    # Consecutive builds: 2026-02-28, then 2026-03-31
+    b2 = _build(observations, prior_rung_state=b1.rung_state, as_of=pd.Timestamp("2026-02-28"))
+    b3_consec = _build(observations, prior_rung_state=b2.rung_state, as_of=pd.Timestamp("2026-03-31"))
+
+    # Gap build: skip February, build 2026-03-31 directly with b1's state
+    b3_gap = _build(observations, prior_rung_state=b1.rung_state, as_of=pd.Timestamp("2026-03-31"))
+
+    assert b3_gap.rung_state == b3_consec.rung_state
+    assert b3_gap.terminal_g_suggestion == pytest.approx(b3_consec.terminal_g_suggestion)
+
+
+def test_v02_or_unversioned_prior_triggers_replay():
+    """C2: A prior rung state lacking rule='candidate' or method_version=1
+    triggers a rebuild rather than blindly accepting an invalid prior."""
+    observations = _observations(
+        {
+            "GDPPOT": _potential_output(0.018),
+            "T5YIFR": _flat_monthly_series(2.30, AS_OF),
+        }
+    )
+    # v0.2-style prior without rule or method_version
+    v02_prior = {
+        "current_rung": 0.0500,
+        "candidate_rung": 0.0500,
+        "last_evaluated_month": "2026-01",
+    }
+    rebuilt = _build(observations, prior_rung_state=v02_prior, as_of=pd.Timestamp("2026-03-31"))
+    # Must carry method_version=1 and rule="candidate"
+    assert rebuilt.rung_state["method_version"] == 1
+    assert rebuilt.rung_state["rule"] == "candidate"
+    assert rebuilt.rung_state["last_evaluated_month"] == "2026-03"
