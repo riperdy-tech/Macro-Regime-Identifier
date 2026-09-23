@@ -1,0 +1,226 @@
+{
+  "best_oos_3m": {
+    "mean_ic": 0.069636,
+    "specification": "lambda_0",
+    "t_stat": 1.961178
+  },
+  "comparison_7_dimensions": {
+    "table_a_in_sample_ceiling": {
+      "1m": {
+        "mean_ic": 0.145425,
+        "n_dates": 312,
+        "positive_share": 0.647436,
+        "sd_ic": 0.38701,
+        "t_stat": 6.648023
+      },
+      "3m": {
+        "mean_ic": 0.231887,
+        "n_dates": 310,
+        "positive_share": 0.725806,
+        "sd_ic": 0.377808,
+        "t_stat": 8.074251
+      }
+    },
+    "table_b_out_of_sample": {
+      "1m": {
+        "mean_ic": 0.016739,
+        "n_dates": 252,
+        "positive_share": 0.507937,
+        "sd_ic": 0.416589,
+        "t_stat": 0.639117
+      },
+      "3m": {
+        "mean_ic": 0.046799,
+        "n_dates": 248,
+        "positive_share": 0.584677,
+        "sd_ic": 0.404677,
+        "t_stat": 1.342852
+      }
+    }
+  },
+  "metadata": {
+    "all_7_dimensions": [
+      "credit_liquidity",
+      "growth_momentum",
+      "housing_activity",
+      "inflation_pressure",
+      "monetary_liquidity",
+      "policy_stance",
+      "yield_curve"
+    ],
+    "core_dimensions": [
+      "growth_momentum",
+      "inflation_pressure",
+      "policy_stance",
+      "credit_liquidity",
+      "yield_curve"
+    ],
+    "horizons_months": [
+      1,
+      3
+    ],
+    "leakage_prevention": "A training date d is eligible for test date T if and only if d + horizon <= T. Any observation whose return window overlaps test date T is strictly excluded. Feature inputs use only dimension scores available at evaluation date.",
+    "min_sector_observations": 10,
+    "min_training_months": 60,
+    "probe_name": "sector_ceiling",
+    "sectors_evaluated": [
+      "communication_services",
+      "consumer_discretionary",
+      "consumer_staples",
+      "energy",
+      "financials",
+      "health_care",
+      "industrials",
+      "information_technology",
+      "materials",
+      "real_estate",
+      "utilities"
+    ],
+    "shrinkage_lambdas": [
+      0.0,
+      1.0,
+      5.0,
+      20.0
+    ],
+    "sub_industries_excluded": [
+      "banks",
+      "biotech",
+      "homebuilders",
+      "oil_gas_ep",
+      "semiconductors",
+      "software"
+    ],
+    "verdict_rule": "If in-sample 3m IC < 0.087: CLOSE; elif best OOS 3m IC < 0.087 or t < 2: NOT DEMONSTRATED OOS; else: PASSES"
+  },
+  "tables": {
+    "table_a_in_sample_ceiling": {
+      "1m": {
+        "mean_ic": 0.133542,
+        "n_dates": 312,
+        "positive_share": 0.641026,
+        "sd_ic": 0.388255,
+        "t_stat": 6.085204
+      },
+      "3m": {
+        "mean_ic": 0.208025,
+        "n_dates": 310,
+        "positive_share": 0.674194,
+        "sd_ic": 0.401135,
+        "t_stat": 6.581824
+      }
+    },
+    "table_b_out_of_sample": {
+      "1m": {
+        "mean_ic": 0.013841,
+        "n_dates": 252,
+        "positive_share": 0.531746,
+        "sd_ic": 0.412479,
+        "t_stat": 0.533731
+      },
+      "3m": {
+        "mean_ic": 0.069636,
+        "n_dates": 248,
+        "positive_share": 0.645161,
+        "sd_ic": 0.409167,
+        "t_stat": 1.961178
+      }
+    },
+    "table_c_shrinkage": {
+      "1m": {
+        "lambda_0": {
+          "mean_ic": 0.013841,
+          "n_dates": 252,
+          "positive_share": 0.531746,
+          "sd_ic": 0.412479,
+          "t_stat": 0.533731
+        },
+        "lambda_1": {
+          "mean_ic": 0.015079,
+          "n_dates": 252,
+          "positive_share": 0.527778,
+          "sd_ic": 0.407882,
+          "t_stat": 0.588047
+        },
+        "lambda_20": {
+          "mean_ic": 0.026004,
+          "n_dates": 252,
+          "positive_share": 0.52381,
+          "sd_ic": 0.410881,
+          "t_stat": 1.006676
+        },
+        "lambda_5": {
+          "mean_ic": 0.021573,
+          "n_dates": 252,
+          "positive_share": 0.52381,
+          "sd_ic": 0.408424,
+          "t_stat": 0.840157
+        }
+      },
+      "3m": {
+        "lambda_0": {
+          "mean_ic": 0.069636,
+          "n_dates": 248,
+          "positive_share": 0.645161,
+          "sd_ic": 0.409167,
+          "t_stat": 1.961178
+        },
+        "lambda_1": {
+          "mean_ic": 0.067626,
+          "n_dates": 248,
+          "positive_share": 0.629032,
+          "sd_ic": 0.4145,
+          "t_stat": 1.862852
+        },
+        "lambda_20": {
+          "mean_ic": 0.05815,
+          "n_dates": 248,
+          "positive_share": 0.58871,
+          "sd_ic": 0.414067,
+          "t_stat": 1.597738
+        },
+        "lambda_5": {
+          "mean_ic": 0.062891,
+          "n_dates": 248,
+          "positive_share": 0.608871,
+          "sd_ic": 0.410682,
+          "t_stat": 1.749364
+        }
+      }
+    },
+    "table_d_baseline": {
+      "full_sample": {
+        "1m": {
+          "mean_ic": 0.002059,
+          "n_dates": 312,
+          "positive_share": 0.516026,
+          "sd_ic": 0.431818,
+          "t_stat": 0.084361
+        },
+        "3m": {
+          "mean_ic": -0.018856,
+          "n_dates": 310,
+          "positive_share": 0.467742,
+          "sd_ic": 0.439965,
+          "t_stat": -0.536324
+        }
+      },
+      "oos_sample": {
+        "1m": {
+          "mean_ic": 0.00202,
+          "n_dates": 252,
+          "positive_share": 0.515873,
+          "sd_ic": 0.446943,
+          "t_stat": 0.071896
+        },
+        "3m": {
+          "mean_ic": -0.021554,
+          "n_dates": 248,
+          "positive_share": 0.475806,
+          "sd_ic": 0.454601,
+          "t_stat": -0.526285
+        }
+      }
+    }
+  },
+  "verdict": "NOT DEMONSTRATED OOS"
+}
