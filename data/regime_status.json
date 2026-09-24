@@ -3,8 +3,8 @@
     "available": true,
     "cost_of_capital": {
       "anchor_id": "cost_of_capital",
-      "asof": "2026-09-23",
-      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "asof": "2026-09-24",
+      "built_at": "2026-09-24T01:23:19.968012+00:00",
       "degraded": true,
       "equity_aggregate": null,
       "erp_basis": "unavailable",
@@ -58,8 +58,8 @@
         "homebuilders": 1.126,
         "industrials": 0.866,
         "information_technology": 1.374,
-        "materials": 0.85,
-        "oil_gas_ep": 0.821,
+        "materials": 0.851,
+        "oil_gas_ep": 0.82,
         "real_estate": 0.698,
         "semiconductors": 1.737,
         "software": 1.315,
@@ -78,8 +78,8 @@
     "level_cost_of_equity_source": "risk_free_10y_only_not_a_cost_of_equity",
     "long_run_growth": {
       "anchor_id": "long_run_growth",
-      "asof": "2026-09-23",
-      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "asof": "2026-09-24",
+      "built_at": "2026-09-24T01:23:19.968012+00:00",
       "clamp": {
         "ceiling": 0.05,
         "floor": 0.0,
@@ -144,7 +144,7 @@
     },
     "sector_multiple_bands": {
       "anchor_id": "sector_multiple_bands",
-      "asof": "2026-09-23",
+      "asof": "2026-09-24",
       "bands": [
         {
           "arithmetic_check": {
@@ -521,7 +521,7 @@
           "sector_id": "utilities"
         }
       ],
-      "built_at": "2026-09-23T12:23:17.570109+00:00",
+      "built_at": "2026-09-24T01:23:19.968012+00:00",
       "degraded": true,
       "panel_measure": "pe_ttm",
       "panel_measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
@@ -541,7 +541,7 @@
           "The market-observed band requires a valuation panel (date, sector, forward multiple). MRI's local sector ETF file is price-only by construction, so no multiple can be derived from it; see docs/ANCHOR_METHODOLOGY.md \u00a75."
         ],
         "regime_leg": {
-          "age_days": 22,
+          "age_days": 23,
           "date": "2026-09-01",
           "regime_or_state": {
             "credit": "loose",
@@ -560,9 +560,9 @@
     },
     "terminal_g_suggestion": 0.0375
   },
-  "computed_at": "2026-09-23T12:23:30.951262+00:00",
-  "confidence": 0.02773723488065427,
-  "current_regime_age_days": 22,
+  "computed_at": "2026-09-24T01:23:33.173000+00:00",
+  "confidence": 0.027746337688156486,
+  "current_regime_age_days": 23,
   "current_regime_date": "2026-09-01",
   "current_regime_future_dated": false,
   "current_regime_stale": false,
@@ -570,21 +570,21 @@
   "dominant_regime": "goldilocks",
   "feature_freshness": {
     "gap_days": 0,
-    "max_feature_date": "2026-09-22",
-    "max_raw_observation_date": "2026-09-22",
+    "max_feature_date": "2026-09-23",
+    "max_raw_observation_date": "2026-09-23",
     "stale": false
   },
   "monitor_ready": true,
   "raw_dominant_regime": "goldilocks",
-  "raw_regime_probability": 0.28656613188718905,
+  "raw_regime_probability": 0.28658023246026615,
   "readiness_label": "monitor_ready",
-  "regime_probability": 0.28656613188718905,
-  "secular_theme_computed_at": "2026-09-23T12:23:27.987677+00:00",
+  "regime_probability": 0.28658023246026615,
+  "secular_theme_computed_at": "2026-09-24T01:23:29.629666+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.6150735294117647,
-      "avg_severity": 0.41875,
-      "item_count": 136,
+      "avg_confidence": 0.6215646258503401,
+      "avg_severity": 0.4238095238095238,
+      "item_count": 147,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -592,53 +592,79 @@
           "avg_confidence": 0.6460784313725491,
           "item_count": 51,
           "period_start": "2026-07-01",
-          "score": 3.8266985421333617
+          "score": 3.7735566739870414
         },
         {
           "avg_confidence": 0.5835820895522388,
           "item_count": 67,
           "period_start": "2026-08-01",
-          "score": 6.596215584381224
+          "score": 6.5140779069167
         },
         {
-          "avg_confidence": 0.6444444444444444,
-          "item_count": 18,
+          "avg_confidence": 0.6662068965517242,
+          "item_count": 29,
           "period_start": "2026-09-01",
-          "score": 4.0127138108776705
+          "score": 6.6391827551553355
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6150735294117647,
-          "item_count": 136,
+          "avg_confidence": 0.6215646258503401,
+          "item_count": 147,
           "period_start": "2026-07-01",
-          "score": 14.435627937392256
+          "score": 16.926817336059077
         }
       ],
-      "raw_score": 56.95,
-      "score": 14.435627937392256,
+      "raw_score": 62.3,
+      "score": 16.926817336059077,
       "source_mix": {
+        "bbc_world": 1,
         "cnbc_economy": 1,
-        "cnbc_finance": 13,
+        "cnbc_finance": 15,
         "cnbc_health": 1,
         "cnbc_markets": 28,
-        "cnbc_tech": 51,
+        "cnbc_tech": 54,
+        "federal_reserve_speeches": 1,
         "housingwire": 6,
         "marketwatch": 5,
-        "nasdaq_markets": 8,
+        "nasdaq_markets": 11,
         "oilprice": 15,
-        "scmp": 7,
+        "scmp": 8,
         "zerohedge.com": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_0cb000b7cf6a50cb",
+        "news_11b4fb94c4760101",
+        "news_417472bf2a8e5e07",
         "news_63e403a5308f5cd1",
-        "news_8ea27b2013d6d215",
-        "news_9766d0cf41e3cbe0",
-        "news_a154e9cc04718b6d",
-        "news_1b542b97be12ba9e"
+        "news_8ea27b2013d6d215"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.7,
+          "news_id": "news_0cb000b7cf6a50cb",
+          "score_component": 0.35,
+          "source": "cnbc_finance",
+          "source_url": "https://www.cnbc.com/2026/09/23/trump-xi-meeting-why-chinas-self-sufficiency-changes-the-calculus.html",
+          "title": "Trump-Xi meeting: Why China's self-sufficiency changes the calculus"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_11b4fb94c4760101",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/09/23/5-things-to-know-before-the-stock-market-opens.html",
+          "title": "Oil's losing streak, Trump at the UN, Royal Caribbean's Sandals stake and more in Morning Squawk"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_417472bf2a8e5e07",
+          "score_component": 0.35,
+          "source": "bbc_world",
+          "source_url": "https://www.bbc.co.uk/news/articles/c6gqdgg8w59xo?at_medium=RSS&at_campaign=rss",
+          "title": "AI superpower ambitions take centre stage as Trump and Xi meet"
+        },
         {
           "confidence": 0.7,
           "news_id": "news_63e403a5308f5cd1",
@@ -654,33 +680,9 @@
           "source": "cnbc_finance",
           "source_url": "https://www.cnbc.com/2026/09/21/jamie-dimon-jpm-jpmorgan-indiaconference.html",
           "title": "Jamie Dimon says hyperscaler AI spending could hit $1 trillion next year"
-        },
-        {
-          "confidence": 0.85,
-          "news_id": "news_9766d0cf41e3cbe0",
-          "score_component": 0.35,
-          "source": "cnbc_finance",
-          "source_url": "https://www.cnbc.com/2026/09/16/fed-rate-decision-september-2026.html",
-          "title": "Fed approves interest rate hike, signals one more to come this year"
-        },
-        {
-          "confidence": 0.65,
-          "news_id": "news_a154e9cc04718b6d",
-          "score_component": 0.35,
-          "source": "cnbc_finance",
-          "source_url": "https://www.cnbc.com/2026/09/23/trump-xi-meeting-why-chinas-self-sufficiency-changes-the-calculus.html",
-          "title": "Trump-Xi meeting: Why China's self-sufficiency changes the calculus"
-        },
-        {
-          "confidence": 0.9,
-          "news_id": "news_1b542b97be12ba9e",
-          "score_component": 0.3376086406989323,
-          "source": "cnbc_markets",
-          "source_url": "https://www.cnbc.com/2026/08/26/nvidia-wows-wall-street-with-a-strong-quarter-eye-popping-sales-forecast.html",
-          "title": "Nvidia wows Wall Street with a strong quarter and an eye-popping sales forecast"
         }
       ],
-      "trend_30d": -1.5678403612422969
+      "trend_30d": 1.7447764749615793
     },
     "cloud_software": {
       "avg_confidence": 0.6166666666666668,
@@ -693,13 +695,13 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.021936499593892524
+          "score": 0.021435469250725866
         },
         {
           "avg_confidence": 0.66,
           "item_count": 5,
           "period_start": "2026-08-01",
-          "score": 0.6277112385638196
+          "score": 0.6133742940608433
         }
       ],
       "quarterly_scores": [
@@ -707,11 +709,11 @@
           "avg_confidence": 0.6166666666666668,
           "item_count": 6,
           "period_start": "2026-07-01",
-          "score": 0.6496477381577122
+          "score": 0.6348097633115692
         }
       ],
       "raw_score": 1.9,
-      "score": 0.6496477381577122,
+      "score": 0.6348097633115692,
       "source_mix": {
         "cnbc_markets": 3,
         "cnbc_tech": 1,
@@ -730,7 +732,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_264784853adba78b",
-          "score_component": 0.21435469250725864,
+          "score_component": 0.20945882456412535,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/salesforce-crm-q2-earnings-report-2027.html",
           "title": "Salesforce stock jumps 18% on AI growth and Anthropic investment gain"
@@ -738,7 +740,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_4a59a71b7cbde6a5",
-          "score_component": 0.15004828475508103,
+          "score_component": 0.14662117719488774,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/salesforce-stock-is-jumping-what-wall-street-is-saying-about-its-earnings-and-its-anthropic-relationship-853ada85?mod=mw_rss_topstories",
           "title": "Salesforce\u2019s stock rockets 20% and gives the software sector a major lift"
@@ -746,7 +748,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_da017c0d5c57553d",
-          "score_component": 0.13469544579712475,
+          "score_component": 0.1316189975633551,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/08/29/op-ed-salesforce-revealed-next-battleground-in-ai-its-not-models.html",
           "title": "Op-ed: Salesforce just revealed the next battleground in AI \u2014 and it's not the models"
@@ -754,7 +756,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_185a130bc1af8a35",
-          "score_component": 0.06430640775217758,
+          "score_component": 0.0628376473692376,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/salesforce-crm-q2-earnings-report-2027.html",
           "title": "Salesforce stock jumps 12% on AI growth and Anthropic investment gain"
@@ -762,13 +764,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_d4185c56344f6dc3",
-          "score_component": 0.06430640775217758,
+          "score_component": 0.0628376473692376,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/were-raising-our-price-target-on-salesforce-after-results-defy-saaspocalypse.html",
           "title": "We're raising our price target on Salesforce after results defy 'SaaSpocalypse'"
         }
       ],
-      "trend_30d": 0.6057747389699271
+      "trend_30d": 0.5919388248101175
     },
     "cybersecurity": {
       "avg_confidence": 0.6600000000000001,
@@ -781,19 +783,19 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.13469544579712475
+          "score": 0.1316189975633551
         },
         {
           "avg_confidence": 0.6625,
           "item_count": 8,
           "period_start": "2026-08-01",
-          "score": 1.0347149163721996
+          "score": 1.0110819950207022
         },
         {
           "avg_confidence": 0.6333333333333333,
           "item_count": 6,
           "period_start": "2026-09-01",
-          "score": 0.8406320413702103
+          "score": 0.8214319790101304
         }
       ],
       "quarterly_scores": [
@@ -801,11 +803,11 @@
           "avg_confidence": 0.6600000000000001,
           "item_count": 15,
           "period_start": "2026-07-01",
-          "score": 2.0100424035395346
+          "score": 1.9641329715941875
         }
       ],
       "raw_score": 5.3,
-      "score": 2.0100424035395346,
+      "score": 1.9641329715941875,
       "source_mix": {
         "cnbc_economy": 1,
         "cnbc_markets": 8,
@@ -825,7 +827,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_cdaa48f389cfcd34",
-          "score_component": 0.288726008659708,
+          "score_component": 0.2821314975080661,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/09/01/palo-alto-ceo-says-1-trillion-of-cybersecurity-infrastructure-isnt-ready-for-ai.html",
           "title": "Palo Alto CEO says $1 trillion of cybersecurity infrastructure isn\u2019t ready for AI"
@@ -833,7 +835,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_d3faeaa7a3d4f1cb",
-          "score_component": 0.2821314975080661,
+          "score_component": 0.27568760519928837,
           "source": "cnbc_economy",
           "source_url": "https://www.cnbc.com/2026/08/31/bailey-frontier-ai-financial-stability-risk.html",
           "title": "Bank of England chief warns new AI models threaten global financial stability"
@@ -841,7 +843,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_81718a0aa1281698",
-          "score_component": 0.21545027233536035,
+          "score_component": 0.2105293813143704,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/09/01/were-lifting-our-price-target-on-palo-alto-networks-as-ai-driven-cyber-demand-intensifies.html",
           "title": "We're lifting our price target on Palo Alto Networks as AI-driven cyber demand intensifies"
@@ -849,7 +851,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_e6cfe71ed9507d29",
-          "score_component": 0.21435469250725864,
+          "score_component": 0.20945882456412535,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/27/okta-skyrockets-20percent-and-crowdstrike-surges-15percent-leading-cyber-rally.html",
           "title": "CrowdStrike posts best day ever, Okta's stock pops nearly 29% as rising AI threat lifts earnings"
@@ -857,18 +859,18 @@
         {
           "confidence": 0.8,
           "news_id": "news_aafd3f51f61b770f",
-          "score_component": 0.14773732960138994,
+          "score_component": 0.144363004329854,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/09/01/palo-alto-networks-panw-q4-2026-earnings.html",
           "title": "Palo Alto Networks beats quarterly estimates on AI demand, continues acquisition spree"
         }
       ],
-      "trend_30d": 1.564762717627121
+      "trend_30d": 1.5290234877636026
     },
     "energy_transition": {
-      "avg_confidence": 0.5622222222222221,
-      "avg_severity": 0.37555555555555553,
-      "item_count": 45,
+      "avg_confidence": 0.5563829787234041,
+      "avg_severity": 0.3723404255319149,
+      "item_count": 47,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -876,52 +878,61 @@
           "avg_confidence": 0.6071428571428571,
           "item_count": 14,
           "period_start": "2026-07-01",
-          "score": 1.0369808947703099
+          "score": 1.0132962184006722
         },
         {
           "avg_confidence": 0.5476190476190477,
           "item_count": 21,
           "period_start": "2026-08-01",
-          "score": 1.780485750729755
+          "score": 1.7740794473293429
         },
         {
-          "avg_confidence": 0.53,
-          "item_count": 10,
+          "avg_confidence": 0.5125000000000001,
+          "item_count": 12,
           "period_start": "2026-09-01",
-          "score": 1.2255109169644522
+          "score": 1.508972690109933
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5622222222222221,
-          "item_count": 45,
+          "avg_confidence": 0.5563829787234041,
+          "item_count": 47,
           "period_start": "2026-07-01",
-          "score": 4.042977562464516
+          "score": 4.296348355839949
         }
       ],
-      "raw_score": 16.9,
-      "score": 4.042977562464516,
+      "raw_score": 17.5,
+      "score": 4.296348355839949,
       "source_mix": {
         "cnbc_business": 2,
         "cnbc_markets": 1,
         "eia_energy": 3,
-        "oilprice": 34,
+        "nasdaq_markets": 1,
+        "oilprice": 35,
         "prwire.com.au": 1,
         "scmp": 4
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
+        "news_9ed81eb00b14f302",
         "news_7b5363f310dda938",
         "news_389ac781c4c8a6cc",
         "news_ef8e1e31b05f1cc7",
-        "news_6881f7bbfaad7608",
-        "news_eefc4248b3679de8"
+        "news_6881f7bbfaad7608"
       ],
       "top_news_items": [
         {
+          "confidence": 0.6,
+          "news_id": "news_9ed81eb00b14f302",
+          "score_component": 0.28645248117312494,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/Global-Energy-Demand-Set-to-Jump-60-by-2060-as-Developing-Nations-Power-Up.html",
+          "title": "Global Energy Demand Set to Jump 60% by 2060 as Developing Nations Power Up"
+        },
+        {
           "confidence": 0.8,
           "news_id": "news_7b5363f310dda938",
-          "score_component": 0.288726008659708,
+          "score_component": 0.2821314975080661,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/US-Lithium-Miners-Finally-Have-a-Shot-at-Cashing-In.html",
           "title": "U.S. Lithium Miners Finally Have a Shot at Cashing In"
@@ -929,7 +940,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_389ac781c4c8a6cc",
-          "score_component": 0.22507242713262154,
+          "score_component": 0.21993176579233162,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Trumps-War-on-Offshore-Wind-Leaves-US-Workers-in-Limbo.html",
           "title": "Trump\u2019s War on Offshore Wind Leaves U.S. Workers in Limbo"
@@ -937,7 +948,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_ef8e1e31b05f1cc7",
-          "score_component": 0.22337200969676307,
+          "score_component": 0.2182701859443831,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Hormuz-Oil-Crisis-Accelerates-Global-EV-Sales.html",
           "title": "Hormuz Oil Crisis Accelerates Global EV Sales"
@@ -945,21 +956,13 @@
         {
           "confidence": 0.7,
           "news_id": "news_6881f7bbfaad7608",
-          "score_component": 0.2105293813143704,
+          "score_component": 0.2057208835996315,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Renewable-Energy/EU-Struggles-to-Curb-Energy-Transition-Dependence-on-China.html",
           "title": "EU Struggles to Curb Energy Transition Dependence on China"
-        },
-        {
-          "confidence": 0.7,
-          "news_id": "news_eefc4248b3679de8",
-          "score_component": 0.19593692822272954,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Crude-Oil/Chinas-New-Five-Year-Plan-Preps-the-Nation-for-Peak-Oil.html",
-          "title": "China's New Five-Year Plan Preps the Nation for Peak Oil"
         }
       ],
-      "trend_30d": -0.7751953462716199
+      "trend_30d": -0.44603737892002515
     },
     "glp1_metabolic": {
       "avg_confidence": 0.5666666666666668,
@@ -972,13 +975,13 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.07087594833825979
+          "score": 0.0692571394409612
         },
         {
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-08-01",
-          "score": 0.1044660675955349
+          "score": 0.10208005931410268
         }
       ],
       "quarterly_scores": [
@@ -986,11 +989,11 @@
           "avg_confidence": 0.5666666666666668,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.17534201593379467
+          "score": 0.17133719875506387
         }
       ],
       "raw_score": 0.8,
-      "score": 0.17534201593379467,
+      "score": 0.17133719875506387,
       "source_mix": {
         "cnbc_health": 3
       },
@@ -1004,7 +1007,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_c6a26b02555fd211",
-          "score_component": 0.1044660675955349,
+          "score_component": 0.10208005931410268,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/08/18/hims-hers-ceo-andrew-dudum-ftc-lawsuit-glp-1s-ai.html",
           "title": "Hims & Hers CEO says FTC lawsuit misunderstands how the company works"
@@ -1012,7 +1015,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_6e6474881be75006",
-          "score_component": 0.0628376473692376,
+          "score_component": 0.061402433519806496,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
@@ -1020,13 +1023,13 @@
         {
           "confidence": 0.3,
           "news_id": "news_e68cd44ae88809d3",
-          "score_component": 0.008038300969022198,
+          "score_component": 0.0078547059211547,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/07/27/fedex-is-chasing-the-glp-1-boom-why-healthcare-logistics-means-big-business.html",
           "title": "FedEx is chasing the GLP-1 boom. Why healthcare logistics means big business"
         }
       ],
-      "trend_30d": -0.17534201593379467
+      "trend_30d": -0.17133719875506387
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.55,
@@ -1039,19 +1042,19 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.07677774857862381
+          "score": 0.07502414237754051
         },
         {
           "avg_confidence": 0.525,
           "item_count": 4,
           "period_start": "2026-08-01",
-          "score": 0.25712904151455346
+          "score": 0.25125620608988897
         },
         {
           "avg_confidence": 0.5333333333333333,
           "item_count": 3,
           "period_start": "2026-09-01",
-          "score": 0.3023826601476113
+          "score": 0.29547623064490314
         }
       ],
       "quarterly_scores": [
@@ -1059,11 +1062,11 @@
           "avg_confidence": 0.55,
           "item_count": 8,
           "period_start": "2026-07-01",
-          "score": 0.6362894502407885
+          "score": 0.6217565791123326
         }
       ],
       "raw_score": 2.2,
-      "score": 0.6362894502407885,
+      "score": 0.6217565791123326,
       "source_mix": {
         "eia_energy": 1,
         "oilprice": 7
@@ -1080,7 +1083,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_432d656f53226ad4",
-          "score_component": 0.14773732960138994,
+          "score_component": 0.144363004329854,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Saudi-Arabia-Plans-To-Free-1-Mbd-As-it-Invests-in-Nuclear-Power.html",
           "title": "Saudi Arabia Plans To Free 1 Mb/d As it Invests in Nuclear Power"
@@ -1088,7 +1091,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_df28fd50266543c7",
-          "score_component": 0.10338285194973314,
+          "score_component": 0.10102158434784357,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/US-Army-To-Spend-22B-On-Nuclear-Microreactors-At-Military-Bases.html",
           "title": "U.S. Army To Spend $2.2B On Nuclear Microreactors At Military Bases"
@@ -1096,7 +1099,7 @@
         {
           "confidence": 0.5,
           "news_id": "news_054d38fcfdd5854d",
-          "score_component": 0.09449407874211549,
+          "score_component": 0.09233583100086871,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Why-Uranium-Stocks-Are-Falling-as-US-Production-Triples.html",
           "title": "Why Uranium Stocks Are Falling as U.S. Production Triples"
@@ -1104,7 +1107,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_8ad77b5e672b4ea0",
-          "score_component": 0.07677774857862381,
+          "score_component": 0.07502414237754051,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Trump-Administration-Picks-Five-States-for-Nuclear-Fuel-Cycle-Hubs.html",
           "title": "Trump Administration Picks Five States for Nuclear Fuel-Cycle Hubs"
@@ -1112,18 +1115,18 @@
         {
           "confidence": 0.6,
           "news_id": "news_8b57f03a63108870",
-          "score_component": 0.06734772289856238,
+          "score_component": 0.06580949878167755,
           "source": "eia_energy",
           "source_url": "https://www.eia.gov/todayinenergy/detail.php?id=68044",
           "title": "U.S. uranium production more than tripled in 2025 and was the highest since 2017"
         }
       ],
-      "trend_30d": 0.3956788967539285
+      "trend_30d": 0.38664157826216605
     },
     "physical_ai": {
-      "avg_confidence": 0.5125,
-      "avg_severity": 0.34166666666666673,
-      "item_count": 12,
+      "avg_confidence": 0.5192307692307692,
+      "avg_severity": 0.35384615384615387,
+      "item_count": 13,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1131,36 +1134,37 @@
           "avg_confidence": 0.6,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.24148823602153288
+          "score": 0.23597263708804278
         },
         {
           "avg_confidence": 0.4666666666666666,
           "item_count": 6,
           "period_start": "2026-08-01",
-          "score": 0.44919061295780766
+          "score": 0.4389310851788109
         },
         {
-          "avg_confidence": 0.5166666666666667,
-          "item_count": 3,
+          "avg_confidence": 0.5375,
+          "item_count": 4,
           "period_start": "2026-09-01",
-          "score": 0.4600274409768737
+          "score": 0.7506624012821366
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5125,
-          "item_count": 12,
+          "avg_confidence": 0.5192307692307692,
+          "item_count": 13,
           "period_start": "2026-07-01",
-          "score": 1.1507062899562142
+          "score": 1.42556612354899
         }
       ],
-      "raw_score": 4.1000000000000005,
-      "score": 1.1507062899562142,
+      "raw_score": 4.6000000000000005,
+      "score": 1.42556612354899,
       "source_mix": {
         "cnbc_business": 1,
         "cnbc_economy": 1,
         "cnbc_finance": 3,
         "cnbc_markets": 2,
+        "cnbc_retail": 1,
         "finanznachrichten.de": 1,
         "housingwire": 1,
         "oilprice": 1,
@@ -1169,10 +1173,10 @@
       "theme_id": "physical_ai",
       "top_news_ids": [
         "news_37adfbb2c3dc5c41",
+        "news_fec223748567479c",
         "news_d7f4af154685432d",
         "news_b4af05d426028f40",
-        "news_36e6ff1661633c7a",
-        "news_0e624803876d9e29"
+        "news_36e6ff1661633c7a"
       ],
       "top_news_items": [
         {
@@ -1185,8 +1189,16 @@
         },
         {
           "confidence": 0.6,
+          "news_id": "news_fec223748567479c",
+          "score_component": 0.29314799053027374,
+          "source": "cnbc_retail",
+          "source_url": "https://www.cnbc.com/2026/09/12/housing-shortage-home-construction-robots.html",
+          "title": "Construction robots are tackling America's housing shortage, but we're a long way from humanoid homebuilders"
+        },
+        {
+          "confidence": 0.6,
           "news_id": "news_d7f4af154685432d",
-          "score_component": 0.1763321859425413,
+          "score_component": 0.17230475324955521,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/financial-pressures-threaten-middle-class-retirement/",
           "title": "Financial pressures are threatening middle-class retirement"
@@ -1194,7 +1206,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_b4af05d426028f40",
-          "score_component": 0.11785851507248417,
+          "score_component": 0.11516662286793572,
           "source": "cnbc_finance",
           "source_url": "https://www.cnbc.com/2026/07/30/china-us-robot-humanoid-ban-trump-visit.html",
           "title": "China threatens retaliation against U.S. humanoid robot ban, says it 'severely damages' relations"
@@ -1202,21 +1214,13 @@
         {
           "confidence": 0.8,
           "news_id": "news_36e6ff1661633c7a",
-          "score_component": 0.10717734625362932,
+          "score_component": 0.10472941228206267,
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/china/diplomacy/article/3362185/us-bans-new-chinese-robots-power-inverters-latest-tech-crackdown?utm_source=rss_feed",
           "title": "US bans new Chinese robots, power inverters in latest tech crackdown"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_0e624803876d9e29",
-          "score_component": 0.10208005931410268,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/Automation-Could-Start-Eating-Into-US-Diesel-Demand.html",
-          "title": "Automation Could Start Eating Into U.S. Diesel Demand"
         }
       ],
-      "trend_30d": 0.3889270599619985
+      "trend_30d": 0.6811859552139782
     },
     "quantum_computing": {
       "avg_confidence": null,
@@ -1245,19 +1249,19 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.10472941228206267
+          "score": 0.1023373891996775
         },
         {
           "avg_confidence": 0.44000000000000006,
           "item_count": 5,
           "period_start": "2026-08-01",
-          "score": 0.18315903479768714
+          "score": 0.17897567666135494
         },
         {
           "avg_confidence": 0.575,
           "item_count": 2,
           "period_start": "2026-09-01",
-          "score": 0.289518392424219
+          "score": 0.28290578320238347
         }
       ],
       "quarterly_scores": [
@@ -1265,11 +1269,11 @@
           "avg_confidence": 0.51875,
           "item_count": 8,
           "period_start": "2026-07-01",
-          "score": 0.5774068395039689
+          "score": 0.5642188490634159
         }
       ],
       "raw_score": 1.8,
-      "score": 0.5774068395039689,
+      "score": 0.5642188490634159,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_tech": 1,
@@ -1289,7 +1293,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_ff6b37ee817db7a3",
-          "score_component": 0.234518392424219,
+          "score_component": 0.22916198493849996,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/housing-boom-expected-to-follow-spacex-louisiana-arrival/",
           "title": "Housing boom expected to follow SpaceX Louisiana arrival"
@@ -1297,7 +1301,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_d18eae07a6cd8265",
-          "score_component": 0.10472941228206267,
+          "score_component": 0.1023373891996775,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/07/27/amazon-satellite-internet-network.html",
           "title": "Amazon seeks federal approval to launch 5,105 satellites for direct-to-device network"
@@ -1305,7 +1309,7 @@
         {
           "confidence": 0.5,
           "news_id": "news_6a4d80883256fc6a",
-          "score_component": 0.057434917749851745,
+          "score_component": 0.056123102415468654,
           "source": "scmp",
           "source_url": "https://www.scmp.com/opinion/hong-kong-opinion/article/3365219/reusable-rocket-milestone-opens-door-hong-kongs-space-ambitions?utm_source=rss_feed",
           "title": "Reusable rocket milestone opens a door for Hong Kong\u2019s space ambitions"
@@ -1313,7 +1317,7 @@
         {
           "confidence": 0.55,
           "news_id": "news_38dca2a580593ca3",
-          "score_component": 0.05500000000000001,
+          "score_component": 0.05374379826388353,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/im-cannabis-acquire-51-space-defense-innovations-stock-surges-pre-market",
           "title": "IM Cannabis To Acquire 51% Of Space Defense Innovations, Stock Surges In Pre-Market"
@@ -1321,13 +1325,13 @@
         {
           "confidence": 0.4,
           "news_id": "news_9421db697735f8c6",
-          "score_component": 0.04387299918778505,
+          "score_component": 0.04287093850145173,
           "source": "scmp",
           "source_url": "https://www.scmp.com/tech/article/3365534/chinas-commercial-space-sector-expands-global-footprint-thailand-deal?utm_source=rss_feed",
           "title": "China\u2019s commercial space sector expands global footprint with Thailand deal"
         }
       ],
-      "trend_30d": 0.2731676805195648
+      "trend_30d": 0.2669285220737542
     }
   },
   "source_files": {
@@ -1342,149 +1346,205 @@
   "status": "monitor_ready",
   "vintage_backlog": {
     "complete": false,
-    "frontier_asof": "2022-06-01",
-    "pending_pairs": 1985,
+    "frontier_asof": "2022-05-01",
+    "pending_pairs": 2763,
     "point_in_time_start": "2014-02-01"
   },
   "vintage_freshness": [
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-21",
       "max_realtime_start": "2026-09-23",
       "series_id": "BAA10Y",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-21",
       "max_realtime_start": "2026-09-23",
       "series_id": "BAMLH0A0HYM2",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "CPIAUCSL",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2026-09-22",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "DCOILWTICO",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-09-21",
       "max_realtime_start": "2026-09-23",
       "series_id": "DFII10",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-21",
       "max_realtime_start": "2026-09-23",
       "series_id": "DGS10",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2026-09-22",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "DGS2",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-09-21",
       "max_realtime_start": "2026-09-23",
       "series_id": "DTB3",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2019-12-31",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "DTWEXB",
+      "stale": false
+    },
+    {
+      "age_days": 1,
+      "max_observation_date": "2026-09-18",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "DTWEXBGS",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "FEDFUNDS",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2036-10-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "GDPPOT",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "HOUST",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-12",
       "max_realtime_start": "2026-09-23",
       "series_id": "ICSA",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "INDPRO",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "M2SL",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2026-08-01",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "MCOILWTICO",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-09-11",
       "max_realtime_start": "2026-09-23",
       "series_id": "NFCI",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2026-07-01",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "NNUSBIS",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "PAYEMS",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-07-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "PCEPI",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-22",
       "max_realtime_start": "2026-09-23",
       "series_id": "T10Y2Y",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-22",
       "max_realtime_start": "2026-09-23",
       "series_id": "T10YIE",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-22",
       "max_realtime_start": "2026-09-23",
       "series_id": "T5YIFR",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
       "max_observation_date": "2026-09-18",
       "max_realtime_start": "2026-09-23",
       "series_id": "THREEFYTP10",
       "stale": false
     },
     {
-      "age_days": 0,
+      "age_days": 1,
+      "max_observation_date": "2019-12-01",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "TWEXBMTH",
+      "stale": false
+    },
+    {
+      "age_days": 1,
       "max_observation_date": "2026-08-01",
       "max_realtime_start": "2026-09-23",
       "series_id": "UNRATE",
+      "stale": false
+    },
+    {
+      "age_days": 1,
+      "max_observation_date": "2026-09-22",
+      "max_realtime_start": "2026-09-23",
+      "series_id": "VIXCLS",
       "stale": false
     }
   ]

@@ -1,0 +1,470 @@
+{
+  "asof": "2026-09-22",
+  "built_at": "2026-09-24T01:23:23.135149+00:00",
+  "cadence": "daily",
+  "composition_id": null,
+  "deprecations": [],
+  "disclaimer": "A shock is provenance and context, not a regime, a forecast or a score. It is never blended into a Layer-1 number. This is a diagnostic research artifact, not investment advice.",
+  "parameter_vintage": null,
+  "process_id": "MRI-12",
+  "reasons": [
+    "composition_registry_not_applicable_layer2",
+    "no_fitted_parameters_layer2"
+  ],
+  "risk_flags": [
+    {
+      "active": false,
+      "id": "elevated_volatility_ahead",
+      "meaning": "Expect higher market turbulence over the next 3 months. No evidence of lower returns or deeper drawdowns.",
+      "measured_effect": {
+        "delta_points": 10.6,
+        "half_sample_deltas": [
+          4.9,
+          12.6
+        ],
+        "n_months": 417,
+        "nw_t": 4.57,
+        "outcome": "fwd_3m_realized_vol_annualised",
+        "study": "MRI_S4 impact T3",
+        "window": "1990-01..2026-08 ex 2020-02..2021-06"
+      },
+      "source_shock": "volatility_shock"
+    }
+  ],
+  "schema_version": 1,
+  "scoring_mode": "calendar_asof",
+  "shocks": [
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.4736666666666667,
+      "measure": "month-end / latest level",
+      "narrative": {
+        "classifier_confidence": 0.5288461538461537,
+        "direction_agreement": null,
+        "item_count": 22,
+        "source_run_id": null,
+        "summary": "BOJ raised its policy rate to 1.25%, the highest since 1995, but a 7-2 split vote and less hawkish guidance weakened the yen, lowered JGB yields, and lifted the Nikkei. Core inflation remains below 2%, while oil-related Middle East risks and weak real wages cloud the growth outlo",
+        "theme_ids": [
+          "financial_stability_risk",
+          "geopolitical_risk"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "VIXCLS",
+      "severity": 0,
+      "shock_id": "volatility_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "up": {
+          "severity_1": {
+            "episodes": 13,
+            "percentile": 92.5,
+            "sample_window": "1990-01..2026-09",
+            "threshold": 30.0
+          },
+          "severity_2": {
+            "episodes": 4,
+            "percentile": 97.5,
+            "sample_window": "1990-01..2026-09",
+            "threshold": 40.0
+          }
+        }
+      },
+      "value": 14.21,
+      "value_date": "2026-09-22",
+      "values_revised": false
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": -0.18000000000000013,
+      "measure": "63-trading-day change, bp",
+      "narrative": {
+        "classifier_confidence": 0.56,
+        "direction_agreement": null,
+        "item_count": 5,
+        "source_run_id": null,
+        "summary": "Millrose Properties plans a $1B two-part senior notes offering plus a $500M term loan draw to fund homesite acquisitions tied to the Dream Finders\u2013Beazer merger and repay revolver borrowings. The event is primarily a company-level capital-markets action with mild read-throughs fo",
+        "theme_ids": [
+          "credit_stress",
+          "credit_easing"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "BAA10Y",
+      "severity": 0,
+      "shock_id": "credit_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "up": {
+          "severity_1": {
+            "episodes": 16,
+            "percentile": 93.4,
+            "sample_window": "1986-01..2026-09",
+            "threshold": 50.0
+          },
+          "severity_2": {
+            "episodes": 5,
+            "percentile": 97.5,
+            "sample_window": "1986-01..2026-09",
+            "threshold": 75.0
+          }
+        }
+      },
+      "value": -9.000000000000007,
+      "value_date": "2026-09-22",
+      "values_revised": false
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.45333333333333314,
+      "measure": "63-trading-day change, bp, signed",
+      "narrative": {
+        "classifier_confidence": 0.611764705882353,
+        "direction_agreement": null,
+        "item_count": 13,
+        "source_run_id": null,
+        "summary": "BOJ raised its policy rate to 1.25%, the highest since 1995, but a 7-2 split vote and less hawkish guidance weakened the yen, lowered JGB yields, and lifted the Nikkei. Core inflation remains below 2%, while oil-related Middle East risks and weak real wages cloud the growth outlo",
+        "theme_ids": [
+          "monetary_tightening",
+          "monetary_easing",
+          "yield_curve_steepening",
+          "yield_curve_flattening"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "DFII10",
+      "severity": 0,
+      "shock_id": "rates_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "dfii10": {
+          "down": {
+            "severity_1": {
+              "episodes": 7,
+              "percentile": 4.3,
+              "sample_window": "2003-01..2026-09",
+              "threshold": -60.0
+            },
+            "severity_2": {
+              "episodes": 3,
+              "percentile": 2.1,
+              "sample_window": "2003-01..2026-09",
+              "threshold": -70.0
+            }
+          },
+          "up": {
+            "severity_1": {
+              "episodes": 4,
+              "percentile": 95.7,
+              "sample_window": "2003-01..2026-09",
+              "threshold": 75.0
+            },
+            "severity_2": {
+              "episodes": 3,
+              "percentile": 97.2,
+              "sample_window": "2003-01..2026-09",
+              "threshold": 100.0
+            }
+          }
+        },
+        "dgs2": {
+          "down": {
+            "severity_1": {
+              "episodes": 12,
+              "percentile": 5.2,
+              "sample_window": "1990-01..2026-09",
+              "threshold": -100.0
+            },
+            "severity_2": {
+              "episodes": 1,
+              "percentile": 0.7,
+              "sample_window": "1990-01..2026-09",
+              "threshold": -150.0
+            }
+          },
+          "up": {
+            "severity_1": {
+              "episodes": 7,
+              "percentile": 96.8,
+              "sample_window": "1990-01..2026-09",
+              "threshold": 100.0
+            },
+            "severity_2": {
+              "episodes": 3,
+              "percentile": 99.1,
+              "sample_window": "1990-01..2026-09",
+              "threshold": 150.0
+            }
+          }
+        }
+      },
+      "value": 33.999999999999986,
+      "value_date": "2026-09-22",
+      "values_revised": false
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.854004542944257,
+      "measure": "63-trading-day log change, %, signed",
+      "narrative": {
+        "classifier_confidence": 0.6252631578947369,
+        "direction_agreement": null,
+        "item_count": 14,
+        "source_run_id": null,
+        "summary": "BOJ raised its policy rate to 1.25%, the highest since 1995, but a 7-2 split vote and less hawkish guidance weakened the yen, lowered JGB yields, and lifted the Nikkei. Core inflation remains below 2%, while oil-related Middle East risks and weak real wages cloud the growth outlo",
+        "theme_ids": [
+          "energy_supply_shock",
+          "commodity_pressure"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "DCOILWTICO",
+      "severity": 0,
+      "shock_id": "oil_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "down": {
+          "severity_1": {
+            "episodes": 10,
+            "percentile": 4.5,
+            "sample_window": "1986-01..2026-09",
+            "threshold": -30.0
+          },
+          "severity_2": {
+            "episodes": 6,
+            "percentile": 2.7,
+            "sample_window": "1986-01..2026-09",
+            "threshold": -40.0
+          }
+        },
+        "up": {
+          "severity_1": {
+            "episodes": 11,
+            "percentile": 94.4,
+            "sample_window": "1986-01..2026-09",
+            "threshold": 30.0
+          },
+          "severity_2": {
+            "episodes": 5,
+            "percentile": 97.9,
+            "sample_window": "1986-01..2026-09",
+            "threshold": 40.0
+          }
+        }
+      },
+      "value": 25.62013628832771,
+      "value_date": "2026-09-22",
+      "values_revised": false
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.14713972591407376,
+      "measure": "63-trading-day log change, %, signed",
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "usd_stitched",
+      "severity": 0,
+      "shock_id": "dollar_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "down": {
+          "severity_1": {
+            "episodes": 8,
+            "percentile": 3.2,
+            "sample_window": "1995-01..2026-09",
+            "threshold": -5.0
+          },
+          "severity_2": {
+            "episodes": 2,
+            "percentile": 0.5,
+            "sample_window": "1995-01..2026-09",
+            "threshold": -6.0
+          }
+        },
+        "up": {
+          "severity_1": {
+            "episodes": 8,
+            "percentile": 95.5,
+            "sample_window": "1995-01..2026-09",
+            "threshold": 5.0
+          },
+          "severity_2": {
+            "episodes": 6,
+            "percentile": 97.4,
+            "sample_window": "1995-01..2026-09",
+            "threshold": 6.0
+          }
+        }
+      },
+      "value": -0.7356986295703688,
+      "value_date": "2026-09-18",
+      "values_revised": false
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.25132275132275117,
+      "measure": "4-week mean / trailing 52-week min - 1, %",
+      "narrative": {
+        "classifier_confidence": 0.5650000000000002,
+        "direction_agreement": null,
+        "item_count": 10,
+        "source_run_id": null,
+        "summary": "BOJ raised its policy rate to 1.25%, the highest since 1995, but a 7-2 split vote and less hawkish guidance weakened the yen, lowered JGB yields, and lifted the Nikkei. Core inflation remains below 2%, while oil-related Middle East risks and weak real wages cloud the growth outlo",
+        "theme_ids": [
+          "labor_weakness",
+          "labor_strength"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "ICSA",
+      "severity": 0,
+      "shock_id": "labour_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "up": {
+          "severity_1": {
+            "episodes": 5,
+            "percentile": 90.0,
+            "sample_window": "1990-01..2026-09",
+            "threshold": 30.0
+          },
+          "severity_2": {
+            "episodes": 5,
+            "percentile": 92.7,
+            "sample_window": "1990-01..2026-09",
+            "threshold": 40.0
+          }
+        }
+      },
+      "value": 7.539682539682535,
+      "value_date": "2026-09-12",
+      "values_revised": true
+    },
+    {
+      "active": false,
+      "age_days": null,
+      "direction": "none",
+      "intensity": 0.2666666666666669,
+      "measure": "63-trading-day change, bp, signed",
+      "narrative": {
+        "classifier_confidence": 0.6805882352941177,
+        "direction_agreement": null,
+        "item_count": 15,
+        "source_run_id": null,
+        "summary": "BOJ raised its policy rate to 1.25%, the highest since 1995, but a 7-2 split vote and less hawkish guidance weakened the yen, lowered JGB yields, and lifted the Nikkei. Core inflation remains below 2%, while oil-related Middle East risks and weak real wages cloud the growth outlo",
+        "theme_ids": [
+          "inflation_pressure",
+          "disinflation"
+        ]
+      },
+      "onset_date": null,
+      "peak_date": null,
+      "peak_intensity": null,
+      "proxy": false,
+      "reason": null,
+      "series_id": "T10YIE",
+      "severity": 0,
+      "shock_id": "inflation_shock",
+      "stale_input": false,
+      "state": "inactive",
+      "thresholds": {
+        "down": {
+          "severity_1": {
+            "episodes": 7,
+            "percentile": 4.6,
+            "sample_window": "2003-01..2026-09",
+            "threshold": -45.0
+          },
+          "severity_2": {
+            "episodes": 3,
+            "percentile": 2.1,
+            "sample_window": "2003-01..2026-09",
+            "threshold": -60.0
+          }
+        },
+        "up": {
+          "severity_1": {
+            "episodes": 6,
+            "percentile": 95.7,
+            "sample_window": "2003-01..2026-09",
+            "threshold": 45.0
+          },
+          "severity_2": {
+            "episodes": 4,
+            "percentile": 97.9,
+            "sample_window": "2003-01..2026-09",
+            "threshold": 55.0
+          }
+        }
+      },
+      "value": 12.00000000000001,
+      "value_date": "2026-09-22",
+      "values_revised": false
+    }
+  ],
+  "source_run_id": null,
+  "taxonomy_version": "560fc4accd6be2d6dfa43c23ee513f2e32b71b39028eaaa3ec77790d1df9465d",
+  "unmeasured_narratives": [
+    {
+      "classifier_confidence": 0.5666666666666665,
+      "item_count": 3,
+      "theme_id": "fiscal_drag"
+    },
+    {
+      "classifier_confidence": 0.5499999999999999,
+      "item_count": 4,
+      "theme_id": "fiscal_expansion"
+    },
+    {
+      "classifier_confidence": 0.59375,
+      "item_count": 8,
+      "theme_id": "growth_acceleration"
+    },
+    {
+      "classifier_confidence": 0.55625,
+      "item_count": 8,
+      "theme_id": "growth_slowdown"
+    }
+  ]
+}
