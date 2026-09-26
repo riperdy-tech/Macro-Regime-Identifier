@@ -1,29 +1,29 @@
 {
-  "auroc": 0.907706468077985,
+  "auroc": 0.8973214285714286,
   "disclaimer": "This NBER benchmark is a revised-data diagnostic comparison against public NBER business-cycle dates. It is not a point-in-time backtest, not evidence of predictive value, and not investment advice.",
-  "expansion_month_count": 323,
-  "generated_at": "2026-09-25T01:19:27.236607+00:00",
+  "expansion_month_count": 336,
+  "generated_at": "2026-09-26T01:23:28.708835+00:00",
   "label": "revised-data NBER benchmark, not a point-in-time backtest",
   "label_metrics": {
     "raw_dominant": {
-      "expansion_flag_rate": 0.18575851393188855,
-      "expansion_flags": 60,
-      "expansion_months": 323,
-      "recession_hit_rate": 0.7837837837837838,
-      "recession_hits": 29,
-      "recession_months": 37
+      "expansion_flag_rate": 0.20238095238095238,
+      "expansion_flags": 68,
+      "expansion_months": 336,
+      "recession_hit_rate": 0.8,
+      "recession_hits": 32,
+      "recession_months": 40
     },
     "reported": {
-      "expansion_flag_rate": 0.21671826625386997,
-      "expansion_flags": 70,
-      "expansion_months": 323,
-      "recession_hit_rate": 0.7837837837837838,
-      "recession_hits": 29,
-      "recession_months": 37
+      "expansion_flag_rate": 0.2261904761904762,
+      "expansion_flags": 76,
+      "expansion_months": 336,
+      "recession_hit_rate": 0.8,
+      "recession_hits": 32,
+      "recession_months": 40
     }
   },
-  "month_count": 360,
-  "nber_recession_month_count": 37,
+  "month_count": 376,
+  "nber_recession_month_count": 40,
   "nber_recessions": [
     {
       "end": "1991-03",
@@ -42,9 +42,7 @@
       "start": "2020-02"
     }
   ],
-  "pin_violations": [
-    "precision@0.25 0.3157894736842105 outside pin 0.2653061224489796 +/- 0.05"
-  ],
+  "pin_violations": [],
   "recession_detection": [
     {
       "detected_month": "1990-01",
@@ -71,10 +69,10 @@
       "window_months_before_start": 9
     },
     {
-      "detected_month": null,
+      "detected_month": "2019-10",
       "detection_threshold": 0.25,
       "end": "2020-04",
-      "lead_lag_months": null,
+      "lead_lag_months": -4,
       "start": "2020-02",
       "window_months_before_start": 9
     }
@@ -85,39 +83,39 @@
   "status": "ok",
   "threshold_metrics": [
     {
-      "expansion_flag_rate": 0.3188854489164087,
-      "expansion_flags": 103,
-      "expansion_months": 323,
+      "expansion_flag_rate": 0.3333333333333333,
+      "expansion_flags": 112,
+      "expansion_months": 336,
       "recession_hit_rate": 1.0,
-      "recession_hits": 37,
-      "recession_months": 37,
+      "recession_hits": 40,
+      "recession_months": 40,
       "threshold": 0.2
     },
     {
-      "expansion_flag_rate": 0.24148606811145512,
-      "expansion_flags": 78,
-      "expansion_months": 323,
-      "recession_hit_rate": 0.972972972972973,
-      "recession_hits": 36,
-      "recession_months": 37,
+      "expansion_flag_rate": 0.25595238095238093,
+      "expansion_flags": 86,
+      "expansion_months": 336,
+      "recession_hit_rate": 0.975,
+      "recession_hits": 39,
+      "recession_months": 40,
       "threshold": 0.25
     },
     {
-      "expansion_flag_rate": 0.19195046439628483,
-      "expansion_flags": 62,
-      "expansion_months": 323,
-      "recession_hit_rate": 0.918918918918919,
-      "recession_hits": 34,
-      "recession_months": 37,
+      "expansion_flag_rate": 0.20833333333333334,
+      "expansion_flags": 70,
+      "expansion_months": 336,
+      "recession_hit_rate": 0.925,
+      "recession_hits": 37,
+      "recession_months": 40,
       "threshold": 0.3
     },
     {
-      "expansion_flag_rate": 0.15789473684210525,
-      "expansion_flags": 51,
-      "expansion_months": 323,
-      "recession_hit_rate": 0.8108108108108109,
-      "recession_hits": 30,
-      "recession_months": 37,
+      "expansion_flag_rate": 0.17261904761904762,
+      "expansion_flags": 58,
+      "expansion_months": 336,
+      "recession_hit_rate": 0.8,
+      "recession_hits": 32,
+      "recession_months": 40,
       "threshold": 0.35
     }
   ]
