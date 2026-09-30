@@ -1,7 +1,7 @@
 {
   "anchor_id": "cost_of_capital",
-  "asof": "2026-09-29",
-  "built_at": "2026-09-29T02:49:10.832802+00:00",
+  "asof": "2026-09-30",
+  "built_at": "2026-09-30T02:02:03.387465+00:00",
   "degraded": true,
   "equity_aggregate": null,
   "erp_basis": "unavailable",
@@ -25,11 +25,11 @@
     ],
     "input_dates": {
       "CPIAUCSL": "2026-08-01",
-      "DFII10": "2026-09-25",
-      "DGS10": "2026-09-25",
+      "DFII10": "2026-09-28",
+      "DGS10": "2026-09-28",
       "PCEPI": "2026-07-01",
-      "T10YIE": "2026-09-28",
-      "THREEFYTP10": "2026-09-18"
+      "T10YIE": "2026-09-29",
+      "THREEFYTP10": "2026-09-25"
     },
     "notes": [
       "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
@@ -38,28 +38,28 @@
     "scoring_mode": "point_in_time"
   },
   "risk_free": {
-    "breakeven_10y": 0.0234,
-    "nominal_10y": 0.0517,
-    "real_10y": 0.0283,
-    "term_premium": 0.009595
+    "breakeven_10y": 0.0235,
+    "nominal_10y": 0.0524,
+    "real_10y": 0.029,
+    "term_premium": 0.010203
   },
   "sector_loadings": {
-    "banks": 1.014,
-    "biotech": 1.131,
-    "communication_services": 0.999,
+    "banks": 1.015,
+    "biotech": 1.132,
+    "communication_services": 1.0,
     "consumer_discretionary": 1.222,
-    "consumer_staples": 0.363,
-    "energy": 0.569,
+    "consumer_staples": 0.361,
+    "energy": 0.568,
     "financials": 0.843,
-    "health_care": 0.534,
-    "homebuilders": 1.127,
-    "industrials": 0.867,
-    "information_technology": 1.373,
+    "health_care": 0.533,
+    "homebuilders": 1.125,
+    "industrials": 0.866,
+    "information_technology": 1.374,
     "materials": 0.851,
-    "oil_gas_ep": 0.821,
-    "real_estate": 0.699,
-    "semiconductors": 1.736,
-    "software": 1.311,
+    "oil_gas_ep": 0.822,
+    "real_estate": 0.698,
+    "semiconductors": 1.737,
+    "software": 1.313,
     "utilities": 0.437
   },
   "source_files": [
