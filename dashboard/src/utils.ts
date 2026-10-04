@@ -1,4 +1,4 @@
-import type { HistoryRun, RankedSector, ScoredItem } from "./types";
+import type { HistoryRun, MacroDimensionSeries, RankedSector, ScoredItem } from "./types";
 
 export function text(value: unknown, fallback = "Data unavailable"): string {
   if (value === null || value === undefined || value === "") {
@@ -161,4 +161,53 @@ export function historyRuns(payload: Record<string, unknown> | null): HistoryRun
     return [];
   }
   return asArray<HistoryRun>(payload.runs);
+}
+
+export function prettyRegime(regime?: string | null): string {
+  return regime ? prettySectorId(regime) : "Data unavailable";
+}
+
+const DIMENSION_LABELS: Record<string, string> = {
+  growth_momentum: "Growth",
+  inflation_pressure: "Inflation",
+  labor_market: "Labor",
+  policy_stance: "Policy",
+  credit_liquidity: "Financial conditions",
+  yield_curve: "Yield curve",
+};
+
+export function dimensionLabel(id: string): string {
+  return DIMENSION_LABELS[id] ?? prettySectorId(id);
+}
+
+export type DimensionSeries = { id: string; label: string; points: { date: string; value: number }[] };
+
+// Mean of the exported indicator z-scores per month, per dimension. A display
+// summary of macro_features_timeline.json, not the engine's own dimension score.
+export function dimensionSeries(payload: Record<string, unknown> | null): DimensionSeries[] {
+  const out: DimensionSeries[] = [];
+  for (const dim of asArray<MacroDimensionSeries>(getObject(payload).dimensions)) {
+    const id = dim.dimension_id ?? "";
+    if (!id || id === "unmapped") {
+      continue;
+    }
+    const sums = new Map<string, { total: number; count: number }>();
+    for (const feature of dim.features ?? []) {
+      for (const point of feature.points ?? []) {
+        if (point.date && typeof point.value === "number" && Number.isFinite(point.value)) {
+          const cell = sums.get(point.date) ?? { total: 0, count: 0 };
+          cell.total += point.value;
+          cell.count += 1;
+          sums.set(point.date, cell);
+        }
+      }
+    }
+    const points = [...sums.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, cell]) => ({ date, value: cell.total / cell.count }));
+    if (points.length) {
+      out.push({ id, label: dimensionLabel(id), points });
+    }
+  }
+  return out;
 }

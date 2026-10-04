@@ -1,10 +1,32 @@
 import { useEffect, useMemo, useState } from "react";
+import pkg from "../package.json";
 import { loadDashboardData } from "./data";
+import {
+  DivergingBars,
+  MiniLine,
+  ProbabilityBar,
+  ProbabilityHistory,
+  QuadrantMap,
+  RegimeRibbon,
+  SlopeChart,
+  regimeColor,
+  type SlopeRow,
+} from "./charts";
+import {
+  combinedHeadline,
+  historyHeadline,
+  macroHeadline,
+  macroRegimes,
+  monitoringHeadline,
+  newsHeadline,
+  overviewSubcopy,
+  prettySectorLabel,
+  sectorsHeadline,
+} from "./headlines";
 import type {
   DashboardData,
   HistoryRun,
   MacroDimensionSeries,
-  MacroFeatureSeries,
   NewsSourceGroup,
   RankedSector,
   RegimeTimelinePoint,
@@ -13,15 +35,19 @@ import type {
 import {
   asArray,
   combinedRows,
+  dimensionLabel,
+  dimensionSeries,
+  formatCount,
   formatPct,
   formatRunDate,
   formatScore,
-  formatStamp,
-  formatCount,
   formatSigned,
+  formatStamp,
   getNested,
   getObject,
   historyRuns,
+  numberValue,
+  prettyRegime,
   prettySectorId,
   scoreItems,
   sectorLabelById,
@@ -39,6 +65,7 @@ import {
 } from "./help";
 
 type TabId = "overview" | "macro" | "sectors" | "news" | "combined" | "monitoring" | "history";
+type Theme = "light" | "dark";
 
 const TABS: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -50,8 +77,28 @@ const TABS: { id: TabId; label: string }[] = [
   { id: "history", label: "History" },
 ];
 
+const NOT_AVAILABLE = "Not available in this export";
+
+function tabFromHash(): TabId {
+  const id = window.location.hash.replace("#", "");
+  return TABS.find((tab) => tab.id === id)?.id ?? "overview";
+}
+
+function initialTheme(): Theme {
+  try {
+    const stored = window.localStorage.getItem("dashboard-theme");
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
+  } catch {
+    // storage unavailable: fall through to the system preference
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [activeTab, setActiveTab] = useState<TabId>(tabFromHash);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,29 +109,54 @@ export function App() {
     });
   }, []);
 
-  const status = useMemo(() => dataStatus(data), [data]);
-  const hero = useMemo(() => {
-    const daily = getObject(data?.daily);
-    const macro = getObject(daily.macro);
-    return {
-      regime: typeof macro.reported_regime === "string" ? macro.reported_regime : null,
-      rawRegime:
-        typeof macro.raw_dominant_regime === "string" ? macro.raw_dominant_regime : null,
-      confidence: typeof macro.confidence === "number" ? macro.confidence : null,
-      date: typeof macro.date === "string" ? macro.date : null,
-      updated: formatRunDate(daily.run_date, daily.run_id),
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    try {
+      window.localStorage.setItem("dashboard-theme", theme);
+    } catch {
+      // storage unavailable: the choice just won't persist
+    }
+  }, [theme]);
+
+  // The guide modal uses in-page #anchors; only tab ids drive navigation.
+  useEffect(() => {
+    const onHash = () => {
+      const id = window.location.hash.replace("#", "");
+      const match = TABS.find((tab) => tab.id === id);
+      if (match) {
+        setActiveTab(match.id);
+      }
     };
-  }, [data]);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  const selectTab = (id: TabId) => {
+    setActiveTab(id);
+    window.history.replaceState(null, "", `#${id}`);
+  };
+
+  const shell = {
+    tab: activeTab,
+    onTab: selectTab,
+    theme,
+    onTheme: () => setTheme(theme === "dark" ? "light" : "dark"),
+    runDate: data?.manifest?.latest_run_date ?? null,
+  };
 
   if (loading) {
-    return <Shell status="Loading data">Loading dashboard data...</Shell>;
+    return (
+      <Shell {...shell}>
+        <div className="skeleton" aria-busy="true" aria-label="Loading dashboard data" />
+      </Shell>
+    );
   }
 
   if (!data || data.source === "empty") {
     return (
-      <Shell status="No data">
-        <section className="empty-state">
-          <h2>Dashboard Data Unavailable</h2>
+      <Shell {...shell}>
+        <section className="card empty-state">
+          <h2>Dashboard data unavailable</h2>
           <p>Run the backend daily pipeline and export dashboard data, then refresh this page.</p>
           <code>python -m macro_engine.cli export-dashboard-data</code>
         </section>
@@ -93,108 +165,914 @@ export function App() {
   }
 
   return (
-    <Shell status={status} hero={hero}>
-      <div className="tabbar" role="tablist" aria-label="Dashboard sections">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={tab.id === activeTab ? "tab active" : "tab"}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-      <main>
-        <p className="tab-intro">{TAB_INTROS[activeTab]}</p>
-        {activeTab === "overview" && <Overview data={data} />}
-        {activeTab === "macro" && <MacroPanel data={data} />}
-        {activeTab === "sectors" && <SectorPanel data={data} />}
-        {activeTab === "news" && <NewsPanel data={data} />}
-        {activeTab === "combined" && <CombinedPanel data={data} />}
-        {activeTab === "monitoring" && <MonitoringPanel data={data} />}
-        {activeTab === "history" && <HistoryPanel data={data} />}
-      </main>
+    <Shell {...shell}>
+      {data.source === "sample" ? (
+        <p className="banner">Showing bundled sample data. No exported run was found.</p>
+      ) : null}
+      {activeTab === "overview" && <Overview data={data} />}
+      {activeTab === "macro" && <MacroPanel data={data} />}
+      {activeTab === "sectors" && <SectorPanel data={data} />}
+      {activeTab === "news" && <NewsPanel data={data} />}
+      {activeTab === "combined" && <CombinedPanel data={data} />}
+      {activeTab === "monitoring" && <MonitoringPanel data={data} />}
+      {activeTab === "history" && <HistoryPanel data={data} />}
     </Shell>
   );
 }
 
-type ShellHero = {
-  regime: string | null;
-  rawRegime: string | null;
-  confidence: number | null;
-  date: string | null;
-  updated: string;
-};
-
 function Shell({
   children,
-  status,
-  hero,
+  tab,
+  onTab,
+  theme,
+  onTheme,
+  runDate,
 }: {
   children: React.ReactNode;
-  status: string;
-  hero?: ShellHero;
+  tab: TabId;
+  onTab: (id: TabId) => void;
+  theme: Theme;
+  onTheme: () => void;
+  runDate: string | null;
 }) {
   const [showSummary, setShowSummary] = useState(false);
-
   return (
-    <div className="app">
-      <header className="masthead">
-        <div className="masthead-inner">
-          <div className="masthead-title">
-            <p className="eyebrow">Read-only backend output viewer</p>
-            <h1>Macro Regime Dashboard</h1>
-          </div>
-          {hero?.regime ? (
-            <div className="hero-regime" aria-label="Current reported regime">
-              <span
-                className="hero-swatch"
-                style={{ background: regimeColor(hero.regime) }}
-                aria-hidden="true"
-              />
-              <div className="hero-cell">
-                <span className="hero-label">Reported regime</span>
-                <strong className="hero-value">{hero.regime.replaceAll("_", " ")}</strong>
-              </div>
-              {hero.confidence !== null ? (
-                <div className="hero-cell">
-                  <span className="hero-label">Confidence</span>
-                  <strong className="hero-value">{(hero.confidence * 100).toFixed(1)}%</strong>
-                </div>
-              ) : null}
-              {hero.date ? (
-                <div className="hero-cell">
-                  <span className="hero-label">Macro data as of</span>
-                  <strong className="hero-value">{hero.date}</strong>
-                </div>
-              ) : null}
-              {hero.rawRegime && hero.rawRegime !== hero.regime ? (
-                <div className="hero-cell">
-                  <span className="hero-label">Raw monthly leader</span>
-                  <strong className="hero-value">{hero.rawRegime.replaceAll("_", " ")}</strong>
-                </div>
-              ) : null}
-              <div className="hero-cell">
-                <span className="hero-label">Updated</span>
-                <strong className="hero-value">{hero.updated}</strong>
-                <span className="hero-note">refreshes daily ~07:35 Taipei</span>
-              </div>
-            </div>
-          ) : null}
-          <div className="header-actions">
-            <button type="button" className="summary-button" onClick={() => setShowSummary(true)}>
-              How it works
-            </button>
-            <div className="status-pill">{status}</div>
-          </div>
+    <div className="shell">
+      <nav className="rail" aria-label="Dashboard sections">
+        <div className="rail-brand">
+          Macro Regime{" "}
+          <br />
+          Engine
         </div>
-      </header>
+        <ul className="rail-nav">
+          {TABS.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                className={item.id === tab ? "rail-item active" : "rail-item"}
+                aria-current={item.id === tab ? "page" : undefined}
+                onClick={() => onTab(item.id)}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="rail-foot">
+          <button type="button" className="rail-link" onClick={() => setShowSummary(true)}>
+            Methodology
+          </button>
+          <button type="button" className="rail-link" onClick={onTheme} aria-label="Toggle light and dark mode">
+            ◐ {theme}
+          </button>
+          <span className="label">
+            v{pkg.version}
+            {runDate ? ` · ${runDate}` : ""}
+          </span>
+        </div>
+      </nav>
+      <main className="main">
+        <div className="main-inner">{children}</div>
+      </main>
       {showSummary ? <ProgramSummary onClose={() => setShowSummary(false)} /> : null}
-      {children}
     </div>
   );
+}
+
+// ---------- Shared layout pieces ----------
+
+function Head({
+  tab,
+  eyebrow,
+  headline,
+  tags,
+  large = false,
+  children,
+}: {
+  tab: TabId;
+  eyebrow: string;
+  headline?: React.ReactNode;
+  tags?: React.ReactNode;
+  large?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <header className="head">
+      <div className="head-row">
+        <span className="label">
+          {eyebrow}
+          <InfoTip text={TAB_INTROS[tab]} />
+        </span>
+        <span className="head-tags">{tags}</span>
+      </div>
+      <h1 className={large ? "headline large" : "headline"}>{headline}</h1>
+      {children}
+    </header>
+  );
+}
+
+function Tag({ children, tone }: { children: React.ReactNode; tone?: "warn" }) {
+  return <span className={tone === "warn" ? "tag warn" : "tag"}>{children}</span>;
+}
+
+function Card({
+  title,
+  right,
+  info,
+  flush = false,
+  children,
+}: {
+  title?: string;
+  right?: React.ReactNode;
+  info?: string;
+  flush?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={flush ? "card flush" : "card"}>
+      {title || right ? (
+        <div className="card-head">
+          <h2 className="label">
+            {title}
+            {info ? <InfoTip text={info} /> : null}
+          </h2>
+          {right}
+        </div>
+      ) : null}
+      {children}
+    </section>
+  );
+}
+
+function Stats({ items }: { items: { label: string; value: string; detail?: string }[] }) {
+  return (
+    <div className="stats" style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
+      {items.map((item) => (
+        <div key={item.label} className="stat">
+          <span className="label">{item.label}</span>
+          <span className="stat-value">{item.value}</span>
+          {item.detail ? <span className="stat-detail">{item.detail}</span> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Pills<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { id: T; label: string }[];
+  value: T;
+  onChange: (id: T) => void;
+}) {
+  return (
+    <span className="pills" role="tablist">
+      {options.map((option) => (
+        <button
+          key={option.id}
+          type="button"
+          role="tab"
+          aria-selected={option.id === value}
+          className={option.id === value ? "pill active" : "pill"}
+          onClick={() => onChange(option.id)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </span>
+  );
+}
+
+function Missing() {
+  return <p className="muted">{NOT_AVAILABLE}.</p>;
+}
+
+function Disclaimer({ children }: { children: React.ReactNode }) {
+  return <p className="disclaimer">{children}</p>;
+}
+
+function monthLabel(date?: string | null): string | null {
+  if (!date) {
+    return null;
+  }
+  const parsed = new Date(`${date.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+  return parsed.toLocaleString("en-US", { month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+function timelinePoints(data: DashboardData): RegimeTimelinePoint[] {
+  return asArray<RegimeTimelinePoint>(getObject(data.timeline).points);
+}
+
+// ---------- Overview ----------
+
+function Overview({ data }: { data: DashboardData }) {
+  const macro = getObject(getObject(data.daily).macro);
+  const { reported } = macroRegimes(data);
+  const points = timelinePoints(data);
+  const asOf = monthLabel(
+    typeof macro.date === "string" ? macro.date : (data.manifest?.latest_macro_date ?? null),
+  );
+
+  let unchanged: number | null = null;
+  if (points.length && reported) {
+    unchanged = 0;
+    for (let i = points.length - 1; i >= 0 && points[i].reported_regime === points[points.length - 1].reported_regime; i--) {
+      unchanged += 1;
+    }
+  }
+
+  const dims = dimensionSeries(data.macroFeatures);
+  const order = ["growth_momentum", "inflation_pressure"];
+  const sorted = [...dims].sort((a, b) => {
+    const ia = order.indexOf(a.id);
+    const ib = order.indexOf(b.id);
+    return (ia < 0 ? order.length : ia) - (ib < 0 ? order.length : ib);
+  });
+  const growth = dims.find((d) => d.id === "growth_momentum");
+  const inflation = dims.find((d) => d.id === "inflation_pressure");
+  const last = (s?: { points: { value: number }[] }) => (s?.points.length ? s.points[s.points.length - 1].value : null);
+  const trailLength = 12;
+  const trail =
+    growth && inflation
+      ? growth.points.slice(-trailLength).flatMap((g) => {
+          const match = inflation.points.find((p) => p.date === g.date);
+          return match ? [{ growth: g.value, inflation: match.value }] : [];
+        })
+      : [];
+
+  const dailyProbs = getObject(getObject(data.daily).regime_probabilities);
+  const probSource = Object.keys(dailyProbs).length ? dailyProbs : (points[points.length - 1]?.probabilities ?? {});
+  const probabilities: Record<string, number> = Object.fromEntries(
+    Object.entries(probSource).filter((entry): entry is [string, number] => typeof entry[1] === "number"),
+  );
+
+  const subcopy = overviewSubcopy(data, unchanged);
+  return (
+    <>
+      <Head
+        tab="overview"
+        large
+        eyebrow={`U.S. macro regime${asOf ? ` · as of ${asOf}` : ""}`}
+        tags={<Tag>data {text(data.manifest?.data_status, "unknown")}</Tag>}
+        headline={
+          reported ? (
+            <>
+              The U.S. economy currently reads as <span className="accent">{prettyRegime(reported)}</span>.
+            </>
+          ) : (
+            "Not enough data yet to summarise this tab."
+          )
+        }
+      >
+        {subcopy ? <p className="subcopy">{subcopy}</p> : null}
+      </Head>
+      <div className="split">
+        <Card title="Growth ↑ · Inflation →" info={TOOLTIPS.regime}>
+          <QuadrantMap growth={last(growth)} inflation={last(inflation)} trail={trail} regime={reported} />
+          <p className="caption">
+            {growth && inflation
+              ? "Dot marks the current reading; trail shows the past 12 months. Tightening has no quadrant and is shown as a ring."
+              : "Growth and inflation readings are not available in this export."}
+          </p>
+        </Card>
+        <Card title="Dimensions">
+          {sorted.length ? (
+            <ul className="rows">
+              {sorted.map((dim) => (
+                <li key={dim.id}>
+                  <span>{dim.label}</span>
+                  <span className="num">{formatSigned(last(dim), 2)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Missing />
+          )}
+          <p className="caption">Average of the latest indicator z-scores in each dimension.</p>
+        </Card>
+      </div>
+      <Card title="Regime probabilities" info={TOOLTIPS.regime_probabilities}>
+        <ProbabilityBar probabilities={probabilities} />
+      </Card>
+      <Disclaimer>
+        Diagnostic only. Not investment advice. Uses revised FRED data, not point-in-time vintages.
+      </Disclaimer>
+    </>
+  );
+}
+
+// ---------- Macro ----------
+
+function MacroPanel({ data }: { data: DashboardData }) {
+  const { reported, raw } = macroRegimes(data);
+  const daily = getObject(data.daily);
+  const macro = getObject(daily.macro);
+  const confidence = numberValue(macro.confidence) ?? numberValue(getObject(data.sectors).macro_confidence);
+  const points = timelinePoints(data);
+  const latestProbs = points[points.length - 1]?.probabilities ?? {};
+  const rawProbs = getObject(daily.regime_probabilities);
+  const probOf = (regime: string | null): number | null =>
+    regime ? (numberValue(rawProbs[regime]) ?? numberValue(latestProbs[regime])) : null;
+  const dims = asArray<MacroDimensionSeries>(getObject(data.macroFeatures).dimensions).filter(
+    (d) => (d.dimension_id ?? "") !== "unmapped" && (d.features?.length ?? 0) > 0,
+  );
+  const [dimId, setDimId] = useState<string | null>(null);
+  const activeDim = dims.find((d) => d.dimension_id === dimId) ?? dims[0];
+  const held = Boolean(reported && raw && reported !== raw);
+  const note = regimeConfidenceNote(confidence, prettyRegime(reported));
+
+  const featureEnd = text(getObject(data.macroFeatures).end_date, "");
+  const seriesHealth = new Map<string, { last: string; stale: boolean }>();
+  for (const dim of dims) {
+    for (const feature of dim.features ?? []) {
+      const id = feature.series_id || feature.feature_id || "";
+      const lastDate = feature.points?.[feature.points.length - 1]?.date ?? "";
+      const prev = seriesHealth.get(id);
+      if (id && (!prev || lastDate > prev.last)) {
+        seriesHealth.set(id, { last: lastDate, stale: Boolean(featureEnd && lastDate < featureEnd) });
+      }
+    }
+  }
+
+  return (
+    <>
+      <Head tab="macro" eyebrow="Macro · reported vs raw signal" headline={macroHeadline(data)} />
+      <Stats
+        items={[
+          {
+            label: "Reported",
+            value: reported ? `${prettyRegime(reported)}${confidence !== null ? ` · ${formatPct(confidence)}` : ""}` : "n/a",
+          },
+          {
+            label: "Raw leader",
+            value: raw ? `${prettyRegime(raw)}${probOf(raw) !== null ? ` · ${formatPct(probOf(raw))}` : ""}` : "n/a",
+          },
+          {
+            label: "Transition filter",
+            value: held ? `Held ${prettyRegime(reported)}` : "No hold",
+            detail: held ? "Raw leader differs from the published label." : "Raw leader and reported label agree.",
+          },
+        ]}
+      />
+      {note ? <p className="caption">{note}</p> : null}
+      <Card title="Probability history · 24 months" info={TOOLTIPS.regime_timeline}>
+        {points.length > 1 ? <ProbabilityHistory points={points.slice(-24)} /> : <Missing />}
+      </Card>
+      <Card title="Indicators by dimension" info={TOOLTIPS.macro_indicators}>
+        {activeDim ? (
+          <>
+            <div className="underline-tabs" role="tablist">
+              {dims.map((dim) => (
+                <button
+                  key={dim.dimension_id}
+                  type="button"
+                  role="tab"
+                  aria-selected={dim.dimension_id === activeDim.dimension_id}
+                  className={dim.dimension_id === activeDim.dimension_id ? "utab active" : "utab"}
+                  onClick={() => setDimId(dim.dimension_id ?? null)}
+                >
+                  {dimensionLabel(dim.dimension_id ?? "")}
+                </button>
+              ))}
+            </div>
+            <div className="multiples">
+              {(activeDim.features ?? []).map((feature, i) => (
+                <div key={`${feature.feature_id}-${i}`} className="multiple">
+                  <span className="label">{featureLabel(feature)}</span>
+                  <MiniLine points={feature.points ?? []} />
+                </div>
+              ))}
+            </div>
+            <p className="caption">Each line is a z-score: 0 is average, above 0 elevated, below 0 depressed.</p>
+          </>
+        ) : (
+          <Missing />
+        )}
+      </Card>
+      <Card title={`Source health · ${seriesHealth.size} FRED series`}>
+        {seriesHealth.size ? (
+          <div className="tags">
+            {[...seriesHealth.entries()].map(([id, health]) => (
+              <Tag key={id} tone={health.stale ? "warn" : undefined}>
+                {id}
+                {health.stale ? ` · last ${health.last.slice(0, 7)}` : ""}
+              </Tag>
+            ))}
+          </div>
+        ) : (
+          <Missing />
+        )}
+      </Card>
+    </>
+  );
+}
+
+function regimeConfidenceNote(confidence: number | null, regime: string): string | null {
+  if (confidence === null || !Number.isFinite(confidence)) {
+    return null;
+  }
+  if (confidence >= 0.35) {
+    return `High conviction: the macro data points clearly to ${regime} and the underlying dimensions broadly agree.`;
+  }
+  if (confidence >= 0.12) {
+    return `Moderate conviction: ${regime} leads, but one or two others are in contention. Treat it as a lean, not a firm call.`;
+  }
+  return `Low conviction: no single regime dominates, so the ${regime} label is weak signal. Read the dimensions rather than this one label.`;
+}
+
+function featureLabel(f: { feature_id?: string; series_id?: string }): string {
+  const id = f.feature_id ?? "";
+  const tag = /yoy/.test(id) ? "YoY" : /12m/.test(id) ? "12m Δ" : /6m/.test(id) ? "6m Δ" : /level/.test(id) ? "level" : "";
+  return `${f.series_id || id}${tag ? ` · ${tag}` : ""}`;
+}
+
+// ---------- Sectors ----------
+
+function SectorPanel({ data }: { data: DashboardData }) {
+  const rows = useMemo(
+    () => [...sectorRows(data.sectors)].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0)),
+    [data.sectors],
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = rows.find((r) => r.sector_id === selectedId) ?? rows[0];
+  const topId = rows[0]?.confidence_adjusted_score;
+
+  const components = selected
+    ? [
+        ...asArray<Record<string, unknown>>(selected.top_supporting_components),
+        ...asArray<Record<string, unknown>>(selected.top_opposing_components),
+      ]
+        .filter((c) => typeof c.contribution === "number")
+        .sort((a, b) => (b.contribution as number) - (a.contribution as number))
+        .map((c, i) => ({
+          key: `${text(c.component_id)}-${i}`,
+          label: prettySectorId(text(c.component_id, "unknown")),
+          value: c.contribution as number,
+        }))
+    : [];
+
+  return (
+    <>
+      <Head tab="sectors" eyebrow="Sectors · macro tailwinds and headwinds" headline={sectorsHeadline(data)} tags={<Tag>experimental</Tag>} />
+      <Card flush info={TOOLTIPS.sector_ranking}>
+        {rows.length ? (
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th className="col-rank label">#</th>
+                <th className="label">Sector</th>
+                <th className="label">Proxy</th>
+                <th className="num-col label">Raw</th>
+                <th className="num-col label">Conf.-adj.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr
+                  key={row.sector_id ?? i}
+                  className={row.sector_id === selected?.sector_id ? "selectable selected" : "selectable"}
+                  tabIndex={0}
+                  onClick={() => setSelectedId(row.sector_id ?? null)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedId(row.sector_id ?? null);
+                    }
+                  }}
+                >
+                  <td className="col-rank num">{row.rank ?? i + 1}</td>
+                  <td>{row.label ?? prettySectorId(row.sector_id ?? "unknown")}</td>
+                  <td className="mono">{text(row.proxy_ticker, "—")}</td>
+                  <td className="num-col num">{formatSigned(row.raw_sector_score, 2)}</td>
+                  <td className={i === 0 && topId !== undefined ? "num-col num accent" : "num-col num"}>
+                    {formatSigned(row.confidence_adjusted_score, 2)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="card-pad"><Missing /></div>
+        )}
+      </Card>
+      <Card title={`Selected sector · score components${selected ? ` · ${selected.label ?? prettySectorId(selected.sector_id ?? "")}` : ""}`} info={TOOLTIPS.sector_components}>
+        <DivergingBars rows={components} />
+      </Card>
+      <ValidationCard data={data} />
+    </>
+  );
+}
+
+function ValidationCard({ data }: { data: DashboardData }) {
+  const v = getObject(data.validation);
+  const rows = asArray<ValidationSummaryRow>(v.summary);
+  const [horizon, setHorizon] = useState<string | null>(null);
+  const active = rows.find((r) => r.horizon === horizon) ?? rows[0];
+  const bestIc = rows.reduce(
+    (m, r) => Math.max(m, typeof r.rank_ic_spearman === "number" ? Math.abs(r.rank_ic_spearman) : 0),
+    0,
+  );
+  const spread = numberValue(active?.top_minus_bottom_spread);
+  return (
+    <Card
+      title="ETF proxy validation vs SPY"
+      info={TOOLTIPS.validation}
+      right={
+        rows.length > 1 ? (
+          <Pills
+            options={rows.map((r) => ({ id: text(r.horizon), label: text(r.horizon) }))}
+            value={text(active?.horizon)}
+            onChange={setHorizon}
+          />
+        ) : undefined
+      }
+    >
+      {active ? (
+        <>
+          <div className="metrics">
+            <div>
+              <span className="label">Rank IC</span>
+              <span className="metric-value num">{formatScore(active.rank_ic_spearman)}</span>
+            </div>
+            <div>
+              <span className="label">Top − bottom</span>
+              <span className="metric-value num">
+                {spread === null ? "n/a" : `${spread > 0 ? "+" : spread < 0 ? "−" : ""}${Math.abs(spread * 100).toFixed(1)}%`}
+              </span>
+            </div>
+            <div>
+              <span className="label">Hit rate</span>
+              <span className="metric-value num">{formatPct(active.hit_rate_top_positive)}</span>
+            </div>
+          </div>
+          <p className="caption">
+            {bestIc >= 0.1 ? "Result: some forward signal." : "Result: weak / mixed."} Not a trading backtest.{" "}
+            {text(active.observation_count, "0")} observations; scores {text(v.score_start_date)}–{text(v.score_end_date)}.
+          </p>
+        </>
+      ) : (
+        <Missing />
+      )}
+    </Card>
+  );
+}
+
+// ---------- News ----------
+
+function NewsPanel({ data }: { data: DashboardData }) {
+  const report = getObject(data.newsScores);
+  const dailyNews = getObject(getObject(data.daily).news);
+  const themeItems = [
+    ...scoreItems(report.top_positive_macro_themes),
+    ...scoreItems(report.top_negative_macro_themes),
+  ];
+  const themes = (themeItems.length ? themeItems : scoreItems(dailyNews.top_themes))
+    .filter((t) => typeof t.score === "number")
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const sectorItems = [
+    ...scoreItems(report.top_sector_news_tailwinds),
+    ...scoreItems(report.top_sector_news_headwinds),
+  ];
+  const sectors = (sectorItems.length
+    ? sectorItems
+    : [...scoreItems(dailyNews.top_sector_tailwinds), ...scoreItems(dailyNews.top_sector_headwinds)]
+  )
+    .filter((s) => typeof s.score === "number")
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const labels = sectorLabelById(data.sectors);
+  const lowConfidence = asArray<Record<string, unknown>>(report.low_confidence_items);
+  const asOf = text(report.latest_news_scoring_date, "latest run");
+
+  return (
+    <>
+      <Head tab="news" eyebrow="News · AI-classified themes" headline={newsHeadline(data)} tags={<Tag>as of {asOf}</Tag>} />
+      <div className="split even">
+        <Card title="Macro themes" info={TOOLTIPS.news_themes}>
+          {themes.length ? (
+            <ul className="rows">
+              {themes.map((t, i) => (
+                <li key={`${t.id}-${i}`}>
+                  <span>{prettySectorId(t.id ?? "unknown")}</span>
+                  <span className="num">{formatSigned(t.score, 2)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Missing />
+          )}
+        </Card>
+        <Card title="Sector news scores" info={TOOLTIPS.news_themes}>
+          <DivergingBars
+            rows={sectors.map((s, i) => ({
+              key: `${s.id}-${i}`,
+              label: prettySectorLabel(s.id, labels),
+              value: s.score ?? 0,
+              note: `${formatCount(s.item_count ?? 0)} items`,
+            }))}
+          />
+        </Card>
+      </div>
+      <Card title="Low-confidence classifications" info={TOOLTIPS.low_confidence_items}>
+        {lowConfidence.length ? (
+          <ul className="rows">
+            {lowConfidence.slice(0, 8).map((item, i) => (
+              <li key={`${item.news_id}-${i}`}>
+                <span>{text(item.title)}</span>
+                <Tag>conf {formatScore(item.confidence)}</Tag>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">None.</p>
+        )}
+      </Card>
+      <Disclaimer>AI classifications are interpretive and can be wrong.</Disclaimer>
+    </>
+  );
+}
+
+// ---------- Combined ----------
+
+function CombinedPanel({ data }: { data: DashboardData }) {
+  const overlay = getObject(getNested(data.monitoring, "overlay_monitoring"));
+  const combined = combinedRows(data.combined);
+  const macroRank = new Map(
+    asArray<RankedSector>(getObject(data.combined).sector_macro_ranking).map((r) => [r.sector_id, r.rank]),
+  );
+  const labels = sectorLabelById(data.sectors, data.combined);
+  const slope: SlopeRow[] = combined.flatMap((row) => {
+    const from = macroRank.get(row.sector_id);
+    if (!row.sector_id || typeof from !== "number" || typeof row.rank !== "number") {
+      return [];
+    }
+    return [
+      {
+        id: row.sector_id,
+        label: prettySectorLabel(row.sector_id, labels),
+        from,
+        to: row.rank,
+        thin: (row.news_item_count ?? 0) === 0,
+      },
+    ];
+  });
+  const maxChange =
+    numberValue(overlay.max_rank_change) ?? slope.reduce((m, r) => Math.max(m, Math.abs(r.from - r.to)), 0);
+  const fallback = slope.filter((r) => r.thin).length;
+  const guardrail = text(getNested(data.daily, "step_statuses", "guardrail_status"));
+  return (
+    <>
+      <Head tab="combined" eyebrow="Combined · macro + bounded news overlay" headline={combinedHeadline(data)} tags={<Tag>experimental</Tag>} />
+      <Card title="Macro-only rank → combined rank" info={TOOLTIPS.combined_overlay}>
+        <SlopeChart rows={[...slope].sort((a, b) => a.from - b.from)} />
+        <p className="caption">Greyed sectors have no recent news and fall back to the macro-only score.</p>
+      </Card>
+      <Stats
+        items={[
+          { label: "Max rank change", value: String(Math.abs(maxChange)) },
+          { label: "Macro-only fallback", value: `${fallback} ${fallback === 1 ? "sector" : "sectors"}` },
+          { label: "Guardrail", value: guardrail },
+        ]}
+      />
+      <p className="caption">
+        Overlay status {text(overlay.overlay_status, "n/a")} · {formatCount(overlay.news_item_count)} news items in the
+        overlay. 75% macro, 25% bounded news.
+      </p>
+    </>
+  );
+}
+
+// ---------- Monitoring ----------
+
+const READINESS_STEPS = [
+  { id: "insufficient_history", label: "Insufficient", range: "<5 run dates" },
+  { id: "early_history", label: "Early", range: "5–20" },
+  { id: "monitor_ready", label: "Monitor ready", range: "20+" },
+  { id: "validation_candidate", label: "Validation candidate", range: "60+" },
+];
+
+function MonitoringPanel({ data }: { data: DashboardData }) {
+  const daily = getObject(data.daily);
+  const accumulation = getObject(data.accumulation);
+  const latest = getObject(accumulation.latest_run);
+  const coverage = getObject(data.coverage);
+  const monitoring = getObject(data.monitoring);
+  const classification = getObject(monitoring.classification_quality);
+  const readiness = text(accumulation.readiness_label ?? latest.readiness_label, "insufficient_history");
+  const warnings = asArray<string>(daily.warnings);
+  const errors = asArray<string>(daily.errors);
+  const counts = getObject(coverage.item_count_by_group);
+  const stale = new Set(asArray<string>(coverage.stale_groups));
+  const missing = new Set(asArray<string>(coverage.missing_data_groups));
+  const groupIds = [...new Set([...Object.keys(counts), ...missing])];
+  const maxCount = groupIds.reduce((m, id) => Math.max(m, numberValue(counts[id]) ?? 0), 0) || 1;
+  const over = asArray<{ source_group?: string; share?: number }>(coverage.overrepresented_groups)[0];
+
+  return (
+    <>
+      <Head tab="monitoring" eyebrow="Monitoring · operating health" headline={monitoringHeadline(data)} />
+      <Card title="Readiness" info={TOOLTIPS.readiness_label}>
+        <ol className="track">
+          {READINESS_STEPS.map((step) => (
+            <li key={step.id} className={step.id === readiness ? "track-step active" : "track-step"}>
+              {step.label}
+              <span className="track-range">{step.range}</span>
+            </li>
+          ))}
+        </ol>
+        <p className="caption">
+          {formatCount(accumulation.total_classified_items ?? latest.classified_items)} classified items ·{" "}
+          {readinessMeaning(readiness)}
+        </p>
+      </Card>
+      <Stats
+        items={[
+          { label: "Classify success", value: formatPct(classification.success_rate) },
+          { label: "Unmapped", value: formatPct(coverage.unmapped_pct) },
+          { label: "Warnings", value: String(warnings.length) },
+          { label: "Errors", value: String(errors.length) },
+        ]}
+      />
+      <Card title="Source group coverage" info={TOOLTIPS.coverage_warnings}>
+        {groupIds.length ? (
+          <ul className="coverage">
+            {groupIds.map((id) => {
+              const count = numberValue(counts[id]) ?? 0;
+              return (
+                <li key={id}>
+                  <span>{prettySectorId(id)}</span>
+                  <span className="coverage-track">
+                    <span className="coverage-bar" style={{ width: `${(count / maxCount) * 100}%` }} />
+                  </span>
+                  <span className="num">{formatCount(count)}</span>
+                  <span className="coverage-flags">
+                    {missing.has(id) ? <Tag tone="warn">missing</Tag> : null}
+                    {stale.has(id) ? <Tag tone="warn">stale</Tag> : null}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <Missing />
+        )}
+        {over?.source_group && typeof over.share === "number" ? (
+          <p className="caption">
+            {prettySectorId(over.source_group)} holds {formatPct(over.share)} of stored items.
+          </p>
+        ) : null}
+      </Card>
+      <Card title="Latest run">
+        <ul className="rows">
+          <li><span>Last run (Taipei)</span><span className="num">{formatRunDate(daily.run_date, daily.run_id)}</span></li>
+          <li><span>Status</span><span className="num">{text(daily.status)}</span></li>
+          <li><span>Run id</span><span className="num">{text(daily.run_id)}</span></li>
+          <li><span>Dashboard data exported</span><span className="num">{formatStamp(data.manifest?.generated_at)}</span></li>
+          <li><span>Guardrail</span><span className="num">{text(getNested(daily, "step_statuses", "guardrail_status"))}</span></li>
+          <li><span>Data source</span><span className="num">{data.source === "sample" ? "sample fixtures" : "exported outputs"}</span></li>
+        </ul>
+      </Card>
+      {[...errors, ...warnings, ...asArray<string>(coverage.warnings)].length ? (
+        <Card title="Warnings" info={TOOLTIPS.coverage_warnings}>
+          <ul className="notes">
+            {errors.map((item, i) => (
+              <li key={`e${i}`} className="bad">{item}</li>
+            ))}
+            {[...warnings, ...asArray<string>(coverage.warnings)].map((item, i) => (
+              <li key={`w${i}`}>{item}</li>
+            ))}
+          </ul>
+        </Card>
+      ) : null}
+      <Card title="News sources we read" info={TOOLTIPS.news_sources}>
+        <NewsSources data={data} />
+      </Card>
+      <Card title="News source health" info={TOOLTIPS.news_health}>
+        <NewsSourceHealthTable data={data} />
+      </Card>
+    </>
+  );
+}
+
+// ---------- History ----------
+
+type RunFilter = "all" | "live" | "replay";
+
+function HistoryPanel({ data }: { data: DashboardData }) {
+  const [filter, setFilter] = useState<RunFilter>("all");
+  const all = historyRuns(data.history);
+  const rows = all
+    .filter((r) => (filter === "all" ? true : filter === "replay" ? r.run_mode === "replay" : r.run_mode !== "replay"))
+    .slice(0, 30);
+  const points = timelinePoints(data);
+  const nber = getObject(data.nberBenchmark);
+  const nberOk = nber.status === "ok";
+  const recessions = asArray<{ start?: string; end?: string }>(nber.nber_recessions).flatMap((r) =>
+    r.start && r.end ? [{ start: r.start, end: r.end }] : [],
+  );
+  const leads = asArray<{ lead_lag_months?: number | null }>(nber.recession_detection)
+    .map((r) => r.lead_lag_months)
+    .filter((v): v is number => typeof v === "number")
+    .sort((a, b) => a - b);
+  const medianLead = leads.length ? (leads[Math.floor((leads.length - 1) / 2)] + leads[Math.ceil((leads.length - 1) / 2)]) / 2 : null;
+  const reportedMetrics = getObject(getObject(nber.label_metrics).reported);
+  const sinceYear = points[0]?.date?.slice(0, 4);
+
+  return (
+    <>
+      <Head
+        tab="history"
+        eyebrow="History · daily runs"
+        headline={historyHeadline(data)}
+        tags={
+          <Pills
+            options={[
+              { id: "all", label: "All" },
+              { id: "live", label: "Live" },
+              { id: "replay", label: "Replay" },
+            ]}
+            value={filter}
+            onChange={setFilter}
+          />
+        }
+      />
+      <Card title={`Reported regime${sinceYear ? ` since ${sinceYear}` : ""}`} info={TOOLTIPS.regime_timeline}>
+        {points.length > 1 ? <RegimeRibbon points={points} recessions={nberOk ? recessions : []} /> : <Missing />}
+      </Card>
+      <Card flush>
+        {rows.length ? (
+          <table className="grid-table">
+            <thead>
+              <tr>
+                <th className="label">Date</th>
+                <th className="label">Mode</th>
+                <th className="label">Regime · top sectors</th>
+                <th className="label">Guard</th>
+                <th className="num-col label">Warn</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <HistoryRow key={`${row.run_id}-${i}`} row={row} />
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="card-pad"><p className="muted">No archived daily runs found.</p></div>
+        )}
+      </Card>
+      <Card title="NBER benchmark (revised data)">
+        {nberOk ? (
+          <>
+            <div className="metrics">
+              <div>
+                <span className="label">AUROC</span>
+                <span className="metric-value num">{formatScore(nber.auroc)}</span>
+              </div>
+              <div>
+                <span className="label">Hit rate</span>
+                <span className="metric-value num">{formatPct(reportedMetrics.recession_hit_rate)}</span>
+              </div>
+              <div>
+                <span className="label">Median lead</span>
+                <span className="metric-value num">
+                  {medianLead === null ? "n/a" : `${Math.abs(medianLead)} mo ${medianLead <= 0 ? "early" : "late"}`}
+                </span>
+              </div>
+            </div>
+            <p className="caption">Compared with public NBER dates on revised data; not a point-in-time backtest.</p>
+          </>
+        ) : (
+          <Missing />
+        )}
+      </Card>
+      <Disclaimer>Replay runs are operating checks, not predictive backtests.</Disclaimer>
+    </>
+  );
+}
+
+function HistoryRow({ row }: { row: HistoryRun }) {
+  const replay = row.run_mode === "replay";
+  return (
+    <tr className={replay ? "replay" : undefined}>
+      <td className="mono">{formatRunDate(row.run_date, row.run_id)}</td>
+      <td>{replay ? <Tag>replay</Tag> : text(row.run_mode, "daily")}</td>
+      <td>
+        {prettyRegime(row.macro_regime)}
+        <span className="muted"> · {(row.top_combined_sectors ?? []).slice(0, 2).map(prettySectorId).join(", ") || "n/a"}</span>
+      </td>
+      <td>{text(row.guardrail_status)}</td>
+      <td className="num-col num">{text(row.warning_count, "0")}</td>
+    </tr>
+  );
+}
+
+function prettyDimension(id: string): string {
+  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function ProgramSummary({ onClose }: { onClose: () => void }) {
@@ -368,587 +1246,6 @@ function ProgramSummary({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Overview({ data }: { data: DashboardData }) {
-  const daily = getObject(data.daily);
-  const macro = getObject(daily.macro);
-  const accumulation = getObject(getObject(data.accumulation).latest_run);
-  const monitoring = getObject(data.monitoring);
-  const classification = getObject(monitoring.classification_quality);
-  const missingFiles = data.manifest?.missing_files ?? [];
-  const macroDate = text(macro.date, "latest macro month");
-  const newsDate = text(getNested(data.newsScores, "latest_news_scoring_date"), "latest run");
-  const newsHealth = getObject(daily.news_health);
-  const newsHealthReasons = asArray<string>(newsHealth.reasons);
-  const combinedDate = text(
-    getObject(data.combined).diagnostic_date ??
-      getNested(data.monitoring, "overlay_monitoring", "diagnostic_date"),
-    "latest run",
-  );
-  return (
-    <section className="grid two">
-      <Metric
-        label="Last run (Taipei)"
-        value={formatRunDate(daily.run_date, daily.run_id)}
-        detail={`status ${text(daily.status)} · refreshes daily ~07:35 Taipei`}
-      />
-      <Metric label="Run id" value={text(daily.run_id, "No run id")} detail={text(daily.archive_path)} />
-      <Metric label="Dashboard data exported" value={formatStamp(data.manifest?.generated_at)} detail={text(data.manifest?.data_status)} />
-      <Metric
-        label="Macro regime"
-        value={text(macro.reported_regime)}
-        detail={`confidence ${formatPct(macro.confidence)}`}
-        info={TOOLTIPS.regime}
-      />
-      <Metric
-        label="Latest macro date"
-        value={text(macro.date)}
-        detail={`raw leader ${text(macro.raw_dominant_regime)}`}
-        info={TOOLTIPS.reported_vs_raw}
-      />
-      <Metric
-        label="Accumulation"
-        value={text(accumulation.quality_status)}
-        detail={`classified ${text(accumulation.classified_items, "0")} items`}
-      />
-      <Metric
-        label="Classification quality"
-        value={formatPct(classification.success_rate)}
-        detail={`retry ${formatPct(classification.retry_rate)} / repair ${formatPct(classification.repair_rate)}`}
-        info={TOOLTIPS.classification_success}
-      />
-      <Metric
-        label="News health"
-        value={text(newsHealth.status, "not computed")}
-        detail={newsHealthReasons.length ? newsHealthReasons[0] : "all sources live"}
-        info={TOOLTIPS.news_health}
-      />
-      <Metric
-        label="Data source"
-        value={data.source === "sample" ? "sample fixtures" : "exported outputs"}
-        detail={missingFiles.length ? `${missingFiles.length} missing files` : "complete file set"}
-        info={TOOLTIPS.data_source}
-      />
-      <Panel title="Data Status" info={TOOLTIPS.data_status}>
-        <WarningList
-          items={
-            missingFiles.length
-              ? missingFiles.map((filename) => `Missing ${filename}`)
-              : ["Exported dashboard data is complete."]
-          }
-        />
-      </Panel>
-      <Panel
-        title="Top Sector Diagnostics"
-        info={TOOLTIPS.confidence_adjusted_score}
-        sub={`Macro-only scores from macro month ${macroDate}. Recomputed on every daily run; no news input.`}
-      >
-        <RankingTable rows={sectorRows(data.sectors).slice(0, 5)} scoreKey="confidence_adjusted_score" />
-      </Panel>
-      <Panel
-        title="Top News Themes"
-        info={TOOLTIPS.news_themes}
-        sub={`Decay-weighted news theme scores (7-day half-life, 21-day window) as of ${newsDate}.`}
-      >
-        <ScoreList items={scoreItems(getNested(data.newsScores, "top_positive_macro_themes")).slice(0, 5)} />
-      </Panel>
-      <Panel
-        title="Combined Top Sectors"
-        info={TOOLTIPS.combined_overlay}
-        sub={`75% macro (month ${macroDate}) + 25% bounded news overlay, as of ${combinedDate}.`}
-      >
-        <RankingTable
-          rows={combinedRows(data.combined).slice(0, 5)}
-          scoreKey="combined_score"
-          labels={sectorLabelById(data.sectors)}
-        />
-      </Panel>
-      <Panel
-        title="Coverage Warnings"
-        info={TOOLTIPS.coverage_warnings}
-        sub="From the latest stored news inventory (150-day retention)."
-      >
-        <WarningList items={asArray<string>(getObject(data.coverage).warnings)} />
-      </Panel>
-    </section>
-  );
-}
-
-function MacroPanel({ data }: { data: DashboardData }) {
-  const dailyMacro = getObject(getObject(data.daily).macro);
-  const sectorPayload = getObject(data.sectors);
-  const probabilities = getObject(getObject(data.daily).regime_probabilities);
-  const regimeLabel = text(dailyMacro.reported_regime ?? sectorPayload.reported_macro_regime);
-  const confidenceRaw = dailyMacro.confidence ?? sectorPayload.macro_confidence;
-  const confidence = typeof confidenceRaw === "number" ? confidenceRaw : null;
-  const note = regimeConfidenceNote(confidence, regimeLabel);
-  return (
-    <section className="grid two">
-      <Metric label="Reported regime" value={regimeLabel} info={TOOLTIPS.regime} />
-      <Metric label="Raw leader" value={text(dailyMacro.raw_dominant_regime ?? sectorPayload.raw_macro_leader)} info={TOOLTIPS.reported_vs_raw} />
-      <Metric label="Confidence" value={formatPct(confidence)} info={TOOLTIPS.confidence} />
-      <Metric
-        label="Macro month evaluated"
-        value={text(dailyMacro.date ?? sectorPayload.date)}
-        detail="monthly cadence; publication lags applied"
-        info={TOOLTIPS.macro_date}
-      />
-      {note ? (
-        <Panel title="Reading this confidence" wide info={TOOLTIPS.confidence}>
-          <p className="conf-note" style={{ margin: 0 }}>{note}</p>
-        </Panel>
-      ) : null}
-      <Panel
-        title="Regime Timeline (1990 to present)"
-        wide
-        info={TOOLTIPS.regime_timeline}
-        sub="Monthly regime probabilities on revised data with publication lags; rebuilt on every daily run."
-      >
-        <RegimeTimeline data={data} />
-      </Panel>
-      <Panel
-        title="Macro Indicators by Dimension"
-        wide
-        info={TOOLTIPS.macro_indicators}
-        sub={`Monthly indicator z-scores through macro month ${text(dailyMacro.date ?? sectorPayload.date, "latest")}.`}
-      >
-        <MacroIndicators data={data} />
-      </Panel>
-      <Panel
-        title="Regime Probabilities"
-        info={TOOLTIPS.regime_probabilities}
-        sub={`Raw softmax probabilities for macro month ${text(dailyMacro.date ?? sectorPayload.date, "latest")}, before the transition filter.`}
-      >
-        <KeyValueTable values={probabilities} format={formatPct} prettifyKeys sortByValue />
-      </Panel>
-      <Panel title="Warnings" sub="From the latest daily pipeline run.">
-        <WarningList items={asArray<string>(getObject(data.daily).warnings)} />
-      </Panel>
-    </section>
-  );
-}
-
-// Categorical regime palette, validated (lightness band, chroma floor, CVD
-// separation, >=3:1 contrast on the chart surface) in light mode.
-const REGIME_COLORS: Record<string, string> = {
-  goldilocks: "#188038",
-  reflation: "#3b74db",
-  stagflation: "#d93025",
-  recession: "#7c3aed",
-  tightening: "#b45309",
-};
-
-function regimeColor(regime?: string | null): string {
-  if (!regime) {
-    return "#b0bec5";
-  }
-  return REGIME_COLORS[regime] ?? "#78909c";
-}
-
-function regimeConfidenceNote(confidence: number | null, regime: string): string | null {
-  if (confidence === null || !Number.isFinite(confidence)) {
-    return null;
-  }
-  if (confidence >= 0.35) {
-    return `High conviction: the macro data points clearly to ${regime} and the underlying dimensions broadly agree. The regime label is a strong read this period.`;
-  }
-  if (confidence >= 0.12) {
-    return `Moderate conviction: ${regime} is the leading regime, but one or two others are in contention. Treat it as a lean, not a firm call, and check the dimensions for what is driving it.`;
-  }
-  return `Low conviction — a contested backdrop. No single regime dominates right now; several are near a tie, so the ${regime} label is weak signal. Read the underlying dimensions and the 1990-to-present timeline rather than this one label.`;
-}
-
-const REGIME_STACK = ["recession", "stagflation", "tightening", "reflation", "goldilocks"];
-
-function RegimeTimeline({ data }: { data: DashboardData }) {
-  const timeline = getObject(data.timeline);
-  const points = asArray<RegimeTimelinePoint>(timeline.points);
-  if (!points.length) {
-    return <p className="muted">Regime timeline unavailable. Run the daily pipeline and export dashboard data.</p>;
-  }
-  const width = 960;
-  const height = 150;
-  const padBottom = 22;
-  const n = points.length;
-  const x = (i: number) => (n <= 1 ? 0 : (i / (n - 1)) * width);
-  const y = (p: number) => (1 - p) * height;
-
-  const hasProbs = points.some((pt) => pt.probabilities && Object.keys(pt.probabilities).length);
-
-  // Year gridlines + labels every 5 years (denser).
-  const ticks: { x: number; label: string }[] = [];
-  let lastYear = "";
-  points.forEach((point, index) => {
-    const year = (point.date ?? "").slice(0, 4);
-    if (year && Number(year) % 5 === 0 && year !== lastYear) {
-      ticks.push({ x: x(index), label: year });
-      lastYear = year;
-    }
-  });
-
-  // Stacked-area paths: per regime, the band between the running cumulative
-  // probability below it and including it, across all months.
-  const cum = points.map(() => 0);
-  const bands = REGIME_STACK.map((regime) => {
-    const top: string[] = [];
-    const bottom: string[] = [];
-    points.forEach((point, i) => {
-      const prob = point.probabilities?.[regime] ?? 0;
-      const lower = cum[i];
-      const upper = lower + prob;
-      bottom.push(`${x(i).toFixed(1)},${y(lower).toFixed(1)}`);
-      top.push(`${x(i).toFixed(1)},${y(upper).toFixed(1)}`);
-      cum[i] = upper;
-    });
-    const d = `M ${top.join(" L ")} L ${bottom.reverse().join(" L ")} Z`;
-    return { regime, d };
-  });
-
-  const legend = hasProbs ? REGIME_STACK : Array.from(new Set(points.map((p) => p.reported_regime ?? "unknown")));
-
-  // Reported-regime band strip: the clear winning regime for each month, grouped
-  // into continuous phases (the at-a-glance "what regime, when" view).
-  const runs: { regime: string; start: number; len: number; faded: boolean }[] = [];
-  points.forEach((pt, i) => {
-    const r = pt.reported_regime ?? "unknown";
-    const last = runs[runs.length - 1];
-    if (last && last.regime === r) {
-      last.len += 1;
-      if (pt.valid === false) last.faded = true;
-    } else {
-      runs.push({ regime: r, start: i, len: 1, faded: pt.valid === false });
-    }
-  });
-  const stripH = 24;
-
-  return (
-    <div className="regime-timeline">
-      <div className="strip-caption muted">Reported regime each month (the published label)</div>
-      <svg
-        viewBox={`0 0 ${width} ${stripH}`}
-        preserveAspectRatio="none"
-        style={{ width: "100%", height: "auto" }}
-        role="img"
-        aria-label="Reported regime per month, 1990 to present"
-      >
-        {runs.map((run, i) => {
-          const rx = x(run.start);
-          const rightX = Math.min((n <= 1 ? width : ((run.start + run.len) / (n - 1)) * width), width);
-          const rw = Math.max(rightX - rx, 0.6);
-          return (
-            <rect key={i} x={rx} y={2} width={rw} height={stripH - 4} rx={rw > 6 ? 3 : 1} fill={regimeColor(run.regime)} opacity={run.faded ? 0.45 : 0.95}>
-              <title>{run.regime}</title>
-            </rect>
-          );
-        })}
-      </svg>
-      <div className="strip-caption muted" style={{ marginTop: 8 }}>Probability mix (band thickness = each regime's monthly probability)</div>
-      <svg
-        viewBox={`0 0 ${width} ${height + padBottom}`}
-        preserveAspectRatio="none"
-        style={{ width: "100%", height: "auto" }}
-        role="img"
-        aria-label="Macro regime probability mix, 1990 to present"
-      >
-        <rect x={0} y={0} width={width} height={height} fill="#f6f8f9" />
-        {[0.25, 0.5, 0.75].map((g) => (
-          <line key={g} x1={0} y1={y(g)} x2={width} y2={y(g)} stroke="#e3e9eb" strokeWidth={1} />
-        ))}
-        {hasProbs
-          ? bands.map((b, i) => <path key={i} d={b.d} fill={regimeColor(b.regime)} opacity={0.9} />)
-          : points.map((point, index) => (
-              <rect
-                key={index}
-                x={x(index)}
-                y={0}
-                width={width / n + 0.5}
-                height={height}
-                fill={regimeColor(point.reported_regime)}
-                opacity={point.valid === false ? 0.4 : 0.9}
-              />
-            ))}
-        {ticks.map((tick, i) => (
-          <line key={`g${i}`} x1={tick.x} y1={0} x2={tick.x} y2={height} stroke="#ffffff" strokeWidth={1} opacity={0.45} />
-        ))}
-        {ticks.map((tick, i) => (
-          <text key={`t${i}`} x={Math.min(tick.x + 2, width - 24)} y={height + 15} fontSize={11} fill="#7a8a8e">
-            {tick.label}
-          </text>
-        ))}
-      </svg>
-      <ul className="regime-legend">
-        {legend.map((regime) => (
-          <li key={regime} className="regime-chip">
-            <span className="regime-swatch" style={{ background: regimeColor(regime) }} />
-            {regime}
-          </li>
-        ))}
-      </ul>
-      <small className="muted">
-        {text(timeline.start_date)} to {text(timeline.end_date)} · {text(timeline.point_count)} months ·{" "}
-        {hasProbs
-          ? "band thickness = each regime's monthly probability; an even mix means a contested backdrop"
-          : "each color is the reported regime for that month"}
-      </small>
-    </div>
-  );
-}
-
-const FEATURE_LINE_COLORS = ["#1565c0", "#ef6c00", "#2e7d32", "#8e24aa", "#0891b2", "#c62828"];
-
-function prettyDimension(id: string): string {
-  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function featureLabel(f: MacroFeatureSeries): string {
-  const id = f.feature_id ?? "";
-  const tag = /yoy/.test(id)
-    ? "YoY"
-    : /12m/.test(id)
-      ? "12m Δ"
-      : /6m/.test(id)
-        ? "6m Δ"
-        : /level/.test(id)
-          ? "level"
-          : "";
-  return `${f.series_id || id}${tag ? ` · ${tag}` : ""}`;
-}
-
-function MacroIndicators({ data }: { data: DashboardData }) {
-  const payload = getObject(data.macroFeatures);
-  const dims = asArray<MacroDimensionSeries>(payload.dimensions).filter(
-    (d) => (d.dimension_id ?? "") !== "unmapped" && (d.features?.length ?? 0) > 0,
-  );
-  if (!dims.length) {
-    return <p className="muted">Indicator history unavailable. Run the daily pipeline and export dashboard data.</p>;
-  }
-  return (
-    <div>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Each line is one indicator as a z-score (standard deviations from its own recent norm).
-        0 = average; above 0 = elevated, below 0 = depressed. These features roll up into the
-        regime dimensions.
-      </p>
-      <div className="feature-grid">
-        {dims.map((dim) => (
-          <div key={dim.dimension_id} className="feature-card">
-            <h3>{prettyDimension(dim.dimension_id ?? "")}</h3>
-            <FeatureChart features={dim.features ?? []} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FeatureChart({ features }: { features: MacroFeatureSeries[] }) {
-  const width = 900;
-  const height = 96;
-  const mid = height / 2;
-  const zMax = 3.5;
-  const base = features.find((f) => (f.points?.length ?? 0) > 1)?.points ?? [];
-  const n = base.length;
-  if (n < 2) {
-    return <p className="muted">No data.</p>;
-  }
-  const x = (i: number) => (i / (n - 1)) * width;
-  const y = (v: number) => mid - (Math.max(-zMax, Math.min(zMax, v)) / zMax) * (mid - 4);
-
-  const ticks: { x: number; label: string }[] = [];
-  let lastYear = "";
-  base.forEach((pt, i) => {
-    const yr = (pt.date ?? "").slice(0, 4);
-    if (yr && Number(yr) % 5 === 0 && yr !== lastYear) {
-      ticks.push({ x: x(i), label: yr });
-      lastYear = yr;
-    }
-  });
-
-  return (
-    <div>
-      <svg viewBox={`0 0 ${width} ${height + 16}`} preserveAspectRatio="none" style={{ width: "100%", height: "auto" }}>
-        <rect x={0} y={0} width={width} height={height} fill="#f6f8f9" />
-        {ticks.map((t, i) => (
-          <line key={`g${i}`} x1={t.x} y1={0} x2={t.x} y2={height} stroke="#e3e9eb" strokeWidth={1} />
-        ))}
-        <line x1={0} y1={mid} x2={width} y2={mid} stroke="#b6c2c6" strokeWidth={1} strokeDasharray="3 3" />
-        {features.map((f, fi) => {
-          const pts = (f.points ?? [])
-            .map((p, i) => (typeof p.value === "number" ? `${x(i).toFixed(1)},${y(p.value).toFixed(1)}` : null))
-            .filter((s): s is string => s !== null)
-            .join(" ");
-          return (
-            <polyline
-              key={fi}
-              points={pts}
-              fill="none"
-              stroke={FEATURE_LINE_COLORS[fi % FEATURE_LINE_COLORS.length]}
-              strokeWidth={1.4}
-              opacity={0.9}
-            />
-          );
-        })}
-        {ticks.map((t, i) => (
-          <text key={`t${i}`} x={Math.min(t.x + 2, width - 22)} y={height + 12} fontSize={10} fill="#7a8a8e">
-            {t.label}
-          </text>
-        ))}
-      </svg>
-      <ul className="feature-legend">
-        {features.map((f, fi) => (
-          <li key={fi} className="feature-chip">
-            <span className="feature-line" style={{ background: FEATURE_LINE_COLORS[fi % FEATURE_LINE_COLORS.length] }} />
-            {featureLabel(f)}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function SectorPanel({ data }: { data: DashboardData }) {
-  const rows = sectorRows(data.sectors);
-  const top = rows[0];
-  const bottom = rows[rows.length - 1];
-  const sectorPayload = getObject(data.sectors);
-  const macroMonth = text(sectorPayload.date, "latest");
-  const sectorName = (row?: RankedSector) =>
-    row?.label ?? (row?.sector_id ? prettySectorId(row.sector_id) : "Data unavailable");
-  return (
-    <section className="grid two">
-      <Metric
-        label="Macro month used"
-        value={macroMonth}
-        detail={`regime ${text(sectorPayload.reported_macro_regime, "n/a")} · recomputed daily`}
-        info={TOOLTIPS.macro_date}
-      />
-      <Metric label="Top sector" value={sectorName(top)} detail={`score ${formatScore(top?.confidence_adjusted_score)}`} info={TOOLTIPS.confidence_adjusted_score} />
-      <Metric label="Lowest sector" value={sectorName(bottom)} detail={`score ${formatScore(bottom?.confidence_adjusted_score)}`} info={TOOLTIPS.confidence_adjusted_score} />
-      <Panel
-        title="Sector Ranking"
-        wide
-        info={TOOLTIPS.sector_ranking}
-        sub={`Macro-only tailwind/headwind scores for macro month ${macroMonth}. Positive = macro backdrop supportive, negative = headwind; not a return forecast.`}
-      >
-        <RankingTable rows={rows} scoreKey="confidence_adjusted_score" />
-      </Panel>
-      <Panel title="Top Sector Components" info={TOOLTIPS.sector_components}>
-        <ComponentList sector={top} />
-      </Panel>
-      <Panel title="Lowest Sector Components" info={TOOLTIPS.sector_components}>
-        <ComponentList sector={bottom} />
-      </Panel>
-      <Panel title="Signal Validation (does this work?)" wide info={TOOLTIPS.validation}>
-        <ValidationScorecard data={data} />
-      </Panel>
-    </section>
-  );
-}
-
-function ValidationScorecard({ data }: { data: DashboardData }) {
-  const v = getObject(data.validation);
-  const rows = asArray<ValidationSummaryRow>(v.summary);
-  if (!rows.length) {
-    return <p className="muted">Validation unavailable. Run the sector validation step.</p>;
-  }
-  const bestIc = rows.reduce(
-    (m, r) => Math.max(m, typeof r.rank_ic_spearman === "number" ? Math.abs(r.rank_ic_spearman) : 0),
-    0,
-  );
-  const verdict =
-    bestIc >= 0.1
-      ? "Some forward signal: scores show modest rank skill on sector returns."
-      : "No measurable forward edge (rank IC ~0, hit-rate ~50%). Treat this as a descriptive macro lens, not a return predictor.";
-  return (
-    <div>
-      <p className="muted" style={{ marginTop: 0 }}>{verdict}</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Horizon</th>
-            <th>Rank IC</th>
-            <th>Hit rate (top)</th>
-            <th>Top−Bottom spread</th>
-            <th>Obs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={`${r.horizon}-${i}`}>
-              <td>{text(r.horizon)}</td>
-              <td>{formatScore(r.rank_ic_spearman)}</td>
-              <td>{formatPct(r.hit_rate_top_positive)}</td>
-              <td>{formatScore(r.top_minus_bottom_spread)}</td>
-              <td>{text(r.observation_count, "0")}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <small className="muted">
-        Sector scores {text(v.score_start_date)}–{text(v.score_end_date)} vs forward ETF-proxy
-        returns {text(v.price_start_date)}–{text(v.price_end_date)}. Diagnostic only, not a trading
-        backtest; cost/slippage not modeled.
-      </small>
-    </div>
-  );
-}
-
-function NewsPanel({ data }: { data: DashboardData }) {
-  const report = getObject(data.newsScores);
-  const monitoring = getObject(data.monitoring);
-  const classification = getObject(monitoring.classification_quality);
-  const newsWindow = "7-day half-life, 21-day window";
-  const newsDate = text(report.latest_news_scoring_date, "latest run");
-  return (
-    <section className="grid two">
-      <Metric
-        label="News scores as of"
-        value={newsDate}
-        detail={`daily aggregation · ${newsWindow}`}
-      />
-      <Metric label="Classification success" value={formatPct(classification.success_rate)} info={TOOLTIPS.classification_success} />
-      <Metric label="Retry rate" value={formatPct(classification.retry_rate)} info={TOOLTIPS.retry_rate} />
-      <Metric label="Repair rate" value={formatPct(classification.repair_rate)} info={TOOLTIPS.repair_rate} />
-      <Panel
-        title="Positive Macro Themes"
-        info={TOOLTIPS.news_themes}
-        sub={`Theme scores over the trailing window (${newsWindow}) as of ${newsDate}.`}
-      >
-        <ScoreList items={scoreItems(report.top_positive_macro_themes)} />
-      </Panel>
-      <Panel
-        title="Negative Macro Themes"
-        info={TOOLTIPS.news_themes}
-        sub={`Theme scores over the trailing window (${newsWindow}) as of ${newsDate}.`}
-      >
-        <ScoreList items={scoreItems(report.top_negative_macro_themes)} />
-      </Panel>
-      <Panel
-        title="Sector Diagnostic Tailwinds"
-        info={TOOLTIPS.news_themes}
-        sub={`News-derived sector scores as of ${newsDate}; separate from the macro sector ranking.`}
-      >
-        <ScoreList items={scoreItems(report.top_sector_news_tailwinds)} />
-      </Panel>
-      <Panel
-        title="Sector Diagnostic Headwinds"
-        info={TOOLTIPS.news_themes}
-        sub={`News-derived sector scores as of ${newsDate}; separate from the macro sector ranking.`}
-      >
-        <ScoreList items={scoreItems(report.top_sector_news_headwinds)} />
-      </Panel>
-      <Panel title="Low Confidence Items" wide info={TOOLTIPS.low_confidence_items}>
-        <ItemTable items={asArray<Record<string, unknown>>(report.low_confidence_items)} />
-      </Panel>
-      <Panel title="News Sources We Read" wide info={TOOLTIPS.news_sources}>
-        <NewsSources data={data} />
-      </Panel>
-      <Panel title="News Source Health" wide info={TOOLTIPS.news_health}>
-        <NewsSourceHealthTable data={data} />
-      </Panel>
-    </section>
-  );
-}
-
 function NewsSources({ data }: { data: DashboardData }) {
   const payload = getObject(data.newsSources);
   const groups = asArray<NewsSourceGroup>(payload.groups).filter((g) => (g.sources?.length ?? 0) > 0);
@@ -1014,204 +1311,6 @@ function NewsSourceHealthTable({ data }: { data: DashboardData }) {
   );
 }
 
-function CombinedPanel({ data }: { data: DashboardData }) {
-  const combined = getObject(data.combined);
-  const monitoring = getObject(data.monitoring);
-  const overlay = getObject(monitoring.overlay_monitoring);
-  const diagnosticDate = text(combined.diagnostic_date ?? overlay.diagnostic_date, "latest run");
-  return (
-    <section className="grid two">
-      <Metric
-        label="Diagnostic as of"
-        value={diagnosticDate}
-        detail="recomputed on every daily run"
-      />
-      <Metric label="Max rank change" value={formatSigned(overlay.max_rank_change)} info={TOOLTIPS.overlay_rank_change} />
-      <Metric label="News items in overlay" value={formatCount(overlay.news_item_count)} info={TOOLTIPS.news_item_count} />
-      <Metric label="Overlay status" value={text(overlay.overlay_status)} info={TOOLTIPS.combined_overlay} />
-      <Panel
-        title="Combined Ranking"
-        wide
-        info={TOOLTIPS.combined_overlay}
-        sub={`75% macro + 25% bounded news overlay, as of ${diagnosticDate}. Sectors with no recent news fall back to macro-only.`}
-      >
-        <RankingTable
-          rows={combinedRows(data.combined)}
-          scoreKey="combined_score"
-          labels={sectorLabelById(data.sectors)}
-        />
-      </Panel>
-      <Panel
-        title="Macro-only Top Sectors"
-        info={TOOLTIPS.confidence_adjusted_score}
-        sub="Same date, before the news overlay — compare against the combined ranking."
-      >
-        <RankingTable
-          rows={asArray<RankedSector>(overlay.macro_only_top_sectors_json)}
-          scoreKey="confidence_adjusted_score"
-          labels={sectorLabelById(data.sectors)}
-        />
-      </Panel>
-      <Panel
-        title="Rank Changes From News Overlay"
-        info={TOOLTIPS.overlay_rank_change}
-        sub={`Positions moved by news vs the macro-only ranking, as of ${diagnosticDate}.`}
-      >
-        <ChangeList items={asArray<Record<string, unknown>>(overlay.sectors_changed_by_news_json)} />
-      </Panel>
-    </section>
-  );
-}
-
-function MonitoringPanel({ data }: { data: DashboardData }) {
-  const accumulation = getObject(getObject(data.accumulation).latest_run);
-  const coverage = getObject(data.coverage);
-  const monitoring = getObject(data.monitoring);
-  const inputQuality = getObject(monitoring.input_quality);
-  return (
-    <section className="grid two">
-      <Metric label="Readiness label" value={text(accumulation.readiness_label, "insufficient_history")} info={TOOLTIPS.readiness_label} />
-      <Metric
-        label="Readiness meaning"
-        value={readinessMeaning(text(accumulation.readiness_label, "insufficient_history"))}
-        info={TOOLTIPS.readiness_label}
-      />
-      <Metric label="Source groups" value={text(coverage.source_group_count ?? accumulation.source_group_count)} />
-      <Metric label="Unmapped share" value={formatPct(coverage.unmapped_pct)} info={TOOLTIPS.unmapped_share} />
-      <Metric label="Old item share" value={formatPct(coverage.old_item_pct)} info={TOOLTIPS.old_item_share} />
-      <Metric label="Input quality" value={text(inputQuality.quality_status)} info={TOOLTIPS.input_quality} />
-      <Metric label="Guardrail status" value={text(getNested(data.daily, "step_statuses", "guardrail_status"))} info={TOOLTIPS.guardrail} />
-      <Panel
-        title="Missing Groups"
-        info={TOOLTIPS.coverage_warnings}
-        sub="Configured source groups with no stored items in the current inventory."
-      >
-        <WarningList items={asArray<string>(coverage.missing_data_groups)} />
-      </Panel>
-      <Panel
-        title="Coverage Warnings"
-        info={TOOLTIPS.coverage_warnings}
-        sub="From the latest stored news inventory (150-day retention)."
-      >
-        <WarningList items={asArray<string>(coverage.warnings)} />
-      </Panel>
-      <Panel
-        title="Source Group Counts"
-        wide
-        info={TOOLTIPS.coverage_warnings}
-        sub="Stored news items per source group, accumulated over the 150-day retention window (not per-day counts)."
-      >
-        <KeyValueTable
-          values={getObject(coverage.item_count_by_group)}
-          format={formatCount}
-          prettifyKeys
-          sortByValue
-        />
-      </Panel>
-    </section>
-  );
-}
-
-function HistoryPanel({ data }: { data: DashboardData }) {
-  const history = getObject(data.history);
-  const rows = historyRuns(data.history).slice(0, 20);
-  const latest = rows[0];
-  const confidenceValues = rows
-    .map((row) => row.macro_confidence)
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
-  const avgConfidence =
-    confidenceValues.length > 0
-      ? confidenceValues.reduce((total, value) => total + value, 0) / confidenceValues.length
-      : null;
-  return (
-    <section className="grid two">
-      <Metric label="History status" value={text(history.history_status, "empty")} />
-      <Metric label="Recorded runs" value={text(history.total_runs, "0")} info={TOOLTIPS.recorded_runs} />
-      <Metric label="Latest run" value={formatRunDate(latest?.run_date, latest?.run_id)} detail={text(latest?.run_id)} />
-      <Metric label="Average macro confidence" value={avgConfidence === null ? "n/a" : formatPct(avgConfidence)} info={TOOLTIPS.avg_confidence} />
-      <Panel title="History Readiness" wide info={TOOLTIPS.history_readiness}>
-        {rows.length < 2 ? (
-          <p className="muted">
-            Run-over-run trend deltas need at least two recorded daily runs. For full
-            regime history, see the Regime Timeline (1990 to present) panel above.
-          </p>
-        ) : (
-          <TrendCards rows={rows} />
-        )}
-      </Panel>
-      <Panel
-        title="Recent Daily Runs"
-        wide
-        sub="One row per archived daily run (Taipei dates). Replay rows are simulated historical dates, not live runs."
-      >
-        <HistoryTable rows={rows} />
-      </Panel>
-    </section>
-  );
-}
-
-function TrendCards({ rows }: { rows: HistoryRun[] }) {
-  const latestReadiness = text(rows[0]?.readiness_label, "insufficient_history");
-  const latestSuccess = rows[0]?.classification_success_rate;
-  const maxRankChange = rows.reduce(
-    (currentMax, row) => Math.max(currentMax, typeof row.max_overlay_rank_change === "number" ? row.max_overlay_rank_change : 0),
-    0,
-  );
-  return (
-    <div className="trend-grid">
-      <Metric label="Latest readiness" value={latestReadiness} detail={readinessMeaning(latestReadiness)} />
-      <Metric label="Latest classification success" value={formatPct(latestSuccess)} />
-      <Metric label="Largest overlay rank change" value={text(maxRankChange)} />
-    </div>
-  );
-}
-
-function HistoryTable({ rows }: { rows: HistoryRun[] }) {
-  if (!rows.length) {
-    return <p className="muted">No archived daily runs found.</p>;
-  }
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Mode</th>
-          <th>Status</th>
-          <th>Macro</th>
-          <th>Confidence</th>
-          <th>Combined top</th>
-          <th>Readiness</th>
-          <th>Guardrail</th>
-          <th>Warnings</th>
-          <th>Errors</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, index) => (
-          <tr key={`${row.run_id}-${index}`}>
-            <td>
-              <strong>{formatRunDate(row.run_date, row.run_id)}</strong>
-              <small className="block">{text(row.run_id)}</small>
-            </td>
-            <td>
-              {text(row.run_mode, "daily")}
-              {row.replay_date ? <small className="block">replay {row.replay_date}</small> : null}
-            </td>
-            <td>{text(row.status)}</td>
-            <td>{text(row.macro_regime)}</td>
-            <td>{formatPct(row.macro_confidence)}</td>
-            <td>{(row.top_combined_sectors ?? []).join(", ") || "n/a"}</td>
-            <td>{text(row.readiness_label, "insufficient_history")}</td>
-            <td>{text(row.guardrail_status)}</td>
-            <td>{text(row.warning_count, "0")}</td>
-            <td>{text(row.error_count, "0")}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
 function InfoTip({ text: tip }: { text: string }) {
   return (
     <span className="infotip" tabIndex={0} role="button" aria-label={tip}>
@@ -1219,249 +1318,6 @@ function InfoTip({ text: tip }: { text: string }) {
       <span className="infotip-bubble" role="tooltip">{tip}</span>
     </span>
   );
-}
-
-function Panel({
-  children,
-  title,
-  wide = false,
-  info,
-  sub,
-}: {
-  children: React.ReactNode;
-  title: string;
-  wide?: boolean;
-  info?: string;
-  sub?: string;
-}) {
-  return (
-    <section className={wide ? "panel wide" : "panel"}>
-      <h2>
-        {title}
-        {info ? <InfoTip text={info} /> : null}
-      </h2>
-      {sub ? <p className="panel-sub">{sub}</p> : null}
-      {children}
-    </section>
-  );
-}
-
-function Metric({
-  label,
-  value,
-  detail,
-  info,
-}: {
-  label: string;
-  value: string;
-  detail?: string;
-  info?: string;
-}) {
-  return (
-    <div className="metric">
-      <span>
-        {label}
-        {info ? <InfoTip text={info} /> : null}
-      </span>
-      <strong>{value}</strong>
-      {detail ? <small>{detail}</small> : null}
-    </div>
-  );
-}
-
-function RankingTable({
-  rows,
-  scoreKey,
-  labels,
-}: {
-  rows: RankedSector[];
-  scoreKey: keyof RankedSector;
-  labels?: Record<string, string>;
-}) {
-  if (!rows.length) {
-    return <p className="muted">Data unavailable.</p>;
-  }
-  // Macro-only rankings carry no news counts; hide the column instead of
-  // rendering a wall of "n/a".
-  const hasNewsCounts = rows.some((row) => row.news_item_count != null);
-  const sectorName = (row: RankedSector) =>
-    row.label ??
-    (row.sector_id ? labels?.[row.sector_id] ?? prettySectorId(row.sector_id) : "unknown");
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Rank</th>
-          <th>Sector</th>
-          <th>Score</th>
-          {hasNewsCounts ? <th>News Items</th> : null}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, index) => (
-          <tr key={`${row.sector_id}-${index}`}>
-            <td>{row.rank ?? index + 1}</td>
-            <td>{sectorName(row)}</td>
-            <td>{formatScore(row[scoreKey])}</td>
-            {hasNewsCounts ? <td>{row.news_item_count ?? 0}</td> : null}
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function ScoreList({ items }: { items: { id?: string; score?: number; item_count?: number }[] }) {
-  if (!items.length) {
-    return <p className="muted">Data unavailable.</p>;
-  }
-  return (
-    <ul className="score-list">
-      {items.map((item, index) => (
-        <li key={`${item.id}-${index}`}>
-          <span>{prettySectorId(item.id ?? "unknown")}</span>
-          <strong>{formatScore(item.score)}</strong>
-          <small>{formatCount(item.item_count ?? 0)} items</small>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ComponentList({ sector }: { sector?: RankedSector }) {
-  const supporting = asArray<Record<string, unknown>>(getObject(sector).top_supporting_components).slice(0, 5);
-  const opposing = asArray<Record<string, unknown>>(getObject(sector).top_opposing_components).slice(0, 5);
-  return (
-    <div className="component-grid">
-      <div>
-        <h3>Supporting</h3>
-        <ContributionList rows={supporting} />
-      </div>
-      <div>
-        <h3>Opposing</h3>
-        <ContributionList rows={opposing} />
-      </div>
-    </div>
-  );
-}
-
-function ContributionList({ rows }: { rows: Record<string, unknown>[] }) {
-  if (!rows.length) {
-    return <p className="muted">Data unavailable.</p>;
-  }
-  return (
-    <ul className="compact-list">
-      {rows.map((row, index) => (
-        <li key={`${row.component_id}-${index}`}>
-          <span>{text(row.component_id)}</span>
-          <strong>{formatScore(row.contribution)}</strong>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function ItemTable({ items }: { items: Record<string, unknown>[] }) {
-  if (!items.length) {
-    return <p className="muted">Data unavailable.</p>;
-  }
-  return (
-    <table>
-      <thead>
-        <tr>
-          <th>Title</th>
-          <th>Severity</th>
-          <th>Confidence</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.slice(0, 8).map((item, index) => (
-          <tr key={`${item.news_id}-${index}`}>
-            <td>{text(item.title)}</td>
-            <td>{formatScore(item.severity)}</td>
-            <td>{formatPct(item.confidence)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function ChangeList({ items }: { items: Record<string, unknown>[] }) {
-  if (!items.length) {
-    return <p className="muted">No rank changes recorded.</p>;
-  }
-  return (
-    <ul className="compact-list">
-      {items.map((item, index) => (
-        <li key={`${item.sector_id}-${index}`}>
-          <span>{prettySectorId(text(item.sector_id, "unknown"))}</span>
-          <strong>
-            {typeof item.rank_change === "number"
-              ? `${formatSigned(item.rank_change)} ranks`
-              : text(item.rank_change)}
-          </strong>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function WarningList({ items }: { items: string[] }) {
-  if (!items.length) {
-    return <p className="muted">None.</p>;
-  }
-  return (
-    <ul className="warning-list">
-      {items.map((item, index) => (
-        <li key={`${item}-${index}`}>{item}</li>
-      ))}
-    </ul>
-  );
-}
-
-function KeyValueTable({
-  values,
-  format = formatScore,
-  prettifyKeys = false,
-  sortByValue = false,
-}: {
-  values: Record<string, unknown>;
-  format?: (value: unknown) => string;
-  prettifyKeys?: boolean;
-  sortByValue?: boolean;
-}) {
-  let entries = Object.entries(values);
-  if (!entries.length) {
-    return <p className="muted">Data unavailable.</p>;
-  }
-  if (sortByValue) {
-    entries = entries.sort(
-      ([, a], [, b]) =>
-        (typeof b === "number" ? b : Number.NEGATIVE_INFINITY) -
-        (typeof a === "number" ? a : Number.NEGATIVE_INFINITY),
-    );
-  }
-  return (
-    <table>
-      <tbody>
-        {entries.map(([key, value]) => (
-          <tr key={key}>
-            <td>{prettifyKeys ? prettySectorId(key) : key}</td>
-            <td>{typeof value === "number" ? format(value) : text(value)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function dataStatus(data: DashboardData | null): string {
-  if (!data?.manifest) {
-    return "No data";
-  }
-  const source = data.source === "sample" ? "sample" : "exported";
-  return `${source} / ${data.manifest.data_status ?? "unknown"}`;
 }
 
 function readinessMeaning(label: string): string {

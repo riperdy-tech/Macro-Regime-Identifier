@@ -18,6 +18,9 @@ export type RankedSector = {
   sector_macro_score?: number;
   sector_news_score?: number;
   news_item_count?: number;
+  proxy_ticker?: string;
+  top_supporting_components?: Record<string, unknown>[];
+  top_opposing_components?: Record<string, unknown>[];
 };
 
 export type ScoredItem = {
@@ -70,6 +73,7 @@ export type DashboardData = {
   macroFeatures: Record<string, unknown> | null;
   newsSources: Record<string, unknown> | null;
   validation: Record<string, unknown> | null;
+  nberBenchmark: Record<string, unknown> | null;
   source: "exported" | "sample" | "empty";
 };
 

@@ -13,6 +13,7 @@ const FILES = {
   macroFeatures: "macro_features_timeline.json",
   newsSources: "news_sources.json",
   validation: "sector_validation.json",
+  nberBenchmark: "nber_benchmark.json",
 } as const;
 
 const BASE_URL = import.meta.env.BASE_URL;
@@ -40,6 +41,7 @@ export async function loadDashboardData(): Promise<DashboardData> {
     macroFeatures: null,
     newsSources: null,
     validation: null,
+    nberBenchmark: null,
     source: "empty",
   };
 }
@@ -69,6 +71,7 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     macroFeatures: valueFor(entries, "macroFeatures"),
     newsSources: valueFor(entries, "newsSources"),
     validation: valueFor(entries, "validation"),
+    nberBenchmark: valueFor(entries, "nberBenchmark"),
   };
 }
 
@@ -109,5 +112,6 @@ function emptyData(): Omit<DashboardData, "source"> {
     macroFeatures: null,
     newsSources: null,
     validation: null,
+    nberBenchmark: null,
   };
 }
