@@ -17,7 +17,12 @@
 #   5. the daily diagnostic with config/daily_pipeline_local.yaml
 #   6. refuse success unless outputs/cost_of_capital_anchor.json is dated today (UTC run date: today or yesterday
 #      here) and not degraded
-param([string]$ScreenerRepoUrl = "https://github.com/riperdy-tech/stock-screener.git")
+#   7. export the files the screener reads (stock-screener scripts/mri_sync.py SNAPSHOT_FILES) to $ExportDir, a folder
+#      every account can read: the screener's PC run is a GitHub runner service running as NETWORK SERVICE, which
+#      cannot read this repository under the user's profile (its log said "MRI outputs directory not found" every
+#      day); the runner's .env points MRI_OUTPUTS_DIR there
+param([string]$ScreenerRepoUrl = "https://github.com/riperdy-tech/stock-screener.git",
+      [string]$ExportDir = "C:\ProgramData\stocks-mri\outputs")
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -87,6 +92,16 @@ ok = 0 <= age <= 1 and a.get('degraded') is False
 print('cost_of_capital_anchor', a.get('asof'), 'degraded', a.get('degraded'), reasons)
 sys.exit(0 if ok else 3)
 "@
+}
+
+Log "step: export for the screener runner -> $ExportDir"
+New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
+foreach ($name in @("current_sector_ranking.json", "current_regime.json", "cost_of_capital_anchor.json",
+                    "long_run_growth_anchor.json", "sector_multiple_bands.json")) {
+    $src = Join-Path $RepoRoot "outputs\$name"
+    if (-not (Test-Path $src)) { Log "export FAILED: $src is missing"; exit 4 }
+    Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
+    Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force   # no reader sees half a file
 }
 Log "done"
 exit 0
