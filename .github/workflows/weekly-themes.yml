@@ -46,12 +46,24 @@ jobs:
       - name: Ingest recent news (real feeds)
         run: python -m macro_engine.cli ingest-news --profile live_rss
 
-      - name: Discover + promote themes (cost-gated)
+      - name: Restore the classification history (run-history branch)
+        # Theme retirement counts each secular theme's articles over the last 180 days; this job's own store holds
+        # only this week's news, so the durable history the daily job persists is read instead.
+        run: |
+          git fetch --depth 1 origin run-history || true
+          if git show-ref --quiet refs/remotes/origin/run-history; then
+            git checkout origin/run-history -- outputs/news_history || echo "No news history on run-history."
+            git reset -q -- outputs/news_history || true
+          else
+            echo "No run-history branch; theme retirement will not be evaluated."
+          fi
+
+      - name: Discover + promote + retire themes (cost-gated)
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           python scripts/discover_themes.py \
-            --apply --promote \
+            --apply --promote --retire \
             --max-calls "${{ inputs.max_calls || '2' }}"
 
       - name: Upload discovery diagnostics
@@ -62,20 +74,21 @@ jobs:
           path: |
             outputs/candidate_themes.json
             outputs/theme_discovery_error.json
+            outputs/theme_retirement.json
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Push promoted themes to a review branch
+      - name: Push promoted and retired themes to a review branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           if git diff --quiet -- config/news_themes.yaml; then
-            echo "No new themes promoted this week."
+            echo "No theme promoted or retired this week."
           else
             BRANCH="auto/theme-proposals"
             git checkout -b "$BRANCH"
             git add config/news_themes.yaml
-            git commit -m "chore(themes): weekly secular-theme proposals for review [skip ci]"
+            git commit -m "chore(themes): weekly secular-theme proposals (additions and retirements) for review [skip ci]"
             git push --force origin "$BRANCH"
             echo "Pushed proposals to $BRANCH - open a PR to review/merge."
           fi

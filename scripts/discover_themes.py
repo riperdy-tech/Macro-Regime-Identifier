@@ -57,12 +57,19 @@ from macro_engine.news.theme_discovery import (  # noqa: E402
     promote_candidates,
     select_discovery_candidates,
 )
+from macro_engine.news.theme_retirement import (  # noqa: E402
+    evaluate_retirement,
+    load_classification_history,
+    retire_themes,
+)
 from macro_engine.storage.duckdb_store import DuckDBStore  # noqa: E402
 
 DEFAULT_DB_PATH = "data/macro_engine.duckdb"
 DEFAULT_THEMES_CONFIG = "config/news_themes.yaml"
 DEFAULT_OUTPUT = "outputs/candidate_themes.json"
 DEFAULT_ERROR_OUTPUT = "outputs/theme_discovery_error.json"
+DEFAULT_HISTORY_DIR = "outputs/news_history"
+DEFAULT_RETIREMENT_OUTPUT = "outputs/theme_retirement.json"
 DEFAULT_MAX_ITEMS = 200
 # The discovery call's own output ceiling. deepseek-v4-flash reasons before it answers, and its reasoning counts against
 # max_tokens: on the weekly prompt (200 articles, ~11k input tokens) it spent all 2,048 tokens of the news classifier's
@@ -266,6 +273,11 @@ def main() -> int:
     parser.add_argument("--ai-config", default="config/news_ai_live.yaml")
     parser.add_argument("--max-items", type=int, default=DEFAULT_MAX_ITEMS)
     parser.add_argument("--max-confidence", type=float, default=0.35)
+    parser.add_argument("--retire", action="store_true",
+                        help="remove dormant secular themes from news_themes.yaml (working tree; reviewed like a "
+                             "promotion)")
+    parser.add_argument("--history-dir", default=DEFAULT_HISTORY_DIR)
+    parser.add_argument("--retirement-output", default=DEFAULT_RETIREMENT_OUTPUT)
     args = parser.parse_args()
 
     try:  # Windows console is cp949; news headlines may carry non-ASCII chars
@@ -276,6 +288,20 @@ def main() -> int:
     load_dotenv()
     themes = load_news_themes_config(args.themes_config)
     existing = set(themes.secular_theme_ids)
+
+    # Retirement first: it needs no model call, so a failed discovery call cannot skip it.
+    retirement = evaluate_retirement(load_classification_history(args.history_dir), existing)
+    if args.retire and retirement["evaluated"]:
+        retirement["retired"] = retire_themes(args.themes_config, retirement["dormant"])
+    Path(args.retirement_output).parent.mkdir(parents=True, exist_ok=True)
+    Path(args.retirement_output).write_text(json.dumps(retirement, indent=2), encoding="utf-8")
+    if not retirement["evaluated"]:
+        print(f"Theme retirement not evaluated: {retirement['reason']}")
+    else:
+        print(f"Theme retirement ({retirement['history_days']} days of history): articles in the last "
+              f"{retirement['thresholds']['window_days']} days "
+              f"{ {k: v['articles'] for k, v in retirement['themes'].items()} }")
+        print(f"Dormant: {retirement['dormant']}; retired: {retirement.get('retired', '(not applied: no --retire)')}")
 
     news, cls = _load_news_frames(args.db_path)
     candidates_df = select_discovery_candidates(
