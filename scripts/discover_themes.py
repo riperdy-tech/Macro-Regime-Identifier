@@ -64,6 +64,13 @@ DEFAULT_THEMES_CONFIG = "config/news_themes.yaml"
 DEFAULT_OUTPUT = "outputs/candidate_themes.json"
 DEFAULT_ERROR_OUTPUT = "outputs/theme_discovery_error.json"
 DEFAULT_MAX_ITEMS = 200
+# The discovery call's own output ceiling. deepseek-v4-flash reasons before it answers, and its reasoning counts against
+# max_tokens: on the weekly prompt (200 articles, ~11k input tokens) it spent all 2,048 tokens of the news classifier's
+# ceiling on reasoning and returned an EMPTY answer (finish_reason "length") - every failed Sunday since 2026-08-09.
+# Measured 2026-10-04: 6,518 completion tokens (6,138 reasoning) at finish_reason "stop". The classifier's ceiling
+# (config/news_ai_live.yaml, per article) is not this call's.
+DISCOVERY_MAX_TOKENS = 16384
+DISCOVERY_RETRY_MAX_TOKENS = 32768
 
 
 @dataclass
@@ -74,6 +81,9 @@ class DiscoveryParseFailure:
     response_length: int
     error_position: int | None
     sanitized_excerpt: str
+    finish_reason: str | None = None
+    completion_tokens: int | None = None
+    reasoning_tokens: int | None = None
 
 
 def _load_news_frames(db_path: str):
@@ -89,7 +99,9 @@ def _load_news_frames(db_path: str):
     return news, cls
 
 
-def _call_deepseek(system: str, user: str, ai_config, *, max_tokens: int | None = None) -> str:
+def _call_deepseek(system: str, user: str, ai_config, *, max_tokens: int | None = None) -> tuple[str, dict]:
+    """(content, meta): the reply text and {finish_reason, completion_tokens, reasoning_tokens} - the facts that tell a
+    reply cut off by the token ceiling from a malformed one."""
     import requests
 
     api_key = os.getenv(ai_config.api_key_env)
@@ -117,7 +129,15 @@ def _call_deepseek(system: str, user: str, ai_config, *, max_tokens: int | None 
         timeout=ai_config.request_timeout_seconds,
     )
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+    body = resp.json()
+    choice = body["choices"][0]
+    usage = body.get("usage") or {}
+    meta = {
+        "finish_reason": choice.get("finish_reason"),
+        "completion_tokens": usage.get("completion_tokens"),
+        "reasoning_tokens": (usage.get("completion_tokens_details") or {}).get("reasoning_tokens"),
+    }
+    return choice["message"].get("content") or "", meta
 
 
 def _sanitized_excerpt(text: str, pos: int | None, *, radius: int = 240) -> str:
@@ -129,8 +149,11 @@ def _sanitized_excerpt(text: str, pos: int | None, *, radius: int = 240) -> str:
     return "".join(ch if ch.isprintable() or ch in "\n\t" else "?" for ch in excerpt)
 
 
-def _parse_failure_record(attempt: int, exc: Exception, raw: str) -> DiscoveryParseFailure:
+def _parse_failure_record(
+    attempt: int, exc: Exception, raw: str, meta: dict | None = None
+) -> DiscoveryParseFailure:
     pos = exc.pos if isinstance(exc, JSONDecodeError) else None
+    meta = meta or {}
     return DiscoveryParseFailure(
         attempt=attempt,
         error_type=type(exc).__name__,
@@ -138,6 +161,9 @@ def _parse_failure_record(attempt: int, exc: Exception, raw: str) -> DiscoveryPa
         response_length=len(raw),
         error_position=pos,
         sanitized_excerpt=_sanitized_excerpt(raw, pos),
+        finish_reason=meta.get("finish_reason"),
+        completion_tokens=meta.get("completion_tokens"),
+        reasoning_tokens=meta.get("reasoning_tokens"),
     )
 
 
@@ -190,25 +216,25 @@ def _discover_candidates_with_retries(
                 "Return one complete valid JSON object only. Do not truncate strings. "
                 "If uncertain, return {\"candidates\": []}."
             )
-        max_tokens = ai_config.max_tokens
-        if retrying:
-            max_tokens = int(ai_config.max_tokens * ai_config.truncation_retry_multiplier)
+        max_tokens = DISCOVERY_RETRY_MAX_TOKENS if retrying else DISCOVERY_MAX_TOKENS
         print(
             f"Calling DeepSeek ({ai_config.model}) attempt "
             f"{attempt}/{max_attempts} max_tokens={max_tokens}..."
         )
-        raw = _call_deepseek(attempt_system, user, ai_config, max_tokens=max_tokens)
+        raw, meta = _call_deepseek(attempt_system, user, ai_config, max_tokens=max_tokens)
         try:
             payload = decode_candidate_payload(raw)
             return parse_candidate_response(
                 payload, candidates_df, existing_theme_ids=existing_theme_ids
             )
         except (JSONDecodeError, ValueError) as exc:
-            failure = _parse_failure_record(attempt, exc, raw)
+            failure = _parse_failure_record(attempt, exc, raw, meta)
             failures.append(failure)
             print(
                 "Rejected malformed DeepSeek response "
-                f"(attempt {attempt}/{max_attempts}): {failure.error_type}: {failure.message}",
+                f"(attempt {attempt}/{max_attempts}): {failure.error_type}: {failure.message} "
+                f"[finish_reason={failure.finish_reason}, completion_tokens={failure.completion_tokens}, "
+                f"reasoning_tokens={failure.reasoning_tokens}]",
                 file=sys.stderr,
             )
             if attempt < max_attempts:
