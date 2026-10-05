@@ -268,6 +268,19 @@ def _rank_rows(rows: list[dict]) -> None:
         row["rank"] = rank
 
 
+def macro_only_ranks(combined: pd.DataFrame) -> dict[str, int]:
+    """Rank each row by its own macro score over the same rows the combined rank covers.
+
+    The sector-scores table numbers parent sectors and sub-industries as separate
+    cross-sections, so its rank is not comparable with the combined rank.
+    """
+    ordered = sorted(
+        combined.to_dict(orient="records"),
+        key=lambda row: (-float(row["sector_macro_score"]), row["sector_id"]),
+    )
+    return {row["sector_id"]: rank for rank, row in enumerate(ordered, start=1)}
+
+
 def _clip(value: float, cap: float) -> float:
     return max(-cap, min(cap, value))
 

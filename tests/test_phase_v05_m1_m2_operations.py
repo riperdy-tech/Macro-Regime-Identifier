@@ -291,6 +291,26 @@ def test_news_accumulation_outputs_and_report(tmp_path: Path):
     assert "diagnostic history report" in markdown
 
 
+def test_accumulation_rank_change_ignores_separate_sector_score_cross_sections():
+    config = load_news_accumulation_config("config/news_accumulation.yaml")
+    for swap, expected_max, expected_avg in [(False, 0, 0.0), (True, 1, 1.0)]:
+        combined, scores = _two_universe_frames(swap=swap)
+        result = build_news_accumulation_outputs(
+            config=config,
+            news_items=_news_items(),
+            classifications=_classifications(),
+            daily_theme_scores=_daily_theme_scores(),
+            daily_sector_scores=_daily_sector_scores(),
+            combined_diagnostics=combined,
+            sector_scores=scores,
+            run_date=pd.Timestamp("2026-05-18").date(),
+        )
+        row = result.combined_history.iloc[-1]
+
+        assert row["max_rank_change"] == expected_max
+        assert row["avg_abs_rank_change"] == expected_avg
+
+
 def test_accumulation_cli_summary(tmp_path: Path):
     db_path = tmp_path / "macro.duckdb"
     store = DuckDBStore(db_path)
@@ -567,3 +587,48 @@ def _sector_scores() -> pd.DataFrame:
             }
         ]
     )
+
+
+def _two_universe_frames(swap: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """17 combined rows; the sector-scores table ranks 11 parents and 6 sub-industries separately."""
+    ids = [f"s{n:02d}" for n in range(1, 18)]
+    combined_rank = {sector_id: n for n, sector_id in enumerate(ids, start=1)}
+    if swap:
+        combined_rank["s03"], combined_rank["s04"] = 4, 3
+    combined = pd.DataFrame(
+        [
+            {
+                "diagnostic_date": "2026-05-01",
+                "sector_id": sector_id,
+                "sector_macro_score": 2.0 - 0.1 * n,
+                "sector_news_score": 0.3,
+                "combined_score": 2.0 - 0.1 * combined_rank[sector_id],
+                "macro_component_weight": 1.0,
+                "news_component_weight": 0.0,
+                "news_item_count": 1,
+                "news_confidence": 0.9,
+                "diagnostic_confidence": 0.5,
+                "rank": combined_rank[sector_id],
+                "created_at": "2026-05-01T03:00:00Z",
+            }
+            for n, sector_id in enumerate(ids, start=1)
+        ]
+    )
+    scores = pd.DataFrame(
+        [
+            {
+                "sector_id": sector_id,
+                "date": "2026-05-01",
+                "raw_sector_score": 0.5,
+                "confidence_adjusted_score": 0.3,
+                "rank": n if n <= 11 else n - 11,
+                "macro_reported_regime": "reflation",
+                "macro_raw_dominant_regime": "reflation",
+                "macro_confidence": 0.2,
+                "valid": True,
+                "reason": "ok",
+            }
+            for n, sector_id in enumerate(ids, start=1)
+        ]
+    )
+    return combined, scores

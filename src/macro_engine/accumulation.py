@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pandas as pd
 
+from macro_engine.news.combined import macro_only_ranks
 from macro_engine.operations_config import (
     NewsAccumulationConfig,
     load_news_accumulation_config,
@@ -341,7 +342,7 @@ def _combined_history_frame(
     rows = []
     for diagnostic_date in sorted(frame["diagnostic_date"].dropna().unique()):
         latest = frame[frame["diagnostic_date"] == diagnostic_date].sort_values("rank")
-        changes = _rank_changes(latest, macro)
+        changes = _rank_changes(latest)
         max_change = max((abs(row["rank_change"]) for row in changes), default=0)
         avg_change = sum(abs(row["rank_change"]) for row in changes) / len(changes) if changes else 0.0
         rows.append(
@@ -384,14 +385,11 @@ def _latest_macro_ranks(sector_scores: pd.DataFrame) -> list[dict[str, Any]]:
     return [{"sector_id": row["sector_id"], "rank": int(row["rank"])} for row in latest.to_dict(orient="records")]
 
 
-def _rank_changes(combined: pd.DataFrame, macro: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    macro_ranks = {row["sector_id"]: row["rank"] for row in macro}
+def _rank_changes(combined: pd.DataFrame) -> list[dict[str, Any]]:
+    macro_ranks = macro_only_ranks(combined)
     changes = []
     for row in combined.to_dict(orient="records"):
-        macro_rank = macro_ranks.get(row["sector_id"])
-        if macro_rank is None:
-            continue
-        change = int(macro_rank) - int(row["rank"])
+        change = macro_ranks[row["sector_id"]] - int(row["rank"])
         if change:
             changes.append({"sector_id": row["sector_id"], "rank_change": change})
     return changes

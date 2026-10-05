@@ -9,7 +9,10 @@ from uuid import uuid4
 
 import pandas as pd
 
-from macro_engine.news.combined import build_stored_combined_sector_diagnostics
+from macro_engine.news.combined import (
+    build_stored_combined_sector_diagnostics,
+    macro_only_ranks,
+)
 from macro_engine.news.config import NewsMonitoringConfig, load_news_monitoring_config
 from macro_engine.news.ingest import validate_news_input_config
 from macro_engine.news.report import FORBIDDEN_REPORT_TERMS
@@ -324,7 +327,7 @@ def build_overlay_monitoring_run(
     latest_date = combined["diagnostic_date"].max()
     latest_combined = combined[combined["diagnostic_date"] == latest_date].sort_values("rank")
     macro_latest = _latest_macro_ranking(sector_scores)
-    rank_changes = _rank_changes(latest_combined, macro_latest)
+    rank_changes = _rank_changes(latest_combined)
     max_rank_change = max((abs(row["rank_change"]) for row in rank_changes), default=0)
     avg_rank_change = (
         sum(abs(row["rank_change"]) for row in rank_changes) / len(rank_changes)
@@ -616,15 +619,13 @@ def _latest_macro_ranking(sector_scores: pd.DataFrame) -> list[dict[str, Any]]:
     ]
 
 
-def _rank_changes(combined: pd.DataFrame, macro: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    macro_ranks = {row["sector_id"]: int(row["rank"]) for row in macro}
+def _rank_changes(combined: pd.DataFrame) -> list[dict[str, Any]]:
+    macro_ranks = macro_only_ranks(combined)
     changes = []
     for row in combined.to_dict(orient="records"):
         sector_id = row["sector_id"]
-        macro_rank = macro_ranks.get(sector_id)
+        macro_rank = macro_ranks[sector_id]
         combined_rank = int(row["rank"])
-        if macro_rank is None:
-            continue
         change = macro_rank - combined_rank
         if change != 0:
             changes.append(
