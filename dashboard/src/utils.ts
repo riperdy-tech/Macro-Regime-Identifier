@@ -225,3 +225,28 @@ export function dimensionSeries(payload: Record<string, unknown> | null): Dimens
   }
   return out;
 }
+
+// Plain-English names for the FRED series behind the macro indicators.
+const SERIES_NAMES: Record<string, string> = {
+  BAA10Y: "Baa corporate spread",
+  BAMLH0A0HYM2: "High-yield spread",
+  CPIAUCSL: "Consumer prices (CPI)",
+  DFII10: "10y real yield",
+  DGS10: "10y Treasury yield",
+  FEDFUNDS: "Fed funds rate",
+  HOUST: "Housing starts",
+  ICSA: "Initial jobless claims",
+  INDPRO: "Industrial production",
+  M2SL: "M2 money supply",
+  MCOILWTICO: "WTI crude oil",
+  NFCI: "Financial conditions index",
+  NNUSBIS: "US dollar (narrow index)",
+  PAYEMS: "Nonfarm payrolls",
+  PCEPI: "PCE prices",
+  T10Y2Y: "Yield curve (10y minus 2y)",
+  UNRATE: "Unemployment rate",
+};
+
+export function seriesName(seriesId: string): string {
+  return SERIES_NAMES[seriesId] ?? seriesId;
+}
