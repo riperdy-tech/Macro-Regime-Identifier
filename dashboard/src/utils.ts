@@ -149,11 +149,25 @@ export function sectorLabelById(
   return labels;
 }
 
+// Names the exports carry no label for. Sector names match config/sectors.yaml.
+const NAME_OVERRIDES: Record<string, string> = {
+  oil_gas_ep: "Oil & Gas E&P",
+  software: "Software & SaaS",
+  biotech: "Biotechnology",
+};
+
+const ACRONYMS = new Set(["ai", "bbc", "bls", "cnbc", "dol", "eia", "gdelt", "rss", "scmp", "us"]);
+
 export function prettySectorId(sectorId: string): string {
-  return sectorId
-    .split("_")
-    .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
-    .join(" ");
+  return (
+    NAME_OVERRIDES[sectorId] ??
+    sectorId
+      .split("_")
+      .map((word) =>
+        ACRONYMS.has(word) ? word.toUpperCase() : word ? word.charAt(0).toUpperCase() + word.slice(1) : word,
+      )
+      .join(" ")
+  );
 }
 
 export function historyRuns(payload: Record<string, unknown> | null): HistoryRun[] {

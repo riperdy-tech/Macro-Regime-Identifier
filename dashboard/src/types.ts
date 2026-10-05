@@ -18,6 +18,7 @@ export type RankedSector = {
   sector_macro_score?: number;
   sector_news_score?: number;
   news_item_count?: number;
+  news_component_weight?: number;
   proxy_ticker?: string;
   top_supporting_components?: Record<string, unknown>[];
   top_opposing_components?: Record<string, unknown>[];
@@ -95,6 +96,7 @@ export type MacroDimensionSeries = {
 
 export type ValidationSummaryRow = {
   horizon?: string;
+  cross_section?: string;
   observation_count?: number;
   rank_ic_spearman?: number | null;
   top_minus_bottom_spread?: number | null;

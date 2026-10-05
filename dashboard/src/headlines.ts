@@ -82,33 +82,48 @@ export function newsHeadline(data: DashboardData): string {
     : `${theme} is the strongest theme across ${items.toLocaleString("en-US")} classified items.`;
 }
 
-export type RankChange = { sector_id?: string; rank_change?: number; macro_rank?: number; combined_rank?: number };
+export type OverlayMove = { id: string; from: number; to: number; thin: boolean };
 
-// rank_change = macro rank - combined rank, so positive means the news moved the sector up.
-export function rankChanges(data: DashboardData): RankChange[] {
-  const overlay = getObject(getNested(data.monitoring, "overlay_monitoring"));
-  return asArray<RankChange>(overlay.sectors_changed_by_news_json)
-    .filter((row) => typeof row.rank_change === "number" && row.rank_change !== 0)
-    .sort((a, b) => Math.abs(b.rank_change ?? 0) - Math.abs(a.rank_change ?? 0));
+// Macro-only rank vs combined rank, both over the same universe. The macro-only
+// rank is the rank of each row's own sector_macro_score, because the exported
+// macro ranking numbers the parent sectors and the sub-industries separately and
+// so cannot be compared with the combined rank. A sector is "thin" when the
+// overlay gives its news no weight, so it carries its macro-only score.
+export function overlayMoves(data: DashboardData): OverlayMove[] {
+  const rows = combinedRows(data.combined);
+  if (!rows.length || rows.some((r) => !r.sector_id || typeof r.rank !== "number" || typeof r.sector_macro_score !== "number")) {
+    return [];
+  }
+  const macroOrder = [...rows].sort((a, b) => (b.sector_macro_score ?? 0) - (a.sector_macro_score ?? 0));
+  const macroRank = new Map(macroOrder.map((r, i) => [r.sector_id, i + 1]));
+  return rows.map((r) => ({
+    id: r.sector_id as string,
+    from: macroRank.get(r.sector_id) as number,
+    to: r.rank as number,
+    thin: (r.news_component_weight ?? 0) === 0,
+  }));
 }
 
 export function combinedHeadline(data: DashboardData): string {
-  if (!combinedRows(data.combined).length) {
+  const moves = overlayMoves(data);
+  if (!moves.length) {
     return HEADLINE_FALLBACK;
   }
-  const changes = rankChanges(data);
-  if (!changes.length) {
+  const changed = moves
+    .filter((m) => m.from !== m.to)
+    .sort((a, b) => Math.abs(b.from - b.to) - Math.abs(a.from - a.to));
+  if (!changed.length) {
     return "The news overlay leaves the macro-only ranking unchanged.";
   }
   const labels = sectorLabelById(data.sectors, data.combined);
-  const first = changes[0];
-  const move = Math.abs(first.rank_change ?? 0);
-  const direction = (first.rank_change ?? 0) > 0 ? "up" : "down";
-  const head = `The news overlay moves ${prettySectorLabel(first.sector_id, labels)} ${direction} ${spelled(move)} ${move === 1 ? "place" : "places"}`;
-  if (changes.length === 1) {
+  const first = changed[0];
+  const move = Math.abs(first.from - first.to);
+  const direction = first.from > first.to ? "up" : "down";
+  const head = `The news overlay moves ${prettySectorLabel(first.id, labels)} ${direction} ${spelled(move)} ${move === 1 ? "place" : "places"}`;
+  if (changed.length === 1) {
     return `${head}; no other sector moves.`;
   }
-  return `${head}; no other sector moves more than ${spelled(Math.abs(changes[1].rank_change ?? 0))}.`;
+  return `${head}; no other sector moves more than ${spelled(Math.abs(changed[1].from - changed[1].to))}.`;
 }
 
 export function monitoringHeadline(data: DashboardData): string {
@@ -117,14 +132,15 @@ export function monitoringHeadline(data: DashboardData): string {
     return HEADLINE_FALLBACK;
   }
   const label = str(getNested(data.accumulation, "readiness_label"));
-  const healthy = daily.status === "success" && asArray(daily.errors).length === 0;
+  const failed = asArray(daily.errors).length > 0 || !String(daily.status ?? "").startsWith("success");
+  const lead = failed ? "Pipeline needs attention." : daily.status === "success" ? "Pipeline healthy." : "Pipeline ran with warnings.";
   const history =
     label === "validation_candidate"
       ? "News history is long enough to plan validation."
       : label === "monitor_ready"
         ? "News history is long enough for monitoring."
         : "News history is still too short for validation.";
-  return `${healthy ? "Pipeline healthy." : "Pipeline needs attention."} ${history}`;
+  return `${lead} ${history}`;
 }
 
 export function historyHeadline(data: DashboardData): string {

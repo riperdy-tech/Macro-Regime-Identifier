@@ -7,6 +7,7 @@ import {
   ProbabilityBar,
   ProbabilityHistory,
   QuadrantMap,
+  quadrantOf,
   RegimeRibbon,
   SlopeChart,
   regimeColor,
@@ -19,6 +20,7 @@ import {
   macroRegimes,
   monitoringHeadline,
   newsHeadline,
+  overlayMoves,
   overviewSubcopy,
   prettySectorLabel,
   sectorsHeadline,
@@ -401,7 +403,7 @@ function Overview({ data }: { data: DashboardData }) {
     growth && inflation
       ? growth.points.slice(-trailLength).flatMap((g) => {
           const match = inflation.points.find((p) => p.date === g.date);
-          return match ? [{ growth: g.value, inflation: match.value }] : [];
+          return match ? [{ date: g.date, growth: g.value, inflation: match.value }] : [];
         })
       : [];
 
@@ -411,6 +413,15 @@ function Overview({ data }: { data: DashboardData }) {
     Object.entries(probSource).filter((entry): entry is [string, number] => typeof entry[1] === "number"),
   );
 
+  const nowGrowth = last(growth);
+  const nowInflation = last(inflation);
+  const placed = nowGrowth !== null && nowInflation !== null ? quadrantOf(nowGrowth, nowInflation) : null;
+  const disagreement =
+    placed && reported && reported !== "tightening" && placed !== reported
+      ? `The indicator averages place the reading in ${prettyRegime(placed)}, not the reported ${prettyRegime(reported)}. The engine weighs more than these two averages${
+          (numberValue(getObject(getObject(data.daily).macro).confidence) ?? 1) < 0.12 ? ", and confidence in the label is low" : ""
+        }.`
+      : null;
   const subcopy = overviewSubcopy(data, unchanged);
   return (
     <>
@@ -436,9 +447,10 @@ function Overview({ data }: { data: DashboardData }) {
           <QuadrantMap growth={last(growth)} inflation={last(inflation)} trail={trail} regime={reported} />
           <p className="caption">
             {growth && inflation
-              ? "Dot marks the current reading; trail shows the past 12 months. Tightening has no quadrant and is shown as a ring."
+              ? "Dot marks the current reading and the fading dots the past 12 months; hover a dot for its values. Scale is ±2 standard deviations around average. Tightening has no quadrant and is shown as a ring."
               : "Growth and inflation readings are not available in this export."}
           </p>
+          {disagreement ? <p className="caption">{disagreement}</p> : null}
         </Card>
         <Card title="Dimensions">
           {sorted.length ? (
@@ -506,15 +518,17 @@ function MacroPanel({ data }: { data: DashboardData }) {
         items={[
           {
             label: "Reported",
-            value: reported ? `${prettyRegime(reported)}${confidence !== null ? ` · ${formatPct(confidence)}` : ""}` : "n/a",
+            value: reported ? prettyRegime(reported) : "n/a",
+            detail: confidence !== null ? `confidence ${formatPct(confidence)}` : undefined,
           },
           {
             label: "Raw leader",
-            value: raw ? `${prettyRegime(raw)}${probOf(raw) !== null ? ` · ${formatPct(probOf(raw))}` : ""}` : "n/a",
+            value: raw ? prettyRegime(raw) : "n/a",
+            detail: probOf(raw) !== null ? `probability ${formatPct(probOf(raw))}` : undefined,
           },
           {
             label: "Transition filter",
-            value: held ? `Held ${prettyRegime(reported)}` : "No hold",
+            value: held ? `Holding ${prettyRegime(reported)}` : "Not holding",
             detail: held ? "Raw leader differs from the published label." : "Raw leader and reported label agree.",
           },
         ]}
@@ -611,7 +625,10 @@ function SectorPanel({ data }: { data: DashboardData }) {
         .sort((a, b) => (b.contribution as number) - (a.contribution as number))
         .map((c, i) => ({
           key: `${text(c.component_id)}-${i}`,
-          label: prettySectorId(text(c.component_id, "unknown")),
+          label:
+            c.component_type === "regime_prior"
+              ? `Regime prior · ${prettyRegime(text(c.component_id, "unknown"))}`
+              : dimensionLabel(text(c.component_id, "unknown")),
           value: c.contribution as number,
         }))
     : [];
@@ -668,12 +685,22 @@ function SectorPanel({ data }: { data: DashboardData }) {
   );
 }
 
+const CROSS_SECTION_LABELS: Record<string, string> = {
+  gics_11: "11 sectors",
+  subindustry_6: "6 sub-industries",
+  pooled_17: "All 17",
+};
+
 function ValidationCard({ data }: { data: DashboardData }) {
   const v = getObject(data.validation);
   const rows = asArray<ValidationSummaryRow>(v.summary);
+  const sections = [...new Set(rows.map((r) => r.cross_section ?? "all"))];
+  const [section, setSection] = useState<string | null>(null);
   const [horizon, setHorizon] = useState<string | null>(null);
-  const active = rows.find((r) => r.horizon === horizon) ?? rows[0];
-  const bestIc = rows.reduce(
+  const activeSection = sections.includes(section ?? "") ? (section as string) : sections[0];
+  const inSection = rows.filter((r) => (r.cross_section ?? "all") === activeSection);
+  const active = inSection.find((r) => r.horizon === horizon) ?? inSection[0];
+  const bestIc = inSection.reduce(
     (m, r) => Math.max(m, typeof r.rank_ic_spearman === "number" ? Math.abs(r.rank_ic_spearman) : 0),
     0,
   );
@@ -683,12 +710,23 @@ function ValidationCard({ data }: { data: DashboardData }) {
       title="ETF proxy validation vs SPY"
       info={TOOLTIPS.validation}
       right={
-        rows.length > 1 ? (
-          <Pills
-            options={rows.map((r) => ({ id: text(r.horizon), label: text(r.horizon) }))}
-            value={text(active?.horizon)}
-            onChange={setHorizon}
-          />
+        active ? (
+          <span className="pill-groups">
+            {sections.length > 1 ? (
+              <Pills
+                options={sections.map((id) => ({ id, label: CROSS_SECTION_LABELS[id] ?? id }))}
+                value={activeSection}
+                onChange={setSection}
+              />
+            ) : null}
+            {inSection.length > 1 ? (
+              <Pills
+                options={inSection.map((r) => ({ id: text(r.horizon), label: text(r.horizon) }))}
+                value={text(active.horizon)}
+                onChange={setHorizon}
+              />
+            ) : null}
+          </span>
         ) : undefined
       }
     >
@@ -767,6 +805,7 @@ function NewsPanel({ data }: { data: DashboardData }) {
           )}
         </Card>
         <Card title="Sector news scores" info={TOOLTIPS.news_themes}>
+          <p className="caption">Strongest tailwinds and headwinds only, not every sector.</p>
           <DivergingBars
             rows={sectors.map((s, i) => ({
               key: `${s.id}-${i}`,
@@ -800,28 +839,9 @@ function NewsPanel({ data }: { data: DashboardData }) {
 
 function CombinedPanel({ data }: { data: DashboardData }) {
   const overlay = getObject(getNested(data.monitoring, "overlay_monitoring"));
-  const combined = combinedRows(data.combined);
-  const macroRank = new Map(
-    asArray<RankedSector>(getObject(data.combined).sector_macro_ranking).map((r) => [r.sector_id, r.rank]),
-  );
   const labels = sectorLabelById(data.sectors, data.combined);
-  const slope: SlopeRow[] = combined.flatMap((row) => {
-    const from = macroRank.get(row.sector_id);
-    if (!row.sector_id || typeof from !== "number" || typeof row.rank !== "number") {
-      return [];
-    }
-    return [
-      {
-        id: row.sector_id,
-        label: prettySectorLabel(row.sector_id, labels),
-        from,
-        to: row.rank,
-        thin: (row.news_item_count ?? 0) === 0,
-      },
-    ];
-  });
-  const maxChange =
-    numberValue(overlay.max_rank_change) ?? slope.reduce((m, r) => Math.max(m, Math.abs(r.from - r.to)), 0);
+  const slope: SlopeRow[] = overlayMoves(data).map((m) => ({ ...m, label: prettySectorLabel(m.id, labels) }));
+  const maxChange = slope.reduce((m, r) => Math.max(m, Math.abs(r.from - r.to)), 0);
   const fallback = slope.filter((r) => r.thin).length;
   const guardrail = text(getNested(data.daily, "step_statuses", "guardrail_status"));
   return (
@@ -829,11 +849,11 @@ function CombinedPanel({ data }: { data: DashboardData }) {
       <Head tab="combined" eyebrow="Combined · macro + bounded news overlay" headline={combinedHeadline(data)} tags={<Tag>experimental</Tag>} />
       <Card title="Macro-only rank → combined rank" info={TOOLTIPS.combined_overlay}>
         <SlopeChart rows={[...slope].sort((a, b) => a.from - b.from)} />
-        <p className="caption">Greyed sectors have no recent news and fall back to the macro-only score.</p>
+        <p className="caption">Greyed sectors carry their macro-only score because the overlay gives their news no weight.</p>
       </Card>
       <Stats
         items={[
-          { label: "Max rank change", value: String(Math.abs(maxChange)) },
+          { label: "Max rank change", value: String(maxChange) },
           { label: "Macro-only fallback", value: `${fallback} ${fallback === 1 ? "sector" : "sectors"}` },
           { label: "Guardrail", value: guardrail },
         ]}
@@ -871,6 +891,32 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
   const groupIds = [...new Set([...Object.keys(counts), ...missing])];
   const maxCount = groupIds.reduce((m, id) => Math.max(m, numberValue(counts[id]) ?? 0), 0) || 1;
   const over = asArray<{ source_group?: string; share?: number }>(coverage.overrepresented_groups)[0];
+  // The coverage report is optional. Without it, show each group's live sources from news_health.
+  const health = getObject(daily.news_health);
+  const sourceById = new Map(asArray<Record<string, unknown>>(health.sources).map((s) => [text(s.source_id), s]));
+  const hasCoverage = groupIds.length > 0;
+  type CoverageRow = { id: string; fill: number; value: string; flags: string[] };
+  const coverageRows: CoverageRow[] = hasCoverage
+    ? groupIds.map((id) => ({
+        id,
+        fill: (numberValue(counts[id]) ?? 0) / maxCount,
+        value: formatCount(counts[id] ?? 0),
+        flags: [...(missing.has(id) ? ["missing"] : []), ...(stale.has(id) ? ["stale"] : [])],
+      }))
+    : asArray<{ group?: string; sources?: string[]; uncovered?: boolean }>(health.groups).map((g) => {
+        const ids = g.sources ?? [];
+        const ok = ids.filter((id) => {
+          const source = sourceById.get(id);
+          return source?.status === "ok" && !source.dead;
+        }).length;
+        return {
+          id: g.group ?? "",
+          fill: ids.length ? ok / ids.length : 0,
+          value: `${ok}/${ids.length}`,
+          flags: g.uncovered ? ["uncovered"] : [],
+        };
+      });
+  const unmapped = coverage.unmapped_pct ?? getNested(monitoring, "input_quality", "details_json", "unmapped_pct");
 
   return (
     <>
@@ -892,31 +938,38 @@ function MonitoringPanel({ data }: { data: DashboardData }) {
       <Stats
         items={[
           { label: "Classify success", value: formatPct(classification.success_rate) },
-          { label: "Unmapped", value: formatPct(coverage.unmapped_pct) },
+          { label: "Unmapped", value: formatPct(unmapped) },
           { label: "Warnings", value: String(warnings.length) },
           { label: "Errors", value: String(errors.length) },
         ]}
       />
       <Card title="Source group coverage" info={TOOLTIPS.coverage_warnings}>
-        {groupIds.length ? (
-          <ul className="coverage">
-            {groupIds.map((id) => {
-              const count = numberValue(counts[id]) ?? 0;
-              return (
-                <li key={id}>
-                  <span>{prettySectorId(id)}</span>
+        {coverageRows.length ? (
+          <>
+            <ul className="coverage">
+              {coverageRows.map((row) => (
+                <li key={row.id}>
+                  <span>{prettySectorId(row.id)}</span>
                   <span className="coverage-track">
-                    <span className="coverage-bar" style={{ width: `${(count / maxCount) * 100}%` }} />
+                    <span className="coverage-bar" style={{ width: `${row.fill * 100}%` }} />
                   </span>
-                  <span className="num">{formatCount(count)}</span>
+                  <span className="num">{row.value}</span>
                   <span className="coverage-flags">
-                    {missing.has(id) ? <Tag tone="warn">missing</Tag> : null}
-                    {stale.has(id) ? <Tag tone="warn">stale</Tag> : null}
+                    {row.flags.map((flag) => (
+                      <Tag key={flag} tone="warn">
+                        {flag}
+                      </Tag>
+                    ))}
                   </span>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+            <p className="caption">
+              {hasCoverage
+                ? "Stored news items per source group."
+                : "Sources reporting ok out of those configured, per group."}
+            </p>
+          </>
         ) : (
           <Missing />
         )}
@@ -965,9 +1018,11 @@ type RunFilter = "all" | "live" | "replay";
 function HistoryPanel({ data }: { data: DashboardData }) {
   const [filter, setFilter] = useState<RunFilter>("all");
   const all = historyRuns(data.history);
-  const rows = all
-    .filter((r) => (filter === "all" ? true : filter === "replay" ? r.run_mode === "replay" : r.run_mode !== "replay"))
-    .slice(0, 30);
+  const filtered = all.filter((r) =>
+    filter === "all" ? true : filter === "replay" ? r.run_mode === "replay" : r.run_mode !== "replay",
+  );
+  const filteredCount = filtered.length;
+  const rows = filtered.slice(0, 30);
   const points = timelinePoints(data);
   const nber = getObject(data.nberBenchmark);
   const nberOk = nber.status === "ok";
@@ -1025,6 +1080,11 @@ function HistoryPanel({ data }: { data: DashboardData }) {
           <div className="card-pad"><p className="muted">No archived daily runs found.</p></div>
         )}
       </Card>
+      {filteredCount > rows.length ? (
+        <p className="caption">
+          Showing the latest {rows.length} of {filteredCount} runs.
+        </p>
+      ) : null}
       <Card title="NBER benchmark (revised data)">
         {nberOk ? (
           <>
@@ -1055,24 +1115,33 @@ function HistoryPanel({ data }: { data: DashboardData }) {
   );
 }
 
+// Several runs can land on one Taipei date, so show the UTC time from the run id.
+function runTimeUtc(runId?: string): string | null {
+  const match = runId?.match(/^\d{8}T(\d{2})(\d{2})\d{2}Z/);
+  return match ? `${match[1]}:${match[2]} UTC` : null;
+}
+
 function HistoryRow({ row }: { row: HistoryRun }) {
   const replay = row.run_mode === "replay";
   return (
     <tr className={replay ? "replay" : undefined}>
-      <td className="mono">{formatRunDate(row.run_date, row.run_id)}</td>
+      <td className="mono">
+        {formatRunDate(row.run_date, row.run_id)}
+        {runTimeUtc(row.run_id) ? <span className="muted"> {runTimeUtc(row.run_id)}</span> : null}
+      </td>
       <td>{replay ? <Tag>replay</Tag> : text(row.run_mode, "daily")}</td>
       <td>
         {prettyRegime(row.macro_regime)}
         <span className="muted"> · {(row.top_combined_sectors ?? []).slice(0, 2).map(prettySectorId).join(", ") || "n/a"}</span>
       </td>
-      <td>{text(row.guardrail_status)}</td>
+      <td>{row.guardrail_status === "passed" ? "passed" : <Tag tone="warn">{text(row.guardrail_status)}</Tag>}</td>
       <td className="num-col num">{text(row.warning_count, "0")}</td>
     </tr>
   );
 }
 
 function prettyDimension(id: string): string {
-  return id.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  return prettySectorId(id);
 }
 
 function ProgramSummary({ onClose }: { onClose: () => void }) {
@@ -1302,7 +1371,7 @@ function NewsSourceHealthTable({ data }: { data: DashboardData }) {
             <td>{text(row.source_id)}</td>
             <td>{text(row.status)}{row.dead ? " (dead)" : ""}</td>
             <td>{formatCount(row.items_new)}</td>
-            <td>{text(row.last_new_at, "never")}</td>
+            <td>{row.last_new_at ? formatStamp(row.last_new_at) : "never"}</td>
             <td>{formatCount(row.consecutive_bad_runs)}</td>
           </tr>
         ))}
