@@ -12,6 +12,7 @@ import pandas as pd
 from macro_engine.news.combined import (
     build_stored_combined_sector_diagnostics,
     macro_only_ranks,
+    macro_only_top,
 )
 from macro_engine.news.config import NewsMonitoringConfig, load_news_monitoring_config
 from macro_engine.news.ingest import validate_news_input_config
@@ -90,7 +91,6 @@ def run_news_monitoring(
         daily_theme_scores=store.read_table("news_daily_theme_scores"),
         daily_sector_scores=store.read_table("news_daily_sector_scores"),
         combined_diagnostics=store.read_table("combined_sector_diagnostics"),
-        sector_scores=store.read_table("sector_scores"),
         run_id=run_id,
     )
     store.upsert_news_monitoring_outputs(input_runs, classification_runs, overlay_runs)
@@ -128,7 +128,6 @@ def refresh_news_monitoring_from_stored_outputs(
         daily_theme_scores=store.read_table("news_daily_theme_scores"),
         daily_sector_scores=store.read_table("news_daily_sector_scores"),
         combined_diagnostics=store.read_table("combined_sector_diagnostics"),
-        sector_scores=store.read_table("sector_scores"),
         run_id=run_id,
     )
     store.upsert_news_monitoring_outputs(input_runs, classification_runs, overlay_runs)
@@ -297,7 +296,6 @@ def build_overlay_monitoring_run(
     daily_theme_scores: pd.DataFrame,
     daily_sector_scores: pd.DataFrame,
     combined_diagnostics: pd.DataFrame,
-    sector_scores: pd.DataFrame,
     run_id: str,
 ) -> pd.DataFrame:
     if combined_diagnostics.empty:
@@ -326,7 +324,6 @@ def build_overlay_monitoring_run(
     combined["diagnostic_date"] = pd.to_datetime(combined["diagnostic_date"], errors="coerce")
     latest_date = combined["diagnostic_date"].max()
     latest_combined = combined[combined["diagnostic_date"] == latest_date].sort_values("rank")
-    macro_latest = _latest_macro_ranking(sector_scores)
     rank_changes = _rank_changes(latest_combined)
     max_rank_change = max((abs(row["rank_change"]) for row in rank_changes), default=0)
     avg_rank_change = (
@@ -363,7 +360,7 @@ def build_overlay_monitoring_run(
                 "combined_top_sectors_json": json.dumps(
                     _combined_top_sectors(latest_combined), sort_keys=True
                 ),
-                "macro_only_top_sectors_json": json.dumps(macro_latest[:5], sort_keys=True),
+                "macro_only_top_sectors_json": json.dumps(_macro_only_top_sectors(latest_combined), sort_keys=True),
                 "sectors_changed_by_news_json": json.dumps(rank_changes, sort_keys=True),
                 "max_rank_change": int(max_rank_change),
                 "avg_abs_rank_change": float(avg_rank_change),
@@ -599,23 +596,14 @@ def _combined_top_sectors(frame: pd.DataFrame) -> list[dict[str, Any]]:
     ]
 
 
-def _latest_macro_ranking(sector_scores: pd.DataFrame) -> list[dict[str, Any]]:
-    if sector_scores.empty:
-        return []
-    frame = sector_scores.copy()
-    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
-    if "valid" in frame:
-        frame = frame[frame["valid"]].copy()
-    if frame.empty:
-        return []
-    latest = frame[frame["date"] == frame["date"].max()].sort_values("rank")
+def _macro_only_top_sectors(combined: pd.DataFrame) -> list[dict[str, Any]]:
     return [
         {
-            "rank": int(row["rank"]),
+            "rank": row["rank"],
             "sector_id": row["sector_id"],
-            "confidence_adjusted_score": _to_float(row["confidence_adjusted_score"]),
+            "confidence_adjusted_score": _to_float(row["sector_macro_score"]),
         }
-        for row in latest.to_dict(orient="records")
+        for row in macro_only_top(combined)
     ]
 
 

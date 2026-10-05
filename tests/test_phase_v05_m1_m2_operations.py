@@ -261,7 +261,6 @@ def test_news_accumulation_outputs_and_report(tmp_path: Path):
         daily_theme_scores=_daily_theme_scores(),
         daily_sector_scores=_daily_sector_scores(),
         combined_diagnostics=_combined_diagnostics(),
-        sector_scores=_sector_scores(),
         run_date=pd.Timestamp("2026-05-18").date(),
     )
 
@@ -294,7 +293,7 @@ def test_news_accumulation_outputs_and_report(tmp_path: Path):
 def test_accumulation_rank_change_ignores_separate_sector_score_cross_sections():
     config = load_news_accumulation_config("config/news_accumulation.yaml")
     for swap, expected_max, expected_avg in [(False, 0, 0.0), (True, 1, 1.0)]:
-        combined, scores = _two_universe_frames(swap=swap)
+        combined = _two_universe_frame(swap=swap)
         result = build_news_accumulation_outputs(
             config=config,
             news_items=_news_items(),
@@ -302,13 +301,14 @@ def test_accumulation_rank_change_ignores_separate_sector_score_cross_sections()
             daily_theme_scores=_daily_theme_scores(),
             daily_sector_scores=_daily_sector_scores(),
             combined_diagnostics=combined,
-            sector_scores=scores,
             run_date=pd.Timestamp("2026-05-18").date(),
         )
         row = result.combined_history.iloc[-1]
 
         assert row["max_rank_change"] == expected_max
         assert row["avg_abs_rank_change"] == expected_avg
+        top = json.loads(row["top_macro_only_sectors_json"])
+        assert top == [{"sector_id": f"s{n:02d}", "rank": n} for n in range(1, 6)]
 
 
 def test_accumulation_cli_summary(tmp_path: Path):
@@ -323,7 +323,6 @@ def test_accumulation_cli_summary(tmp_path: Path):
         daily_theme_scores=_daily_theme_scores(),
         daily_sector_scores=_daily_sector_scores(),
         combined_diagnostics=_combined_diagnostics(),
-        sector_scores=_sector_scores(),
         run_date=pd.Timestamp("2026-05-18").date(),
     )
     store.upsert_news_accumulation_outputs(
@@ -570,27 +569,9 @@ def _combined_diagnostics() -> pd.DataFrame:
     )
 
 
-def _sector_scores() -> pd.DataFrame:
-    return pd.DataFrame(
-        [
-            {
-                "sector_id": "energy",
-                "date": "2026-05-01",
-                "raw_sector_score": 0.5,
-                "confidence_adjusted_score": 0.3,
-                "rank": 1,
-                "macro_reported_regime": "reflation",
-                "macro_raw_dominant_regime": "reflation",
-                "macro_confidence": 0.2,
-                "valid": True,
-                "reason": "ok",
-            }
-        ]
-    )
 
-
-def _two_universe_frames(swap: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """17 combined rows; the sector-scores table ranks 11 parents and 6 sub-industries separately."""
+def _two_universe_frame(swap: bool = False) -> pd.DataFrame:
+    """17 combined rows (11 parents, 6 sub-industries) ranked in one cross-section."""
     ids = [f"s{n:02d}" for n in range(1, 18)]
     combined_rank = {sector_id: n for n, sector_id in enumerate(ids, start=1)}
     if swap:
@@ -614,21 +595,4 @@ def _two_universe_frames(swap: bool = False) -> tuple[pd.DataFrame, pd.DataFrame
             for n, sector_id in enumerate(ids, start=1)
         ]
     )
-    scores = pd.DataFrame(
-        [
-            {
-                "sector_id": sector_id,
-                "date": "2026-05-01",
-                "raw_sector_score": 0.5,
-                "confidence_adjusted_score": 0.3,
-                "rank": n if n <= 11 else n - 11,
-                "macro_reported_regime": "reflation",
-                "macro_raw_dominant_regime": "reflation",
-                "macro_confidence": 0.2,
-                "valid": True,
-                "reason": "ok",
-            }
-            for n, sector_id in enumerate(ids, start=1)
-        ]
-    )
-    return combined, scores
+    return combined

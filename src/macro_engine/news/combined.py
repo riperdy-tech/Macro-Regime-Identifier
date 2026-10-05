@@ -281,6 +281,20 @@ def macro_only_ranks(combined: pd.DataFrame) -> dict[str, int]:
     return {row["sector_id"]: rank for rank, row in enumerate(ordered, start=1)}
 
 
+def macro_only_top(combined: pd.DataFrame, limit: int = 5) -> list[dict]:
+    """Top rows by same-universe macro-only rank, each with its rank and sector_macro_score."""
+    ranks = macro_only_ranks(combined)
+    ordered = sorted(combined.to_dict(orient="records"), key=lambda row: ranks[row["sector_id"]])
+    return [
+        {
+            "rank": ranks[row["sector_id"]],
+            "sector_id": row["sector_id"],
+            "sector_macro_score": float(row["sector_macro_score"]),
+        }
+        for row in ordered[:limit]
+    ]
+
+
 def _clip(value: float, cap: float) -> float:
     return max(-cap, min(cap, value))
 

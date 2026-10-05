@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import pandas as pd
 
-from macro_engine.news.combined import macro_only_ranks
+from macro_engine.news.combined import macro_only_ranks, macro_only_top
 from macro_engine.operations_config import (
     NewsAccumulationConfig,
     load_news_accumulation_config,
@@ -53,7 +53,6 @@ def run_news_accumulation(
         daily_theme_scores=store.read_table("news_daily_theme_scores"),
         daily_sector_scores=store.read_table("news_daily_sector_scores"),
         combined_diagnostics=store.read_table("combined_sector_diagnostics"),
-        sector_scores=store.read_table("sector_scores"),
         run_date=_coerce_run_date(run_date),
         new_items_this_run=_latest_run_new_items(source_runs),
     )
@@ -73,7 +72,6 @@ def build_news_accumulation_outputs(
     daily_theme_scores: pd.DataFrame,
     daily_sector_scores: pd.DataFrame,
     combined_diagnostics: pd.DataFrame,
-    sector_scores: pd.DataFrame,
     run_date: date,
     new_items_this_run: int | None = None,
 ) -> NewsAccumulationResult:
@@ -92,7 +90,7 @@ def build_news_accumulation_outputs(
         classifications,
         created_at,
     )
-    combined_history = _combined_history_frame(combined_diagnostics, sector_scores, created_at)
+    combined_history = _combined_history_frame(combined_diagnostics, created_at)
     readiness = readiness_label(
         run_dates=_run_date_count(classifications),
         classified_items=_success_count(classifications),
@@ -332,13 +330,11 @@ def _news_score_history_frame(
 
 def _combined_history_frame(
     combined: pd.DataFrame,
-    sector_scores: pd.DataFrame,
     created_at: datetime,
 ) -> pd.DataFrame:
     if combined.empty:
         return pd.DataFrame(columns=_combined_history_columns())
     frame = _with_date(combined, "diagnostic_date")
-    macro = _latest_macro_ranks(sector_scores)
     rows = []
     for diagnostic_date in sorted(frame["diagnostic_date"].dropna().unique()):
         latest = frame[frame["diagnostic_date"] == diagnostic_date].sort_values("rank")
@@ -349,7 +345,7 @@ def _combined_history_frame(
             {
                 "diagnostic_date": diagnostic_date.date(),
                 "top_combined_sectors_json": json.dumps(_combined_top(latest, "combined_score")),
-                "top_macro_only_sectors_json": json.dumps(macro[:5]),
+                "top_macro_only_sectors_json": json.dumps(_macro_only_top(latest)),
                 "top_news_only_sectors_json": json.dumps(_combined_top(latest, "sector_news_score")),
                 "max_rank_change": int(max_change),
                 "avg_abs_rank_change": float(avg_change),
@@ -373,16 +369,8 @@ def _combined_top(frame: pd.DataFrame, score_column: str) -> list[dict[str, Any]
     return [{"sector_id": row["sector_id"], "score": float(row[score_column])} for row in ranked.to_dict(orient="records")]
 
 
-def _latest_macro_ranks(sector_scores: pd.DataFrame) -> list[dict[str, Any]]:
-    if sector_scores.empty:
-        return []
-    frame = _with_date(sector_scores, "date")
-    if "valid" in frame:
-        frame = frame[frame["valid"]].copy()
-    if frame.empty:
-        return []
-    latest = frame[frame["date"] == frame["date"].max()].sort_values("rank")
-    return [{"sector_id": row["sector_id"], "rank": int(row["rank"])} for row in latest.to_dict(orient="records")]
+def _macro_only_top(combined: pd.DataFrame) -> list[dict[str, Any]]:
+    return [{"sector_id": row["sector_id"], "rank": row["rank"]} for row in macro_only_top(combined)]
 
 
 def _rank_changes(combined: pd.DataFrame) -> list[dict[str, Any]]:
