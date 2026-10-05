@@ -53,6 +53,7 @@ import {
   prettySectorId,
   scoreItems,
   sectorLabelById,
+  seriesName,
   sectorRows,
   text,
 } from "./utils";
@@ -273,8 +274,12 @@ function Head({
   );
 }
 
-function Tag({ children, tone }: { children: React.ReactNode; tone?: "warn" }) {
-  return <span className={tone === "warn" ? "tag warn" : "tag"}>{children}</span>;
+function Tag({ children, tone, title }: { children: React.ReactNode; tone?: "warn"; title?: string }) {
+  return (
+    <span className={tone === "warn" ? "tag warn" : "tag"} title={title}>
+      {children}
+    </span>
+  );
 }
 
 function Card({
@@ -557,7 +562,9 @@ function MacroPanel({ data }: { data: DashboardData }) {
             <div className="multiples">
               {(activeDim.features ?? []).map((feature, i) => (
                 <div key={`${feature.feature_id}-${i}`} className="multiple">
-                  <span className="label">{featureLabel(feature)}</span>
+                  <span className="label" title={feature.series_id || feature.feature_id}>
+                    {featureLabel(feature)}
+                  </span>
                   <MiniLine points={feature.points ?? []} />
                 </div>
               ))}
@@ -572,8 +579,8 @@ function MacroPanel({ data }: { data: DashboardData }) {
         {seriesHealth.size ? (
           <div className="tags">
             {[...seriesHealth.entries()].map(([id, health]) => (
-              <Tag key={id} tone={health.stale ? "warn" : undefined}>
-                {id}
+              <Tag key={id} tone={health.stale ? "warn" : undefined} title={id}>
+                {seriesName(id)}
                 {health.stale ? ` · last ${health.last.slice(0, 7)}` : ""}
               </Tag>
             ))}
@@ -602,7 +609,7 @@ function regimeConfidenceNote(confidence: number | null, regime: string): string
 function featureLabel(f: { feature_id?: string; series_id?: string }): string {
   const id = f.feature_id ?? "";
   const tag = /yoy/.test(id) ? "YoY" : /12m/.test(id) ? "12m Δ" : /6m/.test(id) ? "6m Δ" : /level/.test(id) ? "level" : "";
-  return `${f.series_id || id}${tag ? ` · ${tag}` : ""}`;
+  return `${seriesName(f.series_id || id)}${tag ? ` · ${tag}` : ""}`;
 }
 
 // ---------- Sectors ----------
@@ -821,7 +828,10 @@ function NewsPanel({ data }: { data: DashboardData }) {
           <ul className="rows">
             {lowConfidence.slice(0, 8).map((item, i) => (
               <li key={`${item.news_id}-${i}`}>
-                <span>{text(item.title)}</span>
+                <span className="stack">
+                  <span>{text(item.title)}</span>
+                  {item.summary ? <span className="sub">{text(item.summary)}</span> : null}
+                </span>
                 <Tag>conf {formatScore(item.confidence)}</Tag>
               </li>
             ))}
@@ -829,6 +839,10 @@ function NewsPanel({ data }: { data: DashboardData }) {
         ) : (
           <p className="muted">None.</p>
         )}
+        <p className="caption">
+          Broad world-news feeds pull in off-topic stories. Low confidence here usually means the classifier found little
+          macro or sector relevance, not a classification error.
+        </p>
       </Card>
       <Disclaimer>AI classifications are interpretive and can be wrong.</Disclaimer>
     </>
