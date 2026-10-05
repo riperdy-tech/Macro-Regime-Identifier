@@ -601,7 +601,7 @@ def _macro_only_top_sectors(combined: pd.DataFrame) -> list[dict[str, Any]]:
         {
             "rank": row["rank"],
             "sector_id": row["sector_id"],
-            "confidence_adjusted_score": _to_float(row["sector_macro_score"]),
+            "sector_macro_score": _to_float(row["sector_macro_score"]),
         }
         for row in macro_only_top(combined)
     ]

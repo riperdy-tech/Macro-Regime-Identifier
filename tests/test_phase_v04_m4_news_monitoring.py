@@ -163,7 +163,7 @@ def test_overlay_rank_change_ignores_separate_sector_score_cross_sections(tmp_pa
     assert row["avg_abs_rank_change"] == 0.0
     top = json.loads(row["macro_only_top_sectors_json"])
     assert [(t["rank"], t["sector_id"]) for t in top] == [(n, f"s{n:02d}") for n in range(1, 6)]
-    assert [t["confidence_adjusted_score"] for t in top] == [2.0 - 0.1 * n for n in range(1, 6)]
+    assert [t["sector_macro_score"] for t in top] == [2.0 - 0.1 * n for n in range(1, 6)]
 
     combined = _two_universe_frame(swap=True)
     overlay = build_overlay_monitoring_run(
