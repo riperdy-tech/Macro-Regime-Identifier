@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from macro_engine.news.config import load_news_themes_config, NewsThemesConfig
-from macro_engine.news.classify import build_system_prompt, validate_classification_payload
+from macro_engine.news.classify import (
+    build_system_prompt,
+    compute_prompt_version,
+    validate_classification_payload,
+)
 from macro_engine.news.schema import NewsClassificationPayload, NewsClassificationRecord
 
 
@@ -62,6 +66,35 @@ def test_system_prompt_includes_secular_theme_ids():
     assert "nuclear_renaissance" in prompt
     # Existing macro themes still present
     assert "inflation_pressure" in prompt
+
+
+def test_system_prompt_defines_each_secular_theme_and_defaults_the_example_to_null():
+    themes = load_news_themes_config("config/news_themes.yaml")
+    prompt = build_system_prompt(themes)
+
+    for theme_id, info in themes.secular_themes.items():
+        assert f"- {theme_id}: {info['label']} - {info['description']}" in prompt
+    assert '"secular_theme": null,' in prompt
+    assert '"secular_theme": "ai_compute"' not in prompt
+    assert "Assign a secular theme only when the article is about that theme's own industry" in prompt
+    assert "rates, inflation, central banks, growth data, geopolitics and general markets news get null" in prompt
+
+
+def test_system_prompt_secular_theme_without_description_lists_id_and_label_only():
+    config = NewsThemesConfig.model_validate({
+        "macro_themes": [{"theme_id": "inflation_pressure", "label": "Inflation Pressure"}],
+        "secular_themes": {"bare": {"label": "Bare Theme"}, "full": {"label": "Full", "description": "d"}},
+        "sector_ids": ["energy"],
+    })
+    prompt = build_system_prompt(config)
+
+    assert "- bare: Bare Theme\n" in prompt
+    assert "- full: Full - d\n" in prompt
+
+
+def test_prompt_version_changed_with_the_secular_theme_prompt():
+    # Digest of the previous template (hard-coded ai_compute example, ids only) with the same themes bytes.
+    assert compute_prompt_version(themes_bytes=b"x") != "d7101f2c65bc9e12"
 
 
 def test_payload_accepts_secular_theme():

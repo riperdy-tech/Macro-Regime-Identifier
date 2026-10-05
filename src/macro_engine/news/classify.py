@@ -41,10 +41,11 @@ Do not provide investment recommendations.
 Do not use buy, sell, overweight, underweight, avoid, trade, allocation, portfolio allocation, or position sizing language.
 Use only these macro theme IDs: {theme_ids}
 Use only these sector IDs: {sector_ids}
-Use only these secular theme IDs: {secular_theme_ids}
+Use only these secular theme IDs, each shown as id: label - description:
+{secular_themes}
 Use uncertainty when the article is ambiguous.
 If the article is irrelevant to macro or sector diagnostics, use low severity and low confidence.
-If the article does not relate to any secular theme, set secular_theme to null.
+Assign a secular theme only when the article is about that theme's own industry, technology or companies; rates, inflation, central banks, growth data, geopolitics and general markets news get null even if they mention it in passing.
 
 Expected JSON shape:
 {{
@@ -75,7 +76,7 @@ Expected JSON shape:
       "relevance": 0.0
     }}
   ],
-  "secular_theme": "ai_compute",
+  "secular_theme": null,
   "overall_severity": 0.0,
   "overall_confidence": 0.0,
   "time_horizon": "short_term"
@@ -191,8 +192,18 @@ def build_system_prompt(themes: NewsThemesConfig) -> str:
     return SYSTEM_PROMPT_TEMPLATE.format(
         theme_ids=", ".join(sorted(themes.active_theme_ids)),
         sector_ids=", ".join(sorted(themes.sector_ids)),
-        secular_theme_ids=", ".join(sorted(themes.secular_theme_ids)),
+        secular_themes="\n".join(
+            _secular_theme_line(themes, theme_id) for theme_id in sorted(themes.secular_theme_ids)
+        ),
     )
+
+
+def _secular_theme_line(themes: NewsThemesConfig, theme_id: str) -> str:
+    info = themes.secular_themes[theme_id]
+    line = f"- {theme_id}: {info['label']}"
+    if info.get("description"):
+        line += f" - {info['description']}"
+    return line
 
 
 def classify_news_item(
