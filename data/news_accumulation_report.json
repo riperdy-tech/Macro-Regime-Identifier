@@ -1,12 +1,6 @@
 {
-  "classification_success_rate": 0.9876952200662565,
+  "classification_success_rate": 0.9875747814081914,
   "combined_rank_change_history": [
-    {
-      "diagnostic_date": "2026-09-30",
-      "max_rank_change": 0,
-      "news_item_count": 1153,
-      "thin_news_warning": true
-    },
     {
       "diagnostic_date": "2026-10-01",
       "max_rank_change": 0,
@@ -52,13 +46,19 @@
     {
       "diagnostic_date": "2026-10-08",
       "max_rank_change": 0,
-      "news_item_count": 1855,
+      "news_item_count": 1856,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-10-09",
       "max_rank_change": 0,
-      "news_item_count": 1855,
+      "news_item_count": 1966,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-10-10",
+      "max_rank_change": 0,
+      "news_item_count": 1969,
       "thin_news_warning": true
     }
   ],
@@ -190,9 +190,10 @@
     "2026-10-06": 108,
     "2026-10-07": 111,
     "2026-10-08": 114,
-    "2026-10-09": 21
+    "2026-10-09": 113,
+    "2026-10-10": 17
   },
-  "date_end": "2026-10-09T02:39:33",
+  "date_end": "2026-10-10T02:01:07",
   "date_start": "2026-05-01T09:00:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -202,20 +203,20 @@
     "validation_candidate": "60+ run dates with stable source coverage"
   },
   "latest_run": {
-    "classified_items": 2087,
-    "created_at": "2026-10-09T03:00:44.482139",
-    "date_max": "2026-10-09T02:39:33",
+    "classified_items": 2146,
+    "created_at": "2026-10-10T02:26:07.684777",
+    "date_max": "2026-10-10T02:01:07",
     "date_min": "2026-05-01T09:00:00",
     "duplicate_items": 0,
-    "failed_items": 26,
-    "new_unique_items": 9490,
+    "failed_items": 27,
+    "new_unique_items": 9600,
     "quality_status": "ok",
-    "raw_item_count": 9490,
-    "run_date": "2026-10-09T00:00:00",
-    "run_id": "20261009T030044Z-e1c82c50",
+    "raw_item_count": 9600,
+    "run_date": "2026-10-10T00:00:00",
+    "run_id": "20261010T022607Z-8fd0b364",
     "source_count": 453,
     "source_group_count": 13,
-    "success_rate": 0.9876952200662565,
+    "success_rate": 0.9875747814081914,
     "warning_json": "[]"
   },
   "readiness_label": "monitor_ready",
@@ -223,11 +224,11 @@
   "source_group_count": 13,
   "top_recurring_macro_themes": [
     {
-      "count": 149,
+      "count": 150,
       "id": "monetary_tightening"
     },
     {
-      "count": 100,
+      "count": 101,
       "id": "commodity_pressure"
     },
     {
@@ -235,43 +236,43 @@
       "id": "growth_slowdown"
     },
     {
-      "count": 77,
+      "count": 78,
       "id": "geopolitical_risk"
     },
     {
-      "count": 77,
+      "count": 78,
       "id": "inflation_pressure"
     }
   ],
   "top_recurring_sector_headwinds": [
     {
-      "count": 158,
+      "count": 159,
       "id": "real_estate"
     },
     {
-      "count": 75,
+      "count": 76,
       "id": "consumer_discretionary"
     },
     {
-      "count": 73,
+      "count": 74,
       "id": "consumer_staples"
+    },
+    {
+      "count": 39,
+      "id": "industrials"
     },
     {
       "count": 38,
       "id": "communication_services"
-    },
-    {
-      "count": 38,
-      "id": "industrials"
     }
   ],
   "top_recurring_sector_tailwinds": [
     {
-      "count": 150,
+      "count": 151,
       "id": "energy"
     },
     {
-      "count": 71,
+      "count": 72,
       "id": "information_technology"
     },
     {
@@ -279,7 +280,7 @@
       "id": "materials"
     },
     {
-      "count": 42,
+      "count": 43,
       "id": "health_care"
     },
     {
@@ -287,8 +288,8 @@
       "id": "financials"
     }
   ],
-  "total_accumulated_news_items": 9490,
-  "total_classified_items": 2087,
+  "total_accumulated_news_items": 9600,
+  "total_classified_items": 2146,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
 }

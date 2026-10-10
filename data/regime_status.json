@@ -3,8 +3,8 @@
     "available": true,
     "cost_of_capital": {
       "anchor_id": "cost_of_capital",
-      "asof": "2026-10-09",
-      "built_at": "2026-10-09T03:00:36.727345+00:00",
+      "asof": "2026-10-10",
+      "built_at": "2026-10-10T02:26:00.285526+00:00",
       "degraded": true,
       "equity_aggregate": null,
       "erp_basis": "unavailable",
@@ -28,10 +28,10 @@
         ],
         "input_dates": {
           "CPIAUCSL": "2026-08-01",
-          "DFII10": "2026-10-07",
-          "DGS10": "2026-10-07",
+          "DFII10": "2026-10-08",
+          "DGS10": "2026-10-08",
           "PCEPI": "2026-08-01",
-          "T10YIE": "2026-10-08",
+          "T10YIE": "2026-10-09",
           "THREEFYTP10": "2026-10-02"
         },
         "notes": [
@@ -41,27 +41,27 @@
         "scoring_mode": "point_in_time"
       },
       "risk_free": {
-        "breakeven_10y": 0.0235,
-        "nominal_10y": 0.0528,
-        "real_10y": 0.0292,
+        "breakeven_10y": 0.0233,
+        "nominal_10y": 0.0522,
+        "real_10y": 0.0287,
         "term_premium": 0.010847
       },
       "sector_loadings": {
-        "banks": 1.016,
+        "banks": 1.015,
         "biotech": 1.131,
         "communication_services": 0.998,
-        "consumer_discretionary": 1.224,
-        "consumer_staples": 0.362,
-        "energy": 0.569,
+        "consumer_discretionary": 1.223,
+        "consumer_staples": 0.361,
+        "energy": 0.568,
         "financials": 0.842,
         "health_care": 0.531,
         "homebuilders": 1.127,
         "industrials": 0.867,
         "information_technology": 1.374,
         "materials": 0.852,
-        "oil_gas_ep": 0.825,
+        "oil_gas_ep": 0.824,
         "real_estate": 0.7,
-        "semiconductors": 1.739,
+        "semiconductors": 1.74,
         "software": 1.311,
         "utilities": 0.44
       },
@@ -74,12 +74,12 @@
       "version": "0.2"
     },
     "degraded": true,
-    "level_cost_of_equity": 0.0528,
+    "level_cost_of_equity": 0.0522,
     "level_cost_of_equity_source": "risk_free_10y_only_not_a_cost_of_equity",
     "long_run_growth": {
       "anchor_id": "long_run_growth",
-      "asof": "2026-10-09",
-      "built_at": "2026-10-09T03:00:36.727345+00:00",
+      "asof": "2026-10-10",
+      "built_at": "2026-10-10T02:26:00.285526+00:00",
       "clamp": {
         "ceiling": 0.05,
         "floor": 0.0,
@@ -95,7 +95,7 @@
         "regime_sensitivity, regime_applied and regime_adjustment are always empty/null in v0.3: the regime label was removed from this anchor's computation (P0_0_MRI_TARGET_ARCHITECTURE.md \u00a75.2). Kept for one release for a v1/v0.2 reader; rs2_data.anchor_terminal_g() reads only terminal_g_suggestion, degraded and asof, so it is unaffected."
       ],
       "downstream_prior_in_use": 0.025,
-      "inflation_expectation_spot": 0.0233,
+      "inflation_expectation_spot": 0.0232,
       "nominal_gdp_trend": 0.0447,
       "provenance": {
         "degradation_reasons": [],
@@ -144,7 +144,7 @@
     },
     "sector_multiple_bands": {
       "anchor_id": "sector_multiple_bands",
-      "asof": "2026-10-09",
+      "asof": "2026-10-10",
       "bands": [
         {
           "arithmetic_check": {
@@ -521,7 +521,7 @@
           "sector_id": "utilities"
         }
       ],
-      "built_at": "2026-10-09T03:00:36.727345+00:00",
+      "built_at": "2026-10-10T02:26:00.285526+00:00",
       "degraded": true,
       "panel_measure": "pe_ttm",
       "panel_measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
@@ -541,7 +541,7 @@
           "The market-observed band requires a valuation panel (date, sector, forward multiple). MRI's local sector ETF file is price-only by construction, so no multiple can be derived from it; see docs/ANCHOR_METHODOLOGY.md \u00a75."
         ],
         "regime_leg": {
-          "age_days": 8,
+          "age_days": 9,
           "date": "2026-10-01",
           "regime_or_state": {
             "credit": "loose",
@@ -560,9 +560,9 @@
     },
     "terminal_g_suggestion": 0.0375
   },
-  "computed_at": "2026-10-09T03:00:53.455284+00:00",
+  "computed_at": "2026-10-10T02:26:16.441000+00:00",
   "confidence": 0.05887244430613603,
-  "current_regime_age_days": 8,
+  "current_regime_age_days": 9,
   "current_regime_date": "2026-10-01",
   "current_regime_future_dated": false,
   "current_regime_stale": false,
@@ -570,8 +570,8 @@
   "dominant_regime": "goldilocks",
   "feature_freshness": {
     "gap_days": 0,
-    "max_feature_date": "2026-10-08",
-    "max_raw_observation_date": "2026-10-08",
+    "max_feature_date": "2026-10-09",
+    "max_raw_observation_date": "2026-10-09",
     "stale": false
   },
   "monitor_ready": true,
@@ -579,12 +579,12 @@
   "raw_regime_probability": 0.3296929322697499,
   "readiness_label": "monitor_ready",
   "regime_probability": 0.3296929322697499,
-  "secular_theme_computed_at": "2026-10-09T03:00:48.202296+00:00",
+  "secular_theme_computed_at": "2026-10-10T02:26:11.260754+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.6262126245847176,
-      "avg_severity": 0.4108637873754153,
-      "item_count": 301,
+      "avg_confidence": 0.6258631921824104,
+      "avg_severity": 0.4103257328990228,
+      "item_count": 307,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -592,25 +592,25 @@
           "avg_confidence": 0.6460784313725491,
           "item_count": 51,
           "period_start": "2026-07-01",
-          "score": 2.9769403815536224
+          "score": 2.9089469692695697
         },
         {
           "avg_confidence": 0.5835820895522388,
           "item_count": 67,
           "period_start": "2026-08-01",
-          "score": 5.045531243013225
+          "score": 4.964551197505436
         },
         {
           "avg_confidence": 0.6097478991596638,
           "item_count": 119,
           "period_start": "2026-09-01",
-          "score": 9.55484487889285
+          "score": 9.455380084394973
         },
         {
-          "avg_confidence": 0.6856249999999999,
-          "item_count": 64,
+          "avg_confidence": 0.679,
+          "item_count": 70,
           "period_start": "2026-10-01",
-          "score": 8.561734944351569
+          "score": 8.909593496897783
         }
       ],
       "quarterly_scores": [
@@ -618,32 +618,32 @@
           "avg_confidence": 0.6101687763713081,
           "item_count": 237,
           "period_start": "2026-07-01",
-          "score": 17.577316503459695
+          "score": 17.32887825116998
         },
         {
-          "avg_confidence": 0.6856249999999999,
-          "item_count": 64,
+          "avg_confidence": 0.679,
+          "item_count": 70,
           "period_start": "2026-10-01",
-          "score": 8.561734944351569
+          "score": 8.909593496897783
         }
       ],
-      "raw_score": 123.67,
-      "score": 26.13905144781127,
+      "raw_score": 125.97,
+      "score": 26.238471748067766,
       "source_mix": {
         "CNBC": 3,
         "bbc_world": 4,
         "cnbc_economy": 5,
         "cnbc_energy": 1,
         "cnbc_finance": 30,
-        "cnbc_health": 3,
+        "cnbc_health": 4,
         "cnbc_markets": 36,
         "cnbc_retail": 1,
-        "cnbc_tech": 138,
+        "cnbc_tech": 142,
         "eia_energy": 1,
         "federal_reserve_speeches": 4,
         "housingwire": 7,
         "marketwatch": 13,
-        "nasdaq_markets": 20,
+        "nasdaq_markets": 21,
         "oilprice": 19,
         "scmp": 15,
         "zerohedge.com": 1
@@ -698,7 +698,7 @@
           "title": "Cramer says Thursday's AI market-action term-off proves the value of this age-old investing strategy"
         }
       ],
-      "trend_30d": 29.096875867723302
+      "trend_30d": 30.03225709356264
     },
     "cloud_software": {
       "avg_confidence": 0.63125,
@@ -711,19 +711,19 @@
           "avg_confidence": 0.4,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.015157165665103984
+          "score": 0.014810975522865647
         },
         {
           "avg_confidence": 0.66,
           "item_count": 5,
           "period_start": "2026-08-01",
-          "score": 0.4337211227359338
+          "score": 0.42381491860191084
         },
         {
           "avg_confidence": 0.675,
           "item_count": 2,
           "period_start": "2026-10-01",
-          "score": 0.20821516868889894
+          "score": 0.20345952766357572
         }
       ],
       "quarterly_scores": [
@@ -731,17 +731,17 @@
           "avg_confidence": 0.6166666666666668,
           "item_count": 6,
           "period_start": "2026-07-01",
-          "score": 0.44887828840103783
+          "score": 0.4386258941247765
         },
         {
           "avg_confidence": 0.675,
           "item_count": 2,
           "period_start": "2026-10-01",
-          "score": 0.20821516868889894
+          "score": 0.20345952766357572
         }
       ],
       "raw_score": 2.25,
-      "score": 0.6570934570899367,
+      "score": 0.6420854217883523,
       "source_mix": {
         "cnbc_markets": 3,
         "cnbc_tech": 2,
@@ -760,7 +760,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_264784853adba78b",
-          "score_component": 0.1481097552286564,
+          "score_component": 0.1447269237440378,
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/salesforce-crm-q2-earnings-report-2027.html",
           "title": "Salesforce stock jumps 18% on AI growth and Anthropic investment gain"
@@ -768,7 +768,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_496f9000ee18a0ab",
-          "score_component": 0.13299806338284606,
+          "score_component": 0.12996038341699773,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/01/linkedin-chief-roslansky-microsoft-exit.html",
           "title": "Former LinkedIn chief Roslansky to leave Microsoft, following other exec departures"
@@ -776,7 +776,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_4a59a71b7cbde6a5",
-          "score_component": 0.10367682866005948,
+          "score_component": 0.10130884662082647,
           "source": "marketwatch",
           "source_url": "https://www.marketwatch.com/story/salesforce-stock-is-jumping-what-wall-street-is-saying-about-its-earnings-and-its-anthropic-relationship-853ada85?mod=mw_rss_topstories",
           "title": "Salesforce\u2019s stock rockets 20% and gives the software sector a major lift"
@@ -784,7 +784,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_da017c0d5c57553d",
-          "score_component": 0.09306868571002408,
+          "score_component": 0.09094299399062389,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/08/29/op-ed-salesforce-revealed-next-battleground-in-ai-its-not-models.html",
           "title": "Op-ed: Salesforce just revealed the next battleground in AI \u2014 and it's not the models"
@@ -792,13 +792,13 @@
         {
           "confidence": 0.55,
           "news_id": "news_4b3bdb9959ab56cb",
-          "score_component": 0.07521710530605288,
+          "score_component": 0.073499144246578,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/valon-raises-150-million-series-d/",
           "title": "Valon raises $150M Series D at $2.3B valuation"
         }
       ],
-      "trend_30d": -0.22550595404703488
+      "trend_30d": -0.22035539093833512
     },
     "cybersecurity": {
       "avg_confidence": 0.656896551724138,
@@ -811,25 +811,25 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.09306868571002408
+          "score": 0.09094299399062389
         },
         {
           "avg_confidence": 0.6625,
           "item_count": 8,
           "period_start": "2026-08-01",
-          "score": 0.7149429350147616
+          "score": 0.6986136158113115
         },
         {
           "avg_confidence": 0.628125,
           "item_count": 16,
           "period_start": "2026-09-01",
-          "score": 2.4587132144054165
+          "score": 2.4105501380252736
         },
         {
           "avg_confidence": 0.7250000000000001,
           "item_count": 4,
           "period_start": "2026-10-01",
-          "score": 0.8356421579663655
+          "score": 0.8165560647007388
         }
       ],
       "quarterly_scores": [
@@ -837,17 +837,17 @@
           "avg_confidence": 0.6459999999999999,
           "item_count": 25,
           "period_start": "2026-07-01",
-          "score": 3.266724835130202
+          "score": 3.2001067478272094
         },
         {
           "avg_confidence": 0.7250000000000001,
           "item_count": 4,
           "period_start": "2026-10-01",
-          "score": 0.8356421579663655
+          "score": 0.8165560647007388
         }
       ],
       "raw_score": 10.6,
-      "score": 4.102366993096568,
+      "score": 4.016662812527948,
       "source_mix": {
         "bbc_world": 5,
         "cnbc_economy": 1,
@@ -879,7 +879,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_ccc0dfd4e27d446d",
-          "score_component": 0.34734461698569075,
+          "score_component": 0.33941125496954283,
           "source": "bbc_world",
           "source_url": "https://www.bbc.co.uk/news/articles/cm4gjjlgzdjgo?at_medium=RSS&at_campaign=rss",
           "title": "Inside the FBI hack: Agents fearful and angry after 'dangerous' data breach"
@@ -887,7 +887,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_91e9c20060c82d0f",
-          "score_component": 0.2722134915042739,
+          "score_component": 0.2659961267656921,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/02/interpol-cyberattack-cyberthreat-agentic-ai.html",
           "title": "Interpol says AI is increasing the speed and scale of cyber threats. Here\u2019s what companies should watch"
@@ -895,7 +895,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_9ba544e52367e94d",
-          "score_component": 0.2722134915042739,
+          "score_component": 0.2659961267656921,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/02/bitget-crypto-stolen-hack-recovery.html",
           "title": "Bitget 'not expecting to recover a lot' from $388 million hack, CEO tells CNBC"
@@ -903,18 +903,18 @@
         {
           "confidence": 0.85,
           "news_id": "news_5837c67d9403775b",
-          "score_component": 0.2404163056034262,
+          "score_component": 0.23492518959452194,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/09/24/island-ai-cybersecurity-funding.html",
           "title": "Cyber startup Island hits $6.4 billion valuation in new round as AI attacks fuel spending wave"
         }
       ],
-      "trend_30d": 1.4177321920739228
+      "trend_30d": 1.393345155103182
     },
     "energy_transition": {
-      "avg_confidence": 0.5644827586206896,
-      "avg_severity": 0.385287356321839,
-      "item_count": 87,
+      "avg_confidence": 0.5648863636363636,
+      "avg_severity": 0.38772727272727275,
+      "item_count": 88,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -922,25 +922,25 @@
           "avg_confidence": 0.6071428571428571,
           "item_count": 14,
           "period_start": "2026-07-01",
-          "score": 0.7165086273818003
+          "score": 0.7001435477152649
         },
         {
           "avg_confidence": 0.5476190476190477,
           "item_count": 21,
           "period_start": "2026-08-01",
-          "score": 1.543817679462454
+          "score": 1.5085568349317624
         },
         {
           "avg_confidence": 0.5562068965517241,
           "item_count": 29,
           "period_start": "2026-09-01",
-          "score": 1.9197374613562626
+          "score": 1.910150644489556
         },
         {
-          "avg_confidence": 0.5643478260869564,
-          "item_count": 23,
+          "avg_confidence": 0.5658333333333333,
+          "item_count": 24,
           "period_start": "2026-10-01",
-          "score": 3.024189396190653
+          "score": 2.989376862269471
         }
       ],
       "quarterly_scores": [
@@ -948,17 +948,17 @@
           "avg_confidence": 0.5645312499999999,
           "item_count": 64,
           "period_start": "2026-07-01",
-          "score": 4.180063768200517
+          "score": 4.118851027136584
         },
         {
-          "avg_confidence": 0.5643478260869564,
-          "item_count": 23,
+          "avg_confidence": 0.5658333333333333,
+          "item_count": 24,
           "period_start": "2026-10-01",
-          "score": 3.024189396190653
+          "score": 2.989376862269471
         }
       ],
-      "raw_score": 33.519999999999996,
-      "score": 7.2042531643911705,
+      "raw_score": 34.120000000000005,
+      "score": 7.108227889406054,
       "source_mix": {
         "bbc_world": 1,
         "cnbc_business": 2,
@@ -966,27 +966,19 @@
         "cnbc_tech": 2,
         "eia_energy": 6,
         "nasdaq_markets": 1,
-        "oilprice": 64,
+        "oilprice": 65,
         "prwire.com.au": 1,
         "scmp": 8
       },
       "theme_id": "energy_transition",
       "top_news_ids": [
-        "news_403f3c2e2a91142e",
         "news_4cee9529467931b2",
+        "news_6f2d2aea876bbc6a",
         "news_dcfaaab52ffac00b",
         "news_e358cfa7e17cb921",
-        "news_d54c9b8ade59120d"
+        "news_403f3c2e2a91142e"
       ],
       "top_news_items": [
-        {
-          "confidence": 0.6,
-          "news_id": "news_403f3c2e2a91142e",
-          "score_component": 0.35,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/Iran-War-Energy-Shock-Puts-Hydrogen-Back-on-the-Table.html",
-          "title": "Iran War Energy Shock Puts Hydrogen Back on the Table"
-        },
         {
           "confidence": 0.7,
           "news_id": "news_4cee9529467931b2",
@@ -994,6 +986,14 @@
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Fuel-Price-Shock-Pushes-Global-Gas-Car-Sales-Below-50-for-First-Time.html",
           "title": "Fuel Price Shock Pushes Global Gas Car Sales Below 50% for First Time"
+        },
+        {
+          "confidence": 0.6,
+          "news_id": "news_6f2d2aea876bbc6a",
+          "score_component": 0.35,
+          "source": "oilprice",
+          "source_url": "https://oilprice.com/Energy/Energy-General/5-Stocks-Cashing-In-as-100-Oil-Pushes-Drivers-Toward-Electric.html",
+          "title": "5 Stocks Cashing In as $100 Oil Pushes Drivers Toward Electric"
         },
         {
           "confidence": 0.9,
@@ -1012,15 +1012,15 @@
           "title": "EU Gas Crunch Forces Rethink of Methane Rules"
         },
         {
-          "confidence": 0.68,
-          "news_id": "news_d54c9b8ade59120d",
-          "score_component": 0.33223438926764365,
+          "confidence": 0.6,
+          "news_id": "news_403f3c2e2a91142e",
+          "score_component": 0.34374297740774995,
           "source": "oilprice",
-          "source_url": "https://oilprice.com/Alternative-Energy/Solar-Energy/Cubas-Fuel-Crisis-Turns-the-Island-Into-a-Solar-Test-Case.html",
-          "title": "Cuba\u2019s Fuel Crisis Turns the Island Into a Solar Test Case"
+          "source_url": "https://oilprice.com/Energy/Energy-General/Iran-War-Energy-Shock-Puts-Hydrogen-Back-on-the-Table.html",
+          "title": "Iran War Energy Shock Puts Hydrogen Back on the Table"
         }
       ],
-      "trend_30d": 5.537599594408645
+      "trend_30d": 5.786839666473649
     },
     "glp1_metabolic": {
       "avg_confidence": 0.6753333333333333,
@@ -1033,25 +1033,25 @@
           "avg_confidence": 0.55,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.04897219294428595
+          "score": 0.04785366651159427
         },
         {
           "avg_confidence": 0.6,
           "item_count": 1,
           "period_start": "2026-08-01",
-          "score": 0.072181502164927
+          "score": 0.07053287437701652
         },
         {
           "avg_confidence": 0.715,
           "item_count": 10,
           "period_start": "2026-09-01",
-          "score": 2.0199576976132154
+          "score": 1.9738218000382417
         },
         {
           "avg_confidence": 0.64,
           "item_count": 2,
           "period_start": "2026-10-01",
-          "score": 0.330058858448932
+          "score": 0.3225203037034016
         }
       ],
       "quarterly_scores": [
@@ -1059,17 +1059,17 @@
           "avg_confidence": 0.6807692307692308,
           "item_count": 13,
           "period_start": "2026-07-01",
-          "score": 2.1411113927224283
+          "score": 2.092208340926853
         },
         {
           "avg_confidence": 0.64,
           "item_count": 2,
           "period_start": "2026-10-01",
-          "score": 0.330058858448932
+          "score": 0.3225203037034016
         }
       ],
       "raw_score": 5.05,
-      "score": 2.4711702511713605,
+      "score": 2.4147286446302543,
       "source_mix": {
         "cnbc_business": 3,
         "cnbc_health": 10,
@@ -1088,7 +1088,7 @@
         {
           "confidence": 0.75,
           "news_id": "news_99c197152932adee",
-          "score_component": 0.31819805153394637,
+          "score_component": 0.3109303979927496,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/09/24/why-we-like-starbucks-latest-turnaround-move-plus-two-more-wins-for-eli-lilly.html",
           "title": "Why we like Starbucks\u2019 latest turnaround move \u2014 plus, two more wins for Eli Lilly"
@@ -1096,7 +1096,7 @@
         {
           "confidence": 0.85,
           "news_id": "news_00daf6599ff60273",
-          "score_component": 0.2761658147611201,
+          "score_component": 0.26985817883459395,
           "source": "cnbc_business",
           "source_url": "https://www.cnbc.com/2026/09/30/eli-lilly-obesity-drug-amylin-tirzepatide-weight-loss-trial.html",
           "title": "Eli Lilly says closely watched combo obesity regimen boosts weight loss in mid-stage trial"
@@ -1104,7 +1104,7 @@
         {
           "confidence": 0.88,
           "news_id": "news_eec8e09ffba78864",
-          "score_component": 0.2620054855728636,
+          "score_component": 0.2560212720119786,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/10/02/lilly-novo-amylin-obesity-drugs.html",
           "title": "Why Lilly and Novo are betting on amylin to power a new wave of obesity drugs after GLP-1s"
@@ -1112,7 +1112,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_bef0fd5b28568bde",
-          "score_component": 0.2605084627392681,
+          "score_component": 0.2545584412271571,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/09/25/5-things-to-know-before-the-stock-market-opens.html",
           "title": "Yields keep rising, Novo's tough week, why cat product sales are surging and more in Morning Squawk"
@@ -1120,18 +1120,18 @@
         {
           "confidence": 0.8,
           "news_id": "news_cbb42f8baac92c65",
-          "score_component": 0.25992076683399545,
+          "score_component": 0.253984168314912,
           "source": "cnbc_health",
           "source_url": "https://www.cnbc.com/2026/09/30/eli-lilly-obesity-drug-amylin-tirzepatide-weight-loss-trial.html",
           "title": "Eli Lilly says closely watched combo obesity regimen boosts weight loss in mid-stage trial"
         }
       ],
-      "trend_30d": 2.2778350538972205
+      "trend_30d": 2.2258092293646268
     },
     "nuclear_renaissance": {
-      "avg_confidence": 0.6058823529411765,
-      "avg_severity": 0.32941176470588235,
-      "item_count": 17,
+      "avg_confidence": 0.6027777777777779,
+      "avg_severity": 0.3333333333333333,
+      "item_count": 18,
       "label": "Nuclear Renaissance",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1139,25 +1139,25 @@
           "avg_confidence": 0.7,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.05305007982786393
+          "score": 0.051838414330029746
         },
         {
           "avg_confidence": 0.525,
           "item_count": 4,
           "period_start": "2026-08-01",
-          "score": 0.17766496714136523
+          "score": 0.1736070936837278
         },
         {
           "avg_confidence": 0.5875,
           "item_count": 8,
           "period_start": "2026-09-01",
-          "score": 0.9631935885699543
+          "score": 0.9411942166030847
         },
         {
-          "avg_confidence": 0.7,
-          "item_count": 4,
+          "avg_confidence": 0.6699999999999999,
+          "item_count": 5,
           "period_start": "2026-10-01",
-          "score": 1.0515075095383701
+          "score": 1.2504602489324343
         }
       ],
       "quarterly_scores": [
@@ -1165,22 +1165,22 @@
           "avg_confidence": 0.5769230769230769,
           "item_count": 13,
           "period_start": "2026-07-01",
-          "score": 1.1939086355391835
+          "score": 1.1666397246168423
         },
         {
-          "avg_confidence": 0.7,
-          "item_count": 4,
+          "avg_confidence": 0.6699999999999999,
+          "item_count": 5,
           "period_start": "2026-10-01",
-          "score": 1.0515075095383701
+          "score": 1.2504602489324343
         }
       ],
-      "raw_score": 5.6,
-      "score": 2.2454161450775536,
+      "raw_score": 6.0,
+      "score": 2.4170999735492766,
       "source_mix": {
         "dol_releases": 1,
         "eia_energy": 1,
         "nasdaq_markets": 2,
-        "oilprice": 13
+        "oilprice": 14
       },
       "theme_id": "nuclear_renaissance",
       "top_news_ids": [
@@ -1188,7 +1188,7 @@
         "news_252e2ae3e1380ac1",
         "news_73520492f1376391",
         "news_6995ecde1054abea",
-        "news_2c45c495b607e4c1"
+        "news_56f7d6c061a081f1"
       ],
       "top_news_items": [
         {
@@ -1202,7 +1202,7 @@
         {
           "confidence": 0.8,
           "news_id": "news_252e2ae3e1380ac1",
-          "score_component": 0.28284271247461906,
+          "score_component": 0.2763825759935552,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Italy-Returns-to-Nuclear-After-40-Year-Hiatus.html",
           "title": "Italy Returns to Nuclear After 40-Year Hiatus"
@@ -1210,7 +1210,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_73520492f1376391",
-          "score_component": 0.2493713688428363,
+          "score_component": 0.24367571890687068,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Amazon-Secures-20-Years-of-Nuclear-Power-From-Constellation.html",
           "title": "Amazon Secures 20 Years of Nuclear Power From Constellation"
@@ -1218,26 +1218,26 @@
         {
           "confidence": 0.7,
           "news_id": "news_6995ecde1054abea",
-          "score_component": 0.233936192958052,
+          "score_component": 0.22859308292651778,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Metals/Gold/Data-Centers-Are-Now-Bankrolling-Finlands-New-Power-Supply.html",
           "title": "Data Centers Are Now Bankrolling Finland's New Power Supply"
         },
         {
-          "confidence": 0.75,
-          "news_id": "news_2c45c495b607e4c1",
-          "score_component": 0.21819994773748175,
+          "confidence": 0.55,
+          "news_id": "news_56f7d6c061a081f1",
+          "score_component": 0.21497519305553411,
           "source": "oilprice",
-          "source_url": "https://oilprice.com/Alternative-Energy/Nuclear-Power/Historic-Superconductor-Deal-Brings-Commercial-Fusion-a-Step-Closer.html",
-          "title": "Historic Superconductor Deal Brings Commercial Fusion a Step Closer"
+          "source_url": "https://oilprice.com/Geopolitics/International/Pashinyans-Nuclear-U-Turn-Gives-Moscow-an-Opening-in-Armenia.html",
+          "title": "Pashinyan\u2019s Nuclear U-Turn Gives Moscow an Opening in Armenia"
         }
       ],
-      "trend_30d": 1.4191696382300565
+      "trend_30d": 1.60972496299927
     },
     "physical_ai": {
-      "avg_confidence": 0.5630434782608695,
-      "avg_severity": 0.35000000000000003,
-      "item_count": 23,
+      "avg_confidence": 0.5625,
+      "avg_severity": 0.34375,
+      "item_count": 24,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1245,25 +1245,25 @@
           "avg_confidence": 0.6,
           "item_count": 3,
           "period_start": "2026-07-01",
-          "score": 0.16685785185942725
+          "score": 0.16304681325596404
         },
         {
           "avg_confidence": 0.4666666666666666,
           "item_count": 6,
           "period_start": "2026-08-01",
-          "score": 0.3103711468035073
+          "score": 0.3032822600134159
         },
         {
           "avg_confidence": 0.5863636363636364,
           "item_count": 11,
           "period_start": "2026-09-01",
-          "score": 1.661649588775219
+          "score": 1.6316914707643846
         },
         {
-          "avg_confidence": 0.6333333333333333,
-          "item_count": 3,
+          "avg_confidence": 0.6125,
+          "item_count": 4,
           "period_start": "2026-10-01",
-          "score": 0.712685881979477
+          "score": 0.8038957104663655
         }
       ],
       "quarterly_scores": [
@@ -1271,24 +1271,24 @@
           "avg_confidence": 0.5525,
           "item_count": 20,
           "period_start": "2026-07-01",
-          "score": 2.1388785874381533
+          "score": 2.0980205440337647
         },
         {
-          "avg_confidence": 0.6333333333333333,
-          "item_count": 3,
+          "avg_confidence": 0.6125,
+          "item_count": 4,
           "period_start": "2026-10-01",
-          "score": 0.712685881979477
+          "score": 0.8038957104663655
         }
       ],
-      "raw_score": 8.05,
-      "score": 2.8515644694176303,
+      "raw_score": 8.25,
+      "score": 2.9019162545001302,
       "source_mix": {
         "cnbc_business": 1,
         "cnbc_economy": 1,
         "cnbc_finance": 5,
         "cnbc_markets": 2,
         "cnbc_retail": 1,
-        "cnbc_tech": 5,
+        "cnbc_tech": 6,
         "finanznachrichten.de": 1,
         "housingwire": 1,
         "nasdaq_markets": 1,
@@ -1315,7 +1315,7 @@
         {
           "confidence": 0.55,
           "news_id": "news_843166fc01b835d9",
-          "score_component": 0.28728168588772096,
+          "score_component": 0.2807201631137824,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/The-Iran-War-Is-Showing-What-ADNOCs-AI-Can-Really-Do.html",
           "title": "The Iran War Is Showing What ADNOC\u2019s AI Can Really Do"
@@ -1323,7 +1323,7 @@
         {
           "confidence": 0.7,
           "news_id": "news_f02cb3b8026d1979",
-          "score_component": 0.28428833872468245,
+          "score_component": 0.27779518409443493,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/09/30/musk-luckey-gingrich-pentagon-hegseth-.html",
           "title": "Elon Musk, Palmer Luckey and Newt Gingrich to help Pentagon with warfare initiative, Hegseth says"
@@ -1331,7 +1331,7 @@
         {
           "confidence": 0.65,
           "news_id": "news_97f988a62b4b5ff8",
-          "score_component": 0.24258857779956994,
+          "score_component": 0.23704784702513637,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/06/anduril-navy-submarine-shipyard-contract.html",
           "title": "Anduril lands $2.9 billion Navy submarine shipyard contract days after Luckey joins Pentagon weapons group"
@@ -1339,13 +1339,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_fec223748567479c",
-          "score_component": 0.2072869319951664,
+          "score_component": 0.2025524919252285,
           "source": "cnbc_retail",
           "source_url": "https://www.cnbc.com/2026/09/12/housing-shortage-home-construction-robots.html",
           "title": "Construction robots are tackling America's housing shortage, but we're a long way from humanoid homebuilders"
         }
       ],
-      "trend_30d": 2.0469509807321717
+      "trend_30d": 2.1156801632944777
     },
     "quantum_computing": {
       "avg_confidence": 0.7,
@@ -1358,7 +1358,7 @@
           "avg_confidence": 0.7,
           "item_count": 2,
           "period_start": "2026-09-01",
-          "score": 0.37443795100220506
+          "score": 0.3658857763818984
         }
       ],
       "quarterly_scores": [
@@ -1366,11 +1366,11 @@
           "avg_confidence": 0.7,
           "item_count": 2,
           "period_start": "2026-07-01",
-          "score": 0.37443795100220506
+          "score": 0.3658857763818984
         }
       ],
       "raw_score": 0.7,
-      "score": 0.37443795100220506,
+      "score": 0.3658857763818984,
       "source_mix": {
         "nasdaq_markets": 1,
         "oilprice": 1
@@ -1384,7 +1384,7 @@
         {
           "confidence": 0.85,
           "news_id": "news_3760ff029c420d9c",
-          "score_component": 0.2404163056034262,
+          "score_component": 0.23492518959452194,
           "source": "nasdaq_markets",
           "source_url": "https://www.nasdaq.com/articles/why-ionq-stock-today",
           "title": "Why IonQ Stock Is Up Today"
@@ -1392,18 +1392,18 @@
         {
           "confidence": 0.55,
           "news_id": "news_e41f0eb48479d243",
-          "score_component": 0.13402164539877887,
+          "score_component": 0.13096058678737646,
           "source": "oilprice",
           "source_url": "https://oilprice.com/Energy/Energy-General/Can-Quantum-Computing-Tame-AIs-Energy-Appetite.html",
           "title": "Can Quantum Computing Tame AI's Energy Appetite?"
         }
       ],
-      "trend_30d": 0.37443795100220506
+      "trend_30d": 0.3658857763818984
     },
     "space_economy": {
-      "avg_confidence": 0.5461111111111111,
-      "avg_severity": 0.2511111111111111,
-      "item_count": 18,
+      "avg_confidence": 0.5589999999999999,
+      "avg_severity": 0.2735,
+      "item_count": 20,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1411,25 +1411,25 @@
           "avg_confidence": 0.8,
           "item_count": 1,
           "period_start": "2026-07-01",
-          "score": 0.0723634618720189
+          "score": 0.07071067811865477
         },
         {
           "avg_confidence": 0.44000000000000006,
           "item_count": 5,
           "period_start": "2026-08-01",
-          "score": 0.126554914634695
+          "score": 0.12366439638963726
         },
         {
           "avg_confidence": 0.51,
           "item_count": 8,
           "period_start": "2026-09-01",
-          "score": 0.5964935960917026
+          "score": 0.5828696635281979
         },
         {
-          "avg_confidence": 0.6875,
-          "item_count": 4,
+          "avg_confidence": 0.6833333333333332,
+          "item_count": 6,
           "period_start": "2026-10-01",
-          "score": 0.9977448556615298
+          "score": 1.4630893498139603
         }
       ],
       "quarterly_scores": [
@@ -1437,20 +1437,20 @@
           "avg_confidence": 0.5057142857142857,
           "item_count": 14,
           "period_start": "2026-07-01",
-          "score": 0.7954119725984166
+          "score": 0.7772447380364899
         },
         {
-          "avg_confidence": 0.6875,
-          "item_count": 4,
+          "avg_confidence": 0.6833333333333332,
+          "item_count": 6,
           "period_start": "2026-10-01",
-          "score": 0.9977448556615298
+          "score": 1.4630893498139603
         }
       ],
-      "raw_score": 4.5200000000000005,
-      "score": 1.7931568282599464,
+      "raw_score": 5.470000000000001,
+      "score": 2.2403340878504503,
       "source_mix": {
         "bbc_world": 1,
-        "cnbc_tech": 5,
+        "cnbc_tech": 7,
         "housingwire": 1,
         "marketwatch": 1,
         "nasdaq_markets": 4,
@@ -1459,13 +1459,21 @@
       },
       "theme_id": "space_economy",
       "top_news_ids": [
+        "news_1379cfca3317a4bc",
         "news_c7e56334a9c9320b",
         "news_f5e54cb550473429",
         "news_a8ee363c0c107ded",
-        "news_ff6b37ee817db7a3",
-        "news_eff54c1209635426"
+        "news_ff6b37ee817db7a3"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.85,
+          "news_id": "news_1379cfca3317a4bc",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/10/09/verizon-att-tmobile-stocks-spacex-network.html",
+          "title": "Verizon posts worst day since 2002 as SpaceX U.S. network plans whack cell provider stocks"
+        },
         {
           "confidence": 0.8,
           "news_id": "news_c7e56334a9c9320b",
@@ -1485,7 +1493,7 @@
         {
           "confidence": 0.6,
           "news_id": "news_a8ee363c0c107ded",
-          "score_component": 0.164110047940479,
+          "score_component": 0.16036176926526105,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/05/spacex-stock-climbs-highest-since-june-returning-musk-to-trillionaire.html",
           "title": "SpaceX stock climbs to highest since June, returning Musk to trillionaire status"
@@ -1493,21 +1501,13 @@
         {
           "confidence": 0.6,
           "news_id": "news_ff6b37ee817db7a3",
-          "score_component": 0.1620419935401828,
+          "score_component": 0.1583409492927473,
           "source": "housingwire",
           "source_url": "https://www.housingwire.com/articles/housing-boom-expected-to-follow-spacex-louisiana-arrival/",
           "title": "Housing boom expected to follow SpaceX Louisiana arrival"
-        },
-        {
-          "confidence": 0.5,
-          "news_id": "news_eff54c1209635426",
-          "score_component": 0.13363480772105088,
-          "source": "oilprice",
-          "source_url": "https://oilprice.com/Energy/Energy-General/Pentagon-Backs-Ambitious-Plan-to-Beam-Solar-Power-From-Space.html",
-          "title": "Pentagon Backs Ambitious Plan to Beam Solar Power From Space"
         }
       ],
-      "trend_30d": 1.4676835371185375
+      "trend_30d": 1.922294616952521
     }
   },
   "source_files": {
@@ -1529,197 +1529,197 @@
   "vintage_freshness": [
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "BAA10Y",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "BAMLH0A0HYM2",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-08-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "CPIAUCSL",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-10-06",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DCOILWTICO",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DFII10",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DGS10",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DGS2",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DTB3",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2019-12-31",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DTWEXB",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-10-02",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "DTWEXBGS",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "FEDFUNDS",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2036-10-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "GDPPOT",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-08-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "HOUST",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-10-03",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "ICSA",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-08-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "INDPRO",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-08-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "M2SL",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "MCOILWTICO",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-10-02",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "NFCI",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-07-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "NNUSBIS",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "PAYEMS",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-08-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "PCEPI",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-08",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-09",
+      "max_realtime_start": "2026-10-09",
       "series_id": "T10Y2Y",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-08",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-09",
+      "max_realtime_start": "2026-10-09",
       "series_id": "T10YIE",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-08",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-09",
+      "max_realtime_start": "2026-10-09",
       "series_id": "T5YIFR",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-10-02",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "THREEFYTP10",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2019-12-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "TWEXBMTH",
       "stale": false
     },
     {
       "age_days": 1,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "UNRATE",
       "stale": false
     },
     {
       "age_days": 1,
-      "max_observation_date": "2026-10-07",
-      "max_realtime_start": "2026-10-08",
+      "max_observation_date": "2026-10-08",
+      "max_realtime_start": "2026-10-09",
       "series_id": "VIXCLS",
       "stale": false
     }
