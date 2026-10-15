@@ -15,8 +15,9 @@ _CONFIG_PATH = Path("config/shocks.yaml")
 # S4.4: bumped when the narrative_themes and risk_flags blocks (the §3.5 theme map and
 # the T3 impact-study promotion) were added to config/shocks.yaml -- taxonomy_version is
 # a hash of the file's bytes, so any edit to it, including this one, is expected to move
-# this constant.
-EXPECTED_TAXONOMY_VERSION = "560fc4accd6be2d6dfa43c23ee513f2e32b71b39028eaaa3ec77790d1df9465d"
+# this constant. 2026-10-15: bumped again for per-shock max_lag_trading_days and the oil
+# shock's daily_tail block (operator ruling: a week of FRED lag is not acceptable for oil).
+EXPECTED_TAXONOMY_VERSION = "89f5ea590d371f040bd58ea15c98d28a46bb85bdc7849c297acc17df4d6f5336"
 
 
 def test_shocks_config_file_loads() -> None:

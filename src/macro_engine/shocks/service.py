@@ -7,11 +7,12 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import duckdb
 import pandas as pd
 
+from macro_engine.ingest.yahoo_oil import fetch_chart_payload, parse_closed_bars
 from macro_engine.news.config import load_news_themes_config
 from macro_engine.shocks.config import load_shocks_config
 from macro_engine.shocks.narrative import attach_narrative
@@ -32,10 +33,17 @@ def build_and_write_shock_register(
     attach_news: bool = True,
     mock_ai: bool = False,
     source_run_id: str | None = None,
+    fetch_oil_tail: bool = True,
+    oil_fetcher: Callable[[str], bytes] = fetch_chart_payload,
 ) -> tuple[Path, Path]:
     config = load_shocks_config(config_path)
     store = DuckDBStore(db_path)
     store.initialize()
+
+    tail_reasons: list[str] = []
+    tail_cfg = (config["shocks"].get("oil_shock") or {}).get("daily_tail")
+    if tail_cfg and fetch_oil_tail:
+        tail_reasons = _refresh_oil_tail(store, tail_cfg["symbol"], oil_fetcher)
 
     con = duckdb.connect(str(store.db_path), read_only=True)
     try:
@@ -51,6 +59,7 @@ def build_and_write_shock_register(
     payload = build_shock_register_artifact(
         history, config, as_of_date, built_at=built_at, source_run_id=source_run_id
     )
+    payload["reasons"] = payload["reasons"] + tail_reasons
 
     if attach_news:
         themes_cfg = load_news_themes_config(news_themes_config_path)
@@ -75,6 +84,22 @@ def build_and_write_shock_register(
     return json_path, markdown_path
 
 
+def _refresh_oil_tail(store: DuckDBStore, symbol: str, fetcher: Callable[[str], bytes]) -> list[str]:
+    """Fetch and store the newest closed Yahoo bars for the oil tail. Never raises: the
+    register is annotation-only, so a failed fetch leaves the stored closes as they were,
+    the oil reading falls back to whatever is stored (or FRED alone, flagged stale), and the
+    failure is named in the artifact's reasons."""
+    try:
+        frame = parse_closed_bars(fetcher(symbol), symbol)
+        store.upsert_market_observations(frame)
+    except Exception as exc:  # noqa: BLE001 -- any fetch/parse failure degrades, loudly
+        print(f"shocks: oil tail fetch failed ({type(exc).__name__}: {exc})", flush=True)
+        return [f"oil_tail_fetch_failed:{type(exc).__name__}"]
+    if frame.empty:
+        return ["oil_tail_fetch_empty"]
+    return []
+
+
 def _resolve_as_of(as_of: str | None, history: pd.DataFrame) -> date:
     if as_of is not None:
         return pd.Timestamp(as_of).date()
@@ -96,14 +121,20 @@ def register_markdown(payload: dict[str, Any]) -> str:
         "",
         payload.get("disclaimer", ""),
         "",
-        "| shock | value | severity | direction | intensity | state | onset | age (d) | stale | proxy |",
-        "|---|---|---|---|---|---|---|---|---|---|",
+        "| shock | value | value date | source | severity | direction | intensity | state | episode direction | peak severity | peak value | onset | age (d) | lag (td) | stale | proxy |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for row in payload.get("shocks", []):
         lines.append(
-            "| {shock_id} | {value} | {severity} | {direction} | {intensity} | {state} | {onset} | {age} | {stale} | {proxy} |".format(
+            "| {shock_id} | {value} | {value_date} | {source} | {severity} | {direction} | {intensity} | {state} | {ep_dir} | {peak_sev} | {peak_val} | {onset} | {age} | {lag} | {stale} | {proxy} |".format(
                 shock_id=row["shock_id"],
                 value="n/a" if row["value"] is None else f"{row['value']:.4f}",
+                value_date=row.get("value_date") or "-",
+                source=(row.get("value_source") or "-") + (" (provisional)" if row.get("provisional") else ""),
+                ep_dir=row.get("episode_direction") or "-",
+                peak_sev="-" if row.get("peak_severity") is None else row["peak_severity"],
+                peak_val="-" if row.get("peak_value") is None else f"{row['peak_value']:.4f}",
+                lag="n/a" if row.get("lag_trading_days") is None else f"{row['lag_trading_days']}/{row.get('max_lag_trading_days')}",
                 severity=row["severity"],
                 direction=row["direction"],
                 intensity="n/a" if row["intensity"] is None else f"{row['intensity']:.3f}",

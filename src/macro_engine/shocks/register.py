@@ -48,7 +48,11 @@ _ROW_COLUMNS = [
     "shock_id", "date", "series_id", "measure", "value", "value_date", "direction",
     "intensity", "severity", "active", "state", "onset_date", "age_days",
     "peak_intensity", "peak_date", "proxy", "stale_input", "values_revised", "reason",
+    "episode_direction", "peak_severity", "peak_value", "lag_trading_days", "value_source",
+    "provisional",
 ]
+
+OIL_TAIL_SOURCE = "yahoo_cl_chained"
 
 
 def _load_series(con: duckdb.DuckDBPyConnection, series_id: str) -> pd.Series:
@@ -65,6 +69,77 @@ def _load_series(con: duckdb.DuckDBPyConnection, series_id: str) -> pd.Series:
     df["date"] = pd.to_datetime(df["date"])
     series = df.drop_duplicates(subset="date", keep="last").set_index("date")["value"].sort_index()
     return series
+
+
+def _load_market_series(con: duckdb.DuckDBPyConnection, series_id: str) -> pd.Series:
+    """Daily closes from `market_observations` (the oil tail's Yahoo input). Empty when the
+    table does not exist yet or holds nothing for `series_id`."""
+    try:
+        df = con.execute(
+            "SELECT date, value FROM market_observations WHERE series_id = ? AND value IS NOT NULL ORDER BY date",
+            [series_id],
+        ).df()
+    except duckdb.CatalogException:
+        return pd.Series(dtype=float)
+    if df.empty:
+        return pd.Series(dtype=float)
+    df["date"] = pd.to_datetime(df["date"])
+    return df.drop_duplicates(subset="date", keep="last").set_index("date")["value"].sort_index()
+
+
+def _oil_levels_with_tail(
+    fred_levels: pd.Series, market_closes: pd.Series, *, max_anchor_gap_days: int
+) -> tuple[pd.Series, pd.Timestamp | None, str | None]:
+    """FRED spot levels, extended past FRED's last observation by chaining market daily
+    RETURNS onto the last FRED level: `est[t] = fred[d0] * close[t] / close[anchor]`.
+    Levels are never mixed -- front-month futures and spot can sit ~7% apart in a supply
+    shock, while their day-to-day moves agree closely (measured 2026-10-15, see
+    config/shocks.yaml oil_shock.daily_tail).
+
+    Returns `(levels, last_fred_date, reason)`. `last_fred_date` is None and `reason` says
+    why when no tail can be chained; the FRED levels are then returned unchanged."""
+    if fred_levels.empty:
+        return fred_levels, None, "oil_tail_unavailable:no_fred_levels"
+    if market_closes.empty:
+        return fred_levels, None, "oil_tail_unavailable:no_market_closes"
+    d0 = fred_levels.index[-1]
+    anchors = market_closes[market_closes.index <= d0]
+    if anchors.empty or (d0 - anchors.index[-1]).days > max_anchor_gap_days:
+        return fred_levels, None, "oil_tail_unavailable:no_anchor_close"
+    tail = market_closes[market_closes.index > d0]
+    if tail.empty:
+        return fred_levels, d0, None
+    estimated = float(fred_levels.iloc[-1]) * tail / float(anchors.iloc[-1])
+    return pd.concat([fred_levels, estimated]), d0, None
+
+
+class _EpisodeTracker:
+    """Episode memory kept beside the state machine (2026-10-15), so a shock that is still
+    `active`/`decaying` after its reading drops under the trigger keeps saying what it was.
+    `severity`/`direction` stay TODAY's threshold reading; these fields never replace them.
+
+    - episode_direction: direction of the most recent trigger crossing in this episode.
+    - peak_severity: the highest severity reached in this episode.
+    - peak_value: the reading on `peak_date` (the state machine's peak-intensity day).
+    All three are None whenever the shock is not active (inactive or retired_sunset)."""
+
+    def __init__(self) -> None:
+        self.onset: date | None = None
+        self.direction: str | None = None
+        self.peak_severity: int | None = None
+        self.peak_value: float | None = None
+
+    def update(self, state: ShockEpisodeState, *, today: date, severity: int, direction: str, value: float | None) -> None:
+        if not is_active(state):
+            self.onset, self.direction, self.peak_severity, self.peak_value = None, None, None, None
+            return
+        if state.onset_date != self.onset:
+            self.onset, self.direction, self.peak_severity, self.peak_value = state.onset_date, None, 0, None
+        if severity >= 1:
+            self.direction = direction
+            self.peak_severity = max(self.peak_severity or 0, severity)
+        if state.peak_date == today:
+            self.peak_value = value
 
 
 def _trading_calendar(con: duckdb.DuckDBPyConnection, start_date: str, end_date: str | None) -> pd.DatetimeIndex:
@@ -114,6 +189,11 @@ def _ffill_onto_calendar(
     return value_ff, date_ff
 
 
+def _lag_limit(shock_cfg: dict[str, Any]) -> int:
+    """`max_lag_trading_days` from config/shocks.yaml (each source's publication cadence)."""
+    return int(shock_cfg.get("max_lag_trading_days", STALE_INPUT_TRADING_DAYS))
+
+
 def _trading_day_gap(calendar: pd.DatetimeIndex, value_dates: pd.Series) -> pd.Series:
     """How many canonical trading days separate `calendar[i]` from the last calendar day
     at or before `value_dates[i]`. Used only for `stale_input` (DCOILWTICO)."""
@@ -150,9 +230,16 @@ def _run_single_leg_shock(
     forced_reason: dict[date, str] | None = None,
     stale_gap: pd.Series | None = None,
     values_revised: bool = False,
+    max_lag_trading_days: int = STALE_INPUT_TRADING_DAYS,
+    tail_after: pd.Timestamp | None = None,
 ) -> pd.DataFrame:
+    """`stale_gap` (trading days between each calendar day and its reading's date) drives
+    `lag_trading_days` and `stale_input` (gap > `max_lag_trading_days`). Rows whose reading
+    is dated after `tail_after` came from the chained oil tail: `value_source` says so and
+    they are `provisional` until FRED publishes."""
     rows: list[dict[str, Any]] = []
     state = ShockEpisodeState()
+    episode = _EpisodeTracker()
     forced_reason = forced_reason or {}
     for i, ts in enumerate(calendar):
         today = ts.date()
@@ -176,8 +263,11 @@ def _run_single_leg_shock(
             intensity=intensity,
             sunset_days=sunset_days,
         )
+        episode.update(state, today=today, severity=severity, direction=direction, value=value)
         vd = value_dates.iloc[i]
-        stale = bool(stale_gap.iloc[i] > STALE_INPUT_TRADING_DAYS) if stale_gap is not None and value is not None else False
+        lag = int(stale_gap.iloc[i]) if stale_gap is not None and value is not None else None
+        stale = bool(lag > max_lag_trading_days) if lag is not None else False
+        from_tail = bool(tail_after is not None and not pd.isna(vd) and pd.Timestamp(vd) > tail_after)
         rows.append(
             {
                 "shock_id": shock_id,
@@ -199,6 +289,12 @@ def _run_single_leg_shock(
                 "stale_input": stale,
                 "values_revised": values_revised,
                 "reason": reason,
+                "episode_direction": episode.direction,
+                "peak_severity": episode.peak_severity,
+                "peak_value": episode.peak_value,
+                "lag_trading_days": lag,
+                "value_source": None if value is None else (OIL_TAIL_SOURCE if from_tail else "fred"),
+                "provisional": from_tail,
             }
         )
     return pd.DataFrame(rows, columns=_ROW_COLUMNS)
@@ -217,6 +313,9 @@ def _run_rates_shock(
     dfii10_series_id: str,
     dgs2_series_id: str,
     measure_label: str,
+    dfii_gap: pd.Series | None = None,
+    dgs2_gap: pd.Series | None = None,
+    max_lag_trading_days: int = STALE_INPUT_TRADING_DAYS,
 ) -> pd.DataFrame:
     """§3.2: DFII10 primary once it exists (2003-01 on), DGS2 always computed beside it
     as the policy leg -- whichever leg's severity is higher wins the day, DFII10 breaking
@@ -227,6 +326,7 @@ def _run_rates_shock(
     dgs2_th = thresholds["dgs2"]
     rows: list[dict[str, Any]] = []
     state = ShockEpisodeState()
+    episode = _EpisodeTracker()
     for i, ts in enumerate(calendar):
         today = ts.date()
         v_dfii = dfii_values.iloc[i]
@@ -281,6 +381,9 @@ def _run_rates_shock(
             intensity=intensity,
             sunset_days=sunset_days,
         )
+        episode.update(state, today=today, severity=severity, direction=direction, value=value)
+        leg_gap = dgs2_gap if proxy else dfii_gap
+        lag = int(leg_gap.iloc[i]) if leg_gap is not None and value is not None else None
         rows.append(
             {
                 "shock_id": "rates_shock",
@@ -299,9 +402,15 @@ def _run_rates_shock(
                 "peak_intensity": state.peak_intensity,
                 "peak_date": state.peak_date,
                 "proxy": proxy,
-                "stale_input": False,
+                "stale_input": bool(lag > max_lag_trading_days) if lag is not None else False,
                 "values_revised": False,
                 "reason": reason,
+                "episode_direction": episode.direction,
+                "peak_severity": episode.peak_severity,
+                "peak_value": episode.peak_value,
+                "lag_trading_days": lag,
+                "value_source": None if value is None else "fred",
+                "provisional": False,
             }
         )
     return pd.DataFrame(rows, columns=_ROW_COLUMNS)
@@ -322,6 +431,25 @@ def build_shock_register_history(
     shocks_cfg = config["shocks"]
     frames: list[pd.DataFrame] = []
 
+    # Oil's daily tail (operator ruling 2026-10-15) is resolved first: its dates extend the
+    # canonical calendar past VIXCLS's last FRED date, so the newest oil reading gets a row.
+    # Every other shock is forward-filled onto those extra days and its lag says so.
+    oil_cfg = shocks_cfg["oil_shock"]
+    oil_levels = _load_series(con, oil_cfg["series_id"])
+    oil_tail_after, oil_tail_reason = None, None
+    tail_cfg = oil_cfg.get("daily_tail")
+    if tail_cfg:
+        oil_levels, oil_tail_after, oil_tail_reason = _oil_levels_with_tail(
+            oil_levels,
+            _load_market_series(con, tail_cfg["symbol"]),
+            max_anchor_gap_days=int(tail_cfg["max_anchor_gap_days"]),
+        )
+        if oil_tail_after is not None and len(calendar):
+            extra = oil_levels.index[(oil_levels.index > calendar[-1]) & (oil_levels.index > oil_tail_after)]
+            if end_date is not None:
+                extra = extra[extra <= pd.Timestamp(end_date)]
+            calendar = pd.DatetimeIndex(sorted(calendar.union(extra)))
+
     # volatility_shock: transform is the level itself (no differencing).
     cfg = shocks_cfg["volatility_shock"]
     vix_native = _load_series(con, cfg["series_id"])
@@ -338,6 +466,8 @@ def build_shock_register_history(
             sunset_days=cfg["sunset_days"],
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
+            stale_gap=_trading_day_gap(calendar, value_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -357,6 +487,8 @@ def build_shock_register_history(
             sunset_days=cfg["sunset_days"],
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
+            stale_gap=_trading_day_gap(calendar, value_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -379,6 +511,9 @@ def build_shock_register_history(
             dfii10_series_id=cfg["series_id"],
             dgs2_series_id=cfg["proxy_series_id"],
             measure_label=cfg["measure"],
+            dfii_gap=_trading_day_gap(calendar, dfii_dates),
+            dgs2_gap=_trading_day_gap(calendar, dgs2_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -386,8 +521,9 @@ def build_shock_register_history(
     # 93.3% of trading days (accepted STOP, S4 plan "Resolution STOP") -- forward-filled
     # and flagged `stale_input` beyond 5 trading days, never guessed.
     cfg = shocks_cfg["oil_shock"]
-    oil_native = log_change_63d_pct(_load_series(con, cfg["series_id"]))
+    oil_native = log_change_63d_pct(oil_levels)
     values, value_dates = _ffill_onto_calendar(oil_native, calendar)
+    oil_forced = {calendar[-1].date(): oil_tail_reason} if oil_tail_reason and len(calendar) else None
     gap = _trading_day_gap(calendar, value_dates)
     frames.append(
         _run_single_leg_shock(
@@ -402,6 +538,9 @@ def build_shock_register_history(
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
             stale_gap=gap,
+            max_lag_trading_days=_lag_limit(cfg),
+            tail_after=oil_tail_after,
+            forced_reason=oil_forced,
         )
     )
 
@@ -437,6 +576,8 @@ def build_shock_register_history(
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
             forced_reason=forced,
+            stale_gap=_trading_day_gap(calendar, value_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -461,6 +602,8 @@ def build_shock_register_history(
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
             values_revised=True,
+            stale_gap=_trading_day_gap(calendar, value_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -483,6 +626,8 @@ def build_shock_register_history(
             series_id=cfg["series_id"],
             measure_label=cfg["measure"],
             forced_reason=forced,
+            stale_gap=_trading_day_gap(calendar, value_dates),
+            max_lag_trading_days=_lag_limit(cfg),
         )
     )
 
@@ -573,6 +718,13 @@ def build_shock_register_artifact(
                     "stale_input": False,
                     "values_revised": False,
                     "reason": "no_data_on_date",
+                    "episode_direction": None,
+                    "peak_severity": None,
+                    "peak_value": None,
+                    "lag_trading_days": None,
+                    "max_lag_trading_days": _lag_limit(cfg),
+                    "value_source": None,
+                    "provisional": False,
                 }
             )
             continue
@@ -602,6 +754,13 @@ def build_shock_register_artifact(
                 "stale_input": bool(r["stale_input"]),
                 "values_revised": bool(r["values_revised"]),
                 "reason": reason,
+                "episode_direction": _none_or_str(r["episode_direction"]),
+                "peak_severity": _none_or_int(r["peak_severity"]),
+                "peak_value": _none_or_float(r["peak_value"]),
+                "lag_trading_days": _none_or_int(r["lag_trading_days"]),
+                "max_lag_trading_days": _lag_limit(cfg),
+                "value_source": _none_or_str(r["value_source"]),
+                "provisional": bool(r["provisional"]) if not pd.isna(r["provisional"]) else False,
             }
         )
 
@@ -636,6 +795,18 @@ def _none_or_float(value: Any) -> float | None:
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     return float(value)
+
+
+def _none_or_int(value: Any) -> int | None:
+    if value is None or pd.isna(value):
+        return None
+    return int(value)
+
+
+def _none_or_str(value: Any) -> str | None:
+    if value is None or (not isinstance(value, str) and pd.isna(value)):
+        return None
+    return str(value)
 
 
 def _none_or_iso(value: Any) -> str | None:

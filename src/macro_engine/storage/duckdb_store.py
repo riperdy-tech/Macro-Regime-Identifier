@@ -931,6 +931,35 @@ class DuckDBStore:
                 )
                 """
             )
+            # 2026-10-15: per-shock episode memory and input freshness. `direction` and
+            # `severity` stay TODAY's threshold reading; the episode columns say what the
+            # episode was while it is still active/decaying.
+            for column_sql in (
+                "episode_direction TEXT",
+                "peak_severity INTEGER",
+                "peak_value DOUBLE",
+                "lag_trading_days INTEGER",
+                "value_source TEXT",
+                "provisional BOOLEAN",
+            ):
+                con.execute(f"ALTER TABLE shock_register ADD COLUMN IF NOT EXISTS {column_sql}")
+            # 2026-10-15 (operator ruling): the one non-FRED numeric input. Daily closes for
+            # the oil shock's provisional tail only -- kept out of raw_observations so that
+            # table stays FRED-only and nothing that reads it (Layer 1, the rs2/v4 risk-free
+            # rate) can pick these up.
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS market_observations (
+                    series_id TEXT,
+                    date DATE,
+                    value DOUBLE,
+                    source TEXT,
+                    fetched_at TIMESTAMP,
+                    payload_sha256 TEXT,
+                    PRIMARY KEY (series_id, date)
+                )
+                """
+            )
 
     def record_ingestion_run(self, record: dict[str, Any]) -> None:
         frame = pd.DataFrame([record | {"errors": json.dumps(record.get("errors", []))}])
@@ -1221,6 +1250,8 @@ class DuckDBStore:
         "intensity", "severity", "active", "state", "onset_date", "age_days",
         "peak_intensity", "peak_date", "proxy", "stale_input", "values_revised",
         "reason", "taxonomy_version", "source_run_id", "built_at",
+        "episode_direction", "peak_severity", "peak_value", "lag_trading_days",
+        "value_source", "provisional",
     )
 
     def replace_shock_register(self, history: pd.DataFrame) -> None:
@@ -1245,6 +1276,18 @@ class DuckDBStore:
                 SELECT {columns_sql} FROM shock_register_frame
                 """
             )
+
+    def upsert_market_observations(self, frame: pd.DataFrame) -> int:
+        """Insert or replace `(series_id, date)` rows of `market_observations`. A later
+        fetch of the same date replaces the earlier one (a close can be corrected)."""
+        if frame.empty:
+            return 0
+        columns = ("series_id", "date", "value", "source", "fetched_at", "payload_sha256")
+        columns_sql = ", ".join(columns)
+        with self._connect() as con:
+            con.register("market_frame", frame[list(columns)].copy())
+            con.execute(f"INSERT OR REPLACE INTO market_observations ({columns_sql}) SELECT {columns_sql} FROM market_frame")
+        return len(frame)
 
     def read_shock_register(self, shock_id: str | None = None) -> pd.DataFrame:
         with self._connect() as con:

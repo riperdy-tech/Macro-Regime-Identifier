@@ -15,6 +15,7 @@ shocks:
     R: 10
     retire_level: 25.0
     sunset_days: 120
+    max_lag_trading_days: 2  # stale_input beyond this; VIXCLS is the canonical calendar; FRED posts it the next day
     sample_window: "1990-01..2026-09"
     thresholds:
       up:
@@ -39,6 +40,7 @@ shocks:
     R: 10
     retire_level: 0.0
     sunset_days: 180
+    max_lag_trading_days: 3  # stale_input beyond this; BAA10Y daily, posted next business day
     sample_window: "1986-01..2026-09"
     thresholds:
       up:
@@ -64,6 +66,7 @@ shocks:
     R: 10
     retire_level: 25.0
     sunset_days: 240
+    max_lag_trading_days: 3  # stale_input beyond this; DFII10/DGS2 daily, posted next business day
     sample_window: "2003-01..2026-09 (DFII10); 1990-01..2026-09 (DGS2)"
     thresholds:
       dfii10:
@@ -123,6 +126,17 @@ shocks:
     R: 10
     retire_level: 10.0
     sunset_days: 180
+    max_lag_trading_days: 3  # stale_input beyond this; daily; the FRED series alone is ~weekly, so the Yahoo tail below carries the gap
+    # Operator ruling 2026-10-15: a week of FRED lag is not acceptable for oil. After the
+    # last FRED observation, Yahoo CL=F daily closes are CHAINED onto the last FRED spot
+    # level (returns, never levels: in the 2026-09 episode front-month and spot diverged
+    # ~7%). Measured 2005-2026, n 5,241: 63-day change error MAE 0.48pp, p95 1.85pp over
+    # an 8-day tail. Tail rows are provisional and FRED replaces them on publication.
+    daily_tail:
+      source: yahoo_chart_v8
+      symbol: "CL=F"
+      method: chain_returns_onto_last_fred_level
+      max_anchor_gap_days: 4  # Yahoo needs a close within this many days at/before FRED's last date
     sample_window: "1986-01..2026-09"
     thresholds:
       up:
@@ -161,6 +175,7 @@ shocks:
     R: 10
     retire_level: 2.5
     sunset_days: 120
+    max_lag_trading_days: 7  # stale_input beyond this; H.10 broad dollar, published weekly
     sample_window: "1995-01..2026-09"
     thresholds:
       up:
@@ -196,6 +211,7 @@ shocks:
     R: 10
     retire_level: 10.0
     sunset_days: 365
+    max_lag_trading_days: 9  # stale_input beyond this; ICSA weekly, week ending Saturday, released the following Thursday
     sample_window: "1990-01..2026-09"
     thresholds:
       up:
@@ -220,6 +236,7 @@ shocks:
     R: 10
     retire_level: 20.0
     sunset_days: 120
+    max_lag_trading_days: 3  # stale_input beyond this; T10YIE daily, posted next business day
     sample_window: "2003-01..2026-09"
     thresholds:
       up:
