@@ -1,0 +1,202 @@
+{
+  "archive_path": "outputs/archive/2026-10-15/20261015T005438Z-3b1f7bd4",
+  "combined_top": [
+    {
+      "combined_score": 1.2644499359848225,
+      "news_item_count": 139,
+      "rank": 1,
+      "sector_id": "materials"
+    },
+    {
+      "combined_score": 1.1482421985328906,
+      "news_item_count": 341,
+      "rank": 2,
+      "sector_id": "energy"
+    },
+    {
+      "combined_score": 1.101426531412419,
+      "news_item_count": 0,
+      "rank": 3,
+      "sector_id": "software"
+    },
+    {
+      "combined_score": 1.0142329629389533,
+      "news_item_count": 0,
+      "rank": 4,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "combined_score": 0.7554271660319792,
+      "news_item_count": 0,
+      "rank": 5,
+      "sector_id": "semiconductors"
+    }
+  ],
+  "disclaimer": "This daily package is a diagnostic research artifact. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
+  "errors": [
+    "news_classification: classification failure rate exceeded threshold: 10/10",
+    "classification failure rate exceeded threshold: 10/10"
+  ],
+  "feature_freshness": {
+    "gap_days": 0,
+    "max_feature_date": "2026-10-14",
+    "max_raw_observation_date": "2026-10-14",
+    "stale": false
+  },
+  "generated_artifacts": [
+    "outputs/current_sector_ranking.json",
+    "outputs/current_sector_ranking.md",
+    "outputs/sector_exposures_fitted.json",
+    "outputs/sector_exposures_fitted.md"
+  ],
+  "macro": {
+    "confidence": 0.05887244430613603,
+    "date": "2026-10-01",
+    "raw_dominant_regime": "goldilocks",
+    "reported_regime": "goldilocks"
+  },
+  "monitoring": {
+    "as_of_run_id": "20261014T015003Z-5e62cae7",
+    "max_rank_change": 0,
+    "repair_rate": 0.00013823610727121925,
+    "retry_rate": 0.10699474702792369,
+    "success_rate": 0.9962676251036771,
+    "warning_count": 0
+  },
+  "news": {
+    "top_sector_headwinds": [
+      {
+        "id": "consumer_discretionary",
+        "score": -8.4113551939091
+      },
+      {
+        "id": "real_estate",
+        "score": -6.9707139802551
+      },
+      {
+        "id": "consumer_staples",
+        "score": -2.7063473955501096
+      },
+      {
+        "id": "industrials",
+        "score": -2.2424434201241206
+      },
+      {
+        "id": "materials",
+        "score": -2.141174158966304
+      }
+    ],
+    "top_sector_tailwinds": [
+      {
+        "id": "energy",
+        "score": 15.079968485848783
+      },
+      {
+        "id": "information_technology",
+        "score": 6.548576760020213
+      },
+      {
+        "id": "health_care",
+        "score": 2.4690480299653217
+      },
+      {
+        "id": "communication_services",
+        "score": 0.2067173676180789
+      },
+      {
+        "id": "financials",
+        "score": 0.03537505781883288
+      }
+    ],
+    "top_themes": [
+      {
+        "id": "inflation_pressure",
+        "score": 8.19644820910065
+      },
+      {
+        "id": "geopolitical_risk",
+        "score": 6.8243213244254
+      },
+      {
+        "id": "commodity_pressure",
+        "score": 6.007199450358473
+      },
+      {
+        "id": "energy_supply_shock",
+        "score": 5.286894765619342
+      },
+      {
+        "id": "monetary_tightening",
+        "score": 4.764760513842456
+      }
+    ]
+  },
+  "news_health": {},
+  "news_history": {
+    "hydrate": {
+      "classifications_inserted": 0,
+      "classifications_skipped_protected": 2413,
+      "classifications_upgraded": 0,
+      "errors": [],
+      "items_inserted": 0,
+      "manifest_totals": {
+        "classifications": 2413,
+        "items": 9960,
+        "source_runs": 675
+      },
+      "source_runs_inserted": 0,
+      "store_was_cold": false
+    }
+  },
+  "run_date": "2026-10-15",
+  "run_id": "20261015T005438Z-3b1f7bd4",
+  "sector_macro_top": [
+    {
+      "confidence_adjusted_score": 0.11855922937156496,
+      "rank": 1,
+      "sector_id": "software"
+    },
+    {
+      "confidence_adjusted_score": 0.1480575831678706,
+      "rank": 1,
+      "sector_id": "materials"
+    },
+    {
+      "confidence_adjusted_score": 0.12703031433971385,
+      "rank": 2,
+      "sector_id": "energy"
+    },
+    {
+      "confidence_adjusted_score": 0.1027819442735203,
+      "rank": 2,
+      "sector_id": "oil_gas_ep"
+    },
+    {
+      "confidence_adjusted_score": 0.055952196227704594,
+      "rank": 3,
+      "sector_id": "semiconductors"
+    }
+  ],
+  "status": "failed",
+  "step_statuses": {
+    "combined_status": "skipped",
+    "guardrail_status": "skipped",
+    "macro_status": "success",
+    "monitoring_status": "skipped",
+    "news_classification_status": "failed",
+    "news_health_status": "skipped",
+    "news_history_export_status": "skipped",
+    "news_history_hydrate_status": "success",
+    "news_ingestion_status": "success",
+    "news_scoring_status": "skipped",
+    "sector_status": "success",
+    "shocks_status": "skipped"
+  },
+  "vintage_backlog": {
+    "complete": true,
+    "frontier_asof": "2014-02-01",
+    "pending_pairs": 0,
+    "point_in_time_start": "2014-02-01"
+  },
+  "warnings": []
+}
