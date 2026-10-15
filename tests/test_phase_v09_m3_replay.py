@@ -153,7 +153,6 @@ def test_replay_persist_replay_db_updates_central_accumulation_inputs(tmp_path: 
     daily_theme_scores = store.read_table("news_daily_theme_scores")
     daily_sector_scores = store.read_table("news_daily_sector_scores")
     combined = store.read_table("combined_sector_diagnostics")
-    sector_scores = store.read_table("sector_scores")
 
     assert len(news_items) == 3
     assert len(classifications) == 3
@@ -169,7 +168,6 @@ def test_replay_persist_replay_db_updates_central_accumulation_inputs(tmp_path: 
         daily_theme_scores=daily_theme_scores,
         daily_sector_scores=daily_sector_scores,
         combined_diagnostics=combined,
-        sector_scores=sector_scores,
         run_date=pd.Timestamp("2026-05-03").date(),
     )
     assert int(accumulation.runs.iloc[0]["classified_items"]) == 3

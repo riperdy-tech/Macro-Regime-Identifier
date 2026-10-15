@@ -15,6 +15,7 @@ from macro_engine.news.monitoring import (
     build_overlay_monitoring_run,
     write_news_monitoring_report,
 )
+from macro_engine.news.combined import macro_only_ranks, macro_only_top
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 
@@ -117,6 +118,75 @@ def test_classification_quality_retry_repair_and_failures(tmp_path: Path):
     assert modes
 
 
+def test_macro_only_ranks_use_one_universe_and_break_ties_by_sector_id():
+    combined = pd.DataFrame(
+        {
+            "sector_id": ["b", "a", "c"],
+            "sector_macro_score": [0.5, 0.5, 1.0],
+        }
+    )
+
+    assert macro_only_ranks(combined) == {"c": 1, "a": 2, "b": 3}
+
+
+def test_macro_only_top_follows_macro_score_with_unique_ranks():
+    combined = pd.DataFrame(
+        {
+            "sector_id": [f"s{n}" for n in range(8)],
+            "sector_macro_score": [0.5 * n for n in range(8)],
+            "rank": [8 - n for n in range(8)],
+        }
+    )
+
+    top = macro_only_top(combined)
+
+    assert [t["sector_id"] for t in top] == ["s7", "s6", "s5", "s4", "s3"]
+    assert [t["rank"] for t in top] == [1, 2, 3, 4, 5]
+    assert [t["sector_macro_score"] for t in top] == [3.5, 3.0, 2.5, 2.0, 1.5]
+
+
+def test_overlay_rank_change_ignores_separate_sector_score_cross_sections(tmp_path: Path):
+    # 2026-10-05 shape: 11 parent sectors and 6 sub-industries in one combined table of 17 rows.
+    config = load_news_monitoring_config(_monitoring_config(tmp_path))
+    combined = _two_universe_frame()
+    overlay = build_overlay_monitoring_run(
+        config=config,
+        daily_theme_scores=_daily_theme_scores(),
+        daily_sector_scores=_daily_sector_scores(),
+        combined_diagnostics=combined,
+        run_id="run_1",
+    )
+    row = overlay.iloc[-1]
+
+    assert json.loads(row["sectors_changed_by_news_json"]) == []
+    assert row["max_rank_change"] == 0
+    assert row["avg_abs_rank_change"] == 0.0
+    top = json.loads(row["macro_only_top_sectors_json"])
+    assert [(t["rank"], t["sector_id"]) for t in top] == [(n, f"s{n:02d}") for n in range(1, 6)]
+    assert [t["sector_macro_score"] for t in top] == [2.0 - 0.1 * n for n in range(1, 6)]
+
+    combined = _two_universe_frame(swap=True)
+    overlay = build_overlay_monitoring_run(
+        config=config,
+        daily_theme_scores=_daily_theme_scores(),
+        daily_sector_scores=_daily_sector_scores(),
+        combined_diagnostics=combined,
+        run_id="run_1",
+    )
+    row = overlay.iloc[-1]
+    changes = json.loads(row["sectors_changed_by_news_json"])
+
+    assert [(c["sector_id"], c["macro_rank"], c["combined_rank"], c["rank_change"]) for c in changes] == [
+        ("s03", 3, 4, -1),
+        ("s04", 4, 3, 1),
+    ]
+    assert row["max_rank_change"] == 1
+    # the macro-only list follows sector_macro_score, not the combined rank, and has no duplicate ranks
+    top = json.loads(row["macro_only_top_sectors_json"])
+    assert [t["rank"] for t in top] == [1, 2, 3, 4, 5]
+    assert [t["sector_id"] for t in top] == ["s01", "s02", "s03", "s04", "s05"]
+
+
 def test_overlay_monitoring_rank_change_and_report(tmp_path: Path):
     config_path = _monitoring_config(tmp_path)
     config = load_news_monitoring_config(config_path)
@@ -126,7 +196,6 @@ def test_overlay_monitoring_rank_change_and_report(tmp_path: Path):
         daily_theme_scores=_daily_theme_scores(),
         daily_sector_scores=_daily_sector_scores(),
         combined_diagnostics=_combined_diagnostics(),
-        sector_scores=_sector_scores(),
         run_id="run_1",
     )
     row = overlay.iloc[-1]
@@ -323,32 +392,30 @@ def _combined_diagnostics() -> pd.DataFrame:
     )
 
 
-def _sector_scores() -> pd.DataFrame:
-    return pd.DataFrame(
+
+def _two_universe_frame(swap: bool = False) -> pd.DataFrame:
+    """17 combined rows (11 parents, 6 sub-industries) ranked in one cross-section."""
+    ids = [f"s{n:02d}" for n in range(1, 18)]
+    combined_rank = {sector_id: n for n, sector_id in enumerate(ids, start=1)}
+    if swap:
+        combined_rank["s03"], combined_rank["s04"] = 4, 3
+    combined = pd.DataFrame(
         [
             {
-                "sector_id": "energy",
-                "date": "2026-05-01",
-                "raw_sector_score": 0.5,
-                "confidence_adjusted_score": 0.3,
-                "rank": 1,
-                "macro_reported_regime": "reflation",
-                "macro_raw_dominant_regime": "reflation",
-                "macro_confidence": 0.2,
-                "valid": True,
-                "reason": "ok",
-            },
-            {
-                "sector_id": "real_estate",
-                "date": "2026-05-01",
-                "raw_sector_score": -0.4,
-                "confidence_adjusted_score": -0.2,
-                "rank": 2,
-                "macro_reported_regime": "reflation",
-                "macro_raw_dominant_regime": "reflation",
-                "macro_confidence": 0.2,
-                "valid": True,
-                "reason": "ok",
-            },
+                "diagnostic_date": "2026-05-02",
+                "sector_id": sector_id,
+                "sector_macro_score": 2.0 - 0.1 * n,
+                "sector_news_score": 0.0,
+                "combined_score": 2.0 - 0.1 * combined_rank[sector_id],
+                "macro_component_weight": 1.0,
+                "news_component_weight": 0.0,
+                "news_item_count": 1,
+                "news_confidence": 0.8,
+                "diagnostic_confidence": 0.5,
+                "rank": combined_rank[sector_id],
+                "created_at": "2026-05-02T01:00:00Z",
+            }
+            for n, sector_id in enumerate(ids, start=1)
         ]
     )
+    return combined
