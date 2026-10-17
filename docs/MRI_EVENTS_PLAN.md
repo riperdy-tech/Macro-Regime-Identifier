@@ -1,6 +1,9 @@
 # MRI as the macro sensing window — the event register (MRI-15)
 
-Drafted 2026-10-16 for operator approval. Owner: the MRI session. Status: plan only, nothing built.
+**Version 2, 2026-10-17.** Supersedes v1 (`7e60add`). Owner: the MRI session. Status: plan only,
+nothing built. v2 answers an outside review (ChatGPT, 2026-10-17), whose disposition was
+"conditional approval; revise E1–E3 before implementing". §10 maps each review finding to where
+v2 answers it.
 
 ## 1. Why this plan exists
 
@@ -14,208 +17,285 @@ The operator's request (2026-10-15):
 It should respond fast. It should also not wobble, meaning it must not re-upgrade a name it
 downgraded a few days earlier.
 
-The work done on 2026-10-15 (MRI `a54baa4`: daily oil tail, shock-episode memory, per-source
-freshness) fixed the market-data alarms. It did not touch news. This plan covers the rest.
+MRI `a54baa4` (2026-10-15) fixed the market-data alarms: daily oil tail, shock-episode memory, and
+per-source freshness. This plan covers the news side.
 
-**What a good outcome looks like.** By the morning after a material event, the system holds a
-dated, corroborated record of it, which says:
+**What each stage delivers.** These claims are kept separate on purpose:
 
-- what happened;
-- which macro themes it touches;
-- whether markets confirmed it;
-- which industries and tickers are exposed.
-
-That record shows on the stock pages. Later, if forward evidence supports it, it changes position
-sizes or values. It switches on fast and switches off slowly.
+| Stage | What it delivers | What it does NOT claim |
+|---|---|---|
+| 1 | A persistent, attributable record of each material event, shown on the stock pages the next morning: what was reported, whether it is corroborated, what the market did, and who is exposed. | It does not change any verdict, and it does not solve the wobble problem. |
+| 2 | Measures whether exposed names behave differently, and whether verdict reversals cluster around events. | It changes nothing. |
+| 3 | A separately approved decision rule, including when reduced risk may be restored. | Only this stage can solve the no-wobble requirement, and only after it passes its own tests. |
 
 ## 2. What exists today (measured 2026-10-15/16)
 
-**The raw material is already collected; nothing turns it into events.** The cloud MRI job's news
-feed (`run-history` branch) contains all three of the operator's examples, within hours:
+The cloud MRI news feed (`run-history` branch) already holds all three examples:
 
-| Example | In the feed | Classified by the model |
+| Example | In the feed | Classified |
 |---|---|---|
-| CoreWeave | 10-14 20:46 UTC "CoreWeave shares tumble as bond yields near 15%…", 10-15 "credit default swaps hit distress levels" — 7 items | 3 of 7 |
-| Houthi / Saudi | 10-14 21:12 UTC "Houthis vow more attacks on Saudi airports, oil facilities after Aramco HQ hit" — 35 items | 8 of 35 |
+| CoreWeave | 10-14 20:46 UTC "CoreWeave shares tumble as bond yields near 15%…"; 10-15 "credit default swaps hit distress levels" — 7 items | 3 of 7 |
+| Houthi / Saudi | 10-14 21:12 UTC "Houthis vow more attacks on Saudi airports, oil facilities after Aramco HQ hit" — 35 items, mostly Reuters | 8 of 35 |
 | Fed / hikes | 10-14 21:45 UTC "US inflation heats up in September; Fed rate hike this month back on table" — 6 items | 2 of 6 |
 
 | Piece | State |
 |---|---|
-| News intake | Cloud only. About 100 items/day from about 20 RSS feeds and Finnhub. The GDELT daily feed is effectively dead (rate-limited, circuit open). |
-| Classification | DeepSeek `deepseek-v4-flash`, capped at 60/day. October coverage was 985 of 1,721 items (57%). Output per item: 18 macro themes, sector impacts, entities (free-text names, no tickers), severity, confidence. |
-| Local store | News stops at 2026-05-30. `import-news-history` / `scripts/pull_news_history.*` exists but has never been run. `daily_pipeline_local.yaml` sets `news.enabled: false`. |
-| Events | None. News becomes per-theme daily scores (`news/scoring.py`) and a read-only narrative on the shocks (`shocks/narrative.py`). Locally that narrative is empty, because there is no news. |
-| Market data for confirmation | FRED daily series in MRI. Yahoo oil in `market_observations`. MRI `sector_proxy_prices` (18 ETFs plus SPY) is stale locally since 09-18. Screener `daily_closes.json` covers 391 tickers and 18 ETFs. The v4 shadow holds daily prices for about 9,700 tickers, locally only. |
-| Ticker taxonomy | The screener owns it: `stocks.json` `industry`/`sector`, `scripts/industry_taxonomy.py` `get_taxonomy_profile` (cluster), and `GICS_TO_MACRO_ID`. |
-| Consumers | v4 reads two MRI inputs only: DGS10 and the `elevated_volatility_ahead` flag (AK.78). The screener site shows the regime and active shocks only. `mri_sync.py` does not copy `shock_register.json`. |
-| Real money | KIS is halted. `rn_depth` holds nothing. v4 paper operation is planned for end of October. |
+| News intake | Cloud only. About 100 items/day from about 20 RSS feeds and Finnhub. GDELT daily is effectively dead (rate-limited, circuit open). `source_group` is a **topic** label (`macro_general`, `energy_commodities`, …), **not a publisher**. |
+| Classification | DeepSeek `deepseek-v4-flash`, capped at 60/day; October coverage 985 of 1,721 (57%). Each item gets 18 macro themes with direction, sector impacts, entities (free-text names, no tickers), severity and confidence. |
+| Local store | News ends 2026-05-30. `import-news-history` exists but has never been run locally. |
+| Grouping code | `news/selection.py` `assign_event_ids` / `_jaccard` is a token-set near-duplicate filter that rations classification. It is **not** an event builder. Only its tokeniser and Jaccard function are reused. |
+| Market data | FRED daily series in MRI (about a 1-day lag). Yahoo oil in `market_observations`. MRI `sector_proxy_prices` is stale locally since 09-18. |
+| Taxonomy | The screener owns it: `stocks.json` industry/sector, `industry_taxonomy.get_taxonomy_profile`, `GICS_TO_MACRO_ID`. |
+| Consumers | v4 reads only DGS10 and `elevated_volatility_ahead` (AK.78). The v4 nightly shadow already keeps a reversal log listing active MRI flags. |
 
 ## 3. Rules this plan keeps
 
-1. **News never alters a number** (P0.0 §3.5). It stays in force through Stages 1–2. Only Stage 3
-   reopens it, and only for an event type that passes a pre-registered test and gets an operator
-   ruling.
-2. **Contamination rule** (NEWS_PART1 §5). Only `origin=live` classifications made within 14 days
-   of publication count as evidence. Backfilled history is used for tuning only.
-3. **v4 inputs** (AK.78). Any new field v4 reads, annotations included, is registered with the
-   coordinator and ruled on by the operator before it is built. Stage 1 does not touch v4 or the
-   engine freeze (about 10-18/19).
-4. **Single owner per field.** MRI owns events and their market checks. The screener owns the
-   ticker taxonomy, so the expansion from industry to ticker happens on the screener side. Nothing
-   imports across repositories; every handoff is a file.
-5. **Annotate, never silently gate.** An event never removes a name from any list.
+1. **News never alters a number** (P0.0 §3.5) through Stages 1–2. Stage 3 needs a new operator
+   ruling for each event type.
+2. **Contamination rule** (NEWS_PART1 §5; `news/provenance.py`). Only `origin=live`
+   classifications made within 14 days of publication count as evidence.
+3. **v4 inputs** (AK.78). Anything v4 reads, annotations included, is registered with the
+   coordinator first. Stage 1 does not touch v4.
+4. **Single owner per field.** MRI owns events and market checks. The screener owns the ticker
+   taxonomy and the UI. Handoffs are files only.
+5. **Annotate, never silently gate.** Warning flags stay flags. A check that produces flags is
+   never presented as validation.
 
-## 4. Design
+## 4. Event model — four independent fields
 
-The new process **MRI-15, the event register**, sits beside the shock register (MRI-12) and is
-published separately.
-
-```
-cloud news (run-history) --hydrate--> local store --> [E1] cluster items into events
-                                                        |
-FRED + Yahoo daily closes -----------------------> [E2] market check per event
-                                                        |
-                                              [E3] lifecycle: on fast, off slow
-                                                        |
-                                    outputs/event_register.json (MRI-15)
-                                                        |
-               screener: [E4] industry -> tickers, [E5] stock-page panel, macro page
-               later (Stage 2, via coordinator): v4 row annotation + reversal log
-```
-
-- **E1 — events from news.** Code, not the model, groups items into one event. It uses the
-  existing near-duplicate title logic (`news/selection.py`), shared themes, and shared entities
-  within 48 hours.
-  - Unclassified items with matching titles still count towards corroboration. This makes the
-    60/day classification cap less binding.
-  - An event needs at least one classified item and either two distinct source groups or one
-    official source (the Fed RSS feeds).
-  - It records: first seen, themes and direction, named entities (resolved to tickers where
-    possible), sector impacts, source count, severity, and the headline as its title (no new
-    model call).
-- **E2 — market check.** Each theme has a fixed basket of instruments:
-  - monetary tightening → 2-year and 10-year yields;
-  - energy supply / geopolitical → WTI, XLE, VIX;
-  - credit stress → high-yield spread, BAA10Y, the named company's stock against its sector ETF;
-  - financial stability → VIX, KBE;
-  - inflation → 10-year breakeven.
-
-  An event counts as **confirmed** when a basket instrument moves, over 1–3 trading days from
-  first sighting and in the theme's direction, by at least 2 standard deviations of its own daily
-  moves over the past year. It counts as **contradicted** when the move goes the other way, and
-  **unconfirmed** otherwise. Every number comes from market data, never from the model. Corporate
-  bond prices are not available. For CoreWeave, the check uses its stock and the high-yield spread
-  and records "bond data unavailable".
-- **E3 — lifecycle.** Same principle as the shock state machine:
-  - an event switches on the day it is corroborated;
-  - it is raised to *confirmed* when the market check passes;
-  - it fades only after 5 trading days with no new coverage and no live market confirmation;
-  - it has a 60-day sunset.
-
-  This is the no-wobble mechanism. Quiet headlines on the next day do not end an event. The
-  parameters are fixed in `config/events.yaml` before any forward data is read.
-- **E4 — exposure.** MRI publishes, per event: named tickers, sectors (classifier sector impacts at
-  confidence ≥ 0.6, checked against `sector_exposure_guardrails.yaml`), and themes. A screener
-  script expands that to tickers, using its own taxonomy:
-  - *named* — the company itself;
-  - *peer* — same cluster;
-  - *sector* — same sector.
-
-  It writes `public/data/macro_events_by_ticker.json`. Held names and the live book are listed
-  first.
-- **E5 — display.** A stock-page panel "Macro events affecting this stock", built on the
-  `GeminiPanel` pattern (`lib/data-service.ts`, `lib/desk/useDeskData.ts`, `StockDetail.tsx`, a new
-  `EventsPanel.tsx`, `lib/i18n.ts`). The macro page gets an event list. Telegram alerts are
-  optional (decision D4).
-
-## 5. Work plan
-
-Each step lands with its own tests. Steps E0.1–E5 are MRI and screener only.
-
-**Stage 0 — foundations**
-
-| Step | Work | Verified by |
+| Field | Values | Question it answers |
 |---|---|---|
-| E0.1 | Run the existing news hydration locally each day before shocks and events. Schedule an "events" job after the cloud news commit (about 08:30 KST, see D3). | The local store holds the 10-14/15 items above. The shock narratives are no longer empty. |
-| E0.2 | Coverage. Raise classification 60 → about 150/day after checking the DeepSeek bill (D2). Fix GDELT pacing so the circuit stops opening daily. | The classified share of October-like volume is ≥ 85%. Telemetry shows GDELT `ok`. |
-| E0.3 | Entity → ticker resolver. Deterministic name match against `stocks.json` names and SEC `company_tickers_exchange.json`, with match confidence. Unmatched names are kept as names. | Unit tests: CoreWeave → CRWV, Dell Technologies → DELL, Aramco → unmatched name (not in the universe). |
-| E0.4 | Confirmation prices. A local daily Yahoo ingest for the basket ETFs and SPY (standing approval O5), plus named tickers on demand, stored in `market_observations`. | Freshness per instrument stays within its lag limit. |
+| `event_status` | `detected`, `corroborated`, `rejected_uncorroborated` | Is the event independently reported? |
+| `lifecycle_status` | `active`, `decaying`, `closed` (with `close_reason`: `quiet`, `sunset`) | Is the event still live? |
+| `market_response` | `aligned`, `opposed`, `mixed`, `no_signal`, `pending`, `data_unavailable`, `display_only` — one per theme, plus per-instrument detail | What did the market do in the window? |
+| `exposure` | per ticker: `named`, `peer`, `sector` | Who is exposed? |
 
-**Stage 1 — the register and its display**
+**A corroborated event stays a valid event whatever the market does.** The UI may say "the market
+has not shown the expected reaction". It never says or implies that the event did not happen.
 
-| Step | Work | Verified by |
+## 5. E1 — event builder (a new, deterministic module)
+
+All parameters live in `config/events.yaml` and are frozen before any forward data is read.
+
+1. **Pool.** Live items first seen in the last 7 days.
+2. **Publisher.** The `source_url` domain. For aggregator headlines, the trailing "– Publisher"
+   suffix of the title instead.
+3. **Syndication collapse.** Items that share a canonicalised title (lower case, publisher suffix
+   stripped), or have a title Jaccard ≥ 0.6, are one **report**. A wire story republished by many
+   outlets counts once. The canonical item is the earliest-seen classified item, otherwise the
+   earliest-seen item.
+4. **Linking a report to an open event.** All three must hold:
+   - it shares at least one resolved entity (relevance ≥ 0.5; generic entities such as "United
+     States government" excluded through a stop list);
+   - it shares at least one macro theme with the same direction, **or** its title Jaccard with an
+     event report is ≥ 0.3;
+   - it arrived within 72 h of the event's latest report.
+
+   An unclassified report links only through title Jaccard ≥ 0.4 to a report already in the event.
+5. **A new development is a new event.** A report that shares an entity but has no shared theme
+   and a title Jaccard < 0.2 starts a new event, linked through `related_event_ids`. For example,
+   the Houthi strike on the Aden palace is separate from the strikes on Saudi airports.
+6. **Corroboration.** An event becomes `corroborated` when either:
+   - two or more **distinct publishers** carry it after syndication collapse; or
+   - one official source carries it: the Fed, BLS, DOL or EIA feeds.
+
+   If neither happens within 72 h, it becomes `rejected_uncorroborated`. It is kept for audit and
+   hidden by default.
+7. **Event record.** Event id; onset (the first `published_at`); `first_available_at` (the first
+   `first_seen_at`); themes with direction; resolved and unresolved entities; sector impacts;
+   report and publisher counts; maximum and mean severity; the canonical headline as title (no
+   new model call); `related_event_ids`.
+
+**Acceptance (E1).** A hand-labelled reference set built from the 10-08..10-16 feed (about 300
+items, labelled before the builder runs) must reach:
+
+- **false-merge rate ≤ 5%** — two labelled events grouped as one;
+- **false-split rate ≤ 10%** — one labelled event split into several;
+- each of the three examples as exactly one corroborated event, and the Aden palace story as a
+  separate, related one.
+
+## 6. E2 — market response
+
+**Theme map.** Each of the 18 themes is either market-checkable, with an expected sign per
+instrument, or `display_only`. Families are independent market dimensions; instruments in the same
+family count once.
+
+| Theme (direction) | Primary family: instrument, expected sign | Secondary family |
 |---|---|---|
-| E1 | `src/macro_engine/events/` builder plus `config/events.yaml`. New DuckDB tables `events`, `event_items`, `event_market_checks`. | Synthetic-news tests. Replaying the real 10-13..10-16 feed gives one event each for CoreWeave credit, Houthi/Saudi, and Fed hikes. |
-| E2 | Market check. | Synthetic prices give confirmed, contradicted and unconfirmed. On real data, the Houthi event is checked against WTI, XLE and VIX, and CoreWeave against CRWV versus XLK plus the high-yield spread. |
-| E3 | Lifecycle. | Tests for onset on the same day, fade after 5 quiet days, and no flicker on a single quiet day. |
-| E4 | `outputs/event_register.json` (MRI-15, schema 1). The screener-side expansion script. `mri_sync.py` copies `event_register.json` and `shock_register.json` (D5). | Schema test. CRWV and its cluster peers appear in `macro_events_by_ticker.json`. |
-| E5 | Stock-page panel and macro-page list. | Browser check of `/t/CRWV` and an energy name. Full screener build. |
+| monetary_tightening | rates: DGS2 ↑ | equity: SPY ↓ |
+| monetary_easing | rates: DGS2 ↓ | equity: SPY ↑ |
+| inflation_pressure | breakeven: T10YIE ↑ | rates: DGS2 ↑ |
+| disinflation | breakeven: T10YIE ↓ | rates: DGS2 ↓ |
+| yield_curve_steepening | curve: T10Y2Y ↑ | — |
+| yield_curve_flattening | curve: T10Y2Y ↓ | — |
+| credit_stress (market-wide) | credit: BAMLH0A0HYM2 ↑ (BAA10Y same family) | vol: VIXCLS ↑ |
+| credit_easing | credit: BAMLH0A0HYM2 ↓ | — |
+| energy_supply_shock | oil: WTI (FRED + Yahoo tail) ↑ | energy equity: XLE ↑ |
+| geopolitical_risk | vol: VIXCLS ↑ | oil: WTI ↑ only when co-tagged energy_supply_shock (scored under that theme, never twice) |
+| financial_stability_risk | vol: VIXCLS ↑ | banks: KBE ↓ |
+| growth_acceleration / growth_slowdown, labor_strength / labor_weakness, fiscal_expansion / fiscal_drag, commodity_pressure | `display_only` in v2 — no reaction specific enough to test; revisited only with Stage 2 evidence | — |
 
-**Stage 2 — measurement (forward only, no numbers change)**
+**Company-specific events.** These are events with a resolved named entity, such as CoreWeave.
+- The check is the named stock's 2-session return minus its sector ETF's (abnormal return),
+  expected sign set by the theme.
+- It is recorded as `equity_reaction_only`.
+- It never claims the company's bonds or CDS moved. `bond_data: unavailable` is stated on the
+  record.
+- A market-wide credit move is reported separately and never stands in as evidence about the
+  company.
 
-- Pre-register, before any forward data is read, in a new `MRI_EVENTS_TEST_PLAN.md`:
-  - **H1.** Names exposed to confirmed events show different 5- and 20-day abnormal returns,
-    volatility and drawdown from matched unexposed peers, by event type.
-  - **H2.** v4 verdict reversals cluster during active events.
-- Use the same bar as S4 T3: Newey–West t, Holm correction, the same sign in both halves, and an
-  economically large effect. First read at ≥ 30 confirmed events and ≥ 8 weeks.
-- Through the coordinator: add active event ids to the v4 nightly reversal log (it already lists
-  active MRI flags) and a `macro_events` annotation per row.
+**Calculation, per instrument:**
 
-**Stage 3 — effect on decisions (operator ruling per event type)**
+- **Transform.** Yields, spreads, breakevens and the curve: change in basis points. Prices, ETFs and
+  WTI: log return in %. VIX: log change in %.
+- **Reference.** `P_ref` is the last daily observation dated **before** the event's onset date (US
+  calendar). Most items arrive at 20:00–22:00 UTC, after the US close, so the onset-day close is
+  excluded. That avoids counting a move made before the news.
+- **Primary window.** k = 2 sessions after `P_ref`. Moves over k = 1 and 3 are recorded for
+  information and never set the status. Only one window is tested, so there are no multiple looks.
+- **Standardisation.** z = move_k ÷ robust SD (MAD × 1.4826) of all overlapping k-session moves
+  over the 504 sessions ending at `P_ref`. Data after `P_ref` is never used. At least 250
+  observations are required, otherwise `data_unavailable`.
+- **Instrument result.** `aligned` if z ≥ +2 in the expected direction; `opposed` if z ≥ +2 in the
+  opposite direction; otherwise `no_signal`. Missing data, or data past the instrument's lag limit,
+  gives `data_unavailable`. A k-th session not yet observed gives `pending`.
+- **Theme result.**
+  - `aligned` if the primary family is aligned, or two independent families are aligned and none
+    is opposed;
+  - `opposed` if the primary family is opposed and no family is aligned;
+  - `mixed` if families are both aligned and opposed;
+  - `no_signal` otherwise;
+  - `data_unavailable` if the primary family is missing.
 
-- Only event types that pass Stage 2 qualify. Candidates:
-  - a size cap for names exposed to a confirmed severe event, like the volatility flag;
-  - a v4 input change.
-- Each one includes an asymmetric re-risk rule, so a name is not re-upgraded while its event is
-  still active unless the evidence has changed.
+  A VIX spike alone can never mark an energy event aligned, because oil is the primary family for
+  energy.
+- **Provisional data.** A result built on provisional inputs (the oil tail) is flagged
+  `provisional` and recomputed when FRED publishes.
+- **Validity.** The window result is a fixed historical fact, `response_at_onset`, and is never
+  silently extended. A separate daily field, `response_current`, is true while the primary
+  instrument's cumulative move since `P_ref`, in the expected direction, is still ≥ 50% of its
+  window move. It feeds the lifecycle only.
 
-**Order:** E0.1 → E0.3 → E1 → E0.4 + E2 → E3 → E4 → E5 → Stage 2. E0.2 runs in parallel once
-approved.
+## 7. E3 — lifecycle (trading days, US calendar)
 
-## 6. Decisions for the operator
+| From | To | Rule |
+|---|---|---|
+| — | `detected` | The first classified report forms the event. |
+| `detected` | `corroborated` + `active` | The corroboration rule passes (§5.6). This can happen the same day. |
+| `detected` | `rejected_uncorroborated` | No corroboration within 72 h. |
+| `active` | `decaying` | 5 consecutive trading days with **no new linked report** and `response_current` false. |
+| `decaying` | `active` | A new linked report arrives, or `response_current` turns true. Same event id. |
+| `decaying` | `closed` (`quiet`) | 10 consecutive trading days in `decaying` with no new report. |
+| any open state | `closed` (`sunset`) | 60 calendar days since onset. |
+| `closed` | — | Never reopens. Later reports start a new event linked through `related_event_ids`. |
 
-- **D1.** Keep "news never alters a number" through Stages 1–2? Recommendation: **yes**.
-- **D2.** Raise news classification to about 150/day, and fix GDELT? At ~$0.6/month for 60/day
-  (unverified), 150/day is likely under $2/month. The bill is checked first.
-- **D3.** Timing. The cloud news commit lands at about 07:40 KST, after the local 06:31 MRI run and
-  the 07:30 v4 shadow. Recommendation: a separate local events job at about 08:30 KST. v4 then
-  sees events the next night, which is acceptable for Stage 1 (display only).
-- **D4.** Telegram alert when a new confirmed, high-severity event touches a held or candidate
-  name? Recommendation: yes, from Stage 1.
-- **D5.** Allow `mri_sync.py` to publish `shock_register.json` and `event_register.json` to the
-  screener. This is the existing D2/CI approval item.
+**Tests.** Onset and corroboration on the same day; no flicker after one quiet day; fade only
+after 5 quiet days; re-activation on new coverage; a response that has gone stale does not keep an
+event alive; sunset closes the event. Plus concurrent events, mixed signals, repeated syndicated
+reporting, and stale inputs.
 
-## 7. Coordination
+## 8. E4–E5 — exposure and display
 
-- **Coordinator session (rev23):** owns v4 and the reversal log. Stage 1 needs nothing from it.
-  Stage 2's annotation and Stage 3 go to it for registration (AK.78).
-- **The rev23 D2 "MRI fixes" work** includes "refresh of MRI's local outputs and news store", and
-  AK.11 says another session handles it. E0.1 overlaps with that, so the owner must be confirmed
-  before building, to avoid duplicate work.
-- **Gemini interim arm session:** reads world news through rs2 `world_news.py`. Unaffected.
+**Entity → ticker** (E0.3):
+- Normalise the name by lower-casing, stripping punctuation, and removing legal suffixes (Inc,
+  Corp, Corporation, Holdings, plc, Ltd, Co, Class A/B).
+- Match it **exactly** against `stocks.json` names and SEC `company_tickers_exchange.json` titles,
+  or through a curated `config/entity_aliases.yaml`.
+- More than one candidate means `ambiguous`, and it is rejected.
+- Only exact and alias matches enter the `named` tier. Unresolved names stay as names with no
+  ticker.
 
-## 8. Acceptance — when the operator's request counts as met
+**Exposure (screener side):**
+- `named`: the resolved tickers.
+- `peer`: the same cluster, through `get_taxonomy_profile`.
+- `sector`: classifier sector impacts at confidence ≥ 0.6 and |impact| ≥ 0.3.
 
-On a normal morning, for an event like any of the three examples:
+Contradictions found by `news/guardrails.py` are shown as `exposure_flags` on the event. They are
+warnings, not validation.
 
-1. it appears in `event_register.json` by about 08:30 KST the next day, with the right themes, a
-   corroboration count, and its market-check result;
-2. the exposed tickers' stock pages show it, named and peer names first;
-3. it stays on through quiet days and fades only under the lifecycle rule;
-4. nothing numeric has changed anywhere (byte-identity tests), until a Stage 3 ruling.
+**Artifacts.** `outputs/event_register.json` (MRI-15, schema 1, additive). The screener's
+`public/data/macro_events_by_ticker.json`. A stock-page panel built on the `GeminiPanel` pattern.
+An event list on the macro page. Telegram alerts are deferred (D4).
 
-Before each step is declared done, the full MRI suite and `ruff` pass, and so do the screener
-build and tests.
+## 9. Work plan and order
 
-## 9. Risks
+| Order | Step | Done when |
+|---|---|---|
+| 0 | **Ownership and baseline.** Confirm who owns local news hydration (rev23 D2 / AK.11). Record sha256 of the protected artifacts (§9.1). | Owner named in the record; baseline hashes committed. |
+| 1 | **E0.1 hydration.** Run daily, before the events job. | The local store holds the 10-14..16 items; shock narratives are non-empty. |
+| 1 | **E0.2a classification cap 60 → 150/day.** Measure actual DeepSeek token cost per day. | 14-day rolling classified share ≥ 85%; measured cost recorded. |
+| 1 | **E0.2b GDELT pacing repair.** Separate item. | 14-day rolling GDELT success rate ≥ 90% of scheduled pulls. |
+| 1 | **E0.3 entity resolver** (§8). | Tests: CoreWeave → CRWV, Dell Technologies → DELL, Aramco → unresolved, an ambiguous name → rejected. |
+| 1 | **E0.4 confirmation prices.** Yahoo daily for SPY, XLE, KBE, the 11 sector ETFs and named tickers, in `market_observations`, with lag limits. | Freshness tests. |
+| 2 | **Specification freeze.** `config/events.yaml` and the theme map committed. The E1 reference set labelled. | Committed **before** E1 code. |
+| 3 | **E1 → E2 → E3 → E4 → E5**, each with its tests. | §5–§8 acceptance criteria; protected artifacts unchanged. |
+| 4 | **Shadow run, 2 weeks.** Daily register and display, with operator spot checks. | False merges/splits and state flips reviewed; then D4 is decided. |
+| 5 | **Stage 2.** Commit `MRI_EVENTS_TEST_PLAN.md` before any forward outcome is read (§11). Through the coordinator, add event ids to v4's reversal log and a `macro_events` row annotation. | The test plan is versioned and its commit predates the data read. |
+| 6 | **Stage 3.** Per event type that passes, with an operator ruling and the coordinator. Includes the re-risk rule (§11.3). | Its own tests. |
 
-- **News volume.** About 100 items/day may miss events that only regional or wire sources carry.
-  E0.2 and the corroboration rule mitigate this. The replay test measures it.
-- **Entity noise.** The model writes names like "UB (UBS?)". The resolver records its confidence,
-  and low-confidence matches never reach the named tier.
-- **Confirmation lag.** Some events, such as a slow credit build-up, take longer than 3 days to
-  show in prices. Those stay *unconfirmed* but are still displayed. Their window gets tuned only
-  on Stage 2 evidence.
-- **Overreach.** The temptation is to let events move values early. Stage 3 exists so that only
-  measured effects ever do.
+Steps marked 1 can run in parallel once step 0 is done. The specification freeze (step 2) can be
+written while step 1 runs.
+
+### 9.1 Protected artifacts (the firewall test)
+
+The events job must leave these unchanged, compared after canonicalising `built_at`,
+`source_run_id` and other run metadata:
+
+- `current_regime.json`, `current_sector_ranking.json`;
+- `cost_of_capital_anchor.json`, `long_run_growth_anchor.json`, `sector_multiple_bands.json`;
+- the numeric fields of `shock_register.json`;
+- the `raw_observations` rows for DGS10, DFII10 and T10YIE (v4's risk-free inputs).
+
+## 10. Changes from v1 (review mapping)
+
+| Review finding | v2 answer |
+|---|---|
+| P0-1: event status mixed with market response | §4, four separate fields. The "contradicted" wording is removed; a corroborated event stays valid. |
+| P0-2: market test underspecified | §6: a theme map for all 18 themes, transforms, `P_ref` before onset, one primary window, a k-session robust z from pre-event data only, per-instrument results, a family aggregation rule, provisional handling, and response validity. |
+| P0-3: clustering overstated | §2 and §5: a dedicated builder. Only the tokeniser and Jaccard are reused. Publishers counted, not topic groups (`source_group` turned out to be topical). Syndication collapse. Merge and split acceptance. |
+| P0-4: lifecycle not a state table | §7 transition table; `response_current` stops an old confirmation from keeping an event alive. |
+| P0-5: wobble not solved | §1 stage claims; §11.3 re-risk rule required before Stage 3. |
+| Statistics (H1, H2, sample size) | §11. |
+| P1: CoreWeave evidence | §6 `equity_reaction_only` and `bond_data: unavailable`. |
+| P1: guardrails are flags | §3.5 and §8 `exposure_flags`. |
+| P1: entity resolution | §8, exact and alias only; ambiguous names rejected. |
+| P1: hydration overlap | §9 step 0. |
+| P1: E0.2 bundled | §9, E0.2a and E0.2b with rolling-window criteria. |
+| P1: Telegram too early | D4 deferred until after the shadow run. |
+| P2: byte-identity scope | §9.1. |
+
+## 11. Stage 2 — measurement contract (outline; full text in `MRI_EVENTS_TEST_PLAN.md`)
+
+1. **H1, primary.** Ten-session cumulative abnormal return (stock minus its sector ETF) for
+   `named` and `peer` names of corroborated events in risk-off themes. Measured from the first
+   close after `first_available_at`, so no look-ahead is possible. Expected sign: negative.
+   - **Controls.** Unexposed names in the same sector, matched on size decile and 60-day momentum.
+   - **Inference.** Standard errors clustered two ways, by event date and by ticker. Overlapping
+     events are handled through that clustering, and each ticker-event pair counts once.
+   - **Pooled.** The primary test pools across risk-off types. Per-type estimates are exploratory.
+   - **Secondary outcomes,** declared in order: 20-day realised volatility, then 20-day maximum
+     drawdown.
+2. **H2.** The reversal rate per exposed stock-night, against matched unexposed stock-nights over
+   the same dates. A rate, never a count.
+3. **Re-risk rule (Stage 3 prerequisite).** Define what new evidence allows a reduced position to
+   be restored: the event closes; the event's market response reverses (`response_current` false
+   and the primary instrument back within 1 SD of `P_ref`); or a fresh verdict on new filing
+   evidence. A plain cooldown is not enough.
+4. **Gates.**
+   - **First read:** ≥ 40 corroborated events with at least one named or peer ticker, and
+     ≥ 12 weeks.
+   - **Second read:** only if the first is inconclusive, at twice the sample.
+   - **Alpha:** split 0.005 / 0.048 across the two reads.
+   - **Small samples:** event types below the sample are reported as **unvalidated**, never as
+     "no effect".
+   - **No automatic authorisation:** passing a gate does not authorise Stage 3 by itself.
+
+## 12. Decisions
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | News never alters a number through Stages 1–2 | Recommended: approve |
+| D2 | Classification to 150/day (E0.2a) and GDELT repair (E0.2b), as separate items, with measured cost | Recommended: approve, conditional on measurement |
+| D3 | An events job at about 08:30 KST, triggered by a successful hydration, with freshness checks and a failure report. A morning update, not intraday detection. | Recommended: approve |
+| D4 | Telegram alerts | **Deferred** until after the 2-week shadow run, then with deduplication, cooldown and expiry |
+| D5 | Additive, versioned `event_register.json` and `shock_register.json` handed to the screener through `mri_sync.py` (the existing CI approval item) | Recommended: approve |
