@@ -1,12 +1,6 @@
 {
-  "classification_success_rate": 0.9850986709625453,
+  "classification_success_rate": 0.9854502556036178,
   "combined_rank_change_history": [
-    {
-      "diagnostic_date": "2026-10-07",
-      "max_rank_change": 0,
-      "news_item_count": 1845,
-      "thin_news_warning": true
-    },
     {
       "diagnostic_date": "2026-10-08",
       "max_rank_change": 0,
@@ -46,17 +40,23 @@
     {
       "diagnostic_date": "2026-10-14",
       "max_rank_change": 0,
-      "news_item_count": 2337,
+      "news_item_count": 2344,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-10-15",
       "max_rank_change": 0,
-      "news_item_count": 2231,
+      "news_item_count": 2256,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-10-16",
+      "max_rank_change": 0,
+      "news_item_count": 2193,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-10-17",
       "max_rank_change": 0,
       "news_item_count": 2087,
       "thin_news_warning": true
@@ -197,9 +197,10 @@
     "2026-10-13": 134,
     "2026-10-14": 127,
     "2026-10-15": 120,
-    "2026-10-16": 5
+    "2026-10-16": 105,
+    "2026-10-17": 18
   },
-  "date_end": "2026-10-16T00:03:15",
+  "date_end": "2026-10-17T00:33:20",
   "date_start": "2026-05-01T09:00:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -209,32 +210,32 @@
     "validation_candidate": "60+ run dates with stable source coverage"
   },
   "latest_run": {
-    "classified_items": 2446,
-    "created_at": "2026-10-16T01:16:01.446377",
-    "date_max": "2026-10-16T00:03:15",
+    "classified_items": 2506,
+    "created_at": "2026-10-17T01:20:59.770576",
+    "date_max": "2026-10-17T00:33:20",
     "date_min": "2026-05-01T09:00:00",
     "duplicate_items": 0,
     "failed_items": 37,
-    "new_unique_items": 10206,
+    "new_unique_items": 10325,
     "quality_status": "ok",
-    "raw_item_count": 10206,
-    "run_date": "2026-10-16T00:00:00",
-    "run_id": "20261016T011601Z-e5ceeb8f",
-    "source_count": 458,
+    "raw_item_count": 10325,
+    "run_date": "2026-10-17T00:00:00",
+    "run_id": "20261017T012059Z-75ca4cff",
+    "source_count": 466,
     "source_group_count": 13,
-    "success_rate": 0.9850986709625453,
+    "success_rate": 0.9854502556036178,
     "warning_json": "[]"
   },
   "readiness_label": "monitor_ready",
-  "source_count": 458,
+  "source_count": 466,
   "source_group_count": 13,
   "top_recurring_macro_themes": [
     {
-      "count": 155,
+      "count": 156,
       "id": "monetary_tightening"
     },
     {
-      "count": 107,
+      "count": 108,
       "id": "commodity_pressure"
     },
     {
@@ -242,29 +243,29 @@
       "id": "growth_slowdown"
     },
     {
-      "count": 84,
+      "count": 85,
       "id": "geopolitical_risk"
     },
     {
-      "count": 84,
+      "count": 85,
       "id": "inflation_pressure"
     }
   ],
   "top_recurring_sector_headwinds": [
     {
-      "count": 165,
+      "count": 166,
       "id": "real_estate"
     },
     {
-      "count": 82,
+      "count": 83,
       "id": "consumer_discretionary"
     },
     {
-      "count": 80,
+      "count": 81,
       "id": "consumer_staples"
     },
     {
-      "count": 45,
+      "count": 46,
       "id": "industrials"
     },
     {
@@ -274,15 +275,15 @@
   ],
   "top_recurring_sector_tailwinds": [
     {
-      "count": 157,
+      "count": 158,
       "id": "energy"
     },
     {
-      "count": 78,
+      "count": 79,
       "id": "information_technology"
     },
     {
-      "count": 49,
+      "count": 50,
       "id": "health_care"
     },
     {
@@ -294,8 +295,8 @@
       "id": "financials"
     }
   ],
-  "total_accumulated_news_items": 10206,
-  "total_classified_items": 2446,
+  "total_accumulated_news_items": 10325,
+  "total_classified_items": 2506,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
 }
