@@ -173,6 +173,27 @@ def history_changed(
     return None
 
 
+def _drop_adjclose_outside(db_path: str | Path, symbol: str, adj: pd.DataFrame) -> int:
+    """After a re-pull Yahoo has restated adjclose inside the pulled window only. Stored adjclose rows outside it
+    are still on the old scale, so they go: one series, one scale. No-op when the re-pull returned no adjclose."""
+    if adj.empty:
+        return 0
+    first, last = min(adj["date"]), max(adj["date"])
+    con = duckdb.connect(str(db_path))
+    try:
+        n = con.execute(
+            "SELECT count(*) FROM market_observations WHERE series_id = ? AND (date < ? OR date > ?)",
+            [symbol + ADJ_SUFFIX, first, last],
+        ).fetchone()[0]
+        con.execute(
+            "DELETE FROM market_observations WHERE series_id = ? AND (date < ? OR date > ?)",
+            [symbol + ADJ_SUFFIX, first, last],
+        )
+    finally:
+        con.close()
+    return int(n)
+
+
 def stored_state(db_path: str | Path, symbols: Iterable[str]) -> dict[str, dict[str, Any]]:
     """Per symbol: stored row count, newest and earliest date. Read-only."""
     state: dict[str, dict[str, Any]] = {}
@@ -258,22 +279,30 @@ def refresh_confirmation_prices(
             )
             if reason is None and before[sym]["rows"] < cfg.min_history_rows and not complete:
                 reason = "short_history"
+            repull_error = None
+            repulled = False
             if reason is not None:
-                range_ = cfg.backfill_range
-                payload = fetcher(sym, range_=range_)
-                close = parse_closed_bars(payload, sym, now=now)
-                adj = parse_adjclose_bars(payload, sym, now=now)
+                try:
+                    payload2 = fetcher(sym, range_=cfg.backfill_range)
+                    close2 = parse_closed_bars(payload2, sym, now=now)
+                    adj2 = parse_adjclose_bars(payload2, sym, now=now)
+                    range_, close, adj, repulled = cfg.backfill_range, close2, adj2, True
+                except Exception as exc:  # noqa: BLE001 - the first fetch is still good data: keep it
+                    repull_error = f"{type(exc).__name__}: {exc}"
             written = store.upsert_market_observations(close)
             store.upsert_market_observations(adj)
+            if repulled:
+                _drop_adjclose_outside(db_path, sym, adj)
             outcomes[sym] = {"range": range_, "rows_fetched": int(written), "error": None, "repull_reason": reason,
-                             "history_complete_since_listing": complete}
+                             "repull_error": repull_error, "history_complete_since_listing": complete}
         except Exception as exc:  # noqa: BLE001 - one bad symbol must not stop the rest
             outcomes[sym] = {"range": range_, "rows_fetched": 0, "error": f"{type(exc).__name__}: {exc}",
-                             "repull_reason": None, "history_complete_since_listing": None}
+                             "repull_reason": None, "repull_error": None, "history_complete_since_listing": None}
 
     report = freshness_report(db_path, symbols, cfg, now=now)
     for sym, out in outcomes.items():
         report["instruments"][sym].update(fetch=out)
     report["fetch_errors"] = sorted(s for s, o in outcomes.items() if o["error"])
+    report["repull_errors"] = sorted(s for s, o in outcomes.items() if o.get("repull_error"))
     report["ok"] = report["ok"] and not report["fetch_errors"]
     return report
