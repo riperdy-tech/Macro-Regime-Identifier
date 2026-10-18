@@ -269,7 +269,7 @@ def load_stored_vectors(db: Path) -> dict[str, Any]:
     pin = load_model_pin()
     con = duckdb.connect(str(db), read_only=True)
     try:
-        return EmbeddingStore(con).load_vectors(None, pin.name, pin.model_sha256)
+        return EmbeddingStore(con, create=False).load_vectors(None, pin.name, pin.model_sha256)
     finally:
         con.close()
 

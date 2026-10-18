@@ -145,12 +145,14 @@ class EmbeddingStore:
     """Additive table `event_embeddings(news_id, model_name, model_sha256, preprocess_version, dim, vector, embedded_at)`.
     One row per (news_id, model, sha256, preprocess version); the vector is dim little-endian float32 values."""
 
-    def __init__(self, con: Any) -> None:
+    def __init__(self, con: Any, *, create: bool = True) -> None:
+        """`create=False` for a read-only connection (the table must already exist)."""
         self.con = con
-        con.execute(
-            f"CREATE TABLE IF NOT EXISTS {TABLE} (news_id VARCHAR, model_name VARCHAR, model_sha256 VARCHAR, "
-            "preprocess_version VARCHAR, dim INTEGER, vector BLOB, embedded_at TIMESTAMP, "
-            "PRIMARY KEY (news_id, model_name, model_sha256, preprocess_version))")
+        if create:
+            con.execute(
+                f"CREATE TABLE IF NOT EXISTS {TABLE} (news_id VARCHAR, model_name VARCHAR, model_sha256 VARCHAR, "
+                "preprocess_version VARCHAR, dim INTEGER, vector BLOB, embedded_at TIMESTAMP, "
+                "PRIMARY KEY (news_id, model_name, model_sha256, preprocess_version))")
 
     def existing_ids(self, model_name: str, model_sha256: str, preprocess_version: str = PREPROCESS_VERSION) -> set[str]:
         rows = self.con.execute(

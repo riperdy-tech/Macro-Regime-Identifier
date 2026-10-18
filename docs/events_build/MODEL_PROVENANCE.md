@@ -52,3 +52,12 @@ tokens; padded to the longest in the batch; CLS pooling; L2 normalisation; float
 `event_embeddings(news_id, model_name, model_sha256, preprocess_version, dim, vector, embedded_at)`.
 ONNX Runtime session: one intra-op thread, one inter-op thread, sequential execution, graph optimisation disabled, no CPU
 memory arena or pattern reuse, `use_deterministic_compute` on. The build path reads stored vectors only.
+
+## Measurements (2026-10-18, this machine, CPU)
+
+* Embedding run: 1143 items (every item first seen 2026-10-08 .. 2026-10-18, containing the 944-item pool and the 300
+  reference items) in 24.1 s, 1143 vectors stored (`event_embeddings`, dim 384); a second run stored 0 (idempotent).
+* Determinism (`scripts/events_embed.py --determinism`, the 300 reference titles): two runs in the same order and batch size
+  32, a shuffled order at batch size 7, and batch size 1 all gave **max abs difference 0.0** (bitwise equal here); a fresh
+  process recomputing the 300 reference vectors also matched the stored ones at 0.0. This is a measurement on one machine
+  and one runtime version, not a guarantee across hardware or onnxruntime versions: the stored vectors are the contract.

@@ -253,3 +253,15 @@ def test_arm_b_grid_is_the_declared_54_cells():
     assert {c["dense_weight"] for c in cells} == {0.5, 1.0, 1.5}
     assert {c["cutoff"] for c in cells} == {0.40, 0.55, 0.70, 0.85, 1.00, 1.20}
     assert {c["entity_weight"] for c in cells} == {0.0, 0.25, 0.5}
+
+
+def test_store_reads_through_a_read_only_connection(tmp_path):
+    db = tmp_path / "s.duckdb"
+    con = duckdb.connect(str(db))
+    EmbeddingStore(con).put(["a"], np.stack([unit(1, 2)]), "m", "sha")
+    con.close()
+    ro = duckdb.connect(str(db), read_only=True)
+    try:
+        assert set(EmbeddingStore(ro, create=False).load_vectors(None, "m", "sha")) == {"a"}
+    finally:
+        ro.close()
