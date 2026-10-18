@@ -131,7 +131,19 @@ tests/fixtures/events_holdout/sample_holdout.py
 tests/fixtures/events_holdout/LABELLING_GUIDE_V2.md
 docs/events_build/V23_PREREGISTRATION.md  docs/events_build/CANDIDATE_REGISTER_SPEC.md
 docs/events_build/SPEC_FREEZE.md          (erratum v3)
+src/macro_engine/events/register.py       (collapse_pool, background_for; P5a)
+src/macro_engine/events/embeddings.py     (P5a)
+scripts/events_v23_replay.py              scripts/events_embed.py          (P5a)
 ```
+
+Also recorded in the freeze record: the tokenizer sha256 and the onnxruntime version (stored beside every vector in
+`event_embeddings.tokenizer_sha256` / `.runtime_version`, and in the vector manifest below).
+
+**Vector rule (P5a).** Holdout vectors are embedded AFTER the holdout window has closed, and BEFORE any replay a sha256
+manifest of the `event_embeddings` rows of that window is recorded in the freeze record
+(`python scripts/events_embed.py --manifest --from D --through D --out F`: digest over rows sorted by news_id, covering
+key columns, dimension, raw vector bytes, tokenizer sha256 and onnxruntime version; `embedded_at` excluded). A replay
+whose stored vectors do not reproduce the manifest is void.
 
 The E2 de-duplication key is (instrument, reference close date, window), specified in `CANDIDATE_REGISTER_SPEC.md`.
 
@@ -145,3 +157,23 @@ The E2 de-duplication key is (instrument, reference close date, window), specifi
 | Holdout window (5 contiguous days, start >= freeze date) | PENDING |
 | Labeller files, adjudication log | PENDING |
 | Result, one run per arm | PENDING |
+
+## 10. Errata (dated, orchestrator-ruled; each moves only in the stricter or more auditable direction)
+
+**2026-10-18, P5a (contamination gate).** Section 4's "percentile interval [5th, 95th]" and section 6 criterion 1's
+"90% upper bound" are replaced, as the GATE, by `max(point estimate, basic-bootstrap upper bound)` where the basic upper
+bound is `2 * point - 5th percentile` of the story-resampled draws. The percentile interval is still reported. Reason: for
+this skewed statistic the percentile upper end sits below the point estimate's own reflection and is biased low. The
+threshold (0.15) is unchanged. Implemented as `score_holdout.contamination_gate`. The scorer's NONE/NOISE items are now
+keyed by `report_label`, so syndicated copies of one NONE story are not outsiders of each other (development results are
+unchanged by this: no NONE/NOISE report is shared by two items in the reference set). Development results are re-stated under the
+corrected gate in the dated addenda of `V23_DEV_TUNING.md` and `V23_DEV_TUNING_B.md`; the original numbers are not edited.
+
+**2026-10-18, P5a (classification cap).** Section 4's "Live classification at the production cap" is amended to: live
+classification at the production rate in force during the window; the report records the actual daily classified count
+and the coverage per day. Development runs saw the 60/day cap's coverage; arm B's chosen cell 7 is nearly
+coverage-independent. `max_items_per_run` is not changed by this amendment (the 60 -> 150 raise is an open operator decision).
+
+**2026-10-18, P5a (cluster-size criterion).** Criterion 2 (no cluster larger than 1.5 x the largest labelled episode) is weak:
+the largest labelled episode is large (41 items in development), so the criterion is passed by clusterings that are
+badly wrong. Contamination carries the weight. The threshold is not changed.

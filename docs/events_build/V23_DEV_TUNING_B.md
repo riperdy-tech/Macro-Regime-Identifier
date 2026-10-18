@@ -180,3 +180,12 @@ Mean dense cosine is 0.640 for same-episode pairs and 0.438 for different-episod
 better (AUC 0.987 against 0.964) but neither score reaches useful precision at recall 0.8 once the Houthi pairs are
 removed; the dense cosine alone is worse than the lexical score on the full pair set because it ranks distinct events of
 the same region and theme above the long Houthi chain's weakest pairs. Information only: nothing was tuned on it.
+
+## Addendum 2026-10-18 (P5a): re-statement under the corrected contamination gate
+
+The original numbers above are not edited. The gate is now max(point, basic-bootstrap upper = 2 * point - 5th percentile)
+(`V23_PREREGISTRATION.md` section 10). For the chosen arm B cell, with the unchanged bootstrap draws (seed 20261019,
+1000 draws): contamination point 0.119, percentile 95th 0.154, **basic upper bound / gate 0.217** (criterion 0.15).
+The criterion is still NOT met; under the corrected gate it fails by a wider margin. Scorer change to NONE/NOISE keying
+(by `report_label`) leaves every development score identical (re-run and compared byte for byte).
+

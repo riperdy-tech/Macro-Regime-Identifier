@@ -5,7 +5,8 @@ news_id -> cluster id; an item missing from the mapping is its own one-item clus
 LABELLING_GUIDE_V2.md: `episode_id`, `storyline_id`, `report_label`, optional `membership: peripheral`.
 
 Definitions (binding once frozen)
-  * `NONE` / `NOISE` episode ids are one-item episodes (and one-item storylines); every such item is its own unit.
+  * `NONE` / `NOISE` episode ids are one-story episodes (one-item storylines): items are units keyed by `report_label`,
+    so syndicated copies of one NONE story are one unit and never outsiders of each other (erratum P5a, 2026-10-18).
   * Peripheral items are excluded from every metric: never members, never outsiders.
   * Per-episode recall of a true episode E (>= 2 core items) = the share of E's core items that sit in the single
     predicted cluster holding most of them. The primary figure is the mean over true episodes.
@@ -15,7 +16,8 @@ Definitions (binding once frozen)
   * Largest predicted cluster (all items, peripheral included) against the largest labelled episode (all members).
   * Syndication-only baseline: the clustering that merges only items sharing a `report_label`.
   * Story-resampled 90% CI: bootstrap over STORYLINES (a one-item storyline is its own unit), percentile interval
-    [5th, 95th]; the contamination criterion uses the upper end. The same draws give the CI of the recall uplift.
+    [5th, 95th] is reported; the contamination GATE is max(point, basic-bootstrap upper = 2*point - 5th percentile)
+    (erratum P5a, 2026-10-18: the percentile upper end is biased low for a skewed statistic). The same draws give the CI of the recall uplift.
   * All-item B-cubed and pairwise precision/recall are secondary (singleton-heavy streams flatter them).
 """
 from __future__ import annotations
@@ -83,7 +85,8 @@ def validate_labels(labels: Labels, ids: list[str]) -> list[str]:
 
 def _episode(labels: Labels, i: str) -> Any:
     e = labels[i]["episode_id"]
-    return ("single", i) if e in RESERVED else e
+    # a NONE/NOISE story is one unit per REPORT: wire copies of one story are not outsiders of each other
+    return ("single", labels[i]["report_label"]) if e in RESERVED else e
 
 
 def _storyline(labels: Labels, i: str) -> Any:
@@ -237,6 +240,14 @@ def _interval(values: list[float | None]) -> tuple[float, float] | None:
     return _percentile(vals, tail), _percentile(vals, 1 - tail)
 
 
+def contamination_gate(point: float | None, interval: tuple[float, float] | None) -> tuple[float | None, float | None]:
+    """(basic-bootstrap upper, gate). The gate is the stricter of the point estimate and 2*point - 5th percentile."""
+    if point is None or interval is None:
+        return None, None
+    basic = 2 * point - interval[0]
+    return basic, max(point, basic)
+
+
 def score(labels: Labels, clusters: Mapping[str, Any], ids: list[str], *, draws: int = BOOTSTRAP_DRAWS,
           seed: int = BOOTSTRAP_SEED) -> dict[str, Any]:
     """The full holdout score and the pre-registered PASS decision. Deterministic for a given seed."""
@@ -275,7 +286,8 @@ def score(labels: Labels, clusters: Mapping[str, Any], ids: list[str], *, draws:
     largest_cluster, largest_episode = _largest(labels, clusters, ids)
     uplift = (None if point["episode_recall"] is None or base["episode_recall"] is None
               else point["episode_recall"] - base["episode_recall"])
-    contamination_upper = ci["contamination"][1] if ci["contamination"] else None
+    pt_c = point["contamination"]
+    basic_upper, contamination_upper = contamination_gate(pt_c, ci["contamination"])
     checks = {
         "contamination_upper_le_0_15": contamination_upper is not None and contamination_upper <= MAX_CONTAMINATION_UPPER,
         "largest_cluster_le_1_5x_largest_episode": largest_episode > 0 and largest_cluster <= MAX_CLUSTER_RATIO * largest_episode,
@@ -287,6 +299,8 @@ def score(labels: Labels, clusters: Mapping[str, Any], ids: list[str], *, draws:
                     "largest_cluster": largest_cluster, "largest_episode": largest_episode,
                     "cluster_to_episode_ratio": largest_cluster / largest_episode if largest_episode else None},
         "ci90": ci,
+        "contamination_gate": {"point": pt_c, "percentile_upper": ci["contamination"][1] if ci["contamination"] else None,
+                               "basic_upper": basic_upper, "gate": contamination_upper},
         "secondary": {"bcubed": _bcubed(core, cid, episode), "pairwise": _pairwise(core, cid, episode)},
         "fragmentation": fragmentation_table(labels, clusters, ids),
         "checks": checks,

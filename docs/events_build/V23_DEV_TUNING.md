@@ -145,3 +145,11 @@ any linked pair already clears 0.2, so the floors gate almost nothing here.
   precision, low recall) rather than building a hub; the main error is fragmentation of long campaigns.
 * Larger cutoffs trade recall for contamination monotonically; entity weight helps contamination only at high cutoffs.
 
+## Addendum 2026-10-18 (P5a): re-statement under the corrected contamination gate
+
+The original numbers above are not edited. The gate is now max(point, basic-bootstrap upper = 2 * point - 5th percentile)
+(`V23_PREREGISTRATION.md` section 10). For the chosen arm A cell, with the unchanged bootstrap draws (seed 20261019,
+1000 draws): contamination point 0.161, percentile 95th 0.186, **basic upper bound / gate 0.288** (criterion 0.15).
+The criterion is still NOT met; under the corrected gate it fails by a wider margin. Scorer change to NONE/NOISE keying
+(by `report_label`) leaves every development score identical (re-run and compared byte for byte).
+

@@ -141,15 +141,41 @@ def test_storyline_recall_is_information_and_reflects_episodes_kept_together():
     assert run(merged)["storyline_recall_info"]["value"] == 1.0
 
 
-def test_bootstrap_is_deterministic_and_brackets_the_point_estimate():
+def test_bootstrap_is_deterministic_and_the_gate_is_never_below_the_point():
     clusters = perfect()
     clusters["n0"] = "EP_C"
     clusters["n1"] = "EP_D"
     a, b = run(clusters), run(clusters)
     assert a["ci90"] == b["ci90"]
     lo, hi = a["ci90"]["contamination"]
-    assert lo <= a["primary"]["contamination"] + 1e-9 and a["primary"]["contamination"] - 1e-9 <= hi
-    assert hi > lo
+    assert hi > lo  # the percentile interval is still reported; it need not bracket the point
+    g = a["contamination_gate"]
+    assert g["gate"] >= a["primary"]["contamination"] and g["gate"] >= g["basic_upper"] - 1e-12
+    assert g["percentile_upper"] == hi
+    assert (a["checks"]["contamination_upper_le_0_15"]) == (g["gate"] <= sc.MAX_CONTAMINATION_UPPER)
+
+
+def test_gate_uses_the_larger_of_point_and_basic_bootstrap_upper():
+    # point above the percentile upper end: the percentile interval would understate; the gate must not
+    basic, gate = sc.contamination_gate(0.20, (0.00, 0.05))
+    assert basic == pytest.approx(0.40) and gate == pytest.approx(0.40)
+    # bootstrap sits above the point: the basic upper falls below the point, so the point is the gate
+    basic, gate = sc.contamination_gate(0.20, (0.30, 0.50))
+    assert basic == pytest.approx(0.10) and gate == pytest.approx(0.20)
+    assert sc.contamination_gate(None, (0.0, 0.1)) == (None, None)
+    assert sc.contamination_gate(0.1, None) == (None, None)
+
+
+def test_syndicated_copies_of_one_none_story_are_not_outsiders_of_each_other():
+    toy = {"a": {"episode_id": "NONE", "storyline_id": "NONE", "report_label": "r1"},
+           "b": {"episode_id": "NONE", "storyline_id": "NONE", "report_label": "r1"},
+           "c": {"episode_id": "E1", "storyline_id": "E1", "report_label": "r2"},
+           "d": {"episode_id": "E1", "storyline_id": "E1", "report_label": "r3"}}
+    ids = list(toy)
+    assert sc.point_metrics(toy, sc.syndication_baseline(toy, ids), ids)["contamination"] == 0.0
+    # two DIFFERENT NONE stories merged are still contamination
+    toy["b"]["report_label"] = "r9"
+    assert sc.point_metrics(toy, {"a": "x", "b": "x"}, ids)["contamination"] == 0.5
 
 
 def test_inter_labeller_ceiling_is_reported_both_ways():
