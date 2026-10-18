@@ -17,10 +17,13 @@ Label sets
 
 Linkers
   A           the arm A linker, parameters from --config (config/events_v23.yaml).
+  B           arm A plus the stored dense title vectors (table event_embeddings, written by scripts/events_embed.py);
+              parameters from the `arm_b` section laid over `arm_a`. The model is never called.
   syndication the builder's collapse only: every collapsed report is its own cluster (the system baseline).
 
     python scripts/events_v23_replay.py --set reference --out run.json
     python scripts/events_v23_replay.py --set reference --tune --out grid.json     (60-cell grid of V23_DEV_TUNING.md)
+    python scripts/events_v23_replay.py --set reference --tune-b --out gridb.json  (54-cell grid of V23_DEV_TUNING_B.md)
 """
 from __future__ import annotations
 
@@ -47,7 +50,15 @@ import score_holdout as sh  # noqa: E402
 from macro_engine.events.builder import NewsItem, naive_utc  # noqa: E402
 from macro_engine.events.config import load_e1_config, load_generic_entities  # noqa: E402
 from macro_engine.events.entities import load_resolver, normalize_name  # noqa: E402
-from macro_engine.events.linker import ArmAConfig, ArmALinker, load_arm_a_config  # noqa: E402
+from macro_engine.events.embeddings import EmbeddingStore, load_model_pin  # noqa: E402
+from macro_engine.events.linker import (  # noqa: E402
+    ArmAConfig,
+    ArmALinker,
+    ArmBConfig,
+    ArmBLinker,
+    load_arm_a_config,
+    load_arm_b_config,
+)
 from macro_engine.events.register import apply_pool, background_for, collapse_pool  # noqa: E402
 from macro_engine.events.state import EventState, NeverLinkStub, StateConfig  # noqa: E402
 from macro_engine.events.store_io import load_all_items  # noqa: E402
@@ -59,6 +70,11 @@ GRID_CUTOFFS = (0.25, 0.30, 0.35, 0.45, 0.55)
 GRID_ENTITY_WEIGHTS = (0.0, 0.25, 0.5)
 GRID_FLOORS = ((0.10, 2.0), (0.20, 3.0))   # (title_cosine_floor, entity_idf_floor)
 GRID_BACKGROUND_DAYS = (14, 28)
+
+# The arm B grid of docs/events_build/V23_DEV_TUNING_B.md, fixed before any cell was run (3 x 6 x 3 = 54 cells).
+GRID_B_DENSE_WEIGHTS = (0.5, 1.0, 1.5)
+GRID_B_CUTOFFS = (0.40, 0.55, 0.70, 0.85, 1.00, 1.20)
+GRID_B_ENTITY_WEIGHTS = (0.0, 0.25, 0.5)
 
 
 # ----------------------------------------------------------------------------- label sets
@@ -88,8 +104,10 @@ def load_holdout_labels(items_csv: Path, labels_yaml: Path) -> tuple[list[str], 
 class ReplayContext:
     """Everything that does not depend on a cell's parameters, computed once: items, the daily pools, backgrounds."""
 
-    def __init__(self, items: list[NewsItem], ids: list[str], *, resolver: Any = None) -> None:
+    def __init__(self, items: list[NewsItem], ids: list[str], *, resolver: Any = None,
+                 vectors: dict[str, Any] | None = None) -> None:
         self.cfg = load_e1_config()
+        self.vectors = vectors if vectors is not None else {}
         self.resolver = resolver
         legal = resolver.legal_suffixes if resolver is not None else ()
         self.suffixes = legal
@@ -134,6 +152,8 @@ def replay(ctx: ReplayContext, ids: list[str], arm: ArmAConfig | None) -> dict[s
     state = EventState(con, StateConfig())
     if arm is None:
         linker: Any = NeverLinkStub()
+    elif isinstance(arm, ArmBConfig):
+        linker = ArmBLinker(arm, ctx.background(arm), ctx.vectors, state.cfg.open_days, ctx.cache(arm))
     else:
         linker = ArmALinker(arm, ctx.background(arm), state.cfg.open_days, ctx.cache(arm))
     item_event: dict[str, str] = {}
@@ -187,6 +207,11 @@ def grid_cells() -> list[dict[str, Any]]:
             for c in GRID_CUTOFFS for w in GRID_ENTITY_WEIGHTS for tf, ef in GRID_FLOORS for b in GRID_BACKGROUND_DAYS]
 
 
+def grid_cells_b() -> list[dict[str, Any]]:
+    return [{"dense_weight": d, "cutoff": c, "entity_weight": w}
+            for d in GRID_B_DENSE_WEIGHTS for c in GRID_B_CUTOFFS for w in GRID_B_ENTITY_WEIGHTS]
+
+
 def select_cell(rows: list[dict[str, Any]]) -> dict[str, Any]:
     """The rule of V23_DEV_TUNING.md. `rows` are in grid order. Returns {cell, rule_branch, feasible}."""
     def upper(r: dict[str, Any]) -> float:
@@ -218,6 +243,35 @@ def tune(ctx: ReplayContext, labels: dict[str, dict[str, Any]], ids: list[str], 
     return {"grid": rows, "selection": {"rule_branch": chosen["rule_branch"], "feasible_cells": chosen["feasible"],
                                         "chosen_n": chosen["cell"]["n"], "chosen_cell": chosen["cell"]["cell"]},
             "any_cell_passes_all": [r["n"] for r in rows if r["headline"]["pass"]]}
+
+
+def tune_b(ctx: ReplayContext, labels: dict[str, dict[str, Any]], ids: list[str], base: ArmBConfig) -> dict[str, Any]:
+    rows = []
+    cells = grid_cells_b()
+    for n, cell in enumerate(cells, 1):
+        arm = dataclasses.replace(base, **cell)
+        run = replay(ctx, ids, arm)
+        rows.append({"n": n, "cell": cell, "headline": headline(score_run(labels, ids, run)), "events": run["events"],
+                     "ambiguous_links": run["ambiguous_links"], "proposed_links": run["proposed_links"]})
+        h = rows[-1]["headline"]
+        print(f"cell {n:2d}/{len(cells)} {cell} uplift={h['recall_uplift']} contam_up={h['contamination_upper']} "
+              f"largest={h['largest_cluster']}", flush=True)
+    chosen = select_cell(rows)
+    return {"grid": rows, "selection": {"rule_branch": chosen["rule_branch"], "feasible_cells": chosen["feasible"],
+                                        "chosen_n": chosen["cell"]["n"], "chosen_cell": chosen["cell"]["cell"]},
+            "any_cell_passes_all": [r["n"] for r in rows if r["headline"]["pass"]]}
+
+
+def load_stored_vectors(db: Path) -> dict[str, Any]:
+    """Stored vectors of the pinned model (read-only). The model itself is never loaded."""
+    import duckdb
+
+    pin = load_model_pin()
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        return EmbeddingStore(con).load_vectors(None, pin.name, pin.model_sha256)
+    finally:
+        con.close()
 
 
 def event_behaviour(labels: dict[str, dict[str, Any]], ids: list[str], clusters: dict[str, str],
@@ -258,7 +312,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--labels", type=Path, help="holdout labels.yaml (episode_id / storyline_id / report_label)")
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
     ap.add_argument("--config", type=Path, default=None, help="events_v23.yaml (default config/events_v23.yaml)")
-    ap.add_argument("--linker", choices=("A", "syndication"), default="A")
+    ap.add_argument("--linker", choices=("A", "B", "syndication"), default="A")
+    ap.add_argument("--tune-b", action="store_true", help="run the 54-cell arm B development grid (reference set only)")
+    ap.add_argument("--cell", default=None, help="arm B only: JSON of fields to override, e.g. '{\"dense_weight\": 1.0}'")
     ap.add_argument("--tune", action="store_true", help="run the 60-cell development grid (reference set only)")
     ap.add_argument("--max-first-seen", default=DEFAULT_MAX_FIRST_SEEN.isoformat(),
                     help="no item first seen at or after this instant is read (default 2026-10-18)")
@@ -272,19 +328,28 @@ def main(argv: list[str] | None = None) -> int:
         if args.items is None or args.labels is None:
             raise SystemExit("--set holdout needs --items and --labels")
         ids, labels = load_holdout_labels(args.items, args.labels)
-    if args.tune and args.set != "reference":
+    if (args.tune or args.tune_b) and args.set != "reference":
         raise SystemExit("--tune is development-set only: it never runs on a holdout")
-    base = load_arm_a_config(args.config) if args.config else load_arm_a_config()
-    items = load_store_items(args.db, naive_utc(args.max_first_seen))  # type: ignore[arg-type]
-    ctx = ReplayContext(items, ids, resolver=load_resolver())
-
-    if args.tune:
-        result: dict[str, Any] = {"set": "reference", "optimistic": True, **tune(ctx, labels, ids, base)}
+    use_b = args.linker == "B" or args.tune_b
+    cfg_path = args.config
+    if use_b:
+        base: ArmAConfig = load_arm_b_config(cfg_path) if cfg_path else load_arm_b_config()
+        if args.cell:
+            base = dataclasses.replace(base, **json.loads(args.cell))
     else:
-        run = replay(ctx, ids, base if args.linker == "A" else None)
+        base = load_arm_a_config(cfg_path) if cfg_path else load_arm_a_config()
+    items = load_store_items(args.db, naive_utc(args.max_first_seen))  # type: ignore[arg-type]
+    ctx = ReplayContext(items, ids, resolver=load_resolver(), vectors=load_stored_vectors(args.db) if use_b else None)
+
+    if args.tune_b:
+        result: dict[str, Any] = {"set": "reference", "optimistic": True, **tune_b(ctx, labels, ids, base)}  # type: ignore[arg-type]
+    elif args.tune:
+        result = {"set": "reference", "optimistic": True, **tune(ctx, labels, ids, base)}
+    else:
+        run = replay(ctx, ids, base if args.linker in ("A", "B") else None)
         scored = score_run(labels, ids, run, args.draws)
         result = {"set": args.set, "linker": args.linker, "optimistic": args.set == "reference",
-                  "arm_config": dataclasses.asdict(base) if args.linker == "A" else None,
+                  "arm_config": dataclasses.asdict(base) if args.linker in ("A", "B") else None,
                   "headline": headline(scored), "fragmentation": scored["fragmentation"], "daily": run["daily"],
                   "events": run["events"], "ambiguous_links": run["ambiguous_links"],
                   "proposed_links": run["proposed_links"], "clusters": run["clusters"]}

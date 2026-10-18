@@ -239,3 +239,17 @@ def test_config_arm_b_overlays_arm_a_and_arm_defaults_to_a(tmp_path):
 def test_shipped_config_loads_for_both_arms():
     assert configured_arm() in ("A", "B")
     assert isinstance(dataclasses.asdict(load_arm_b_config()), dict)
+
+
+def test_arm_b_grid_is_the_declared_54_cells():
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import events_v23_replay as rv
+
+    cells = rv.grid_cells_b()
+    assert len(cells) == 54 == 3 * 6 * 3
+    assert {c["dense_weight"] for c in cells} == {0.5, 1.0, 1.5}
+    assert {c["cutoff"] for c in cells} == {0.40, 0.55, 0.70, 0.85, 1.00, 1.20}
+    assert {c["entity_weight"] for c in cells} == {0.0, 0.25, 0.5}
