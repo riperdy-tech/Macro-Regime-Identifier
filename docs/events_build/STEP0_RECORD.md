@@ -112,3 +112,22 @@ the next run detects it again; the report is `ok: False` and `repull_error` is k
 
 **G. Known limit (pre-existing).** Raw closes older than the 3-year backfill window are not rescaled after a split:
 the re-pull rewrites closes and adjclose inside the window only (adjclose outside it is dropped, closes are not).
+
+## Phase 3c: measured classification usage (E0.2a cost evidence)
+
+2026-10-18, one offline run for the E1 reference set (BRIEF_P3C; D2). Config `config/news_ai_live.yaml` (provider deepseek,
+model `deepseek-v4-flash`, temperature 0, max_tokens 2048, max_retries 1). Run through `classify_stored_news` into a working
+copy of the store (the live store was not written). Prompt version stored on the rows: `83ba841d14a73c7f`; this is the
+production prompt `d452c8a015a7bd11` hashed over the CRLF checkout of `config/news_themes.yaml` (the hash covers its bytes;
+with LF line endings the same code gives `d452c8a015a7bd11`, checked). Same template, same themes, different line endings.
+
+| | |
+|---|---|
+| items classified | 158 of 158 (0 failures, no retries needed at the item level, 0 truncated, `finish_reason=length` count 0) |
+| prompt tokens | 186,410 (cache hit 156,544; cache miss 29,866) |
+| completion tokens | 112,275 (mean 711 per item; max 2,026, p95 1,527) |
+| total tokens | 298,685 (1,890 per item) |
+
+The brief's estimate was about 216k tokens; the measured total is 298,685, of which completion is the larger-than-expected
+part (the prompt is mostly served from the provider's cache). Money is not computed here: no price is recorded in the repo,
+and I did not invent one. Source: the stored `raw_ai_response_json` usage via `build_live_ai_usage_report` over the 158 new rows.

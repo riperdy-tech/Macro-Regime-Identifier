@@ -109,3 +109,54 @@ What this shows, without drawing a conclusion about quality:
 - The v2_2 false-merge rate (16/20) rests on 20 same-cluster pairs; v2 has 513. The rate is a ratio of small numbers there.
 - The Aden/Houthi relation is not shown (no classified Aden member), and the prediction in `SPEC_FREEZE.md` stands: it is expected to
   link into the Houthi event once classified, and to fail its gate.
+
+---
+
+# Phase 3c: run (b), reference set classified offline (INFORMATION, not a gate)
+
+Date 2026-10-18. Code at the 3c commit (replay `--classification as_if_all`); parameters not changed (`events.yaml` version 3), labels
+untouched. The 158 reference items that had no stored classification were classified once (DeepSeek `deepseek-v4-flash`, production
+config; 158 of 158 succeeded, 298,685 tokens, see STEP0_RECORD.md) into a **copy** of the store; only their classifications are in
+`tests/fixtures/events_reference/classification_overlay.parquet` (allow-listed columns, `overlay_source: P3C`). The live store was not
+written. Overlay rows ignore `classified_at <= as_of` (each is stamped to the end of its item's first-seen day); the stored rows
+keep the no-look-ahead rule. All 300 reference items now carry a payload. Each command was run once (both modes at the same time):
+
+    python scripts/events_replay.py --mode stored --pool store --linking {v2,v2_2} --classification as_if_all --out <report.json>
+
+The reference set has been seen and v2_2 was designed after seeing it, so these numbers cannot validate v2_2.
+The store was being appended by the live pipeline (27,594 items at the time), so a later re-run can differ in the background.
+
+| | v2 (plan 5.4 as written) | v2_2 (erratum) |
+|---|---|---|
+| false-split (limit 10%) | 15 / 45 = 33.3% FAIL | 36 / 45 = 80.0% FAIL |
+| false-merge (limit 5%) | 1322 / 1352 = 97.8% FAIL | 11 / 20 = 55.0% FAIL |
+| final-pool (10-17) split / merge | 11/40, 1304/1333 | 32/40, 9/17 |
+| largest event, 10-17 / any day | 185 items / 193 | 15 items / 18 |
+| ids lost while the onset item was pooled | 19 | 25 |
+| `E_HOUTHI_SAUDI` | FAIL: 24 of 27 core in the 100-reference-item hub, 2 in a 2-item event, 1 in an 8-item event | FAIL: 27 core in 15 events (largest 8 core, in a 14-item event; 7 in `rejected_uncorroborated` singletons or pairs) |
+| `E_COREWEAVE_DISTRESS` | FAIL: all 4 in the hub (81 outsiders) | **PASS**: one 4-item corroborated event, no outsiders |
+| `E_CPI_SEP` | FAIL: all 3 in the hub (82 outsiders) | FAIL: 3 core in 3 events; two of them carry a PPI item |
+| `E_HOUTHI_ADEN_PALACE` | FAIL: both in the hub | FAIL: the 2 core are in 2 different events, each mixed with Houthi/Saudi items (3 outsiders each) |
+
+Where Aden lands. Under v2 both Aden items link into the Houthi hub. Under v2_2 each links into a different Houthi event
+(`evt_27b5...` with 2 Houthi-Saudi items, `evt_714c...` with 3). No event starts for it, and `related_event_ids` is empty
+for both: the new-development rule (5.5) never fired. This is the prediction in `SPEC_FREEZE.md`, now observed: Aden and Houthi
+share a theme and direction, so the report links, which is what 5.4 says.
+
+Remaining causes, by what the run shows (not tuned against):
+
+1. **v2 hub.** The chaining of the first run is worse with full coverage: one 100-reference-item event (185 items in the store pool)
+   holds members of 9 labelled events and 33 NONE items. False-merge is 97.8% in every pool; this is the plan 5.4 text, not a defect.
+   The false-split improves (82.2% to 33.3%) only because everything is pulled into the hub.
+2. **v2_2 fragmentation.** The tighter link leaves reports of one labelled event in many events: of the 27 Houthi core reports,
+   15 events. Of all labelled core items under v2_2, 35 sit in `rejected_uncorroborated` events (23 of them singletons), 20 in
+   `detected` events and 3 in corroborated singletons. So most split core items end in events that never reached
+   corroboration (two publishers or an official source within 72 h); I did not break down per item why they did not link
+   or gain a second publisher.
+3. **v2_2 residual false merges** (11 of 20 pairs): the 14-item Houthi event holds one NONE item; the 4-item and 3-item events mix
+   Houthi with Aden, CPI with PPI, and two Russia/diesel items with a NONE. These are near-neighbour macro stories sharing an entity and a theme.
+4. **Ids.** 19 (v2) and 25 (v2_2) ids vanished while their onset item was pooled, each by an event absorbing an older one.
+
+Operator rulings still open (unchanged from run (a), with this evidence): whether to adopt v2_2 as 5.4; whether broad entities need a
+discount (a new parameter); whether the 72 h `rejected_uncorroborated` status (35 labelled core items under v2_2) is the right treatment (workspace rule 3: annotate, never silently gate).
+Nothing here was changed in code or config.

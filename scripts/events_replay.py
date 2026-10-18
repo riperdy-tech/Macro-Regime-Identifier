@@ -7,8 +7,14 @@ persist across days). The result is scored with tests/fixtures/events_reference/
 Classification source (pluggable, no classifier is ever called here):
   stored             run (a): classified only where classification_state.csv says `classified` and
                      classified_at <= as_of; payloads (themes, entities, ...) are read from the store.
-  as_if_all_classified   run (b): every item that has a payload is treated as classified at the end of its own
+  as_if_all_classified   every item that has a payload is treated as classified at the end of its own
                      first-seen UTC day. Items with no payload stay unclassified. Idealised; labelled as such.
+
+Run (b), phase 3c: `--classification as_if_all` (mode stored) merges the P3C overlay
+(tests/fixtures/events_reference/classification_overlay.parquet: the 158 reference items that had no stored
+classification, classified once offline into a copy of the store). Only overlay rows ignore `classified_at <= as_of`
+(each is stamped to the end of its item's first-seen UTC day); the as-stored rows keep the no-look-ahead rule, and
+`--classification as_stored` (default) never reads the overlay, so run (a) is unchanged by the file's existence.
 
 Pool (what the builder sees each day):
   store     DEFAULT. Every item in the news store (production builds from the whole store), the same as-of per day and
@@ -46,6 +52,8 @@ MODES = ("stored", "as_if_all_classified")
 POOLS = ("store", "fixture")
 LINKINGS = ("v2", "v2_2")
 DEFAULT_DB = REPO_ROOT / "data" / "macro_engine.duckdb"
+CLASSIFICATIONS = ("as_stored", "as_if_all")
+OVERLAY_PATH = FIXTURE_DIR / "classification_overlay.parquet"
 
 
 def load_fixture_items(directory: Path = FIXTURE_DIR) -> list[NewsItem]:
@@ -128,6 +136,29 @@ def as_if_all_classified(
             Classification(**{**c.__dict__, "classified_at": day_end}) for c in source[it.news_id]
         )
     return out
+
+
+def load_overlay(path: Path = OVERLAY_PATH) -> dict[str, tuple[Classification, ...]]:
+    """Successful overlay classifications by news_id, each re-stamped to the end of its item's first-seen UTC day by
+    `as_if_all_classified` (the real classified_at is kept in the file, not used here)."""
+    import duckdb
+
+    if not Path(path).exists():
+        raise SystemExit(f"--classification as_if_all needs the overlay file: {path}")
+    cols = ["news_id", "classified_at", "classification_status", "origin", "ai_provider", "macro_themes_json",
+            "sector_impacts_json", "entities_json", "severity", "confidence", "summary"]
+    con = duckdb.connect()
+    try:
+        rows = con.execute(
+            f"select {', '.join(cols)} from read_parquet(?) where classification_status = 'success' "
+            "order by news_id, classified_at", [str(path)]).fetchall()
+    finally:
+        con.close()
+    out: dict[str, list[Classification]] = {}
+    for r in rows:
+        rec = dict(zip(cols, r, strict=True))
+        out.setdefault(rec["news_id"], []).append(parse_classification_row(rec))
+    return {k: tuple(v) for k, v in out.items()}
 
 
 def day_ends(items: list[NewsItem], final: datetime = FINAL_AS_OF) -> list[datetime]:
@@ -235,9 +266,13 @@ def gated_detail(clusters: dict[str, str], meta: dict[str, Any], labels: dict[st
 
 
 def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *, pool: str = "store",
-        linking: str = "v2_2") -> dict[str, Any]:
+        linking: str = "v2_2", classification: str = "as_stored", overlay_path: Path | None = None) -> dict[str, Any]:
     if mode not in MODES:
         raise SystemExit(f"mode must be one of {MODES}")
+    if classification not in CLASSIFICATIONS:
+        raise SystemExit(f"classification must be one of {CLASSIFICATIONS}")
+    if classification == "as_if_all" and mode != "stored":
+        raise SystemExit("--classification as_if_all applies to --mode stored")
     if pool not in POOLS or linking not in LINKINGS:
         raise SystemExit(f"pool must be one of {POOLS} and linking one of {LINKINGS}")
     if pool == "store" and db is None:
@@ -249,6 +284,8 @@ def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *
     stored = stored_classifications([i.news_id for i in ref_items], state, db)
     if db is not None:
         assert_state_matched([i.news_id for i in ref_items], state, stored)
+    overlay = (as_if_all_classified(ref_items, load_overlay(overlay_path or OVERLAY_PATH))
+               if classification == "as_if_all" else {})
     resolver = None
     if use_resolver:
         from macro_engine.events.entities import load_resolver
@@ -258,6 +295,8 @@ def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *
         items = ref_items
         classifications: dict[str, tuple[Classification, ...]] | None = (
             stored if mode == "stored" else as_if_all_classified(items, stored))
+        if overlay:
+            classifications = {**classifications, **{k: tuple(classifications.get(k, ())) + v for k, v in overlay.items()}}
         score_ids = None
     else:
         import duckdb
@@ -274,6 +313,9 @@ def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *
         score_ids = set(ids)
         if mode == "stored":
             classifications = None
+            if overlay:
+                items = [NewsItem(i.news_id, i.title, i.source_url, i.first_seen_at, i.published_at,
+                                  tuple(i.classifications) + overlay.get(i.news_id, ())) for i in items]
         else:
             everything = {i.news_id: tuple(c for c in i.classifications if c.status == "success")
                           for i in items if any(c.status == "success" for c in i.classifications)}
@@ -287,12 +329,13 @@ def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *
     pool_rates = acc.rates(pool_clusters, labels, [i for i in ids if i in pool_set])
     final = result["final"]
     hub = max(final.events, key=lambda e: (e["item_count"], e["event_id"]), default=None)
-    n_payload = len(stored) if pool == "fixture" else sum(
+    n_payload = len(classifications) if pool == "fixture" else sum(
         1 for i in items if i.news_id in score_ids and any(c.status == "success" for c in i.classifications))
     report = {
         "mode": mode,
         "pool": pool,
         "linking": linking,
+        **({"classification": classification, "overlay_items": len(overlay)} if overlay else {}),
         "config_version": config.version,
         "items": len(items),
         "reference_items": len(ref_items),
@@ -339,12 +382,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--mode", choices=MODES, default="stored")
     ap.add_argument("--pool", choices=POOLS, default="store", help="store (default): whole store; fixture: the 300 only")
     ap.add_argument("--linking", choices=LINKINGS, default="v2_2")
+    ap.add_argument("--classification", choices=CLASSIFICATIONS, default="as_stored",
+                    help="as_if_all merges the P3C overlay (run b); as_stored never reads it (run a)")
     ap.add_argument("--db", default=None, help="news store (default for --pool store: data/macro_engine.duckdb)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-resolver", action="store_true", help="skip the stocks.json / SEC entity resolver")
     args = ap.parse_args(argv)
     report = run(args.mode, args.db, args.out, use_resolver=not args.no_resolver, pool=args.pool,
-                 linking=args.linking)
+                 linking=args.linking, classification=args.classification)
     print(summary(report))
     return 0
 

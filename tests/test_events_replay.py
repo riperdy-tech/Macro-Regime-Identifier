@@ -138,3 +138,55 @@ def test_v2_fixture_mode_reproduces_the_recorded_run_a_numbers():
     assert (s["false_split_pairs"], s["label_pairs"]) == (37, 45)
     assert (s["false_merge_pairs"], s["cluster_pairs"]) == (123, 131)
     assert rep["ids_lost_while_pooled"] == 3
+
+
+def _write_overlay(path, rows):
+    con = duckdb.connect()
+    con.execute("""create table o (news_id varchar, classified_at timestamp, classification_status varchar,
+        origin varchar, ai_provider varchar, macro_themes_json varchar, sector_impacts_json varchar, entities_json varchar,
+        severity double, confidence double, summary varchar, overlay_source varchar)""")
+    for r in rows:
+        con.execute("insert into o values (?, ?, ?, 'live', 'deepseek', ?, '[]', ?, 0.5, 0.6, 's', 'P3C')", r)
+    con.execute(f"copy o to '{path.as_posix()}' (format parquet)")
+    con.close()
+
+
+def _overlay_rows(items):
+    # classified long AFTER the final as-of: an overlay row must still count, as-stored rows must not see it
+    themes = '[{"theme_id": "geopolitical_risk", "direction": "positive"}]'
+    ents = '[{"name": "Actor X", "relevance": 0.9, "entity_type": "other"}]'
+    return [(it.news_id, datetime(2030, 1, 1), "success", themes, ents) for it in items[:40]] + [
+        (items[41].news_id, datetime(2030, 1, 1), "error", "[]", "[]")]
+
+
+def test_overlay_rows_ignore_classified_at_and_failures_are_dropped(tmp_path):
+    items = rp.load_fixture_items()
+    path = tmp_path / "ov.parquet"
+    _write_overlay(path, _overlay_rows(items))
+    ov = rp.load_overlay(path)
+    assert set(ov) == {i.news_id for i in items[:40]}
+    first = items[0].first_seen_at
+    assert rp.as_if_all_classified(items, ov)[items[0].news_id][0].classified_at == \
+        datetime(first.year, first.month, first.day) + timedelta(days=1)
+
+
+def test_run_a_is_byte_identical_whether_or_not_an_overlay_exists(tmp_path):
+    items = rp.load_fixture_items()
+    path = tmp_path / "ov.parquet"
+    a1, a2, b = tmp_path / "a1.json", tmp_path / "a2.json", tmp_path / "b.json"
+    rp.run("stored", None, str(a1), use_resolver=False, pool="fixture", overlay_path=tmp_path / "missing.parquet")
+    _write_overlay(path, _overlay_rows(items))
+    rp.run("stored", None, str(a2), use_resolver=False, pool="fixture", overlay_path=path)
+    assert a1.read_bytes() == a2.read_bytes()
+    rep = rp.run("stored", None, str(b), use_resolver=False, pool="fixture", classification="as_if_all",
+                 overlay_path=path)
+    assert rep["overlay_items"] == 40 and rep["reference_items_with_payload"] == 40
+    assert b.read_bytes() != a1.read_bytes()
+
+
+def test_as_if_all_without_the_overlay_file_stops_and_needs_mode_stored(tmp_path):
+    with pytest.raises(SystemExit):
+        rp.run("stored", None, None, use_resolver=False, pool="fixture", classification="as_if_all",
+               overlay_path=tmp_path / "nope.parquet")
+    with pytest.raises(SystemExit):
+        rp.run("as_if_all_classified", None, None, use_resolver=False, pool="fixture", classification="as_if_all")
