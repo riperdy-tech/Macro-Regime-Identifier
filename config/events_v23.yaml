@@ -19,3 +19,12 @@ arm_a:
   entity_idf_floor: 2.0        # ... or the IDF of an entity key shared with that anchor, must reach this
   ambiguity_margin: 0.05       # other events scoring within this of the best (and >= cutoff) mark the decision ambiguous
   near_miss_fraction: 0.8      # an event scoring >= this fraction of the cutoff but not linked is recorded as a near-miss proposal
+
+# ----- arm B (A plus a dense title-embedding term; docs/events_build/V23_DEV_TUNING_B.md, MODEL_PROVENANCE.md) -----
+# `arm` selects the linker. Which arm is primary is a freeze decision (V23_PREREGISTRATION.md section 1), not a code default.
+arm: A
+dense:
+  model_name: bge-small-en-v1.5          # directory data/models/<model_name>/ (git-ignored)
+  model_sha256: 828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35       # onnx/model.onnx @ BAAI/bge-small-en-v1.5 5c38ec7c405e
+  tokenizer_sha256: d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66   # tokenizer.json, same revision
+  preprocess_version: canon-title-cls-l2-v1

@@ -37,7 +37,7 @@ from macro_engine.events.builder import (
 )
 from macro_engine.events.config import E1Config
 from macro_engine.events.entities import EntityResolver
-from macro_engine.events.linker import ArmAConfig, Background, make_background
+from macro_engine.events.linker import ArmAConfig, ArmBConfig, Background, make_background
 from macro_engine.events.state import CLOSED, OPEN, DayResult, EventState, Linker, Report
 
 SCHEMA_VERSION = 1
@@ -357,7 +357,7 @@ def build_register(
         "artifact": "event_register",
         "as_of": when.isoformat(),
         "note": NOTE,
-        "linker": {"arm": "A", **({"config": dataclasses.asdict(arm)} if arm is not None else {})},
+        "linker": {"arm": "B" if isinstance(arm, ArmBConfig) else "A", **({"config": dataclasses.asdict(arm)} if arm is not None else {})},
         "candidate_count": len(candidates),
         "candidates": candidates,
     }

@@ -20,13 +20,19 @@ Implements the `Linker.link(report, open_events) -> LinkDecision` interface of `
     report joins the best one, the decision says `ambiguous`, and the others are recorded as proposed links. Events
     scoring at least `near_miss_fraction * cutoff` that were not linked are recorded as near-miss proposals.
   * A report below the cutoff for every event returns `event_id=None` (a new candidate).
+
+Arm B (`ArmBLinker`, same file) is arm A plus a dense term: per anchor, `title_cosine + entity_weight * entity_cosine +
+dense_weight * dense_cosine`, the dense cosine taken between STORED title vectors (`embeddings.py`; the model is never
+called here). The best anchor is chosen on that sum, so one anchor supplies all the evidence. A report or anchor with
+no stored vector adds nothing for that anchor and the decision carries the flag `dense_missing`: the arm A score is
+used, nothing is dropped and nothing crashes. The gates (title floor, entity floor) are arm A's, unchanged.
 """
 from __future__ import annotations
 
 import math
 import re
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -35,6 +41,7 @@ from typing import Any
 import yaml
 
 from macro_engine import peer_paths
+from macro_engine.events.embeddings import dense_cosine
 from macro_engine.events.state import EventSummary, LinkDecision, ProposedLink, Report, ReportRef
 
 DEFAULT_V23_PATH = peer_paths.REPO_ROOT / "config" / "events_v23.yaml"
@@ -58,6 +65,13 @@ class ArmAConfig:
     near_miss_fraction: float = 0.8
 
 
+@dataclass(frozen=True)
+class ArmBConfig(ArmAConfig):
+    """Arm A's parameters (with arm B's own cutoff and entity weight) plus the dense weight."""
+
+    dense_weight: float = 0.5
+
+
 def load_arm_a_config(path: str | Path = DEFAULT_V23_PATH) -> ArmAConfig:
     doc = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     raw = doc["arm_a"]
@@ -66,6 +80,25 @@ def load_arm_a_config(path: str | Path = DEFAULT_V23_PATH) -> ArmAConfig:
     if unknown:
         raise ValueError(f"events_v23.yaml: unknown arm_a keys {unknown}")
     return ArmAConfig(**{k: type(fields[k].default)(v) for k, v in raw.items()})
+
+
+def load_arm_b_config(path: str | Path = DEFAULT_V23_PATH) -> ArmBConfig:
+    """Arm A's section, overridden by the `arm_b` section (its cutoff, entity weight and dense weight)."""
+    doc = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    merged = {**doc["arm_a"], **(doc.get("arm_b") or {})}
+    fields = ArmBConfig.__dataclass_fields__
+    unknown = sorted(set(merged) - set(fields))
+    if unknown:
+        raise ValueError(f"events_v23.yaml: unknown arm_b keys {unknown}")
+    return ArmBConfig(**{k: type(fields[k].default)(v) for k, v in merged.items()})
+
+
+def configured_arm(path: str | Path = DEFAULT_V23_PATH) -> str:
+    """The `arm:` key of events_v23.yaml ("A" or "B"; "A" when absent)."""
+    arm = (yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}).get("arm", "A")
+    if arm not in ("A", "B"):
+        raise ValueError(f"events_v23.yaml: arm must be A or B, got {arm!r}")
+    return str(arm)
 
 
 # ----------------------------------------------------------------------------- text features
@@ -150,16 +183,21 @@ class _Scored:
     gate_title: bool
     gate_entity: bool
     first_available_at: datetime = field(repr=False, default=datetime.min)
+    dense_cos: float | None = None   # arm B only
+    dense_used: bool = False         # True for an arm B score (the dense term is reported even when it is missing)
 
     @property
     def eligible(self) -> bool:
         return self.gate_title or self.gate_entity
 
     def evidence(self) -> dict[str, Any]:
-        return {"score": round(self.score, 6), "title_cosine": round(self.title_cos, 6),
-                "entity_cosine": round(self.entity_cos, 6), "anchor": self.anchor_report_id,
-                "shared_entities": [[k, round(w, 4)] for k, w in self.shared_entities],
-                "title_floor_met": self.gate_title, "entity_floor_met": self.gate_entity}
+        out = {"score": round(self.score, 6), "title_cosine": round(self.title_cos, 6),
+               "entity_cosine": round(self.entity_cos, 6), "anchor": self.anchor_report_id,
+               "shared_entities": [[k, round(w, 4)] for k, w in self.shared_entities],
+               "title_floor_met": self.gate_title, "entity_floor_met": self.gate_entity}
+        if self.dense_used:
+            out["dense_cosine"] = None if self.dense_cos is None else round(self.dense_cos, 6)
+        return out
 
 
 class ArmALinker:
@@ -201,6 +239,16 @@ class ArmALinker:
     def _within_horizon(self, report: Report, ev: EventSummary) -> bool:
         return (report.first_seen_at.date() - ev.last_report_at.date()).days <= self.open_days
 
+    def _dense_term(self, report: Report, anchor: ReportRef) -> tuple[float, float | None, bool]:
+        """(score added, dense cosine, whether the term is reported). Arm A has none."""
+        return 0.0, None, False
+
+    def _arm_label(self) -> str:
+        return "A"
+
+    def _report_dense_missing(self, report: Report) -> bool:
+        return False
+
     def score_event(self, report: Report, ev: EventSummary) -> _Scored | None:
         """Best anchor of `ev` for `report`, or None if the event has no anchor other than the report itself."""
         best: _Scored | None = None
@@ -211,9 +259,10 @@ class ArmALinker:
             shared = sorted(((k, self.bg.entity_idf(k)) for k in report.entity_keys & anchor.entity_keys),
                             key=lambda kw: (-kw[1], kw[0]))
             ecos = cosine(self.entity_vec(report.entity_keys), self.entity_vec(anchor.entity_keys)) if shared else 0.0
-            cand = _Scored(ev.event_id, tcos + self.arm.entity_weight * ecos, tcos, ecos, shared, anchor.report_id,
-                           tcos >= self.arm.title_cosine_floor,
-                           any(w >= self.arm.entity_idf_floor for _, w in shared), ev.first_available_at)
+            extra, dense, used = self._dense_term(report, anchor)
+            cand = _Scored(ev.event_id, tcos + self.arm.entity_weight * ecos + extra, tcos, ecos, shared,
+                           anchor.report_id, tcos >= self.arm.title_cosine_floor,
+                           any(w >= self.arm.entity_idf_floor for _, w in shared), ev.first_available_at, dense, used)
             if best is None or (cand.score, cand.anchor_report_id) > (best.score, best.anchor_report_id):
                 best = cand
         return best
@@ -229,7 +278,9 @@ class ArmALinker:
         flags = list(self.bg.flags)
         if not report.entity_keys:
             flags.append("no_entities")
-        base: dict[str, Any] = {"arm": "A", "cutoff": self.arm.cutoff, "flags": flags}
+        if self._report_dense_missing(report) or (scored and scored[0].dense_used and scored[0].dense_cos is None):
+            flags.append("dense_missing")
+        base: dict[str, Any] = {"arm": self._arm_label(), "cutoff": self.arm.cutoff, "flags": flags}
         near = [ProposedLink(s.event_id, {"kind": "near_miss", **s.evidence()})
                 for s in scored if s.event_id not in eligible_ids and s.score >= near_floor]
         if not eligible:
@@ -242,3 +293,24 @@ class ArmALinker:
         evidence = {**base, "decision": "link", "ambiguous": bool(others), **best.evidence(),
                     "ambiguous_with": [s.event_id for s in others]}
         return LinkDecision(best.event_id, evidence, tuple([*props, *near][:5]))
+
+
+class ArmBLinker(ArmALinker):
+    """Arm A plus the cosine of stored dense title vectors (see the module docstring). `vectors` maps a report id (the
+    news id of its earliest member, which is also the id of the embedded title) to its L2-normalised vector."""
+
+    def __init__(self, arm: ArmBConfig, background: Background, vectors: Mapping[str, Any], open_days: int = 3,
+                 cache: tuple[dict[Any, Any], dict[Any, Any]] | None = None) -> None:
+        super().__init__(arm, background, open_days, cache)
+        self.vectors = vectors
+
+    def _arm_label(self) -> str:
+        return "B"
+
+    def _report_dense_missing(self, report: Report) -> bool:
+        return report.report_id not in self.vectors
+
+    def _dense_term(self, report: Report, anchor: ReportRef) -> tuple[float, float | None, bool]:
+        dense = dense_cosine(self.vectors.get(report.report_id), self.vectors.get(anchor.report_id))
+        weight = self.arm.dense_weight  # type: ignore[attr-defined]
+        return (0.0 if dense is None else weight * dense), dense, True

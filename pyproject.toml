@@ -24,6 +24,12 @@ dev = [
   "ruff>=0.4.0,<0.16",
 ]
 
+# Optional: dense title embeddings for events arm B (docs/events_build/MODEL_PROVENANCE.md). Not in requirements.lock or CI.
+embeddings = [
+  "onnxruntime==1.31.0",
+  "tokenizers==0.23.3",
+]
+
 [project.scripts]
 macro-engine = "macro_engine.cli:app"
 macro-regime = "macro_engine.cli:app"
