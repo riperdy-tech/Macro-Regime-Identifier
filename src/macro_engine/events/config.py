@@ -12,6 +12,7 @@ import yaml
 
 from macro_engine import peer_paths
 
+LINKING_MODES = ("v2", "v2_2")
 DEFAULT_EVENTS_PATH = peer_paths.REPO_ROOT / "config" / "events.yaml"
 
 
@@ -31,6 +32,12 @@ class E1Config:
     official_source_domains: frozenset[str]
     official_domains_status: str | None
     generic_entities_ref: str
+    linking: str = "v2_2"
+    aggregator_hosts: frozenset[str] = frozenset()
+    publisher_suffix_pattern: str = ""
+    background_days: float = 28.0
+    background_max_share: float = 0.01
+    background_min_items: int = 300
 
 
 def _value(node: Any, path: str) -> Any:
@@ -55,6 +62,10 @@ def host_key(domain: str | None) -> str | None:
 def load_e1_config(path: str | Path = DEFAULT_EVENTS_PATH) -> E1Config:
     doc = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     e1 = doc["e1"]
+    un = doc["unratified"]
+    linking = str(un["linking"]["value"])
+    if linking not in LINKING_MODES:
+        raise ValueError(f"events.yaml: unratified.linking must be one of {LINKING_MODES}, got {linking!r}")
     official = e1["corroboration"]["official_source_domains"]
     return E1Config(
         version=int(doc["version"]),
@@ -73,6 +84,12 @@ def load_e1_config(path: str | Path = DEFAULT_EVENTS_PATH) -> E1Config:
         ),
         official_domains_status=official.get("status"),
         generic_entities_ref=str(_value(e1, "link.generic_entity_stop_list")),
+        linking=linking,
+        aggregator_hosts=frozenset(k for k in (host_key(h) for h in un["aggregator_hosts"]["value"]) if k is not None),
+        publisher_suffix_pattern=str(un["publisher_suffix_pattern"]["value"]),
+        background_days=float(un["entity_background"]["days_before_pool"]),
+        background_max_share=float(un["entity_background"]["max_share"]),
+        background_min_items=int(un["entity_background"]["min_items"]),
     )
 
 

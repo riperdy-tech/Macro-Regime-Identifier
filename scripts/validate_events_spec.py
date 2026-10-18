@@ -51,7 +51,7 @@ EXPECTED_PARAMS: dict[str, Any] = {
     "exposure.sector_min_abs_impact": 0.3,
 }
 MAIN_BLOCKS = ("e1", "e2", "e3", "exposure")
-EVENTS_VERSION = 2
+EVENTS_VERSION = 3
 STOP_LIST_REF = "config/entity_aliases.yaml#generic_entities"
 
 # Golden copy of the plan section 6 theme table: theme -> (primary, secondary), each (family, instrument, expected_sign),

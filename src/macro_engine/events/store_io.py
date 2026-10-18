@@ -5,7 +5,7 @@ import json
 from datetime import timedelta
 from typing import Any
 
-from macro_engine.events.builder import Classification, NewsItem, naive_utc
+from macro_engine.events.builder import Classification, NewsItem, _num, naive_utc
 
 
 def _json_list(raw: Any) -> tuple[tuple[dict[str, Any], ...], bool]:
@@ -33,8 +33,8 @@ def parse_classification_row(row: dict[str, Any]) -> Classification:
         themes=themes,
         entities=entities,
         sector_impacts=sectors,
-        severity=row.get("severity"),
-        confidence=row.get("confidence"),
+        severity=_num(row.get("severity")),
+        confidence=_num(row.get("confidence")),
         summary=row.get("summary"),
         parse_error=e1 or e2 or e3,
     )
@@ -63,6 +63,25 @@ def load_pool(con: Any, as_of: Any, window_days: float) -> list[NewsItem]:
         ).fetchall()
         for r in rows:
             rec = dict(zip(cols, r, strict=True))
+            by_id[rec["news_id"]].append(parse_classification_row(rec))
+    return [
+        NewsItem(news_id=i, title=t, source_url=u, published_at=naive_utc(p), first_seen_at=naive_utc(f),
+                 classifications=tuple(by_id[i]))
+        for i, t, u, p, f in items
+    ]
+
+
+def load_all_items(con: Any) -> list[NewsItem]:
+    """Every item in the store with ALL its stored classifications (the builder applies its own as-of cut)."""
+    items = con.execute(
+        "select news_id, title, source_url, published_at, first_seen_at from news_items order by first_seen_at, news_id"
+    ).fetchall()
+    cols = ["news_id", "classified_at", "classification_status", "origin", "ai_provider", "macro_themes_json",
+            "sector_impacts_json", "entities_json", "severity", "confidence", "summary"]
+    by_id: dict[str, list[Classification]] = {r[0]: [] for r in items}
+    for r in con.execute(f"select {', '.join(cols)} from news_classifications").fetchall():
+        rec = dict(zip(cols, r, strict=True))
+        if rec["news_id"] in by_id:
             by_id[rec["news_id"]].append(parse_classification_row(rec))
     return [
         NewsItem(news_id=i, title=t, source_url=u, published_at=naive_utc(p), first_seen_at=naive_utc(f),

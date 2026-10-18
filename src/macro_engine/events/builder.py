@@ -19,6 +19,10 @@ What it does, in plan order
        AND arrives within the horizon of the event's latest report. An unclassified report joins only through
        title Jaccard >= the unclassified threshold with a report already in the event. Entities are compared by
        company (a company with several tickers is one key) and, when unresolved or ambiguous, by normalised name.
+       Two modes (`linking`, config `unratified.linking`): v2 is the text above, with "shares" read against the
+       union of the event's reports; v2_2 is plan erratum v2.2 (docs/events_build/SPEC_FREEZE.md): ONE report of
+       the event must supply the shared entity and (the shared theme-direction or title Jaccard), and a shared
+       entity must not appear in more than the background share of classified items in the days before the pool.
   5.5  a classified report that shares an entity with an event in the horizon, shares no (theme, direction) and
        has title Jaccard < threshold with every report of it, and joins nothing, starts a new event whose
        `related_event_ids` names those events. Any other report that joins nothing starts a new event too.
@@ -42,10 +46,13 @@ the run time, so a replay with a later `as_of` gives the same id.
 """
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import html
 import re
 import unicodedata
+from collections import Counter
+from functools import lru_cache
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
@@ -53,7 +60,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urlparse
 
-from macro_engine.events.config import E1Config, host_key, load_generic_entities
+from macro_engine.events.config import LINKING_MODES, E1Config, host_key, load_e1_config, load_generic_entities
 from macro_engine.events.entities import (
     GENERIC_STATUS,
     NAMED_STATUS,
@@ -62,9 +69,6 @@ from macro_engine.events.entities import (
 )
 from macro_engine.news.provenance import is_forward_evidence
 from macro_engine.news.selection import _jaccard, _token_set
-
-AGGREGATOR_HOSTS = frozenset({"news.google.com"})
-_PUBLISHER_SUFFIX = re.compile(r"^(.*\S)\s+[-–—]\s+([^-–—]{2,40})$")
 
 DETECTED = "detected"
 CORROBORATED = "corroborated"
@@ -119,21 +123,35 @@ def naive_utc(value: datetime | str | None) -> datetime | None:
 # ----------------------------------------------------------------------------- text and publisher
 
 
-def canonical_title(title: str | None) -> str:
+@lru_cache(maxsize=1)
+def _default_config() -> E1Config:
+    return load_e1_config()
+
+
+@lru_cache(maxsize=8)
+def _suffix_regex(pattern: str) -> re.Pattern[str]:
+    return re.compile(pattern)
+
+
+def canonical_title(title: str | None, config: E1Config | None = None) -> str:
     """html.unescape, NFKC, lower case, whitespace collapsed, one trailing " - Publisher" removed."""
+    cfg = config or _default_config()
     text = unicodedata.normalize("NFKC", html.unescape(str(title or ""))).lower()
     text = " ".join(text.split())
-    match = _PUBLISHER_SUFFIX.match(text)
+    match = _suffix_regex(cfg.publisher_suffix_pattern).match(text)
     return match.group(1).strip() if match else text
 
 
-def extract_publisher(title: str | None, source_url: str | None) -> tuple[str | None, str | None, str | None]:
+def extract_publisher(
+    title: str | None, source_url: str | None, config: E1Config | None = None
+) -> tuple[str | None, str | None, str | None]:
     """(publisher key, url host key, flag). The flag explains a missing or unparsed publisher."""
+    cfg = config or _default_config()
     host = host_key(urlparse(str(source_url or "")).netloc)
     if host is None:
         return None, None, "publisher_unknown"
-    if host in AGGREGATOR_HOSTS:
-        match = _PUBLISHER_SUFFIX.match(" ".join(html.unescape(str(title or "")).split()))
+    if host in cfg.aggregator_hosts:
+        match = _suffix_regex(cfg.publisher_suffix_pattern).match(" ".join(html.unescape(str(title or "")).split()))
         if match:
             return match.group(2).strip().casefold(), host, None
         return host, host, "publisher_unparsed_aggregator"
@@ -323,6 +341,16 @@ class _UnionFind:
             self.parent[max(ra, rb)] = min(ra, rb)
 
 
+def _prep_order(p: _Prep) -> tuple[Any, ...]:
+    """Arrival order: first_seen_at, then published_at (a missing one last), then news_id."""
+    return (p.first_seen, p.published is None, p.published or datetime.min, p.item.news_id)
+
+
+def _report_order(r: _Report) -> tuple[Any, ...]:
+    c = r.canonical
+    return (r.arrival, c.published is None, c.published or datetime.min, r.report_id)
+
+
 def _prepare(items: Iterable[NewsItem], as_of: datetime, cfg: E1Config) -> tuple[list[_Prep], dict[str, int]]:
     start = as_of - timedelta(days=cfg.pool_window_days)
     seen_ids: set[str] = set()
@@ -341,8 +369,8 @@ def _prepare(items: Iterable[NewsItem], as_of: datetime, cfg: E1Config) -> tuple
             continue
         seen_ids.add(item.news_id)
         published = naive_utc(item.published_at)
-        publisher, host, pflag = extract_publisher(item.title, item.source_url)
-        canon = canonical_title(item.title)
+        publisher, host, pflag = extract_publisher(item.title, item.source_url, cfg)
+        canon = canonical_title(item.title, cfg)
         flags = [pflag] if pflag else []
         if not canon:
             flags.append("title_missing")
@@ -353,7 +381,7 @@ def _prepare(items: Iterable[NewsItem], as_of: datetime, cfg: E1Config) -> tuple
         )
         flags.extend(cflags)
         out.append(_Prep(item, first_seen, published, publisher, host, canon, frozenset(_token_set(canon)), cls, flags))
-    out.sort(key=lambda p: (p.first_seen, p.item.news_id))
+    out.sort(key=_prep_order)
     return out, excluded
 
 
@@ -375,17 +403,65 @@ def _collapse(preps: list[_Prep], cfg: E1Config) -> list[_Report]:
         groups[uf.find(i)].append(p)
     reports = []
     for members in groups.values():
-        members.sort(key=lambda p: (p.first_seen, p.item.news_id))
+        members.sort(key=_prep_order)
         classified = [m for m in members if m.cls is not None]
         canonical = (classified or members)[0]
         reports.append(_Report(canonical=canonical, members=members, arrival=members[0].first_seen))
-    reports.sort(key=lambda r: (r.arrival, r.report_id))
+    reports.sort(key=_report_order)
     return reports
 
 
 def _jmax(report: _Report, event: _Event) -> float:
     tokens = set(report.canonical.tokens)
     return max((_jaccard(tokens, set(r.canonical.tokens)) for r in event.reports), default=0.0)
+
+
+def _supplied_by_one_report(rep: _Report, ev: _Event, cfg: E1Config) -> tuple[float, int] | None:
+    """Erratum v2.2 (a): (best title Jaccard, most shared theme-directions) over the event's reports that alone supply
+    a shared entity AND (a shared theme+direction OR title Jaccard >= the link threshold); None when no report does."""
+    tokens = set(rep.canonical.tokens)
+    best: tuple[float, int] | None = None
+    for other in ev.reports:
+        if not (rep.link_keys & other.link_keys):
+            continue
+        shared_t = len(rep.theme_dirs & other.theme_dirs)
+        j = _jaccard(tokens, set(other.canonical.tokens))
+        if shared_t or j >= cfg.link_jaccard_min:
+            cand = (j, shared_t)
+            if best is None or (cand[0], cand[1]) > best:
+                best = cand
+    return best
+
+
+def _background_counts(
+    items: Iterable[NewsItem],
+    pool_start: datetime,
+    cfg: E1Config,
+    resolver: EntityResolver | None,
+    generic: frozenset[str],
+    suffixes: Sequence[str],
+) -> tuple[Counter[str], int]:
+    """Erratum v2.2 (b): per entity key, the number of classified items among those first seen in the
+    `background_days` days up to and including `pool_start` (strictly before the pool window), judged with the
+    classifications made at or before `pool_start`. Returns (counts, classified items)."""
+    lo = pool_start - timedelta(days=cfg.background_days)
+    counts: Counter[str] = Counter()
+    seen: set[str] = set()
+    n = 0
+    for item in items:
+        first_seen = naive_utc(item.first_seen_at)
+        if first_seen is None or not (lo < first_seen <= pool_start) or item.news_id in seen:
+            continue
+        seen.add(item.news_id)
+        cls, _ = select_classification(
+            NewsItem(item.news_id, item.title, item.source_url, first_seen, naive_utc(item.published_at),
+                     item.classifications), pool_start)
+        if cls is None:
+            continue
+        n += 1
+        counts.update({e.key for e in _entity_refs(cls, resolver, generic, suffixes, cfg.entity_relevance_min)
+                       if e.linkable and e.key})
+    return counts, n
 
 
 def _make_event_id(onset_item_id: str) -> str:
@@ -421,9 +497,19 @@ def build_events(
     resolver: EntityResolver | None = None,
     generic_entities: Iterable[str] | None = None,
     legal_suffixes: Sequence[str] | None = None,
+    linking: str | None = None,
+    background: Iterable[NewsItem] | None = None,
 ) -> BuildResult:
-    """Build the event list as of `as_of` from `items`. Pure and deterministic; see the module docstring."""
+    """Build the event list as of `as_of` from `items`. Pure and deterministic; see the module docstring.
+
+    `linking` is "v2" (plan 5.4 as transcribed) or "v2_2" (erratum v2.2); None takes `config.linking`. `background`
+    is the item source for the v2.2 entity-background test (items first seen before the pool window, any extra
+    items are ignored); it is unused in v2.
+    """
     cfg = config
+    mode = linking if linking is not None else cfg.linking
+    if mode not in LINKING_MODES:
+        raise ValueError(f"linking must be one of {LINKING_MODES}, got {mode!r}")
     when = naive_utc(as_of)
     assert when is not None
     if legal_suffixes is None:
@@ -441,11 +527,26 @@ def build_events(
     horizon = timedelta(hours=cfg.horizon_hours)
     rejection = timedelta(hours=cfg.rejection_hours)
 
+    bg_counts: Counter[str] = Counter()
+    bg_items = 0
+    if mode == "v2_2":
+        bg_counts, bg_items = _background_counts(background or (), when - timedelta(days=cfg.pool_window_days), cfg,
+                                                 resolver, generic, legal_suffixes)
+    bg_thin = mode == "v2_2" and bg_items < cfg.background_min_items
+
     for rep in reports:
         rep.flags = sorted({f for m in rep.members for f in m.flags})
         cls = rep.canonical.cls
         if cls is not None:
             rep.entities = _entity_refs(cls, resolver, generic, legal_suffixes, cfg.entity_relevance_min)
+            if mode == "v2_2":
+                rep.entities = [
+                    dataclasses.replace(e, link_reason="background_share")
+                    if e.linkable and e.key and bg_items and bg_counts[e.key] / bg_items > cfg.background_max_share else e
+                    for e in rep.entities
+                ]
+                if bg_thin:
+                    rep.flags.append("background_thin")
             rep.link_keys = frozenset(e.key for e in rep.entities if e.linkable and e.key)
             rep.theme_dirs = _theme_dirs(cls)
             for e in rep.entities:
@@ -467,8 +568,15 @@ def build_events(
             if rep.classified:
                 shared_e = rep.link_keys & ev.entity_keys
                 shared_t = rep.theme_dirs & ev.theme_dirs
-                if shared_e and (shared_t or jm >= cfg.link_jaccard_min):
-                    options.append((-jm, -len(shared_t), -ev.latest_arrival.timestamp(), ev.event_id, ev))
+                union_ok = bool(shared_e and (shared_t or jm >= cfg.link_jaccard_min))
+                if mode == "v2":
+                    link = (jm, len(shared_t)) if union_ok else None
+                else:
+                    link = _supplied_by_one_report(rep, ev, cfg)
+                    if link is None and union_ok:
+                        rep.flags = sorted({*rep.flags, "union_link_rejected:" + ev.event_id})
+                if link is not None:
+                    options.append((-link[0], -link[1], -ev.latest_arrival.timestamp(), ev.event_id, ev))
                 elif shared_e and not shared_t and jm < cfg.new_development_jaccard_below:
                     related.append(ev.event_id)
             elif jm >= cfg.unclassified_link_jaccard_min:
@@ -506,6 +614,9 @@ def build_events(
         "items_classified": sum(1 for p in preps if p.cls is not None),
         "reports": len(reports),
         "excluded": excluded,
+        "linking": mode,
+        "background_items": bg_items if mode == "v2_2" else None,
+        "background_thin": bg_thin if mode == "v2_2" else None,
     }
     return BuildResult(as_of=when.isoformat(), events=records, unattached=unattached, meta=meta)
 
@@ -518,7 +629,7 @@ def _iso(value: datetime | None) -> str | None:
 
 
 def _event_record(ev: _Event, as_of: datetime, cfg: E1Config, rejection: timedelta) -> dict[str, Any]:
-    reports = sorted(ev.reports, key=lambda r: (r.arrival, r.report_id))
+    reports = sorted(ev.reports, key=_report_order)
     members = [m for r in reports for m in r.members]
     first_available = min(m.first_seen for m in members)
     published = [m.published for m in members if m.published is not None]
@@ -536,7 +647,7 @@ def _event_record(ev: _Event, as_of: datetime, cfg: E1Config, rejection: timedel
         status = REJECTED
 
     classified = [r for r in reports if r.classified]
-    sev = [r.canonical.cls.severity for r in classified if r.canonical.cls and r.canonical.cls.severity is not None]
+    sev = [s for s in (_num(r.canonical.cls.severity) for r in classified if r.canonical.cls) if s is not None]
 
     theme_stats: dict[tuple[str, str], dict[str, Any]] = {}
     for r in classified:

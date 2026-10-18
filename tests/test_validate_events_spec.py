@@ -197,10 +197,10 @@ def test_stop_list_missing_from_the_aliases_file_fails(tmp_path):
 
 def test_events_version_and_p_ref_erratum_are_pinned():
     ev, _ = _pieces()
-    assert ev["version"] == 2
+    assert ev["version"] == 3
     bad = copy.deepcopy(ev)
     bad["version"] = 1
-    assert any("version must be 2" in e for e in v.check_events(bad))
+    assert any("version must be 3" in e for e in v.check_events(bad))
     old = copy.deepcopy(ev)
     old["e2"]["p_ref_rule"]["value"] = "last_daily_observation_dated_before_onset_date_us_calendar"
     assert any("e2.p_ref_rule" in e for e in v.check_events(old))

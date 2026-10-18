@@ -7,7 +7,7 @@
 # Anything the code will need that the plan does not specify is in the `unratified:` block at the end, each
 # with a rationale and a PROPOSED value for the operator to ratify or change. Main blocks never read it.
 
-version: 2   # v2 = plan erratum v2.1 (P_ref rule); see docs/events_build/SPEC_FREEZE.md. v1 is in git history (a5895f3).
+version: 3   # v3 = plan erratum v2.2 (section 5.4 linking, UNRATIFIED, see unratified.linking). v2 = erratum v2.1 (P_ref rule). See docs/events_build/SPEC_FREEZE.md. v1 is in git history (a5895f3).
 frozen_at: PENDING  # filled by the freeze commit hash, recorded in docs/events_build/SPEC_FREEZE.md
 
 e1:
@@ -83,6 +83,25 @@ exposure:
 # Not in the plan. Each item is something the code will need; PROPOSED is a suggestion only. Operator to ratify,
 # change or reject each before E1/E2/E3 code relies on it. No main block depends on this block.
 unratified:
+  linking:
+    unratified: true
+    value: v2_2
+    rationale: "Plan erratum v2.2 (section 5.4), orchestrator-ruled 2026-10-18 AFTER the reference-set run (a) showed a hub event. v2 = plan 5.4 as transcribed (a shared entity and a shared theme taken against the UNION of the event); v2_2 = one report of the event must supply both the shared entity and (the shared theme+direction or title Jaccard), and a shared entity must not be background noise (see entity_background). v2 stays selectable so run (a) as recorded is reproducible. Designed after seeing the reference set, so it must be validated on a fresh blind holdout, not on the reference set."
+    options: [v2, v2_2]
+  entity_background:
+    unratified: true
+    rationale: "Erratum v2.2 (b): a shared entity counts only if it appears in at most max_share of the classified items first seen in the days_before_pool days strictly before the pool window start (classifications made by that instant; no look-ahead). Applies to every entity key (tickers, normalised names, countries), no exemptions, no growth of the stop list. Fewer than min_items classified items in that background: the report carries background_thin and the test uses what exists."
+    days_before_pool: 28
+    max_share: 0.01
+    min_items: 300
+  aggregator_hosts:
+    unratified: true
+    rationale: "Plan 5.2 names aggregator suffixes but no host list. Hosts whose title ends in ' - Publisher' naming the real publisher (moved here from builder.py)."
+    value: [news.google.com]
+  publisher_suffix_pattern:
+    unratified: true
+    rationale: "Plan 5.2/5.3 trailing ' - Publisher' suffix; the exact rule is not given (see publisher_suffix_parsing). The regex the builder applies, moved here from builder.py: group 1 is the title, group 2 the publisher (2-40 characters, no dash)."
+    value: '^(.*\S)\s+[-–—]\s+([^-–—]{2,40})$'
   trading_calendar_source:
     ruling: "NYSE full-day closures table kept in the repository; E2 implements it (SPEC_FREEZE.md, 2026-10-18)."
     rationale: "Plan says trading days / US calendar but names no holiday table. E0.4 deliberately keeps none (weekday lags carry the slack)."
