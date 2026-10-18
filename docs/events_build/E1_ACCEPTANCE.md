@@ -32,7 +32,7 @@ run (a) was defined to give: with this coverage the gates cannot pass. It is not
 
 **2. One hub event swallows unrelated news (the false merges; a rule-level finding).** `evt_e43c0678bba4634b` has 19
 reports from 2026-10-11 to 10-16: Houthi airport strikes, Indian CPI, Black Sea shipping insurance, Goldman on China,
-IMF yields, US PPI, UK GDP, a container ship in Hormuz. It holds members of six labelled events and eight NONE items (the 12 and 17 outsiders counted by the gates). It
+IMF yields, US PPI, UK GDP, a container ship in Hormuz. It holds members of four labelled events (Houthi, CPI, PPI, Hormuz) and eight NONE items (the outsiders counted by the gates). It
 grows one report at a time, and each join satisfies plan 5.4 as written: the new report shares a resolved or
 normalised entity with the event (most often `crude oil` 7 joins, `iran` 6, `saudi arabia` 5, `federal reserve` 4,
 `united kingdom` 2, `china`) and shares at least one theme with the same direction (the event carries 25
