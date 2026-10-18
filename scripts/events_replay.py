@@ -10,6 +10,13 @@ Classification source (pluggable, no classifier is ever called here):
   as_if_all_classified   run (b): every item that has a payload is treated as classified at the end of its own
                      first-seen UTC day. Items with no payload stay unclassified. Idealised; labelled as such.
 
+Pool (what the builder sees each day):
+  store     DEFAULT. Every item in the news store (production builds from the whole store), the same as-of per day and
+            the same no-look-ahead; only the 300 reference items are scored. The entity-background test (linking v2_2)
+            reads the store's earlier items.
+  fixture   the 300 reference items alone (kept for the unit tests and for reproducing run (a) as recorded).
+Linking: v2_2 (default, erratum v2.2) or v2 (plan 5.4 as transcribed; with --pool fixture it reproduces run (a)).
+
 Usage:  python scripts/events_replay.py --mode stored --db data/macro_engine.duckdb --out report.json
 The report is written to --out as JSON and a summary is printed.
 """
@@ -32,10 +39,13 @@ import acceptance as acc  # noqa: E402
 
 from macro_engine.events.builder import Classification, NewsItem, build_events, naive_utc  # noqa: E402
 from macro_engine.events.config import E1Config, load_e1_config  # noqa: E402
-from macro_engine.events.store_io import parse_classification_row  # noqa: E402
+from macro_engine.events.store_io import load_all_items, parse_classification_row  # noqa: E402
 
 FINAL_AS_OF = datetime(2026, 10, 17)
 MODES = ("stored", "as_if_all_classified")
+POOLS = ("store", "fixture")
+LINKINGS = ("v2", "v2_2")
+DEFAULT_DB = REPO_ROOT / "data" / "macro_engine.duckdb"
 
 
 def load_fixture_items(directory: Path = FIXTURE_DIR) -> list[NewsItem]:
@@ -87,6 +97,24 @@ def stored_classifications(
     return out
 
 
+class ClassificationMatchError(AssertionError):
+    """A fixture item the state file marks `classified` has no store row with the recorded classified_at."""
+
+
+def assert_state_matched(
+    ids: list[str], state: dict[str, tuple[str, datetime | None]], got: dict[str, tuple[Classification, ...]]
+) -> int:
+    """Every `classified` fixture item must have been matched to a store payload; raises listing each miss."""
+    wanted = [i for i in ids if state.get(i, ("", None))[0] == "classified"]
+    missing = [i for i in wanted if i not in got]
+    if missing:
+        raise ClassificationMatchError(
+            f"{len(missing)} of {len(wanted)} classified fixture items have no store classification at the "
+            f"recorded classified_at: {missing[:10]}{' ...' if len(missing) > 10 else ''}"
+        )
+    return len(wanted)
+
+
 def as_if_all_classified(
     items: list[NewsItem], source: dict[str, tuple[Classification, ...]]
 ) -> dict[str, tuple[Classification, ...]]:
@@ -119,12 +147,24 @@ def replay(
     config: E1Config,
     resolver: Any = None,
     as_ofs: list[datetime] | None = None,
+    linking: str | None = None,
+    use_background: bool = False,
+    score_ids: set[str] | None = None,
 ) -> dict[str, Any]:
-    """Run the builder at each as-of and return {clusters, meta, daily, id_changes} (see module docstring)."""
-    with_cls = [
-        NewsItem(i.news_id, i.title, i.source_url, i.first_seen_at, i.published_at, classifications.get(i.news_id, ()))
-        for i in items
-    ]
+    """Run the builder at each as-of and return {clusters, meta, daily, id_changes} (see module docstring).
+
+    `classifications` None means the items already carry theirs (store pool). `use_background` hands the whole item
+    list to the builder as the entity-background source. `score_ids` restricts which items are assigned/returned.
+    """
+    if classifications is None:
+        with_cls = list(items)
+    else:
+        with_cls = [
+            NewsItem(i.news_id, i.title, i.source_url, i.first_seen_at, i.published_at,
+                     classifications.get(i.news_id, ()))
+            for i in items
+        ]
+    first_seen = {i.news_id: i.first_seen_at for i in with_cls}
     when = as_ofs or day_ends(items)
     window = timedelta(days=config.pool_window_days)
     assign: dict[str, str | None] = {}
@@ -134,8 +174,10 @@ def replay(
     prev_ids: dict[str, str] = {}  # onset item id of a previous event -> its id (same item -> same id by construction)
     last = None
     for t in when:
-        res = build_events(with_cls, t, config=config, resolver=resolver)
-        pool_ids = [i.news_id for i in with_cls if i.first_seen_at and t - window < i.first_seen_at <= t]
+        res = build_events(with_cls, t, config=config, resolver=resolver, linking=linking,
+                           background=with_cls if use_background else None)
+        pool_ids = [i.news_id for i in with_cls if i.first_seen_at and t - window < i.first_seen_at <= t
+                    and (score_ids is None or i.news_id in score_ids)]
         member_of: dict[str, str] = {}
         for ev in res.events:
             meta[ev["event_id"]] = {"status": ev["event_status"], "related": list(ev["related_event_ids"])}
@@ -147,11 +189,16 @@ def replay(
         # an event that was present yesterday and whose first item is still pooled must keep its id today
         today_ids = {ev["event_id"] for ev in res.events}
         for eid, first_item in prev_ids.items():
-            fs = next((i.first_seen_at for i in with_cls if i.news_id == first_item), None)
+            fs = first_seen.get(first_item)
             if fs is not None and fs > t - window and eid not in today_ids:
                 id_changes += 1
         prev_ids = {ev["event_id"]: ev["reports"][0]["item_ids"][0] for ev in res.events}
-        daily.append({"as_of": t.isoformat(), "pool_items": len(pool_ids), "events": len(res.events),
+        hub = max(res.events, key=lambda e: (e["item_count"], e["event_id"]), default=None)
+        daily.append({"as_of": t.isoformat(), "pool_items": res.meta["items_in_pool"], "events": len(res.events),
+                      "largest_event_items": hub["item_count"] if hub else 0,
+                      "largest_event_reference_items": (
+                          sum(1 for r in hub["reports"] for n in r["item_ids"] if score_ids is None or n in score_ids)
+                          if hub else 0),
                       "corroborated": sum(1 for e in res.events if e["event_status"] == "corroborated"),
                       "unattached": len(res.unattached), "classified_items": res.meta["items_classified"]})
         last = res
@@ -187,34 +234,80 @@ def gated_detail(clusters: dict[str, str], meta: dict[str, Any], labels: dict[st
     return out
 
 
-def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True) -> dict[str, Any]:
+def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True, *, pool: str = "store",
+        linking: str = "v2_2") -> dict[str, Any]:
     if mode not in MODES:
         raise SystemExit(f"mode must be one of {MODES}")
+    if pool not in POOLS or linking not in LINKINGS:
+        raise SystemExit(f"pool must be one of {POOLS} and linking one of {LINKINGS}")
+    if pool == "store" and db is None:
+        db = str(DEFAULT_DB)
     config = load_e1_config()
-    items = load_fixture_items()
+    ref_items = load_fixture_items()
     state = load_state()
     ids, labels = acc.load_reference()
-    stored = stored_classifications([i.news_id for i in items], state, db)
-    classifications = stored if mode == "stored" else as_if_all_classified(items, stored)
+    stored = stored_classifications([i.news_id for i in ref_items], state, db)
+    if db is not None:
+        assert_state_matched([i.news_id for i in ref_items], state, stored)
     resolver = None
     if use_resolver:
         from macro_engine.events.entities import load_resolver
 
         resolver = load_resolver()
-    result = replay(items, classifications, config=config, resolver=resolver)
+    if pool == "fixture":
+        items = ref_items
+        classifications: dict[str, tuple[Classification, ...]] | None = (
+            stored if mode == "stored" else as_if_all_classified(items, stored))
+        score_ids = None
+    else:
+        import duckdb
+
+        con = duckdb.connect(str(db), read_only=True)
+        try:
+            items = load_all_items(con)
+        finally:
+            con.close()
+        in_store = {i.news_id for i in items}
+        absent = [i for i in ids if i not in in_store]
+        if absent:
+            raise SystemExit(f"{len(absent)} reference items are not in the store: {absent[:5]}")
+        score_ids = set(ids)
+        if mode == "stored":
+            classifications = None
+        else:
+            everything = {i.news_id: tuple(c for c in i.classifications if c.status == "success")
+                          for i in items if any(c.status == "success" for c in i.classifications)}
+            classifications = as_if_all_classified(items, everything)
+    as_ofs = day_ends(ref_items)
+    result = replay(items, classifications, config=config, resolver=resolver, as_ofs=as_ofs, linking=linking,
+                    use_background=(pool == "store"), score_ids=score_ids)
     scored = acc.accept(result["clusters"], result["meta"])
     pool_set = set(result["final_pool_ids"])
     pool_clusters = {k: v for k, v in result["clusters"].items() if k in pool_set}
     pool_rates = acc.rates(pool_clusters, labels, [i for i in ids if i in pool_set])
+    final = result["final"]
+    hub = max(final.events, key=lambda e: (e["item_count"], e["event_id"]), default=None)
+    n_payload = len(stored) if pool == "fixture" else sum(
+        1 for i in items if i.news_id in score_ids and any(c.status == "success" for c in i.classifications))
     report = {
         "mode": mode,
+        "pool": pool,
+        "linking": linking,
         "config_version": config.version,
         "items": len(items),
-        "items_with_payload": len(classifications),
+        "reference_items": len(ref_items),
+        "items_with_payload": len(classifications) if classifications is not None else sum(
+            1 for i in items if any(c.status == "success" for c in i.classifications)),
+        "reference_items_with_payload": n_payload,
         "scored": scored,
         "final_pool_rates": pool_rates,
         "fragmentation": fragmentation(result["clusters"], labels, ids),
         "gated_detail": gated_detail(result["clusters"], result["meta"], labels, ids),
+        "hub": {
+            "final_largest_event_items": hub["item_count"] if hub else 0,
+            "final_largest_event_id": hub["event_id"] if hub else None,
+            "max_largest_event_items_any_day": max((d["largest_event_items"] for d in result["daily"]), default=0),
+        },
         "daily": result["daily"],
         "ids_lost_while_pooled": result["ids_lost_while_pooled"],
         "clusters": result["clusters"],
@@ -228,7 +321,10 @@ def run(mode: str, db: str | None, out: str | None, use_resolver: bool = True) -
 def summary(report: dict[str, Any]) -> str:
     s = report["scored"]
     lines = [
-        f"mode={report['mode']} items={report['items']} with_payload={report['items_with_payload']}",
+        f"mode={report['mode']} pool={report['pool']} linking={report['linking']} items={report['items']} "
+        f"with_payload={report['items_with_payload']} reference_with_payload={report['reference_items_with_payload']}",
+        f"hub: final largest event {report['hub']['final_largest_event_items']} items, "
+        f"max on any day {report['hub']['max_largest_event_items_any_day']}",
         f"false_split={s['false_split']} ({s['false_split_pairs']}/{s['label_pairs']}) ok={s['false_split_ok']}",
         f"false_merge={s['false_merge']} ({s['false_merge_pairs']}/{s['cluster_pairs']}) ok={s['false_merge_ok']}",
         "gates=" + json.dumps(s["gates"]),
@@ -241,11 +337,14 @@ def summary(report: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--mode", choices=MODES, default="stored")
-    ap.add_argument("--db", default=None, help="news store holding the classification payloads")
+    ap.add_argument("--pool", choices=POOLS, default="store", help="store (default): whole store; fixture: the 300 only")
+    ap.add_argument("--linking", choices=LINKINGS, default="v2_2")
+    ap.add_argument("--db", default=None, help="news store (default for --pool store: data/macro_engine.duckdb)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--no-resolver", action="store_true", help="skip the stocks.json / SEC entity resolver")
     args = ap.parse_args(argv)
-    report = run(args.mode, args.db, args.out, use_resolver=not args.no_resolver)
+    report = run(args.mode, args.db, args.out, use_resolver=not args.no_resolver, pool=args.pool,
+                 linking=args.linking)
     print(summary(report))
     return 0
 

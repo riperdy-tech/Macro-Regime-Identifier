@@ -1,17 +1,19 @@
 """scripts/events_replay.py: the daily replay over the reference fixtures and the v1.1 scorer, end to end."""
 from __future__ import annotations
 
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import duckdb
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import events_replay as rp  # noqa: E402
 
-from macro_engine.events.builder import Classification  # noqa: E402
+from macro_engine.events.builder import Classification, NewsItem  # noqa: E402
 from macro_engine.events.config import load_e1_config  # noqa: E402
 
 CFG = load_e1_config()
@@ -96,3 +98,43 @@ def test_stored_classifications_use_the_state_file_stamp(tmp_path):
     assert len(got[nid]) == 1 and got[nid][0].severity == 0.1
     assert rp.stored_classifications([nid], state, None) == {}
     assert rp.stored_classifications([nid], {nid: ("unclassified", None)}, db) == {}
+
+
+def test_assert_state_matched_raises_naming_every_miss():
+    state = {"n1": ("classified", datetime(2026, 10, 8)), "n2": ("failed", None), "n3": ("classified", datetime(2026, 10, 9))}
+    got = {"n1": (Classification(classified_at=datetime(2026, 10, 8), status="success"),)}
+    with pytest.raises(rp.ClassificationMatchError, match="1 of 2.*n3"):
+        rp.assert_state_matched(["n1", "n2", "n3"], state, got)
+    assert rp.assert_state_matched(["n1", "n2"], state, got) == 1
+
+
+def test_run_fails_loudly_when_the_store_misses_a_classified_fixture_item(tmp_path):
+    db = tmp_path / "empty.duckdb"
+    con = duckdb.connect(str(db))
+    con.execute("""create table news_classifications (news_id varchar, classified_at timestamp, classification_status varchar,
+        origin varchar, ai_provider varchar, macro_themes_json varchar, sector_impacts_json varchar, entities_json varchar,
+        severity double, confidence double, summary varchar)""")
+    con.close()
+    with pytest.raises(rp.ClassificationMatchError):
+        rp.run("stored", str(db), None, use_resolver=False, pool="fixture")
+
+
+def test_store_pool_scores_only_the_reference_items_but_builds_over_everything():
+    items = rp.load_fixture_items()
+    first = items[0].first_seen_at
+    extra = NewsItem("extra_1", "Houthis fire missiles at Riyadh airport again", "https://www.x.com/", first, first)
+    ref_ids = {i.news_id for i in items}
+    res = rp.replay([*items, extra], None, config=CFG, linking="v2_2", use_background=True, score_ids=ref_ids)
+    assert "extra_1" not in res["clusters"] and "extra_1" not in res["final_pool_ids"]
+    assert all("largest_event_items" in d for d in res["daily"])
+    plain = rp.replay(items, None, config=CFG, linking="v2_2", score_ids=ref_ids)
+    assert res["daily"][0]["pool_items"] == plain["daily"][0]["pool_items"] + 1
+
+
+@pytest.mark.skipif(os.environ.get("MRI_STORE_CHECKS") != "1", reason="reads the live store")
+def test_v2_fixture_mode_reproduces_the_recorded_run_a_numbers():
+    rep = rp.run("stored", str(rp.DEFAULT_DB), None, pool="fixture", linking="v2")
+    s = rep["scored"]
+    assert (s["false_split_pairs"], s["label_pairs"]) == (37, 45)
+    assert (s["false_merge_pairs"], s["cluster_pairs"]) == (123, 131)
+    assert rep["ids_lost_while_pooled"] == 3
