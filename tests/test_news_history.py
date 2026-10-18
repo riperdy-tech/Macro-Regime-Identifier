@@ -355,11 +355,42 @@ def test_corrupt_partition_is_skipped_and_reported(tmp_path: Path):
     dst_db = tmp_path / "dest.duckdb"
     result = hydrate_news_history(db_path=dst_db, history_dir=history_dir)
     assert any(code.startswith("snapshot_partition_corrupt:") for code in result["errors"])
-    # The same day's classifications are not hydrated without their items (no stranded rows), and say so.
-    assert any(code.startswith("snapshot_partition_skipped_items_unusable:classifications/") for code in result["errors"])
+    # Classifications whose item did not make it in are not hydrated (no stranded rows), and say so.
+    assert any(code.startswith("snapshot_classifications_without_item:classifications/") for code in result["errors"])
     dst_store = DuckDBStore(dst_db)
     assert len(dst_store.read_table("news_classifications")) == 0
     assert result["classifications_inserted"] == 0
+
+
+def test_classification_in_a_different_day_file_than_its_item_is_hydrated(tmp_path: Path):
+    src_db = tmp_path / "source.duckdb"
+    history_dir = tmp_path / "history"
+    store = DuckDBStore(src_db)
+    store.initialize()
+    seen = datetime(2026, 6, 1, 9, 0, 0, tzinfo=UTC)
+    store.merge_news_items(pd.DataFrame([_item("news_a", first_seen_at=seen), _item("news_b", first_seen_at=seen)]))
+    later = datetime(2026, 6, 3, 11, 0, 0, tzinfo=UTC)  # classified two days after the item was first seen
+    store.write_news_classifications(
+        pd.DataFrame([_classification("cls_a", "news_a", classified_at=later),
+                      _classification("cls_b", "news_b", classified_at=later)]),
+        pd.DataFrame(), pd.DataFrame(), origin="live",
+    )
+    export_news_history(db_path=src_db, history_dir=history_dir)
+    parts = json.loads((history_dir / "manifest.json").read_text())["partitions"]
+    assert any("2026-06-01" in p for p in parts if p.startswith("items/"))
+    assert any("2026-06-03" in p for p in parts if p.startswith("classifications/"))
+
+    dst_db = tmp_path / "dest.duckdb"
+    result = hydrate_news_history(db_path=dst_db, history_dir=history_dir)
+    assert result["errors"] == [] and result["classifications_inserted"] == 2
+
+    # an items file that fails its checksum drops only the classifications whose item is missing
+    items_part = next(p for p in parts if p.startswith("items/"))
+    (history_dir / items_part).write_bytes(b"not a real parquet file")
+    cold = tmp_path / "cold.duckdb"
+    bad = hydrate_news_history(db_path=cold, history_dir=history_dir)
+    assert bad["classifications_inserted"] == 0
+    assert any(c.startswith("snapshot_classifications_without_item:") and c.endswith(":2") for c in bad["errors"])
 
 
 def test_import_news_history_is_the_same_as_hydrate(tmp_path: Path):

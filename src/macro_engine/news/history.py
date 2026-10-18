@@ -224,7 +224,7 @@ def hydrate_news_history(
         manifest = _read_manifest(history_path)
         result["manifest_totals"] = manifest.get("totals", {})
         partitions = manifest.get("partitions", {})
-        corrupt_item_days: set[str] = set()
+        known_news_ids: set[str] | None = None
 
         # items before classifications: a failure part-way must not strand classifications
         # whose items are not yet in the store.
@@ -232,39 +232,35 @@ def hydrate_news_history(
             meta = partitions[rel_path]
             abs_path = history_path / rel_path
             kind = rel_path.split("/")[0]
-            day = _partition_day(rel_path)
-            if kind == "classifications" and day in corrupt_item_days:
-                # Classifications without their day's items would strand in the store; report, do not hydrate.
-                result["errors"].append(f"snapshot_partition_skipped_items_unusable:{rel_path}")
-                continue
             if not abs_path.exists():
                 result["errors"].append(f"snapshot_partition_missing:{rel_path}")
-                if kind == "items":
-                    corrupt_item_days.add(day)
                 continue
             try:
                 actual_sha = _sha256_file(abs_path)
             except OSError as exc:
                 result["errors"].append(f"snapshot_partition_corrupt:{rel_path}:{exc}")
-                if kind == "items":
-                    corrupt_item_days.add(day)
                 continue
             if actual_sha != meta.get("sha256"):
                 result["errors"].append(f"snapshot_partition_corrupt:{rel_path}")
-                if kind == "items":
-                    corrupt_item_days.add(day)
                 continue
             try:
                 frame = pd.read_parquet(abs_path)
             except Exception as exc:  # noqa: BLE001 - one bad file must not abort hydrate
                 result["errors"].append(f"snapshot_partition_corrupt:{rel_path}:{exc}")
-                if kind == "items":
-                    corrupt_item_days.add(day)
                 continue
             if kind == "items":
                 _hydrate_items(store, frame, result)
             elif kind == "classifications":
-                _hydrate_classifications(store, frame, result)
+                if known_news_ids is None:  # every items partition came first (_hydrate_order)
+                    known_news_ids = set(store.read_news_items()["news_id"].astype(str))
+                # Items are split by first_seen_at and classifications by classified_at, so a classification
+                # often sits in a different day's file than its item: filter by the item, not by the file day.
+                keep = frame["news_id"].astype(str).isin(known_news_ids)
+                if not keep.all():
+                    result["errors"].append(
+                        f"snapshot_classifications_without_item:{rel_path}:{int((~keep).sum())}"
+                    )
+                _hydrate_classifications(store, frame[keep], result)
             elif kind == "source_runs":
                 _hydrate_source_runs(store, frame, result)
     except Exception as exc:  # noqa: BLE001 - hydrate must never take the run down
@@ -528,11 +524,6 @@ _HYDRATE_KIND_ORDER = {"items": 0, "classifications": 1, "source_runs": 2}
 
 def _hydrate_order(rel_path: str) -> tuple[int, str]:
     return (_HYDRATE_KIND_ORDER.get(rel_path.split("/")[0], 9), rel_path)
-
-
-def _partition_day(rel_path: str) -> str:
-    """`items/2026/10/items_2026-10-15.parquet` -> `2026-10-15`."""
-    return Path(rel_path).stem.rsplit("_", 1)[-1]
 
 
 def _relative_partition_path(kind: str, day: Any) -> str:
