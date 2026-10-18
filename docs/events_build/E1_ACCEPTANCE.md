@@ -26,13 +26,13 @@ approval to classify 158 items (LABELLING.md). Run (a) is reported, not gating; 
 
 **1. Unattached members (the gates, expected).** An unclassified report never starts an event and links only through
 title Jaccard >= 0.4 to a report already in an event. 158 of 300 items have no classification, 20 of 27 Houthi core
-members, 3 of 4 CoreWeave, 2 of 3 CPI and both Aden members among them (LABELLING.md, classification state). Most of
-these have no title overlap >= 0.4 with the few classified members, so they stay unattached. This is the information
+members, 3 of 4 CoreWeave, 2 of 3 CPI and both Aden members among them (LABELLING.md, classification state). They stay unattached because they cannot start an event
+and did not reach the 0.4 overlap with a report already in one (not broken down per item). This is the information
 run (a) was defined to give: with this coverage the gates cannot pass. It is not a builder error.
 
 **2. One hub event swallows unrelated news (the false merges; a rule-level finding).** `evt_e43c0678bba4634b` has 19
 reports from 2026-10-11 to 10-16: Houthi airport strikes, Indian CPI, Black Sea shipping insurance, Goldman on China,
-IMF yields, US PPI, UK GDP, a container ship in Hormuz. 12 of its labelled members are outsiders to each other. It
+IMF yields, US PPI, UK GDP, a container ship in Hormuz. It holds members of six labelled events and eight NONE items (the 12 and 17 outsiders counted by the gates). It
 grows one report at a time, and each join satisfies plan 5.4 as written: the new report shares a resolved or
 normalised entity with the event (most often `crude oil` 7 joins, `iran` 6, `saudi arabia` 5, `federal reserve` 4,
 `united kingdom` 2, `china`) and shares at least one theme with the same direction (the event carries 25
