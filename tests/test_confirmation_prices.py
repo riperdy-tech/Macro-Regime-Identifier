@@ -8,6 +8,7 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 import pytest
+import yaml
 
 from macro_engine.events import confirmation_prices as cp
 from macro_engine.storage.duckdb_store import DuckDBStore
@@ -16,11 +17,17 @@ from macro_engine.storage.duckdb_store import DuckDBStore
 NOW = datetime(2026, 10, 17, 12, 0, tzinfo=UTC)
 
 
-def _payload(symbol: str, dates: list[str], closes: list[float | None]) -> bytes:
+def _payload(symbol: str, dates: list[str], closes: list[float | None], adj: list[float | None] | None = None,
+             first_trade: str | None = None) -> bytes:
     ts = [int(pd.Timestamp(f"{d} 16:00", tz="America/New_York").timestamp()) for d in dates]
+    meta = {"exchangeTimezoneName": "America/New_York"}
+    if first_trade:
+        meta["firstTradeDate"] = int(pd.Timestamp(f"{first_trade} 09:30", tz="America/New_York").timestamp())
+    indicators = {"quote": [{"close": closes}]}
+    if adj is not None:
+        indicators["adjclose"] = [{"adjclose": adj}]
     return json.dumps(
-        {"chart": {"result": [{"meta": {"exchangeTimezoneName": "America/New_York"}, "timestamp": ts,
-                               "indicators": {"quote": [{"close": closes}]}}], "error": None}}
+        {"chart": {"result": [{"meta": meta, "timestamp": ts, "indicators": indicators}], "error": None}}
     ).encode()
 
 
@@ -111,7 +118,8 @@ def test_refresh_stores_closes_flags_stale_and_missing_and_continues_after_error
     assert inst["CRWV"]["status"] == "missing"
     assert rep["ok"] is False and rep["fetch_errors"] == ["XLK"]
     assert rep["expected_session"] == "2026-10-16"
-    assert [c[0] for c in calls] == ["SPY", "XLE", "KBE", "XLK", "CRWV"]  # the error did not stop the rest
+    # the error did not stop the rest (empty stores with no listing date also trigger a backfill call: 2 per name)
+    assert [c[0] for c in dict.fromkeys(c[0] for c in calls).items()] == ["SPY", "XLE", "KBE", "XLK", "CRWV"]
 
     con = duckdb.connect(str(db), read_only=True)
     rows = con.execute("SELECT series_id, count(*) FROM market_observations GROUP BY 1 ORDER BY 1").fetchall()
@@ -160,3 +168,98 @@ def test_intraday_bar_is_not_stored_as_a_close(tmp_path):
     con = duckdb.connect(str(db), read_only=True)
     assert con.execute("SELECT count(*) FROM market_observations WHERE series_id='SPY'").fetchone()[0] == 0
     con.close()
+
+
+def test_lag_limits_are_weekday_keys():
+    cfg = cp.load_config()
+    assert cfg.default_max_lag == 3 and cfg.lag_limit("SPY") == 2
+    keys = set(yaml.safe_load(cp.DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")))
+    assert {"default_max_lag_weekdays", "max_lag_weekdays"} <= keys
+    assert not [k for k in keys if "trading_days" in k]
+
+
+def _refresh_one(db, payload_by_range, calls, *, min_rows=5, sectors=None, tmp=None):
+    def fetch(symbol, *, range_="3mo", timeout=20.0):
+        calls.append((symbol, range_))
+        return payload_by_range[range_]
+
+    cfg = _cfg(base_instruments=("AAA",), min_history_rows=min_rows)
+    return cp.refresh_confirmation_prices(db, cfg=cfg, fetcher=fetch, now=NOW, sleep=lambda s: None,
+                                          sectors_path=sectors)
+
+
+def _no_sectors(tmp_path):
+    f = tmp_path / "none.yaml"
+    f.write_text("sectors: []" + chr(10), encoding="utf-8")
+    return f
+
+
+def _stored(db, series):
+    con = duckdb.connect(str(db), read_only=True)
+    try:
+        return dict(con.execute("SELECT date, value FROM market_observations WHERE series_id = ?", [series]).fetchall())
+    finally:
+        con.close()
+
+
+DAYS = ["2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16"]
+
+
+def test_adjusted_close_is_stored_as_a_sibling_series(tmp_path):
+    db, calls = tmp_path / "s.duckdb", []
+    p = _payload("AAA", DAYS, [100, 101, 102, 103], adj=[99.0, 100.0, 101.0, 102.0], first_trade="2020-01-02")
+    _refresh_one(db, {"3mo": p, "3y": p}, calls, min_rows=2, sectors=_no_sectors(tmp_path))
+    assert _stored(db, "AAA")[date(2026, 10, 16)] == 103.0
+    assert _stored(db, "AAA#adjclose")[date(2026, 10, 16)] == 102.0
+
+
+def test_split_forces_a_full_repull(tmp_path):
+    db, calls = tmp_path / "s.duckdb", []
+    sec = _no_sectors(tmp_path)
+    old = _payload("AAA", DAYS[:3], [100, 101, 102], adj=[100, 101, 102], first_trade="2020-01-02")
+    _refresh_one(db, {"3mo": old, "3y": old}, calls, min_rows=2, sectors=sec)
+    calls.clear()
+    # 2:1 split: Yahoo restates every earlier close; the stored ones no longer match the overlap
+    split = _payload("AAA", DAYS, [50, 50.5, 51, 51.5], adj=[50, 50.5, 51, 51.5], first_trade="2020-01-02")
+    full = _payload("AAA", ["2026-10-12", *DAYS], [49.5, 50, 50.5, 51, 51.5], adj=[49.5, 50, 50.5, 51, 51.5],
+                    first_trade="2020-01-02")
+    rep = _refresh_one(db, {"3mo": split, "3y": full}, calls, min_rows=2, sectors=sec)
+    assert calls == [("AAA", "3mo"), ("AAA", "3y")]
+    assert rep["instruments"]["AAA"]["fetch"]["repull_reason"] == "close_changed_on_overlap"
+    assert _stored(db, "AAA")[date(2026, 10, 13)] == 50.0 and _stored(db, "AAA")[date(2026, 10, 12)] == 49.5
+
+
+def test_dividend_ratio_change_forces_a_full_repull_but_unchanged_history_does_not(tmp_path):
+    db, calls = tmp_path / "s.duckdb", []
+    sec = _no_sectors(tmp_path)
+    first = _payload("AAA", DAYS[:3], [100, 101, 102], adj=[98.0, 99.0, 100.0], first_trade="2020-01-02")
+    _refresh_one(db, {"3mo": first, "3y": first}, calls, min_rows=2, sectors=sec)
+    calls.clear()
+    same = _payload("AAA", DAYS, [100, 101, 102, 103], adj=[98.0, 99.0, 100.0, 101.0], first_trade="2020-01-02")
+    _refresh_one(db, {"3mo": same, "3y": same}, calls, min_rows=2, sectors=sec)
+    assert calls == [("AAA", "3mo")]  # same close, same adj/close ratio: nothing rescaled, no repull
+    calls.clear()
+    divd = _payload("AAA", DAYS, [100, 101, 102, 103], adj=[97.0, 98.0, 99.0, 100.0], first_trade="2020-01-02")
+    rep = _refresh_one(db, {"3mo": divd, "3y": divd}, calls, min_rows=2, sectors=sec)
+    assert calls == [("AAA", "3mo"), ("AAA", "3y")]
+    assert rep["instruments"]["AAA"]["fetch"]["repull_reason"] == "adjclose_ratio_changed_on_overlap"
+
+
+def test_young_instrument_with_complete_history_since_listing_is_not_repulled(tmp_path):
+    db, calls = tmp_path / "s.duckdb", []
+    sec = _no_sectors(tmp_path)
+    p = _payload("AAA", DAYS, [10, 11, 12, 13], adj=[10, 11, 12, 13], first_trade="2026-10-13")  # listed this week
+    rep = _refresh_one(db, {"3mo": p, "3y": p}, calls, min_rows=520, sectors=sec)
+    assert calls == [("AAA", "3mo")]  # 4 rows << 520, but those are all the rows there are
+    assert rep["instruments"]["AAA"]["fetch"]["history_complete_since_listing"] is True
+    calls.clear()
+    _refresh_one(db, {"3mo": p, "3y": p}, calls, min_rows=520, sectors=sec)
+    assert calls == [("AAA", "3mo")]  # and the next run neither
+
+
+def test_short_history_without_a_listing_explanation_is_backfilled(tmp_path):
+    db, calls = tmp_path / "s.duckdb", []
+    p = _payload("AAA", DAYS, [10, 11, 12, 13], adj=[10, 11, 12, 13], first_trade="2018-05-01")
+    rep = _refresh_one(db, {"3mo": p, "3y": p}, calls, min_rows=520, sectors=_no_sectors(tmp_path))
+    assert calls == [("AAA", "3mo"), ("AAA", "3y")]
+    assert rep["instruments"]["AAA"]["fetch"]["repull_reason"] == "short_history"
