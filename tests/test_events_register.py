@@ -206,3 +206,88 @@ def test_market_check_key_rejects_a_bad_window(bad):
 def test_market_check_key_rejects_an_empty_instrument():
     with pytest.raises(ValueError):
         market_check_key("  ", date(2026, 10, 16), 2)
+
+
+# ------------------------------------------------------------------ P5a: report identity past the 7-day pool
+
+
+def _long_story():
+    """One syndicated report whose copies arrive on days 0, 6, 8 and 10: the first copy leaves the 7-day pool on day 8."""
+    t = "Houthi missile attack hits Riyadh airport"
+    return [mk(f"c{k}", t, 24 * d + 2, url=f"https://www.wire-{k}.com/x", ents=HOUTHI) for k, d in enumerate((0, 6, 8, 10))]
+
+
+def _run_long(window_days=12, *, stabilize=True):
+    con = duckdb.connect(":memory:")
+    state = EventState(con)
+    store = RegisterStore(con)
+    linker = ArmALinker(ARM, make_background([], ARM))
+    its = _long_story()
+    for n in range(1, window_days + 1):
+        run_day(state, store, linker, its, day_end(n), **KW)
+    return con, state, store
+
+
+def test_report_identity_survives_the_first_copy_leaving_the_pool():
+    con, state, store = _run_long()
+    reports = [r[0] for r in con.execute("select report_id from event_state_reports").fetchall()]
+    assert reports == ["c0"]                                   # the later pools never mint c1 or c2 as new reports
+    assert con.execute("select count(*) from event_state_events").fetchone()[0] == 1
+    owner = {r[0]: r[1] for r in con.execute("select item_id, report_id from event_register_items").fetchall()}
+    assert owner == {"c0": "c0", "c1": "c0", "c2": "c0", "c3": "c0"}   # every item instance in exactly one report
+    doc = build_register(con, day_end(12), config=CFG, arm=ARM)
+    assert doc["candidate_count"] == 1
+    cand = doc["candidates"][0]
+    assert cand["item_ids"] == ["c0", "c1", "c2", "c3"] and cand["report_ids"] == ["c0"]
+
+
+def test_without_stabilization_the_same_story_would_split():
+    """Guards the guard: the raw pool of day 9 has no c0, so unstabilised it names a different report id."""
+    pool = collapse_pool(_long_story(), day_end(9), **KW)
+    assert [p.report.report_id for p in pool] == ["c1"]        # c1 + c2; the persisted identity is c0
+    from macro_engine.events.register import stabilize_pool
+    assert [p.report.report_id for p in stabilize_pool(pool, {"c0": "c0", "c1": "c0"})] == ["c0"]
+    kept = stabilize_pool(pool, {"c1": "c0", "c2": "other"})[0]
+    assert kept.report.report_id == "c0" and kept.item_ids == ("c1",)   # a member stored elsewhere is never moved
+
+
+def test_replay_fails_loudly_on_an_item_in_two_events(monkeypatch):
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import events_v23_replay as rv
+
+    t0 = day_end(0)
+    its = _long_story()
+
+    class Ctx:
+        days = [day_end(n) for n in range(1, 13)]
+        pools = {d: collapse_pool(its, d, **KW) for d in days}
+        def background(self, arm):
+            return make_background([], arm)
+        def cache(self, arm):
+            return ({}, {})
+        vectors: dict = {}
+
+    out = rv.replay(Ctx(), [i.news_id for i in its], ARM)       # stabilised: one event, no error
+    assert len(set(out["clusters"].values())) == 1 and t0 < day_end(1)
+    monkeypatch.setattr(rv, "stabilize_pool", lambda pool, known: list(pool))   # identity no longer persisted
+    with pytest.raises(RuntimeError, match="two events"):
+        rv.replay(Ctx(), [i.news_id for i in its], ARM)
+
+
+def test_write_register_is_atomic_and_leaves_no_temp_file(tmp_path, monkeypatch):
+    import os
+
+    path = tmp_path / "event_register.json"
+    write_register(path, {"a": 1})
+    before = path.read_bytes()
+
+    def boom(src, dst):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(os, "replace", boom)
+    with pytest.raises(OSError):
+        write_register(path, {"a": 2})
+    assert path.read_bytes() == before and [p.name for p in tmp_path.iterdir()] == ["event_register.json"]

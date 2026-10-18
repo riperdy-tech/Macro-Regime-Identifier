@@ -13,14 +13,18 @@ same bytes.
 Report identity: a collapsed report is identified by its EARLIEST-seen member (stable as later copies arrive), not by
 the builder's "earliest classified" canonical item; the classification payload is read from the canonical member as
 the builder does. Items of a report that arrive later map to the report they were first grouped with and are never
-moved.
+moved. The 7-day pool is a discovery window, not an identity: when the earliest copy of a syndicated report ages out
+of it, the surviving (and any late) copies keep the report id they were persisted under. `stabilize_pool` re-keys the
+pool's reports from the persisted item -> report membership (`event_register_items`) before they reach the state, so a
+report id is never recomputed from the current pool alone and an item instance sits in exactly one report.
 """
 from __future__ import annotations
 
 import dataclasses
 import json
+import os
 from collections import Counter
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -187,12 +191,49 @@ class RegisterStore:
                                  [m["item_id"], pr.report.report_id, m["publisher"], m["host"], m["first_seen_at"],
                                   m["published_at"]])
 
+    def known_items(self) -> dict[str, str]:
+        """item_id -> the report id it was persisted under."""
+        return {r[0]: r[1] for r in self.con.execute("SELECT item_id, report_id FROM event_register_items").fetchall()}
+
     def snapshot(self) -> dict[str, list[tuple[Any, ...]]]:
         return {t: self.con.execute(f"SELECT * FROM {t} ORDER BY ALL").fetchall() for t in self.TABLES}
 
 
+def stabilize_pool(pool: Sequence[PoolReport], known: MutableMapping[str, str] | dict[str, str]) -> list[PoolReport]:
+    """Keep persisted report identity. A pool report holding items already persisted under a report id takes that id (the
+    one most of its known items sit under; ties go to the smaller id) and drops any member persisted under a different
+    report, which stays where it is (a stored item is never moved). A pool report with no known member is new and keeps
+    the id of its earliest member."""
+    out: list[PoolReport] = []
+    for pr in pool:
+        owners = Counter(known[m["item_id"]] for m in pr.members if m["item_id"] in known)
+        if not owners:
+            out.append(pr)
+            continue
+        top = max(owners.values())
+        chosen = min(r for r, n in owners.items() if n == top)
+        members = tuple(m for m in pr.members if known.get(m["item_id"], chosen) == chosen)
+        if chosen == pr.report.report_id and len(members) == len(pr.members):
+            out.append(pr)
+            continue
+        out.append(PoolReport(dataclasses.replace(pr.report, report_id=chosen), tuple(m["item_id"] for m in members),
+                              members, pr.detail))
+    return out
+
+
+def remember_items(known: MutableMapping[str, str], pool: Iterable[PoolReport], state: EventState) -> None:
+    """Extend `known` with the items of every pool report the state has assigned (what `RegisterStore.record` persists)."""
+    for pr in pool:
+        if state.event_of_report(pr.report.report_id) is None:
+            continue
+        for item_id in pr.item_ids:
+            known.setdefault(item_id, pr.report.report_id)
+
+
 def apply_pool(state: EventState, store: RegisterStore | None, linker: Linker, pool: list[PoolReport],
                as_of: datetime | date | str) -> DayResult:
+    if store is not None:
+        pool = stabilize_pool(pool, store.known_items())
     result = state.apply_day(as_of, [p.report for p in pool], linker)
     if store is not None:
         store.record(pool, state)
@@ -373,5 +414,10 @@ def write_register(path: str | Path, doc: dict[str, Any]) -> bool:
     if target.exists() and target.read_text(encoding="utf-8") == text:
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(text, encoding="utf-8")
+    tmp = target.with_name(f".{target.name}.tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, target)  # atomic: a reader sees the old file or the new one, never half of it
+    finally:
+        tmp.unlink(missing_ok=True)
     return True

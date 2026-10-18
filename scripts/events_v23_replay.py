@@ -59,7 +59,13 @@ from macro_engine.events.linker import (  # noqa: E402
     load_arm_a_config,
     load_arm_b_config,
 )
-from macro_engine.events.register import apply_pool, background_for, collapse_pool  # noqa: E402
+from macro_engine.events.register import (  # noqa: E402
+    apply_pool,
+    background_for,
+    collapse_pool,
+    remember_items,
+    stabilize_pool,
+)
 from macro_engine.events.state import EventState, NeverLinkStub, StateConfig  # noqa: E402
 from macro_engine.events.store_io import load_all_items  # noqa: E402
 
@@ -157,15 +163,21 @@ def replay(ctx: ReplayContext, ids: list[str], arm: ArmAConfig | None) -> dict[s
     else:
         linker = ArmALinker(arm, ctx.background(arm), state.cfg.open_days, ctx.cache(arm))
     item_event: dict[str, str] = {}
+    known: dict[str, str] = {}   # item -> persisted report id: report identity survives the 7-day pool (P5a)
     daily = []
     for d in ctx.days:
-        pool = ctx.pools[d]
+        pool = stabilize_pool(ctx.pools[d], known)
         res = apply_pool(state, None, linker, pool, d)
+        remember_items(known, pool, state)
         for pr in pool:
             eid = state.event_of_report(pr.report.report_id)
             for item_id in pr.item_ids:
-                if eid is not None:
-                    item_event.setdefault(item_id, eid)
+                if eid is None:
+                    continue
+                if item_event.get(item_id, eid) != eid:   # an item instance in two events is a defect, never masked
+                    raise RuntimeError(f"item {item_id} assigned to two events: {item_event[item_id]} and {eid} "
+                                       f"(report {pr.report.report_id}, day {d.date()})")
+                item_event[item_id] = eid
         sizes = Counter(item_event.values())
         daily.append({"as_of": d.isoformat(), "pool_reports": len(pool), "created": len(res.created),
                       "joined": len(res.joined), "closed": len(res.closed), "proposals": res.proposals,
