@@ -355,9 +355,11 @@ def test_corrupt_partition_is_skipped_and_reported(tmp_path: Path):
     dst_db = tmp_path / "dest.duckdb"
     result = hydrate_news_history(db_path=dst_db, history_dir=history_dir)
     assert any(code.startswith("snapshot_partition_corrupt:") for code in result["errors"])
-    # The run continues: the classifications partition still hydrates.
+    # The same day's classifications are not hydrated without their items (no stranded rows), and say so.
+    assert any(code.startswith("snapshot_partition_skipped_items_unusable:classifications/") for code in result["errors"])
     dst_store = DuckDBStore(dst_db)
-    assert len(dst_store.read_table("news_classifications")) == 2
+    assert len(dst_store.read_table("news_classifications")) == 0
+    assert result["classifications_inserted"] == 0
 
 
 def test_import_news_history_is_the_same_as_hydrate(tmp_path: Path):
