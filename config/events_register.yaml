@@ -1,0 +1,11 @@
+# Daily candidate register (events-daily). docs/events_build/STAGE1_RUNBOOK.md.
+#
+# grouping:
+#   syndication  (default) syndication-collapsed reports only; no linking across reports. This is the Stage 1 production mode
+#                (V23_PREREGISTRATION.md section 7: linker arms remain experimental).
+#   arm_a        arm A linker groups reports into candidates. EXPERIMENTAL, labelled so in the file.
+#   arm_b        arm B (arm A plus stored dense title vectors). EXPERIMENTAL, labelled so in the file.
+# One store holds one grouping mode: events-daily refuses to switch the mode on a store that already holds
+# candidates written under another one.
+register:
+  grouping: syndication

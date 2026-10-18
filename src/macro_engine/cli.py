@@ -1850,6 +1850,40 @@ def import_news_history_cli(
         raise typer.Exit(code=1)
 
 
+@app.command("events-daily")
+def events_daily_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    grouping: Annotated[
+        str | None,
+        typer.Option("--grouping", help="syndication | arm_a | arm_b; default config/events_register.yaml."),
+    ] = None,
+    max_age_hours: Annotated[
+        float,
+        typer.Option("--max-age-hours", help="Fail (exit 1, no register) if the news store's newest first_seen_at is older."),
+    ] = 48.0,
+    protected_dir: Annotated[
+        str | None, typer.Option("--protected-dir", help="Where the firewall reads protected artifacts; default --outputs-dir.")
+    ] = None,
+) -> None:
+    """Daily candidate register: freshness check, build, firewall assertion, atomic write of event_register.json
+    (+ dated archive copy) and event_register_run.json. Exits 1 and keeps the previous register on any failure."""
+    from datetime import date
+
+    from macro_engine.events.daily import load_grouping, run_events_daily
+
+    day = date.fromisoformat(as_of) if as_of else pd.Timestamp.now(tz="UTC").date()
+    code, run = run_events_daily(
+        db_path=db_path, outputs_dir=outputs_dir, as_of_day=day, grouping=grouping or load_grouping(),
+        max_age_hours=max_age_hours, protected_dir=protected_dir,
+    )
+    console.print_json(data={k: run.get(k) for k in (
+        "status", "as_of_date", "grouping_mode", "counts", "summary", "freshness", "firewall", "errors", "warnings")})
+    if code:
+        raise typer.Exit(code=code)
+
+
 @app.command("report-news-classification-coverage")
 def report_news_classification_coverage_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
