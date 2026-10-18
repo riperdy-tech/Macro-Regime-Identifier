@@ -1,0 +1,77 @@
+# Entity -> ticker resolution (MRI_EVENTS_PLAN v2 section 8, E0.3).
+#
+# Names are normalised before comparison: lower-cased, accents folded, punctuation turned into spaces, a
+# leading "the" dropped, and the trailing legal-suffix tokens below removed (repeatedly, so "Foo Holdings Inc"
+# -> "foo"). A normalised name is then matched EXACTLY against the stocks.json names and the SEC
+# company_tickers_exchange.json titles. More than one distinct ticker = `ambiguous` and is rejected. Nothing
+# fuzzy, no substring, no token overlap.
+#
+# Only `exact` and `alias` matches enter the `named` exposure tier.
+
+legal_suffixes:
+  - inc
+  - incorporated
+  - corp
+  - corporation
+  - holdings
+  - holding
+  - plc
+  - ltd
+  - limited
+  - co
+  - company
+
+# Curated names a news item uses that differ from the legal name, or that exact matching would reject as
+# ambiguous (several share classes of one issuer). Each target must exist in the stocks.json / SEC universe or
+# the alias is ignored and reported. An alias wins over an exact match for the same normalised name.
+# Keep this list short and reviewed; every line is a claim that the name is that company and no other.
+aliases:
+  meta: META
+  facebook: META
+  alphabet: GOOGL      # primary share class; GOOG is the same issuer
+  google: GOOGL
+  exxon: XOM
+  exxon mobil: XOM
+  amazon: AMZN
+  jpmorgan chase: JPM
+  jpmorgan: JPM
+  lululemon: LULU
+  ford: F
+
+# Entities that name no tradable issuer and link unrelated events together if used as a shared entity (E1).
+# Compared after the same normalisation. They resolve to status `generic` and are never `named`.
+generic_entities:
+  - united states
+  - us
+  - u s
+  - usa
+  - united states government
+  - us government
+  - u s government
+  - u s federal government
+  - federal government
+  - government
+  - white house
+  - congress
+  - senate
+  - house of representatives
+  - supreme court
+  - federal reserve
+  - the fed
+  - fed
+  - treasury
+  - u s treasury
+  - us treasury
+  - treasury department
+  - european union
+  - eu
+  - china
+  - russia
+  - markets
+  - wall street
+
+# Classifier entity types that are never companies; they are recorded as `skipped_type`, not dropped.
+non_company_entity_types:
+  - country
+  - region
+  - person
