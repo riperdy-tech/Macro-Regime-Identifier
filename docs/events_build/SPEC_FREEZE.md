@@ -106,3 +106,46 @@ Also recorded 2026-10-18:
 - **Generic-entity stop list (plan 5.4):** referenced from `config/events.yaml` (`e1.link.generic_entity_stop_list`
   points at `config/entity_aliases.yaml#generic_entities`); the values live only in that file and the validator checks the
   reference resolves.
+
+## Plan erratum v2.2 — §5.4
+
+Orchestrator-ruled 2026-10-18, after the Opus audit of E1 and **after** the reference-set run (a) (`E1_ACCEPTANCE.md`)
+showed one hub event holding unrelated news. It is therefore a rule designed with the reference set in view: the reference
+set can no longer test it. **It must be validated on a fresh, blind holdout, not on the reference set.** The runs recorded in
+`E1_ACCEPTANCE.md` under v2_2 are information only. `config/events.yaml` is `version: 3`; the rule and its three
+parameters sit in the `unratified:` block (`linking`, `entity_background`), flagged `unratified: true`, for the operator to
+ratify or change. `linking: v2` keeps plan 5.4 as transcribed (and reproduces run (a) as recorded: false-split 37/45,
+false-merge 123/131 on the fixture-only pool); `linking: v2_2` is the default.
+
+**(a) One report supplies both.** A classified report links to an event only if ONE report already in the event supplies
+both the shared entity AND (the shared theme+direction OR title Jaccard >= 0.3). No union-of-event matching (v2 compared the
+report's entities against the union of all the event's entities, and its themes against the union of the event's themes,
+which let an event grow by chaining). The 72-hour horizon (from the event's latest report) and the unclassified-report
+rule (title Jaccard >= 0.4 to a report already in the event) are unchanged. A report that the union reading would have
+joined and this reading refuses carries the flag `union_link_rejected:<event_id>`.
+
+**(b) Background entities do not count.** A shared entity counts only if it appears in at most
+`entity_background.max_share` (1%) of the classified items first seen in the `entity_background.days_before_pool` (28)
+days strictly before the start of the pool window (items first seen at or before `as_of - 7 days`, judged with the
+classifications made at or before that instant: as-of relative, no look-ahead). It applies uniformly to every entity key
+(resolved tickers, normalised names, countries) with no exemptions, and the generic stop list does not grow. If that
+background holds fewer than `entity_background.min_items` (300) classified items, each classified report carries
+`background_thin` and the test is applied with what exists (annotate, do not gate). An entity dropped by the test stays on
+the event record, with `link_exclusion: background_share` and the report flag
+`entity_not_linkable:background_share:<name>`.
+
+**(c)** "Resolved entity" means resolver output or, for an unresolved or ambiguous name, the normalised name, in both cases
+subject to (b).
+
+**§5.5 unchanged.** The new-development rule is kept as written (shared entity with the event, no shared theme-direction,
+title Jaccard < 0.2 with every report, joins nothing => new event with `related_event_ids`); its shared entity is the one
+that survives (b).
+
+**Expected gate failure, needs an operator ruling.** The Aden palace report shares its actor and themes with the Houthi
+event, so it is expected to **link into** the Houthi event rather than start a related one; `E_HOUTHI_ADEN_PALACE` is then
+expected to fail its zero-tolerance gate. No parameter is tuned toward it.
+
+Also fixed in phase 3b (not erratum items): `AGGREGATOR_HOSTS` and the publisher-suffix regex moved from `builder.py` to
+`events.yaml#unratified` (`aggregator_hosts`, `publisher_suffix_pattern`); batch ties on `first_seen_at` break on
+`published_at` (a missing one last) and then `news_id`, not a hash; severity and confidence go through `_num` so `0.0` is a
+value.
