@@ -229,3 +229,18 @@ def test_sampler_refuses_a_window_before_the_freeze_or_not_yet_elapsed():
         sh.select(con, date(2026, 10, 22), 5, date(2026, 10, 19))
     with pytest.raises(SystemExit, match="not fully elapsed"):
         sh.select(_store([ROWS[0]]), date(2026, 10, 20), 5, date(2026, 10, 19))
+
+
+def test_sampler_requires_a_window_strictly_after_the_freeze_day_and_reads_it_from_the_record(tmp_path):
+    con = _store(ROWS)
+    with pytest.raises(SystemExit, match="on or before the freeze"):
+        sh.select(con, date(2026, 10, 19), 5, date(2026, 10, 19))      # same-day start refused
+    assert sh.select(con, date(2026, 10, 20), 5, date(2026, 10, 19))
+    rec = tmp_path / "freeze.json"
+    with pytest.raises(SystemExit, match="not found"):
+        sh.load_freeze_date(rec)
+    rec.write_text('{"freeze_date": "PENDING"}', encoding="utf-8")
+    with pytest.raises(SystemExit, match="no usable freeze_date"):
+        sh.load_freeze_date(rec)
+    rec.write_text('{"freeze_date": "2026-10-19"}', encoding="utf-8")
+    assert sh.load_freeze_date(rec) == date(2026, 10, 19)

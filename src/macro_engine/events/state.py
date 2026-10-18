@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from typing import Any, Protocol
@@ -270,6 +271,24 @@ class EventState:
         return {t: self.con.execute(f"SELECT * FROM {t} ORDER BY ALL").fetchall() for t in TABLES}
 
     # ------------------------------------------------------------------ writes
+    @contextmanager
+    def _transaction(self) -> Iterator[None]:
+        """One transaction around the writes of a single assignment (event row, report row, proposals). Joins an
+        enclosing transaction when the caller already opened one."""
+        try:
+            self.con.execute("BEGIN TRANSACTION")
+        except Exception as exc:  # duckdb raises TransactionException when one is already open
+            if "within a transaction" not in str(exc):
+                raise
+            yield
+            return
+        try:
+            yield
+        except BaseException:
+            self.con.execute("ROLLBACK")
+            raise
+        self.con.execute("COMMIT")
+
     def record_supersession(self, old_id: str, new_id: str, evidence: dict[str, Any], on: datetime | date | str,
                             kind: str = "supersession") -> None:
         """Deliberately record that `new_id` supersedes/aliases `old_id`. Nothing is renamed, moved or deleted."""
@@ -327,31 +346,32 @@ class EventState:
         open_ids = {e.event_id for e in open_events}
         if decision.event_id is not None and decision.event_id not in open_ids:
             raise ValueError(f"linker chose {decision.event_id}, which is not an open event (closed events never accept joins)")
-        if decision.event_id is None:
-            event_id = make_event_id(rep.report_id)
-            if self.event(event_id) is not None:
-                raise ValueError(f"event id collision for {event_id}")
-            self._create_event(event_id, rep, day)
-            result.created.append(event_id)
-        else:
-            event_id = decision.event_id
-            self._extend_event(event_id, rep)
-            result.joined.append((rep.report_id, event_id))
-        self.con.execute(
-            "INSERT INTO event_state_reports VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            [rep.report_id, event_id, rep.title, rep.publisher, rep.published_at, rep.first_seen_at,
-             json.dumps(sorted(rep.entity_keys)), json.dumps(sorted(list(t) for t in rep.theme_dirs)), day,
-             json.dumps(decision.evidence, sort_keys=True, default=str)],
-        )
-        for prop in decision.proposals:
-            if prop.other_event_id == event_id or prop.other_event_id not in open_ids:
-                continue  # a link to itself, or to an event that is not open, is not a proposal between two events
+        with self._transaction():
+            if decision.event_id is None:
+                event_id = make_event_id(rep.report_id)
+                if self.event(event_id) is not None:
+                    raise ValueError(f"event id collision for {event_id}")
+                self._create_event(event_id, rep, day)
+                result.created.append(event_id)
+            else:
+                event_id = decision.event_id
+                self._extend_event(event_id, rep)
+                result.joined.append((rep.report_id, event_id))
             self.con.execute(
-                "INSERT OR IGNORE INTO event_state_proposed_links VALUES (?, ?, ?, ?, ?, ?)",
-                [event_id, prop.other_event_id, rep.report_id, day, "proposed",
-                 json.dumps(prop.evidence, sort_keys=True, default=str)],
+                "INSERT INTO event_state_reports VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [rep.report_id, event_id, rep.title, rep.publisher, rep.published_at, rep.first_seen_at,
+                 json.dumps(sorted(rep.entity_keys)), json.dumps(sorted(list(t) for t in rep.theme_dirs)), day,
+                 json.dumps(decision.evidence, sort_keys=True, default=str)],
             )
-            result.proposals += 1
+            for prop in decision.proposals:
+                if prop.other_event_id == event_id or prop.other_event_id not in open_ids:
+                    continue  # a link to itself, or to an event that is not open, is not a proposal between two events
+                self.con.execute(
+                    "INSERT OR IGNORE INTO event_state_proposed_links VALUES (?, ?, ?, ?, ?, ?)",
+                    [event_id, prop.other_event_id, rep.report_id, day, "proposed",
+                     json.dumps(prop.evidence, sort_keys=True, default=str)],
+                )
+                result.proposals += 1
 
     def _create_event(self, event_id: str, rep: Report, day: date) -> None:
         flags = ["published_at_missing"] if rep.published_at is None else []
@@ -378,9 +398,11 @@ class EventState:
             counts[k] = counts.get(k, 0) + 1
         n = int(ev["report_count"]) + 1
         flags = set(ev["flags"])
-        if rep.published_at is None:
-            flags.add("published_at_missing")
         onset_pub = min((p for p in (naive_utc(ev["onset_published_at"]), rep.published_at) if p is not None), default=None)
+        if onset_pub is None:  # flagged only while NO report of the event carries a publication date
+            flags.add("published_at_missing")
+        else:
+            flags.discard("published_at_missing")
         onset_seen = min(naive_utc(ev["onset_first_seen_at"]), rep.first_seen_at)  # type: ignore[type-var]
         last = max(naive_utc(ev["last_report_at"]), rep.first_seen_at)  # type: ignore[type-var]
         self.con.execute(

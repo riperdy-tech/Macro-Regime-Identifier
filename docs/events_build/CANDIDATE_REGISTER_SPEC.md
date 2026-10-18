@@ -12,7 +12,7 @@ event** in any field name, status value, log line or UI string; the words "confi
 ## Record
 
 One candidate per persistent event in `events/state.py` (the `event_id` is the `candidate_id`). Additive artifact
-`candidate_register.json`, versioned, written beside the other outputs; no existing output changes.
+`event_register.json`, versioned, written beside the other outputs; no existing output changes.
 
 | Field | Meaning |
 | --- | --- |

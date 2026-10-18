@@ -207,3 +207,31 @@ def test_config_bounds_are_honoured():
         st.apply_day(day_end(d), [rep(f"r{d}", d)], lk)
     ev = st.event(make_event_id("r0"))
     assert [a["report_id"] for a in ev["anchors"]] == ["r0"] and len(ev["recent"]) == 2
+
+
+def test_published_at_missing_only_while_no_report_has_the_date(state):
+    state.apply_day(date(2026, 10, 10), [rep("a", 0, published=None)], NeverLinkStub())
+    eid = make_event_id("a")
+    assert "published_at_missing" in state.event(eid)["flags"]
+    state.apply_day(date(2026, 10, 10), [rep("b", 0, hour=1, published=None)], KeyLinker())
+    assert "published_at_missing" in state.event(eid)["flags"]            # still no report with a date
+    state.apply_day(date(2026, 10, 10), [rep("c", 0, hour=2)], KeyLinker())
+    ev = state.event(eid)
+    assert ev["onset_published_at"] is not None and "published_at_missing" not in ev["flags"]
+    state.apply_day(date(2026, 10, 10), [rep("d", 0, hour=3, published=None)], KeyLinker())
+    assert "published_at_missing" not in state.event(eid)["flags"]        # a later undated report does not re-flag
+
+
+def test_event_and_report_rows_are_written_in_one_transaction(state):
+    class BadLinker:
+        def link(self, report, open_events):
+            return LinkDecision(None, {"bad": object()}, ())            # evidence is not JSON-able at the default: str()
+
+    state.apply_day(date(2026, 10, 10), [rep("a", 0)], NeverLinkStub())
+    before = state.snapshot()
+    state.con.execute("DROP TABLE event_state_reports")                 # make the SECOND write fail
+    state.con.execute("CREATE TABLE event_state_reports (report_id VARCHAR PRIMARY KEY)")
+    with pytest.raises(Exception):
+        state.apply_day(date(2026, 10, 10), [rep("b", 0, hour=1)], NeverLinkStub())
+    n_events = state.con.execute("select count(*) from event_state_events").fetchone()[0]
+    assert n_events == len(before["event_state_events"]) == 1           # the event row of the failed assignment rolled back
