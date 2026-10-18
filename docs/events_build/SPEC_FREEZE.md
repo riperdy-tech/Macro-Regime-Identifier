@@ -149,3 +149,29 @@ Also fixed in phase 3b (not erratum items): `AGGREGATOR_HOSTS` and the publisher
 `events.yaml#unratified` (`aggregator_hosts`, `publisher_suffix_pattern`); batch ties on `first_seen_at` break on
 `published_at` (a missing one last) and then `news_id`, not a hash; severity and confidence go through `_num` so `0.0` is a
 value.
+
+## Plan erratum v3 (Stage 1 ships as a candidate register)
+
+Ruled 2026-10-18 with operator approval (Phase 4a; `BRIEF_P4A.md`). It follows the E1 failure (`E1_ACCEPTANCE.md`,
+`E1_FAILURE_CONSULTATION.md` with its Corrections), the two outside reviews and the Opus audit of them
+(`EXTERNAL_REVIEWS_E1.md`).
+
+1. **Stage 1 production is the candidate register** (`CANDIDATE_REGISTER_SPEC.md`), not corroborated events. A candidate is
+   never called a confirmed event in any field or string. Plan sections 5.6/5.7 (corroboration to `corroborated` /
+   `rejected_uncorroborated`) are superseded for production; **v2.2 (above) is retained as a comparator only**, and v2
+   (plan 5.4 as transcribed) as the first baseline.
+2. **Single-source candidates are shown.** The plan's "`rejected_uncorroborated` ... hidden by default" (section 5.6) is
+   superseded: they are displayed as `single_source` and are not removed after 72 hours.
+3. **Two-label model** for the holdout labels: episode and storyline (`LABELLING_GUIDE_V2.md`). The Aden palace strike is its
+   own episode under the Houthi storyline.
+4. **Linking is to be judged by the v2.3 pre-registration** (`V23_PREREGISTRATION.md`): anchors not union, themes excluded
+   from identity, no hard frequency cutoff, `published_at` for E2 onsets, a blind contiguous holdout, one run. The v1.1
+   pairwise gates and zero-tolerance examples are regression information only. The seen reference set is a development set.
+5. **E2 de-duplication** by (instrument, reference close date, window).
+6. **Persistent identity** (`events/state.py`): the 7-day pool is a discovery window; ids are stable from creation; no silent
+   retrospective reassignment.
+7. **`canonical_title`** strips a trailing " - X" only for aggregator hosts (fixes the code against plan 5.2; 17 of 944 pooled
+   items were affected).
+
+`config/events.yaml` is not changed by this erratum (its version and pinned values are untouched); the new arm parameters
+live in a separate `config/events_v23.yaml` created in Phase 4b before the freeze commit.
