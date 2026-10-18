@@ -1881,6 +1881,34 @@ def report_news_classification_coverage_cli(
     console.print_json(data=report)
 
 
+@app.command("report-gdelt-success")
+def report_gdelt_success_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    window_days: Annotated[int, typer.Option("--window-days")] = 14,
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    since: Annotated[
+        str | None, typer.Option("--since", help="Count only days on/after this date (repair day).")
+    ] = None,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.2b: rolling GDELT success rate over scheduled pulls (target >= 90%). Read-only."""
+    from macro_engine.news.gdelt_report import rolling_gdelt_success_rate
+
+    store = DuckDBStore(db_path)
+    store.initialize()
+    day = pd.Timestamp(as_of).date() if as_of else pd.Timestamp.now(tz="UTC").date()
+    report = rolling_gdelt_success_rate(
+        store.read_table("news_source_runs"),
+        as_of=day,
+        window_days=window_days,
+        since=pd.Timestamp(since).date() if since else None,
+    )
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:
