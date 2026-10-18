@@ -225,7 +225,9 @@ def hydrate_news_history(
         result["manifest_totals"] = manifest.get("totals", {})
         partitions = manifest.get("partitions", {})
 
-        for rel_path in sorted(partitions):
+        # items before classifications: a failure part-way must not strand classifications
+        # whose items are not yet in the store.
+        for rel_path in sorted(partitions, key=_hydrate_order):
             meta = partitions[rel_path]
             abs_path = history_path / rel_path
             if not abs_path.exists():
@@ -264,6 +266,65 @@ def import_news_history(
     (insert-if-absent, precedence-protected), documented under its own name for
     `import-news-history` / `pull_news_history.ps1|.sh`."""
     return hydrate_news_history(db_path=db_path, history_dir=history_dir)
+
+
+def news_store_freshness(
+    db_path: str | Path = "data/macro_engine.duckdb",
+    now: datetime | None = None,
+) -> dict[str, Any]:
+    """How fresh the local news store is: newest `first_seen_at` (the moment the engine
+    first held the item) and its age in hours. Legacy rows have a null `first_seen_at`;
+    they never count as fresh. Read-only; returns `error` instead of raising."""
+    out: dict[str, Any] = {
+        "items": 0,
+        "classifications": 0,
+        "newest_first_seen_at": None,
+        "newest_published_at": None,
+        "age_hours": None,
+        "error": None,
+    }
+    try:
+        import duckdb
+
+        con = duckdb.connect(str(db_path), read_only=True)
+        try:
+            items, first_seen, published = con.execute(
+                "SELECT count(*), max(first_seen_at), max(published_at) FROM news_items"
+            ).fetchone()
+            out["classifications"] = con.execute(
+                "SELECT count(*) FROM news_classifications"
+            ).fetchone()[0]
+        finally:
+            con.close()
+        out["items"] = int(items)
+        if first_seen is not None:
+            out["newest_first_seen_at"] = pd.Timestamp(first_seen).isoformat()
+            ref = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="UTC")
+            ref = ref.tz_convert("UTC").tz_localize(None) if ref.tzinfo else ref
+            out["age_hours"] = round((ref - pd.Timestamp(first_seen)).total_seconds() / 3600, 2)
+        if published is not None:
+            out["newest_published_at"] = pd.Timestamp(published).isoformat()
+    except Exception as exc:  # noqa: BLE001 - a freshness probe must report, not raise
+        out["error"] = f"freshness_probe_failed:{exc}"
+    return out
+
+
+def hydration_problems(
+    result: dict[str, Any], freshness: dict[str, Any], max_age_hours: float
+) -> list[str]:
+    """Reasons a daily hydration counts as failed. Empty list means healthy. The staleness
+    test is on the store, not on what this run inserted: a no-op run on an up-to-date
+    store (idempotent re-run) is healthy; an up-to-date source that left the store old is not."""
+    problems = list(result.get("errors") or [])
+    if not result.get("manifest_totals"):
+        problems.append("snapshot_manifest_missing_or_empty")
+    if freshness.get("error"):
+        problems.append(str(freshness["error"]))
+    elif freshness.get("age_hours") is None:
+        problems.append("store_has_no_first_seen_at")
+    elif freshness["age_hours"] > max_age_hours:
+        problems.append(f"store_stale:{freshness['age_hours']}h>{max_age_hours}h")
+    return problems
 
 
 # --------------------------------------------------------------------------
@@ -446,6 +507,13 @@ def _merge_partition(
     )
     merged = pd.concat([only_existing, only_incoming, shared_rows], ignore_index=True)
     return merged, conflicts
+
+
+_HYDRATE_KIND_ORDER = {"items": 0, "classifications": 1, "source_runs": 2}
+
+
+def _hydrate_order(rel_path: str) -> tuple[int, str]:
+    return (_HYDRATE_KIND_ORDER.get(rel_path.split("/")[0], 9), rel_path)
 
 
 def _relative_partition_path(kind: str, day: Any) -> str:

@@ -1810,13 +1810,44 @@ def export_news_history_cli(
 def import_news_history_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     snapshot_dir: Annotated[str, typer.Option("--snapshot-dir")] = "outputs/news_history",
+    max_age_hours: Annotated[
+        float | None,
+        typer.Option(
+            "--max-age-hours",
+            help="Fail (exit 1) if the store's newest first_seen_at is older than this.",
+        ),
+    ] = None,
+    report_path: Annotated[
+        str | None, typer.Option("--report-path", help="Also write the JSON report here.")
+    ] = None,
 ) -> None:
     """N1.4: insert-if-absent hydrate of the durable snapshot into the local
-    store. Additive only -- never displaces an existing real classification."""
-    from macro_engine.news.history import import_news_history
+    store. Additive only -- never displaces an existing real classification.
+    With --max-age-hours the run is also a freshness check: any hydrate error,
+    an empty manifest or a stale store exits non-zero."""
+    from macro_engine.news.history import (
+        hydration_problems,
+        import_news_history,
+        news_store_freshness,
+    )
 
     result = import_news_history(db_path=db_path, history_dir=snapshot_dir)
-    console.print_json(data=result)
+    if max_age_hours is None and report_path is None:
+        console.print_json(data=result)
+        return
+    freshness = news_store_freshness(db_path)
+    problems = (
+        hydration_problems(result, freshness, max_age_hours)
+        if max_age_hours is not None
+        else list(result.get("errors") or [])
+    )
+    report = {"hydrate": result, "freshness": freshness, "problems": problems, "ok": not problems}
+    if report_path:
+        Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(report_path).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+    if problems:
+        raise typer.Exit(code=1)
 
 
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
