@@ -1,0 +1,124 @@
+# MRI events: frozen parameters for E1 (builder), E2 (market response) and E3 (lifecycle).
+# Source: docs/MRI_EVENTS_PLAN.md v2, sections 5-7 and 8 (exposure thresholds). Written in plan step 2
+# (specification freeze), BEFORE any E1/E2/E3 code. Every number below is transcribed from the plan; each
+# parameter carries its plan_ref. Nothing here is tuned. A change after the freeze is a versioned decision.
+#
+# Stage gates for plan section 11 are NOT configuration and are deliberately absent.
+# Anything the code will need that the plan does not specify is in the `unratified:` block at the end, each
+# with a rationale and a PROPOSED value for the operator to ratify or change. Main blocks never read it.
+
+version: 1
+frozen_at: PENDING  # filled by the freeze commit hash, recorded in docs/events_build/SPEC_FREEZE.md
+
+e1:
+  pool_window_days: {value: 7, plan_ref: "§5.1"}                       # live items first seen in the last 7 days
+  syndication:
+    title_jaccard_min: {value: 0.6, plan_ref: "§5.3"}                   # same report if canonical title equal or Jaccard >= this
+  link:
+    title_jaccard_min: {value: 0.3, plan_ref: "§5.4"}                   # alternative to a shared theme+direction
+    unclassified_title_jaccard_min: {value: 0.4, plan_ref: "§5.4"}      # an unclassified report links only through this
+    entity_relevance_min: {value: 0.5, plan_ref: "§5.4"}                # shared resolved entity, relevance >= this
+    horizon_hours: {value: 72, plan_ref: "§5.4"}                        # arrival within this of the event's latest report
+  new_development:
+    title_jaccard_below: {value: 0.2, plan_ref: "§5.5"}                 # shared entity, no shared theme, Jaccard < this => new event
+  corroboration:
+    min_distinct_publishers: {value: 2, plan_ref: "§5.6"}               # after syndication collapse
+    official_source_corroborates: {value: true, plan_ref: "§5.6"}       # the Fed, BLS, DOL or EIA feeds
+    rejection_hours: {value: 72, plan_ref: "§5.6"}                      # no corroboration in this long => rejected_uncorroborated
+    official_source_domains:
+      status: UNRATIFIED
+      plan_ref: "§5.6"
+      note: "Plan names the Fed, BLS, DOL and EIA feeds; these domains and feed labels are the ones actually present in the local store, first_seen 2026-10-08..2026-10-16. Operator to ratify."
+      value:
+        - www.federalreserve.gov
+        - www.bls.gov
+        - www.dol.gov
+        - www.eia.gov
+      feed_source_labels_seen: [federal_reserve_press, federal_reserve_speeches, bls_latest, dol_releases, eia_energy]
+
+e2:
+  primary_window_sessions: {value: 2, plan_ref: "§6"}                   # k = 2; the only window that sets status
+  info_window_sessions: {value: [1, 3], plan_ref: "§6"}                 # recorded, never set status
+  robust_sd:
+    mad_scale: {value: 1.4826, plan_ref: "§6"}                          # SD = MAD * 1.4826 of overlapping k-session moves
+    baseline_sessions: {value: 504, plan_ref: "§6"}                     # sessions ending at P_ref; nothing after P_ref used
+    min_observations: {value: 250, plan_ref: "§6"}                      # fewer => data_unavailable
+  z_threshold: {value: 2, plan_ref: "§6"}                               # aligned/opposed if z >= +2 in the direction
+  response_current_fraction: {value: 0.5, plan_ref: "§6"}               # true while cumulative move since P_ref in the expected direction is >= 50% of window move
+  p_ref_rule: {value: last_daily_observation_dated_before_onset_date_us_calendar, plan_ref: "§6"}
+  provisional_inputs_flag: {value: provisional, plan_ref: "§6"}         # recomputed when FRED publishes
+  transform:
+    rates_spreads_breakevens_curve: {value: change_in_basis_points, plan_ref: "§6"}
+    prices_etfs_wti: {value: log_return_percent, plan_ref: "§6"}
+    vix: {value: log_change_percent, plan_ref: "§6"}
+  company_specific:
+    window_sessions: {value: 2, plan_ref: "§6"}                         # named stock's 2-session return minus its sector ETF's
+    check: {value: abnormal_return_vs_sector_etf, plan_ref: "§6"}
+    recorded_as: {value: equity_reaction_only, plan_ref: "§6"}
+    bond_data: {value: unavailable, plan_ref: "§6"}
+  theme_result_rules:
+    aligned: {value: "primary family aligned, or two independent families aligned and none opposed", plan_ref: "§6"}
+    opposed: {value: "primary family opposed and no family aligned", plan_ref: "§6"}
+    mixed: {value: "families both aligned and opposed", plan_ref: "§6"}
+    no_signal: {value: otherwise, plan_ref: "§6"}
+    data_unavailable: {value: "primary family missing", plan_ref: "§6"}
+
+e3:
+  trading_day_calendar: {value: us, plan_ref: "§7"}
+  active_to_decaying_quiet_trading_days: {value: 5, plan_ref: "§7"}     # and response_current false
+  decaying_to_closed_quiet_trading_days: {value: 10, plan_ref: "§7"}    # close_reason quiet
+  sunset_calendar_days: {value: 60, plan_ref: "§7"}                     # since onset; close_reason sunset
+  closed_reopens: {value: false, plan_ref: "§7"}                        # later reports start a new, related event
+
+exposure:
+  sector_min_confidence: {value: 0.6, plan_ref: "§8"}                   # classifier sector impacts: confidence >= this
+  sector_min_abs_impact: {value: 0.3, plan_ref: "§8"}                   # and |impact| >= this
+
+# Not in the plan. Each item is something the code will need; PROPOSED is a suggestion only. Operator to ratify,
+# change or reject each before E1/E2/E3 code relies on it. No main block depends on this block.
+unratified:
+  trading_calendar_source:
+    rationale: "Plan says trading days / US calendar but names no holiday table. E0.4 deliberately keeps none (weekday lags carry the slack)."
+    proposed: "NYSE full-day closures table maintained in the repository, with a freshness test; alternative: weekday-only with the same slack."
+  onset_timezone_for_date:
+    rationale: "P_ref is 'dated before the onset date (US calendar)'; the timezone that turns a UTC published_at into a US date is not stated."
+    proposed: America/New_York
+  price_series_for_returns:
+    rationale: "E0.4 stores Yahoo close under <SYM> (split-adjusted) and adjclose under <SYM>#adjclose (split and dividend adjusted). Plan says 'log return' without saying which. Not decided here."
+    options: ["<SYM> close", "<SYM>#adjclose"]
+    note: "No #adjclose series was present in the local store at freeze (all instruments were pulled before E0.4 stored adjclose); a re-pull is needed first if adjclose is chosen."
+  theme_direction_scoring:
+    rationale: "The theme map is keyed by theme alone, but the classifier gives each theme a direction (positive/negative/mixed/neutral/unclear). The plan does not say which directions are scored, or what a negative direction means (e.g. monetary_tightening negative)."
+    proposed: "Score a theme only when its classifier direction is positive (the theme is occurring); negative, mixed, neutral, unclear => not scored for that theme, kept on the record."
+  event_theme_selection:
+    rationale: "An event may carry several themes across its reports; which of them are scored is not stated."
+    proposed: "Score every market-checkable theme the event carries; one theme result per theme."
+  p_ref_vs_after_close_news:
+    rationale: "Plan s6 says P_ref excludes the onset-date close because news arrives after the US close, 'to avoid counting a move made before the news'. For news that arrives after the close, the onset-date close is itself before the news, so excluding it puts the pre-news onset-day move inside move_k. Transcribed exactly as written; flagged for a ruling."
+    proposed: "Operator to rule; no behaviour chosen here."
+  session_counting_for_k:
+    rationale: "'k = 2 sessions after P_ref' and 'move over k' are not defined when the series has a gap or P_ref is days before onset."
+    proposed: "move_k = value at the k-th observed session after P_ref minus value at P_ref, counted in stored observations."
+  mad_zero:
+    rationale: "A robust SD of 0 (MAD = 0) makes z undefined."
+    proposed: "result data_unavailable with reason mad_zero."
+  wti_series:
+    rationale: "Plan says 'WTI (FRED + Yahoo tail)'. The existing oil tail chains Yahoo CL=F daily returns onto the last FRED DCOILWTICO level (shocks/register.py), and CL=F in the store holds about 67 rows, below the 250 required for a z baseline."
+    proposed: "Baseline on FRED DCOILWTICO; a result that uses tail sessions carries the provisional flag."
+  series_staleness_limits:
+    rationale: "Plan asks for per-instrument lag limits but gives none for FRED series. E0.4 uses default_max_lag_weekdays 3 for Yahoo."
+    proposed_default_weekdays: 3
+    series: [DGS2, T10YIE, T10Y2Y, BAMLH0A0HYM2, BAA10Y, VIXCLS, DCOILWTICO]
+    note: "Observed at freeze: DCOILWTICO newest 2026-10-14 vs others 10-15/10-16."
+  publisher_suffix_parsing:
+    rationale: "Plan s5.2: aggregator titles end in a '- Publisher' suffix. The exact rule is not given."
+    proposed: "Only when source_url domain is news.google.com: strip one trailing ' - X' / ' – X' / ' — X' (X = 2-40 characters, no dash); the same suffix is stripped for the canonical title in s5.3 for all items."
+  canonical_title_normalisation:
+    rationale: "'lower case, publisher suffix stripped' is the plan's wording; punctuation and HTML entities are not addressed (titles carry &quot; and curly quotes)."
+    proposed: "html.unescape, NFKC, lower case, collapse whitespace, strip publisher suffix; tokenisation for Jaccard reuses news/selection.py unchanged."
+  entity_relevance_source:
+    rationale: "'Entity relevance >= 0.5' presumes the classifier emits a relevance per entity; E1 must use the resolver output in events/entities.py. Source field not stated."
+    proposed: "Classifier entity relevance as stored; entities without a relevance value are not linkable."
+  pairwise_acceptance_protocol:
+    rationale: "Plan s5 acceptance says false-merge and false-split rates and 'exactly one' event without a metric or protocol. Defined in tests/fixtures/events_reference/LABELLING.md (pairwise, daily replay, zero tolerance on membership of the three examples)."
+    proposed: "As written in LABELLING.md."
