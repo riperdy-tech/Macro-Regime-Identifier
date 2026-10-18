@@ -133,11 +133,15 @@ def _suffix_regex(pattern: str) -> re.Pattern[str]:
     return re.compile(pattern)
 
 
-def canonical_title(title: str | None, config: E1Config | None = None) -> str:
-    """html.unescape, NFKC, lower case, whitespace collapsed, one trailing " - Publisher" removed."""
+def canonical_title(title: str | None, config: E1Config | None = None, host: str | None = None) -> str:
+    """html.unescape, NFKC, lower case, whitespace collapsed. One trailing " - Publisher" is removed ONLY when `host`
+    is an aggregator host (plan 5.2: the suffix names a publisher only on aggregator headlines); on any other host,
+    or with no host, a trailing " - X" is part of the title."""
     cfg = config or _default_config()
     text = unicodedata.normalize("NFKC", html.unescape(str(title or ""))).lower()
     text = " ".join(text.split())
+    if host is None or host not in cfg.aggregator_hosts:
+        return text
     match = _suffix_regex(cfg.publisher_suffix_pattern).match(text)
     return match.group(1).strip() if match else text
 
@@ -370,7 +374,7 @@ def _prepare(items: Iterable[NewsItem], as_of: datetime, cfg: E1Config) -> tuple
         seen_ids.add(item.news_id)
         published = naive_utc(item.published_at)
         publisher, host, pflag = extract_publisher(item.title, item.source_url, cfg)
-        canon = canonical_title(item.title, cfg)
+        canon = canonical_title(item.title, cfg, host)
         flags = [pflag] if pflag else []
         if not canon:
             flags.append("title_missing")

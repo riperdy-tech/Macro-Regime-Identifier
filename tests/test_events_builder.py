@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import unicodedata
 from datetime import datetime, timedelta
 
 import duckdb
@@ -111,10 +112,59 @@ def test_missing_url_gives_no_publisher_and_a_flag():
     assert extract_publisher("Oil jumps", "") == (None, None, "publisher_unknown")
 
 
-def test_canonical_title_unescapes_normalises_and_strips_one_suffix():
-    assert canonical_title("Oil &quot;jumps&quot;  again – Reuters") == 'oil "jumps" again'
-    assert canonical_title("A – B – Reuters") == "a – b"
+def test_canonical_title_unescapes_normalises_and_strips_one_suffix_on_aggregator_hosts():
+    assert canonical_title("Oil &quot;jumps&quot;  again – Reuters", host="news.google.com") == 'oil "jumps" again'
+    assert canonical_title("A – B – Reuters", host="news.google.com") == "a – b"
     assert canonical_title(None) == ""
+
+
+# The 17 pooled titles (first seen 2026-10-08..10-16) that a suffix-shaped tail used to truncate although their host
+# is not an aggregator (— and – as stored). Plan 5.2: only aggregator headlines carry a "- Publisher" suffix.
+NON_AGGREGATOR_DASH_TITLES = (
+    ("cnbc.com", "Cramer says higher rates are splitting the market in two — and AI stocks have a big advantage"),
+    ("cnbc.com", "Luxury developers flocked to the 'Hamptons of Hungary' — but some projects are stalling"),
+    ("marketwatch.com", "Washington and Wall Street chose to delay paying their bills — and to put them on your tab"),
+    ("cnbc.com", "Why a Starbucks takeover of Chipotle would — and wouldn't — make sense for both companies"),
+    ("cnbc.com", "What's behind the recovery rally in tech stocks — plus, Elon Musk's very good week"),
+    ("cnbc.com", "Jim Cramer sets a Starbucks buy level — plus his take on 3 stocks we just bought"),
+    ("marketwatch.com", "Elon Musk is now richer than any American ever — and it’s not even close"),
+    ("argentinastar.com", "Stronger BoP outlook to keep Rupee far more stable ; FY27 surplus seen at USD 97 - 100 billion : Report"),
+    ("cnbc.com", "AI may change the price of your Big Mac and groceries — what this means for shoppers"),
+    ("marketwatch.com", "The bull market is turning 4 years old — but yields could crash the party"),
+    ("cnbc.com", "IMF sees milder global slowdown as AI boom offsets war hit — warns resilience is nearing limits"),
+    ("cnbc.com", "Thousands of homeowners face adjustable-rate mortgage resets — and much higher payments"),
+    ("marketwatch.com", "UnitedHealth keeps medical costs under control — and raises its outlook again"),
+    ("bbc.co.uk", "US inflation rises more than expected - here's what is happening with prices"),
+    ("bbc.co.uk", "Kenya confirms second Ebola case - a relative of the first victim"),
+    ("cnbc.com", "Trump's diesel dilemma — by the numbers"),
+    ("scmp.com", "Hong Kong investors most eager in Asia to beat markets – but temper return hopes: report"),
+)
+
+
+def test_canonical_title_keeps_a_trailing_dash_tail_on_non_aggregator_hosts():
+    assert len(NON_AGGREGATOR_DASH_TITLES) == 17
+    for host, title in NON_AGGREGATOR_DASH_TITLES:
+        assert host not in CFG.aggregator_hosts
+        got = canonical_title(title, host=host)
+        assert got == " ".join(unicodedata.normalize("NFKC", title).lower().split()), title
+        # the same text on an aggregator host IS stripped: the rule keys on the host, not on the text
+        assert len(canonical_title(title, host="news.google.com")) < len(got)
+
+
+def test_canonical_title_without_a_host_never_strips():
+    assert canonical_title("Oil jumps - Reuters") == "oil jumps - reuters"
+    assert canonical_title("Oil jumps - Reuters", host="reuters.com") == "oil jumps - reuters"
+    assert canonical_title("Oil jumps - Reuters", host="news.google.com") == "oil jumps"
+
+
+def test_dash_tail_is_not_collapsed_into_a_report_on_a_non_aggregator_host():
+    # identical heads, different tails: one report through an aggregator suffix, two on ordinary hosts
+    one = build([mk("n1", "Rates hold steady - Reuters", 1, url="https://news.google.com/a"),
+                 mk("n2", "Rates hold steady - Bloomberg", 2, url="https://news.google.com/b")])
+    assert one.meta["reports"] == 1
+    two = build([mk("n1", "Rates hold - the full story", 1, url="https://www.bbc.co.uk/a"),
+                 mk("n2", "Rates hold - what comes next", 2, url="https://www.bbc.co.uk/b")])
+    assert two.meta["reports"] == 2
 
 
 # ------------------------------------------------------------------ syndication collapse and canonical item

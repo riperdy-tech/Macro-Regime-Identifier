@@ -217,8 +217,8 @@ def test_aggregator_hosts_and_suffix_pattern_come_from_config():
     assert extract_publisher("Oil jumps - Reuters", "https://agg.example/a", cfg)[0] == "reuters"
     assert extract_publisher("Oil jumps - Reuters", "https://news.google.com/a", cfg)[0] == "news.google.com"
     cfg2 = dataclasses.replace(CFG, publisher_suffix_pattern=r"^(.*\S)\s+\|\s+([^|]{2,40})$")
-    assert canonical_title("Oil jumps | Reuters", cfg2) == "oil jumps"
-    assert canonical_title("Oil jumps - Reuters", cfg2) == "oil jumps - reuters"
+    assert canonical_title("Oil jumps | Reuters", cfg2, "news.google.com") == "oil jumps"
+    assert canonical_title("Oil jumps - Reuters", cfg2, "news.google.com") == "oil jumps - reuters"
 
 
 def test_events_yaml_is_version_3_with_the_unratified_v2_2_block():
