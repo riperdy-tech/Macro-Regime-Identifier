@@ -39,6 +39,9 @@ EXPECTED_PARAMS: dict[str, Any] = {
     "e2.robust_sd.baseline_sessions": 504,
     "e2.robust_sd.min_observations": 250,
     "e2.z_threshold": 2,
+    "e2.p_ref_rule": "last_session_close_at_or_before_onset_instant",  # plan erratum v2.1
+    "e2.p_ref_close_time_local": "16:00",
+    "e2.p_ref_timezone": "America/New_York",
     "e2.response_current_fraction": 0.5,
     "e2.company_specific.window_sessions": 2,
     "e3.active_to_decaying_quiet_trading_days": 5,
@@ -48,6 +51,37 @@ EXPECTED_PARAMS: dict[str, Any] = {
     "exposure.sector_min_abs_impact": 0.3,
 }
 MAIN_BLOCKS = ("e1", "e2", "e3", "exposure")
+EVENTS_VERSION = 2
+STOP_LIST_REF = "config/entity_aliases.yaml#generic_entities"
+
+# Golden copy of the plan section 6 theme table: theme -> (primary, secondary), each (family, instrument, expected_sign),
+# or "display_only". Transcribed from the plan, independent of config/event_theme_map.yaml, so that a changed sign or a
+# swapped family fails the validator.
+_P = "primary"
+GOLDEN_THEMES: dict[str, Any] = {
+    "monetary_tightening": {_P: ("rates", "DGS2", 1), "secondary": ("equity", "SPY", -1)},
+    "monetary_easing": {_P: ("rates", "DGS2", -1), "secondary": ("equity", "SPY", 1)},
+    "inflation_pressure": {_P: ("breakeven", "T10YIE", 1), "secondary": ("rates", "DGS2", 1)},
+    "disinflation": {_P: ("breakeven", "T10YIE", -1), "secondary": ("rates", "DGS2", -1)},
+    "yield_curve_steepening": {_P: ("curve", "T10Y2Y", 1), "secondary": None},
+    "yield_curve_flattening": {_P: ("curve", "T10Y2Y", -1), "secondary": None},
+    "credit_stress": {_P: ("credit", "BAMLH0A0HYM2", 1), "secondary": ("vol", "VIXCLS", 1), "same_family": ["BAA10Y"]},
+    "credit_easing": {_P: ("credit", "BAMLH0A0HYM2", -1), "secondary": None},
+    "energy_supply_shock": {_P: ("oil", "WTI", 1), "secondary": ("energy_equity", "XLE", 1)},
+    "geopolitical_risk": {
+        _P: ("vol", "VIXCLS", 1),
+        "secondary": None,
+        "co_tag": ("oil", "WTI", 1, "energy_supply_shock"),
+    },
+    "financial_stability_risk": {_P: ("vol", "VIXCLS", 1), "secondary": ("banks", "KBE", -1)},
+    "growth_acceleration": "display_only",
+    "growth_slowdown": "display_only",
+    "labor_strength": "display_only",
+    "labor_weakness": "display_only",
+    "fiscal_expansion": "display_only",
+    "fiscal_drag": "display_only",
+    "commodity_pressure": "display_only",
+}
 N_THEMES = 18
 N_DISPLAY_ONLY = 7
 
@@ -98,8 +132,8 @@ def _walk_params(node: Any, path: str):
 
 def check_events(events: dict[str, Any]) -> list[str]:
     errs: list[str] = []
-    if events.get("version") != 1:
-        errs.append("events.yaml: version must be 1")
+    if events.get("version") != EVENTS_VERSION:
+        errs.append(f"events.yaml: version must be {EVENTS_VERSION}")
     if "frozen_at" not in events:
         errs.append("events.yaml: frozen_at missing")
     for block in MAIN_BLOCKS:
@@ -122,6 +156,7 @@ def check_events(events: dict[str, Any]) -> list[str]:
             errs.append(f"events.yaml: {path} missing")
         elif got != expected or isinstance(got, bool) != isinstance(expected, bool):
             errs.append(f"events.yaml: {path} = {got!r}, plan says {expected!r}")
+    errs += check_stop_list_reference(events)
     domains = ((events.get("e1") or {}).get("corroboration") or {}).get("official_source_domains") or {}
     if domains.get("status") != "UNRATIFIED":
         errs.append("events.yaml: e1.corroboration.official_source_domains must be marked UNRATIFIED")
@@ -143,6 +178,56 @@ def check_events(events: dict[str, Any]) -> list[str]:
     return errs
 
 
+def check_stop_list_reference(events: dict[str, Any], aliases_path: Path | None = None) -> list[str]:
+    """Plan 5.4's generic-entity stop list is referenced from events.yaml and lives, once, in entity_aliases.yaml."""
+    link = ((events.get("e1") or {}).get("link") or {})
+    param = link.get("generic_entity_stop_list")
+    if not isinstance(param, dict) or param.get("value") != STOP_LIST_REF:
+        return [f"events.yaml: e1.link.generic_entity_stop_list must point at {STOP_LIST_REF!r}"]
+    path, _, key = STOP_LIST_REF.partition("#")
+    aliases = load_yaml(aliases_path or REPO_ROOT / path)
+    stop = aliases.get(key)
+    if not isinstance(stop, list) or not stop:
+        return [f"{path}: {key} missing or empty"]
+    return []
+
+
+def check_golden_themes(theme_map: dict[str, Any]) -> list[str]:
+    """Compare the theme map with the golden copy of the plan section 6 table (families, instruments, signs)."""
+    errs: list[str] = []
+    themes = theme_map.get("themes") or {}
+
+    def leg_tuple(leg: Any) -> Any:
+        if not leg:
+            return None
+        return (leg.get("family"), leg.get("instrument"), leg.get("expected_sign"))
+
+    for name, gold in GOLDEN_THEMES.items():
+        theme = themes.get(name)
+        if theme is None:
+            continue  # a missing theme is reported by check_theme_map
+        if gold == "display_only":
+            if theme.get("kind") != "display_only":
+                errs.append(f"theme map: {name} must be display_only (plan section 6)")
+            continue
+        if theme.get("kind") != "market_checkable":
+            errs.append(f"theme map: {name} must be market_checkable (plan section 6)")
+            continue
+        for slot in ("primary", "secondary"):
+            if leg_tuple(theme.get(slot)) != gold[slot]:
+                errs.append(f"theme map: {name}.{slot} = {leg_tuple(theme.get(slot))!r}, plan section 6 says {gold[slot]!r}")
+        if gold.get("same_family") is not None and sorted((theme.get("primary") or {}).get("same_family_instruments") or []) != sorted(gold["same_family"]):
+            errs.append(f"theme map: {name}.primary same_family_instruments differ from plan section 6 {gold['same_family']!r}")
+        co = theme.get("co_tag_rule")
+        if "co_tag" in gold:
+            got = (co.get("family"), co.get("instrument"), co.get("expected_sign"), co.get("scored_under")) if co else None
+            if got != gold["co_tag"]:
+                errs.append(f"theme map: {name}.co_tag_rule = {got!r}, plan section 6 says {gold['co_tag']!r}")
+        elif co:
+            errs.append(f"theme map: {name} has a co_tag_rule the plan does not")
+    return errs
+
+
 def check_theme_map(
     theme_map: dict[str, Any],
     theme_ids: list[str],
@@ -159,6 +244,7 @@ def check_theme_map(
             f"theme map: themes differ from news_themes.yaml: missing {sorted(set(theme_ids) - set(themes))}, "
             f"extra {sorted(set(themes) - set(theme_ids))}"
         )
+    errs += check_golden_themes(theme_map)
     kinds = [t.get("kind") for t in themes.values()]
     if any(k not in ("market_checkable", "display_only") for k in kinds):
         errs.append("theme map: every theme kind must be market_checkable or display_only")

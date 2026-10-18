@@ -139,3 +139,71 @@ def test_company_specific_never_claims_bond_data():
 def test_instruments_exist_in_the_live_store():
     db = Path(__file__).resolve().parent.parent / "data" / "macro_engine.duckdb"
     assert v.validate(store_series=v.read_store_series(db)) == []
+
+
+# --- reference-set v1.1 fixes (C1, C4, C5) ---
+
+
+def test_flipping_the_monetary_tightening_primary_sign_fails():
+    _, tm = _pieces()
+    tm["themes"]["monetary_tightening"]["primary"]["expected_sign"] = -1
+    errs = _theme_errs(tm)
+    assert any("monetary_tightening.primary" in e and "plan section 6" in e for e in errs)
+
+
+def test_swapping_growth_slowdown_with_yield_curve_flattening_fails():
+    _, tm = _pieces()
+    t = tm["themes"]
+    t["growth_slowdown"], t["yield_curve_flattening"] = t["yield_curve_flattening"], t["growth_slowdown"]
+    errs = _theme_errs(tm)
+    assert any("growth_slowdown must be display_only" in e for e in errs)
+    assert any("yield_curve_flattening must be market_checkable" in e for e in errs)
+
+
+def test_swapping_two_market_checkable_themes_fails():
+    _, tm = _pieces()
+    t = tm["themes"]
+    t["monetary_easing"], t["monetary_tightening"] = t["monetary_tightening"], t["monetary_easing"]
+    assert any("monetary_easing.primary" in e for e in _theme_errs(tm))
+
+
+def test_changing_a_secondary_family_or_the_cotag_fails():
+    _, tm = _pieces()
+    tm["themes"]["financial_stability_risk"]["secondary"] = None
+    tm["themes"]["geopolitical_risk"]["co_tag_rule"]["expected_sign"] = -1
+    errs = _theme_errs(tm)
+    assert any("financial_stability_risk.secondary" in e for e in errs)
+    assert any("geopolitical_risk.co_tag_rule" in e for e in errs)
+
+
+def test_stop_list_is_referenced_not_copied_and_must_exist():
+    ev, _ = _pieces()
+    assert ev["e1"]["link"]["generic_entity_stop_list"]["value"] == "config/entity_aliases.yaml#generic_entities"
+    assert v.check_stop_list_reference(ev) == []
+    bad = copy.deepcopy(ev)
+    del bad["e1"]["link"]["generic_entity_stop_list"]
+    assert any("generic_entity_stop_list" in e for e in v.check_events(bad))
+    copied = copy.deepcopy(ev)
+    copied["e1"]["link"]["generic_entity_stop_list"]["value"] = ["united states"]
+    assert any("generic_entity_stop_list" in e for e in v.check_events(copied))
+
+
+def test_stop_list_missing_from_the_aliases_file_fails(tmp_path):
+    ev, _ = _pieces()
+    p = tmp_path / "entity_aliases.yaml"
+    p.write_text("other: [a]\n", encoding="utf-8")
+    assert any("generic_entities" in e for e in v.check_stop_list_reference(ev, p))
+
+
+def test_events_version_and_p_ref_erratum_are_pinned():
+    ev, _ = _pieces()
+    assert ev["version"] == 2
+    bad = copy.deepcopy(ev)
+    bad["version"] = 1
+    assert any("version must be 2" in e for e in v.check_events(bad))
+    old = copy.deepcopy(ev)
+    old["e2"]["p_ref_rule"]["value"] = "last_daily_observation_dated_before_onset_date_us_calendar"
+    assert any("e2.p_ref_rule" in e for e in v.check_events(old))
+    tz = copy.deepcopy(ev)
+    tz["e2"]["p_ref_close_time_local"]["value"] = "15:00"
+    assert any("p_ref_close_time_local" in e for e in v.check_events(tz))
