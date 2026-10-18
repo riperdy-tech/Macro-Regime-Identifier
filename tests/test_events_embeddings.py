@@ -265,3 +265,50 @@ def test_store_reads_through_a_read_only_connection(tmp_path):
         assert set(EmbeddingStore(ro, create=False).load_vectors(None, "m", "sha")) == {"a"}
     finally:
         ro.close()
+
+
+def test_vector_manifest_is_stable_order_independent_and_sensitive_to_every_byte():
+    from macro_engine.events.embeddings import vector_manifest
+
+    def build(order, tok="tok1", rt="1.31.0", flip=False):
+        con = duckdb.connect(":memory:")
+        st = EmbeddingStore(con)
+        vecs = {"a": unit(1, 2, 3), "b": unit(3, 2, 1), "c": unit(1, 1, 1)}
+        if flip:
+            vecs["b"] = unit(3, 2, 1.0001)
+        for k in order:
+            st.put([k], np.stack([vecs[k]]), "m", "sha", tokenizer_sha256=tok, runtime_version=rt)
+        return con
+
+    base = vector_manifest(build("abc"), "m", "sha")
+    assert base["rows"] == 3 and base["missing"] == []
+    assert base["tokenizer_sha256"] == ["tok1"] and base["onnxruntime_version"] == ["1.31.0"]
+    assert vector_manifest(build("cba"), "m", "sha")["manifest_sha256"] == base["manifest_sha256"]
+    for changed in (build("abc", flip=True), build("abc", tok="tok2"), build("abc", rt="1.32.0")):
+        assert vector_manifest(changed, "m", "sha")["manifest_sha256"] != base["manifest_sha256"]
+    sub = vector_manifest(build("abc"), "m", "sha", ["a", "c", "zzz"])
+    assert sub["rows"] == 2 and sub["missing"] == ["zzz"] and sub["manifest_sha256"] != base["manifest_sha256"]
+
+
+def test_old_table_without_provenance_columns_is_migrated_and_still_manifests():
+    from macro_engine.events.embeddings import vector_manifest
+
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE event_embeddings (news_id VARCHAR, model_name VARCHAR, model_sha256 VARCHAR, "
+                "preprocess_version VARCHAR, dim INTEGER, vector BLOB, embedded_at TIMESTAMP, "
+                "PRIMARY KEY (news_id, model_name, model_sha256, preprocess_version))")
+    con.execute("INSERT INTO event_embeddings VALUES ('a','m','sha',?,2,?,?)",
+                [PREPROCESS_VERSION, np.asarray(unit(1, 2), dtype="<f4").tobytes(), datetime(2026, 10, 1)])
+    assert vector_manifest(con, "m", "sha")["rows"] == 1              # read-only path: columns absent, NULL stands in
+    EmbeddingStore(con)                                               # migration adds the columns
+    EmbeddingStore(con).put(["b"], np.stack([unit(2, 1)]), "m", "sha", tokenizer_sha256="t", runtime_version="9")
+    out = vector_manifest(con, "m", "sha")
+    assert out["rows"] == 2 and out["tokenizer_sha256"] == ["t"]
+
+
+def test_embed_items_records_tokenizer_and_runtime_provenance():
+    con = duckdb.connect(":memory:")
+    fake = _FakeModel()
+    fake.provenance = {"tokenizer_sha256": "tk", "runtime_version": "1.2.3"}  # type: ignore[attr-defined]
+    embed_items(EmbeddingStore(con), fake, [mk("n1", "Oil up", 0)], config=CFG)  # type: ignore[arg-type]
+    assert con.execute("select tokenizer_sha256, runtime_version from event_embeddings").fetchone() == ("tk", "1.2.3")

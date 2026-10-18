@@ -61,3 +61,12 @@ memory arena or pattern reuse, `use_deterministic_compute` on. The build path re
   32, a shuffled order at batch size 7, and batch size 1 all gave **max abs difference 0.0** (bitwise equal here); a fresh
   process recomputing the 300 reference vectors also matched the stored ones at 0.0. This is a measurement on one machine
   and one runtime version, not a guarantee across hardware or onnxruntime versions: the stored vectors are the contract.
+
+## Notes added 2026-10-18 (P5a)
+
+* `pip check` reports `huggingface-hub` as missing for `tokenizers`: expected, because `tokenizers` was installed with
+  `--no-deps` (above). `Tokenizer.from_file` does not use it. Not a defect.
+* The tokenizer sha256 (`d241a60d...5c66`) and the onnxruntime version (`1.31.0` at install) are now stored beside each new
+  vector (`event_embeddings.tokenizer_sha256`, `.runtime_version`; NULL for vectors written before P5a) and enter the
+  vector manifest (`scripts/events_embed.py --manifest`).
+

@@ -3,6 +3,8 @@
     python scripts/events_embed.py --from 2026-10-08 --through 2026-10-18      embed items first seen in [from, through]
     python scripts/events_embed.py --reference                                 also embed the 300 reference items
     python scripts/events_embed.py --determinism                               measure run-to-run / batch-order drift
+    python scripts/events_embed.py --manifest --from D --through D [--out F]   sha256 manifest of the stored vectors for
+                                                                               the freeze record (reads only; no model)
 
 The build path reads the stored vectors (table event_embeddings) and never calls the model. The model is the pinned
 one of config/events_v23.yaml (`dense:`); the run refuses on a sha256 mismatch. Needs the optional extra `embeddings`.
@@ -34,6 +36,7 @@ from macro_engine.events.embeddings import (  # noqa: E402
     embed_items,
     item_text,
     load_model_pin,
+    vector_manifest,
 )
 from macro_engine.events.store_io import load_all_items  # noqa: E402
 
@@ -71,6 +74,35 @@ def determinism(model: EmbeddingModel, texts: list[str], seed: int = 20261018) -
             "bitwise_identical_same_run": all(np.array_equal(a[i], b[i]) for i in base)}
 
 
+def window_bounds(start: str | None, through: str | None) -> tuple[datetime, datetime]:
+    lo = datetime.combine(date.fromisoformat(start), datetime.min.time()) if start else datetime.min
+    hi = (datetime.combine(date.fromisoformat(through), datetime.min.time()) + timedelta(days=1)
+          if through else datetime.max)
+    return lo, hi
+
+
+def manifest_main(args: argparse.Namespace) -> int:
+    """Holdout vectors are embedded AFTER the window closes; this manifest goes into the freeze record BEFORE replay."""
+    import duckdb
+
+    pin = load_model_pin(args.config)
+    con = duckdb.connect(str(args.db), read_only=True)
+    try:
+        ids = None
+        if args.start or args.through:
+            lo, hi = window_bounds(args.start, args.through)
+            ids = [i.news_id for i in load_all_items(con) if i.first_seen_at is not None and lo <= i.first_seen_at < hi]
+        doc = vector_manifest(con, pin.name, pin.model_sha256, ids)
+    finally:
+        con.close()
+    doc["window"] = {"from": args.start, "through": args.through}
+    text = json.dumps(doc, indent=2)
+    print(text)
+    if args.out:
+        args.out.write_text(text + "\n", encoding="utf-8")
+    return 0 if not doc["missing"] else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--db", type=Path, default=DEFAULT_DB)
@@ -79,12 +111,17 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--reference", action="store_true", help="also embed the 300 reference items")
     ap.add_argument("--backup", action="store_true", help="copy the store to data/backups/ before writing")
     ap.add_argument("--determinism", action="store_true", help="measure drift on the reference titles; writes nothing")
+    ap.add_argument("--manifest", action="store_true",
+                    help="print a sha256 manifest of the stored vectors (the window, or all if none given); writes nothing")
+    ap.add_argument("--out", type=Path, default=None, help="with --manifest: also write the JSON here")
     ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--config", type=Path, default=None)
     args = ap.parse_args(argv)
 
     import duckdb
 
+    if args.manifest:
+        return manifest_main(args)
     model = EmbeddingModel.load(load_model_pin(args.config))
     cfg = load_e1_config()
     con = duckdb.connect(str(args.db), read_only=args.determinism)
@@ -97,9 +134,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         wanted: dict[str, object] = {}
         if args.start or args.through:
-            lo = datetime.combine(date.fromisoformat(args.start), datetime.min.time()) if args.start else datetime.min
-            hi = (datetime.combine(date.fromisoformat(args.through), datetime.min.time()) + timedelta(days=1)
-                  if args.through else datetime.max)
+            lo, hi = window_bounds(args.start, args.through)
             for i in items:
                 if i.first_seen_at is not None and lo <= i.first_seen_at < hi:
                     wanted[i.news_id] = i

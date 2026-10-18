@@ -31,6 +31,7 @@ PREPROCESS_VERSION = "canon-title-cls-l2-v1"
 MAX_LENGTH = 64            # tokens, including [CLS] and [SEP]; a headline is far shorter, so this truncates almost nothing
 DEFAULT_MODEL_DIR = peer_paths.REPO_ROOT / "data" / "models"
 TABLE = "event_embeddings"
+PROVENANCE_COLUMNS = ("tokenizer_sha256", "runtime_version")
 
 
 class EmbeddingError(RuntimeError):
@@ -72,6 +73,12 @@ class EmbeddingModel:
         self._session = session
         self._tok = tokenizer
         self._inputs = list(input_names)
+        self.runtime_version = ""
+
+    @property
+    def provenance(self) -> dict[str, str]:
+        """Recorded with every stored vector next to the model sha256 (P5a: the freeze manifest needs them)."""
+        return {"tokenizer_sha256": self.pin.tokenizer_sha256, "runtime_version": self.runtime_version}
 
     @classmethod
     def load(cls, pin: ModelPin, model_dir: str | Path | None = None) -> EmbeddingModel:
@@ -98,6 +105,7 @@ class EmbeddingModel:
         if hasattr(opts, "use_deterministic_compute"):
             opts.use_deterministic_compute = True
         session = ort.InferenceSession(str(model_path), opts, providers=["CPUExecutionProvider"])
+        runtime_version = str(getattr(ort, "__version__", ""))
         tok = Tokenizer.from_file(str(tok_path))
         tok.enable_truncation(max_length=MAX_LENGTH)
         pad_id = tok.token_to_id("[PAD]")
@@ -108,7 +116,9 @@ class EmbeddingModel:
         unknown = [n for n in names if n not in ("input_ids", "attention_mask", "token_type_ids")]
         if unknown:
             raise EmbeddingError(f"unexpected model inputs {unknown}")
-        return cls(pin, session, tok, names)
+        model = cls(pin, session, tok, names)
+        model.runtime_version = runtime_version
+        return model
 
     @property
     def name(self) -> str:
@@ -143,7 +153,8 @@ def _now() -> datetime:
 
 class EmbeddingStore:
     """Additive table `event_embeddings(news_id, model_name, model_sha256, preprocess_version, dim, vector, embedded_at)`.
-    One row per (news_id, model, sha256, preprocess version); the vector is dim little-endian float32 values."""
+    One row per (news_id, model, sha256, preprocess version); the vector is dim little-endian float32 values.
+    Columns `tokenizer_sha256` and `runtime_version` (onnxruntime) were added in P5a; older rows hold NULL there."""
 
     def __init__(self, con: Any, *, create: bool = True) -> None:
         """`create=False` for a read-only connection (the table must already exist)."""
@@ -153,6 +164,8 @@ class EmbeddingStore:
                 f"CREATE TABLE IF NOT EXISTS {TABLE} (news_id VARCHAR, model_name VARCHAR, model_sha256 VARCHAR, "
                 "preprocess_version VARCHAR, dim INTEGER, vector BLOB, embedded_at TIMESTAMP, "
                 "PRIMARY KEY (news_id, model_name, model_sha256, preprocess_version))")
+            for col in PROVENANCE_COLUMNS:
+                con.execute(f"ALTER TABLE {TABLE} ADD COLUMN IF NOT EXISTS {col} VARCHAR")
 
     def existing_ids(self, model_name: str, model_sha256: str, preprocess_version: str = PREPROCESS_VERSION) -> set[str]:
         rows = self.con.execute(
@@ -161,15 +174,18 @@ class EmbeddingStore:
         return {r[0] for r in rows}
 
     def put(self, news_ids: Sequence[str], vectors: np.ndarray, model_name: str, model_sha256: str,
-            preprocess_version: str = PREPROCESS_VERSION, embedded_at: datetime | None = None) -> int:
+            preprocess_version: str = PREPROCESS_VERSION, embedded_at: datetime | None = None,
+            tokenizer_sha256: str | None = None, runtime_version: str | None = None) -> int:
         """Insert vectors that are not stored yet (never overwrites). Returns the number inserted."""
         when = embedded_at or _now()
         added = 0
         for nid, vec in zip(news_ids, vectors, strict=True):
             row = np.asarray(vec, dtype="<f4")
             cur = self.con.execute(
-                f"INSERT OR IGNORE INTO {TABLE} VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING news_id",
-                [nid, model_name, model_sha256, preprocess_version, int(row.shape[0]), row.tobytes(), when])
+                f"INSERT OR IGNORE INTO {TABLE} (news_id, model_name, model_sha256, preprocess_version, dim, vector, "
+                "embedded_at, tokenizer_sha256, runtime_version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING news_id",
+                [nid, model_name, model_sha256, preprocess_version, int(row.shape[0]), row.tobytes(), when,
+                 tokenizer_sha256, runtime_version])
             added += len(cur.fetchall())
         return added
 
@@ -190,6 +206,41 @@ class EmbeddingStore:
         return {k: v for k, v in out.items() if k in wanted}
 
 
+def vector_manifest(con: Any, model_name: str, model_sha256: str, news_ids: Iterable[str] | None = None,
+                    preprocess_version: str = PREPROCESS_VERSION) -> dict[str, Any]:
+    """sha256 manifest of the stored `event_embeddings` rows, for the freeze record (prereg section 8).
+
+    The digest runs over the rows sorted by news_id: key columns, dim, the raw vector bytes, and the tokenizer sha256 and
+    onnxruntime version when stored. `embedded_at` is left out (a wall clock, not part of the vector). `news_ids=None`
+    covers every stored row of the model; otherwise only those ids (ids with no stored vector are listed as missing)."""
+    have = {r[0] for r in con.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = ?", [TABLE]).fetchall()}
+    sel = ", ".join(["news_id", "dim", "vector"] + [c if c in have else f"NULL AS {c}" for c in PROVENANCE_COLUMNS])
+    rows = con.execute(
+        f"SELECT {sel} FROM {TABLE} WHERE model_name = ? AND model_sha256 = ? AND preprocess_version = ? ORDER BY news_id",
+        [model_name, model_sha256, preprocess_version]).fetchall()
+    wanted = None if news_ids is None else set(news_ids)
+    h = hashlib.sha256()
+    tokenizers: set[str] = set()
+    runtimes: set[str] = set()
+    seen: set[str] = set()
+    for nid, dim, blob, tok, rt in rows:
+        if wanted is not None and nid not in wanted:
+            continue
+        seen.add(nid)
+        if tok is not None:
+            tokenizers.add(tok)
+        if rt is not None:
+            runtimes.add(rt)
+        h.update("\x1f".join([nid, model_name, model_sha256, preprocess_version, str(dim), bytes(blob).hex(),
+                              tok or "", rt or ""]).encode("utf-8"))
+        h.update(b"\n")
+    return {"model_name": model_name, "model_sha256": model_sha256, "preprocess_version": preprocess_version,
+            "rows": len(seen), "missing": sorted(wanted - seen) if wanted is not None else [],
+            "tokenizer_sha256": sorted(tokenizers), "onnxruntime_version": sorted(runtimes),
+            "manifest_sha256": h.hexdigest()}
+
+
 def embed_items(store: EmbeddingStore, model: EmbeddingModel, items: Sequence[NewsItem], *, batch_size: int = 32,
                 config: E1Config | None = None) -> dict[str, int]:
     """Embed the items that have no stored vector yet (idempotent) and persist them. Returns counts."""
@@ -200,7 +251,9 @@ def embed_items(store: EmbeddingStore, model: EmbeddingModel, items: Sequence[Ne
     for k in range(0, len(todo), batch_size):
         batch = todo[k:k + batch_size]
         vecs = model.embed([item_text(i, cfg) for i in batch])
-        stored += store.put([i.news_id for i in batch], vecs, model.name, model.sha256)
+        prov = getattr(model, "provenance", {})
+        stored += store.put([i.news_id for i in batch], vecs, model.name, model.sha256,
+                            tokenizer_sha256=prov.get("tokenizer_sha256"), runtime_version=prov.get("runtime_version"))
     return {"requested": len(items), "already_stored": len(items) - len(todo), "embedded": len(todo), "stored": stored}
 
 
