@@ -1,0 +1,105 @@
+# MRI events E2: theme -> market check map. Source: docs/MRI_EVENTS_PLAN.md v2 section 6 table.
+# Frozen in plan step 2, before any E2 code. Every theme in config/news_themes.yaml `macro_themes` appears exactly
+# once, either market-checkable (primary family, optional secondary family) or `display_only`.
+#
+# Families are independent market dimensions; instruments in the same family count once. Each instrument id
+# belongs to exactly one family (validated). expected_sign is the sign of the transformed move that counts as
+# `aligned` (+1 up, -1 down); the opposite sign is `opposed`.
+
+version: 1
+plan_ref: "§6"
+
+# Instruments as stored. `store` is the table; `id` is the series_id there. status: present = a series by this id
+# exists in the local store at freeze (2026-10-18); pending = it will exist only once its pull has run.
+# unit_in_store + transform give the plan's transform: yields/spreads/breakevens/curve in basis points (FRED
+# publishes these in percent, so bp = change * 100); prices/ETFs/WTI log return in %; VIX log change in %.
+instruments:
+  DGS2:         {store: raw_observations,    id: DGS2,          family: rates,         transform: change_bp,        unit_in_store: percent, bp_factor: 100, status: present}
+  T10YIE:       {store: raw_observations,    id: T10YIE,        family: breakeven,     transform: change_bp,        unit_in_store: percent, bp_factor: 100, status: present}
+  T10Y2Y:       {store: raw_observations,    id: T10Y2Y,        family: curve,         transform: change_bp,        unit_in_store: percent, bp_factor: 100, status: present}
+  BAMLH0A0HYM2: {store: raw_observations,    id: BAMLH0A0HYM2,  family: credit,        transform: change_bp,        unit_in_store: percent, bp_factor: 100, status: present}
+  BAA10Y:       {store: raw_observations,    id: BAA10Y,        family: credit,        transform: change_bp,        unit_in_store: percent, bp_factor: 100, status: present, role: same_family_as_BAMLH0A0HYM2}
+  VIXCLS:       {store: raw_observations,    id: VIXCLS,        family: vol,           transform: log_change_pct,   status: present}
+  WTI:          {store: raw_observations,    id: DCOILWTICO,    family: oil,           transform: log_return_pct,   status: present, tail: {store: market_observations, id: CL=F, note: "Yahoo daily tail, provisional until FRED publishes (ingest/yahoo_oil.py, shocks/register.py)"}}
+  SPY:          {store: market_observations, id: SPY,           family: equity,        transform: log_return_pct,   status: present, adjclose_id: "SPY#adjclose", adjclose_status: pending}
+  XLE:          {store: market_observations, id: XLE,           family: energy_equity, transform: log_return_pct,   status: present, adjclose_id: "XLE#adjclose", adjclose_status: pending}
+  KBE:          {store: market_observations, id: KBE,           family: banks,         transform: log_return_pct,   status: present, adjclose_id: "KBE#adjclose", adjclose_status: pending}
+
+# Which stored price series (close or #adjclose) the log returns use is NOT decided here: see
+# config/events.yaml unratified.price_series_for_returns.
+
+themes:
+  monetary_tightening:
+    kind: market_checkable
+    primary:   {family: rates,    instrument: DGS2,         expected_sign: 1}
+    secondary: {family: equity,   instrument: SPY,          expected_sign: -1}
+  monetary_easing:
+    kind: market_checkable
+    primary:   {family: rates,    instrument: DGS2,         expected_sign: -1}
+    secondary: {family: equity,   instrument: SPY,          expected_sign: 1}
+  inflation_pressure:
+    kind: market_checkable
+    primary:   {family: breakeven, instrument: T10YIE,      expected_sign: 1}
+    secondary: {family: rates,    instrument: DGS2,         expected_sign: 1}
+  disinflation:
+    kind: market_checkable
+    primary:   {family: breakeven, instrument: T10YIE,      expected_sign: -1}
+    secondary: {family: rates,    instrument: DGS2,         expected_sign: -1}
+  yield_curve_steepening:
+    kind: market_checkable
+    primary:   {family: curve,    instrument: T10Y2Y,       expected_sign: 1}
+    secondary: null
+  yield_curve_flattening:
+    kind: market_checkable
+    primary:   {family: curve,    instrument: T10Y2Y,       expected_sign: -1}
+    secondary: null
+  credit_stress:
+    scope: market_wide                      # a company-specific credit event uses company_specific below, never this check
+    kind: market_checkable
+    primary:   {family: credit,   instrument: BAMLH0A0HYM2, expected_sign: 1, same_family_instruments: [BAA10Y]}
+    secondary: {family: vol,      instrument: VIXCLS,       expected_sign: 1}
+  credit_easing:
+    kind: market_checkable
+    primary:   {family: credit,   instrument: BAMLH0A0HYM2, expected_sign: -1}
+    secondary: null
+  energy_supply_shock:
+    kind: market_checkable
+    primary:   {family: oil,      instrument: WTI,          expected_sign: 1}
+    secondary: {family: energy_equity, instrument: XLE,     expected_sign: 1}
+  geopolitical_risk:
+    kind: market_checkable
+    primary:   {family: vol,      instrument: VIXCLS,       expected_sign: 1}
+    secondary: null
+    co_tag_rule:
+      # WTI up is checked only when the event is also tagged energy_supply_shock, and is scored under that theme,
+      # never twice. A VIX spike alone can never mark an energy event aligned (oil is its primary family).
+      when_cotagged: energy_supply_shock
+      family: oil
+      instrument: WTI
+      expected_sign: 1
+      scored_under: energy_supply_shock
+  financial_stability_risk:
+    kind: market_checkable
+    primary:   {family: vol,      instrument: VIXCLS,       expected_sign: 1}
+    secondary: {family: banks,    instrument: KBE,          expected_sign: -1}
+  growth_acceleration:   {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  growth_slowdown:       {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  labor_strength:        {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  labor_weakness:        {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  fiscal_expansion:      {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  fiscal_drag:           {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+  commodity_pressure:    {kind: display_only, reason: "no reaction specific enough to test in v2; revisited only with Stage 2 evidence"}
+
+# Events with a resolved named entity (from events/entities.py `tickers`), such as CoreWeave.
+company_specific:
+  plan_ref: "§6"
+  check: abnormal_return_vs_sector_etf      # named stock's 2-session return minus its sector ETF's
+  window_sessions: 2
+  instruments:
+    stock: "{TICKER}"                       # market_observations id; supplied by the caller (E0.4 named tickers)
+    benchmark: "{SECTOR_ETF}"               # one of the 11 sector ETFs in config/sectors.yaml (E0.4)
+  transform: log_return_pct
+  expected_sign: from_theme                 # set by the theme (e.g. credit_stress => negative abnormal return)
+  recorded_as: equity_reaction_only
+  bond_data: unavailable                    # stated on the record; the company's bonds / CDS are never claimed to have moved
+  market_wide_credit_move: reported_separately   # never stands in as evidence about the company
