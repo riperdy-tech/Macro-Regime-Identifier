@@ -118,3 +118,18 @@ All paths relative to the repo root on branch `feat/mri-events`.
 | Reference set, labels, scorer | `tests/fixtures/events_reference/` |
 
 Limits of this note: results are from one reference set of 300 items from one nine-day window, in one market regime. The classifier's coverage was about 55% of items when the window was live. The auditor's counterfactuals were run on the same data after seeing the failures, so they indicate mechanism, not expected performance. MRI is a diagnostic platform; nothing here is investment advice.
+
+## Corrections (2026-10-18, added after the outside reviews and the Opus audit)
+
+The text above is left as sent to the outside reviewers. Two statements in it are wrong:
+
+1. **Section 3, the NONE count.** It says "147 unlabelled (`NONE`)". The count is **151** (LABELLING.md, `labels.yaml`):
+   107 labelled-event items + 151 `NONE` + 42 `noise` = 300.
+2. **Section 5, point 4.** It says five Houthi fragments are "Reuters-only", and elsewhere the 35 labelled-core items in
+   `rejected_uncorroborated` events are described as Reuters-only fragments. They are not. Each of the 35 sits in a
+   **single-publisher** fragment, and the publishers are mixed: 10 Reuters, 12 CNBC, 6 MarketWatch, 3 BBC, 2 SCMP,
+   2 Oilprice (35 in all). They sit in 29 fragments, and **23 of those 29 hold only that one reference item**, so the
+   rejection is a symptom of fragmentation (an event that never gathered a second publisher), not of a Reuters
+   publisher-parsing problem. The conclusion of point 4 stands; its description of the cause does not.
+
+Neither correction changes a result table or a gate in sections 4 to 9.
