@@ -1850,6 +1850,37 @@ def import_news_history_cli(
         raise typer.Exit(code=1)
 
 
+@app.command("report-news-classification-coverage")
+def report_news_classification_coverage_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    window_days: Annotated[int, typer.Option("--window-days")] = 14,
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    cap: Annotated[int | None, typer.Option("--cap", help="Items/day cap to project token cost at.")] = None,
+    since: Annotated[
+        str | None, typer.Option("--since", help="Count only days on/after this date (cap change day).")
+    ] = None,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.2a: rolling classified share (target >= 85%) and measured token usage per day.
+    Read-only. Does not claim the criterion is met until the window holds `window-days` days."""
+    from macro_engine.news.coverage_report import daily_token_usage, rolling_classified_share
+
+    store = DuckDBStore(db_path)
+    store.initialize()
+    items = store.read_table("news_items")
+    classifications = store.read_table("news_classifications")
+    day = pd.Timestamp(as_of).date() if as_of else pd.Timestamp.now(tz="UTC").date()
+    report = {
+        "coverage": rolling_classified_share(items, classifications, as_of=day, window_days=window_days,
+                                         since=pd.Timestamp(since).date() if since else None),
+        "tokens": daily_token_usage(classifications, cap_items_per_day=cap),
+    }
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:

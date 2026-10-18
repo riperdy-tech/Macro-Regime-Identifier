@@ -27,7 +27,11 @@ daily_pipeline:
     history_dir: outputs/news_history
 
   live_ai_safety:
-    max_items_per_run: 60
+    # E0.2a (MRI_EVENTS_PLAN v2, D2): 60 -> 150 so the 14-day rolling classified share can reach 85%
+    # (measured 54% at 60). Run `report-news-classification-coverage --since <this date>` for the
+    # rolling share and the token usage. The run deadline (safety.overall_run_timeout_minutes) still
+    # bounds how many items are classified; check the count actually classified per run.
+    max_items_per_run: 150
     classify_only_unclassified: true
     continue_on_individual_failure: true
     stop_on_failure_rate_above: 0.20
