@@ -65,3 +65,14 @@ Defects found and fixed while running it for the first time:
    items (i). A failure part-way (the first run hit a DuckDB file lock held by an unrelated pytest process)
    stranded 513 classifications with no items. Items now go first; the re-run completed cleanly.
 3. The script ran bare `python`; it now uses the repository venv.
+
+## Not done / report-only (Phase 1 fixes, round 2)
+
+- **7c, shock narrative on-disk refresh is not wired.** Hydration fills the store, and `attach_narrative` gives
+  non-empty narratives in memory, but nothing in the hydration or events job rewrites `shock_register.json` on
+  disk. That file is a protected artifact (plan 9.1); refreshing it belongs to the daily shock run, so wiring it
+  from here would make the events job write a firewall file. Left for the shock run or a coordinator ruling.
+- **7d, no U+FFFD in the store.** Checked 2026-10-18: 0 `news_items` rows with U+FFFD in title or body. The three
+  `decode(..., errors="replace")` sites (`news/fulltext.py:50`, `news/gdelt_backfill.py:195`,
+  `news/ingest.py:613`) can in principle introduce it from a badly encoded response; they are unchanged because
+  nothing has been observed and replacing them would change ingest behaviour outside this phase.
