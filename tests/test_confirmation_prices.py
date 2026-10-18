@@ -282,21 +282,31 @@ def test_repull_drops_stale_adjclose_outside_the_window_so_one_series_has_one_sc
     assert date(2026, 10, 8) in _stored(db, "AAA")  # closes are not rescaled by a dividend: kept
 
 
-def test_failed_second_fetch_keeps_the_first_fetch_data(tmp_path):
+def test_failed_repull_writes_nothing_and_the_next_run_detects_the_split_again(tmp_path):
     db, calls = tmp_path / "s.duckdb", []
     sec = _no_sectors(tmp_path)
-    first = _payload("AAA", DAYS[:3], [100, 101, 102], adj=[100, 101, 102], first_trade="2020-01-02")
-    _refresh_one(db, {"3mo": first, "3y": first}, calls, min_rows=2, sectors=sec)
+    old = _payload("AAA", ["2026-10-08", "2026-10-09", *DAYS[:3]], [100, 101, 100, 101, 102],
+                   adj=[100, 101, 100, 101, 102], first_trade="2020-01-02")
+    _refresh_one(db, {"3mo": old, "3y": old}, calls, min_rows=2, sectors=sec)
+    before_close, before_adj = _stored(db, "AAA"), _stored(db, "AAA#adjclose")
     split = _payload("AAA", DAYS, [50, 50.5, 51, 51.5], adj=[50, 50.5, 51, 51.5], first_trade="2020-01-02")
 
-    def fetch(symbol, *, range_="3mo", timeout=20.0):
+    def bad(symbol, *, range_="3mo", timeout=20.0):
         if range_ == "3y":
             raise TimeoutError("backfill timed out")
         return split
 
-    rep = cp.refresh_confirmation_prices(db, cfg=_cfg(base_instruments=("AAA",), min_history_rows=2), fetcher=fetch,
-                                         now=NOW, sleep=lambda s: None, sectors_path=sec)
-    out = rep["instruments"]["AAA"]["fetch"]
+    def good(symbol, *, range_="3mo", timeout=20.0):
+        return split
+
+    cfg = _cfg(base_instruments=("AAA",), min_history_rows=2)
+    r1 = cp.refresh_confirmation_prices(db, cfg=cfg, fetcher=bad, now=NOW, sleep=lambda s: None, sectors_path=sec)
+    out = r1["instruments"]["AAA"]["fetch"]
+    assert r1["ok"] is False and r1["repull_errors"] == ["AAA"]
     assert out["error"] is None and out["repull_reason"] == "close_changed_on_overlap"
-    assert out["repull_error"].startswith("TimeoutError") and out["range"] == "3mo"
-    assert _stored(db, "AAA")[date(2026, 10, 16)] == 51.5  # the good first fetch landed
+    assert out["repull_error"].startswith("TimeoutError") and out["rows_fetched"] == 0
+    assert _stored(db, "AAA") == before_close and _stored(db, "AAA#adjclose") == before_adj  # one scale, untouched
+
+    r2 = cp.refresh_confirmation_prices(db, cfg=cfg, fetcher=good, now=NOW, sleep=lambda s: None, sectors_path=sec)
+    assert r2["instruments"]["AAA"]["fetch"]["repull_reason"] == "close_changed_on_overlap"  # detected again
+    assert r2["repull_errors"] == [] and _stored(db, "AAA")[date(2026, 10, 16)] == 51.5

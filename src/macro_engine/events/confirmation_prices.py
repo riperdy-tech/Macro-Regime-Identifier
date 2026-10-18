@@ -287,8 +287,16 @@ def refresh_confirmation_prices(
                     close2 = parse_closed_bars(payload2, sym, now=now)
                     adj2 = parse_adjclose_bars(payload2, sym, now=now)
                     range_, close, adj, repulled = cfg.backfill_range, close2, adj2, True
-                except Exception as exc:  # noqa: BLE001 - the first fetch is still good data: keep it
+                except Exception as exc:  # noqa: BLE001 - recorded; see the restatement guard below
                     repull_error = f"{type(exc).__name__}: {exc}"
+            restated = reason is not None and reason != "short_history"
+            if repull_error is not None and restated:
+                # Yahoo restated the history (split/dividend) but the backfill failed: the first fetch is on the
+                # new scale and the store is on the old one. Writing it would hide the change from the next run
+                # and leave two scales in one series, so write nothing; the next run detects it again.
+                outcomes[sym] = {"range": range_, "rows_fetched": 0, "error": None, "repull_reason": reason,
+                                 "repull_error": repull_error, "history_complete_since_listing": complete}
+                continue
             written = store.upsert_market_observations(close)
             store.upsert_market_observations(adj)
             if repulled:
@@ -304,5 +312,5 @@ def refresh_confirmation_prices(
         report["instruments"][sym].update(fetch=out)
     report["fetch_errors"] = sorted(s for s, o in outcomes.items() if o["error"])
     report["repull_errors"] = sorted(s for s, o in outcomes.items() if o.get("repull_error"))
-    report["ok"] = report["ok"] and not report["fetch_errors"]
+    report["ok"] = report["ok"] and not report["fetch_errors"] and not report["repull_errors"]
     return report
