@@ -1909,6 +1909,35 @@ def report_gdelt_success_cli(
     console.print_json(data=report)
 
 
+@app.command("refresh-confirmation-prices")
+def refresh_confirmation_prices_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    tickers: Annotated[
+        str, typer.Option("--tickers", help="Comma-separated named tickers to add to the base instruments.")
+    ] = "",
+    check_only: Annotated[
+        bool, typer.Option("--check-only", help="Report freshness of stored closes; fetch nothing.")
+    ] = False,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.4: pull daily Yahoo closes (SPY, XLE, KBE, the 11 sector ETFs, named tickers) into
+    market_observations and report per-instrument freshness. Exits 1 if any instrument is not fresh."""
+    from macro_engine.events import confirmation_prices as cp
+
+    cfg = cp.load_config()
+    named = [t for t in tickers.split(",") if t.strip()]
+    if check_only:
+        report = cp.freshness_report(db_path, cp.instrument_list(cfg, named), cfg)
+    else:
+        report = cp.refresh_confirmation_prices(db_path, named, cfg=cfg)
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+    if not report["ok"]:
+        raise typer.Exit(code=1)
+
+
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:
     dates = []
     if not themes.empty:
