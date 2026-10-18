@@ -22,32 +22,41 @@ from macro_engine.events.entities import (
 STOCKS = [
     ("CoreWeave, Inc.", "CRWV"),
     ("Dell Technologies Inc.", "DELL"),
-    ("Alphabet Inc.", "GOOGL", 1652044),
-    ("Alphabet Inc.", "GOOG", 1652044),
+    ("Alphabet Inc.", "GOOGL"),
+    ("Alphabet Inc.", "GOOG"),
     ("Meta Platforms, Inc.", "META"),
     ("The Coca-Cola Company", "KO"),
     ("Amazon.com, Inc.", "AMZN"),
     ("Foo Holdings Class A", "FOOA"),  # no cik anywhere: issuer-name fallback groups the classes
     ("Foo Holdings Class B", "FOOB"),
-    ("JPMorgan Chase & Co.", "JPM", 19617),
-    ("Morgan Stanley", "MS", 895421),
-    ("Bar Inc.", "BAR1", 10),  # two distinct companies, same normalised name
-    ("Bar Corp", "BAR2", 20),
+    ("JPMorgan Chase & Co.", "JPM"),
+    ("Morgan Stanley", "MS"),
+    ("Bar Inc.", "BAR1"),  # two distinct companies, same normalised name
+    ("Bar Corp", "BAR2"),
 ]
 SEC = [
-    ("CoreWeave, Inc.", "CRWV"),  # same ticker from the second source: still ONE candidate
-    ("AMAZON COM INC", "AMZN"),
-    ("Dell Technologies Inc.", "DELL"),
-    ("Acme Corp", "ACME1"),
-    ("Acme Corporation", "ACME2"),  # normalises to the same name as "Acme Corp": two tickers
-    ("MORGAN STANLEY", "MS-PK", 895421),  # preferred line of the same issuer
-    ("MORGAN STANLEY", "MS", 895421),
-    ("WELLS FARGO & COMPANY/MN", "WFC", 72971),
-    ("BERKSHIRE HATHAWAY INC", "BRK-B", 1067983),
-    ("BERKSHIRE HATHAWAY INC", "BRK-A", 1067983),
-    ("Quux Corp", "QUUX", 30),
-    ("Quux Corp", "QUUX-WT", 30),
-    ("Quux Corp", "QUUX-U", 30),
+    ("CoreWeave, Inc.", "CRWV", 1769628, "Nasdaq"),  # same ticker from the second source: still ONE candidate
+    ("AMAZON COM INC", "AMZN", 1018724, "Nasdaq"),
+    ("Dell Technologies Inc.", "DELL", 1571996, "NYSE"),
+    ("Alphabet Inc.", "GOOGL", 1652044, "Nasdaq"),
+    ("Alphabet Inc.", "GOOG", 1652044, "Nasdaq"),
+    ("Meta Platforms, Inc.", "META", 1326801, "Nasdaq"),
+    ("COCA COLA CO", "KO", 21344, "NYSE"),
+    ("Foo Holdings Class A", "FOOA", None, "NYSE"),
+    ("Foo Holdings Class B", "FOOB", None, "NYSE"),
+    ("JPMORGAN CHASE & CO", "JPM", 19617, "NYSE"),
+    ("Bar Inc.", "BAR1", 10, "NYSE"),
+    ("Bar Corp", "BAR2", 20, "NYSE"),
+    ("Acme Corp", "ACME1", 41, "NYSE"),
+    ("Acme Corporation", "ACME2", 42, "NYSE"),  # normalises to the same name as "Acme Corp": two companies
+    ("MORGAN STANLEY", "MS-PK", 895421, "NYSE"),  # preferred line of the same issuer
+    ("MORGAN STANLEY", "MS", 895421, "NYSE"),
+    ("WELLS FARGO & COMPANY/MN", "WFC", 72971, "NYSE"),
+    ("BERKSHIRE HATHAWAY INC", "BRK-B", 1067983, "NYSE"),
+    ("BERKSHIRE HATHAWAY INC", "BRK-A", 1067983, "NYSE"),
+    ("Quux Corp", "QUUX", 30, "NYSE"),
+    ("Quux Corp", "QUUX-WT", 30, "NYSE"),
+    ("Quux Corp", "QUUX-U", 30, "NYSE"),
 ]
 
 
@@ -185,6 +194,70 @@ def test_sec_path_env_is_used_verbatim_and_probe_picks_newest(monkeypatch, tmp_p
     assert "2026-10-10" in str(peer_paths.sec_company_tickers_path())
 
 
+def _res(stocks, sec):
+    return build_resolver(stocks=stocks, sec=sec, config=load_entity_config())
+
+
+def test_non_common_lines_are_other_lines_by_structure_not_by_stocks_json_presence():
+    sec = [("Acme Inc", t, 7, ex) for t, ex in (("ACME", "Nasdaq"), ("ACMEP", "Nasdaq"), ("ACMEW", "Nasdaq"),
+                                                  ("ACMEU", "Nasdaq"), ("ACMEL", "Nasdaq"), ("ACMEB", "Nasdaq"),
+                                                  ("ACMD", "NYSE"), ("ACME-B", "NYSE"), ("ACME-PA", "NYSE"),
+                                                  ("ACMX", None), ("ACMO", "OTC"))]
+    stocks = [("Acme Inc", t) for t in ("ACME", "ACMEP", "ACMEW", "ACMEU", "ACMEL", "ACMEB", "ACMD", "ACME-B",
+                                         "ACME-PA", "ACMX")]
+    r = _res(stocks, sec).resolve("Acme")
+    # fifth letters P/W/U and the -PA suffix are not common; L/B and the -B class are; no exchange = unconfirmed;
+    # an OTC line stocks.json does not carry is unconfirmed too
+    assert set(r.tickers) == {"ACME", "ACME-B", "ACMEB", "ACMEL", "ACMD"}
+    assert set(r.other_lines) == {"ACMEP", "ACMEW", "ACMEU", "ACME-PA", "ACMX", "ACMO"}
+
+
+def test_security_description_words_and_a_missing_market_cap_demote_a_line():
+    sec = [("Brite Financial Inc", t, 8, "Nasdaq") for t in ("BRT", "BRTX", "BRTY")] +           [("Comco Corp", t, 9, "NYSE") for t in ("COM", "COMZ")]
+    stocks = [("Brite Financial, Inc.", "BRT", None, 3.0e9), ("Brite Financial, Inc.", "BRTX", None, 0),
+              ("Brite Financial, Inc. 5.5% Fixed-Rate Notes due 2030", "BRTY", None, 3.0e9),
+              ("Comcast Holdings ZONES", "COMZ", None, 5.0e9), ("Comco Corporation", "COM", None, 5.0e9)]
+    res = _res(stocks, sec)
+    b = res.resolve("Brite Financial")
+    assert b.tickers == ("BRT",) and set(b.other_lines) == {"BRTX", "BRTY"}  # '%'/notes and a zero cap beside a capped sibling
+    assert res.resolve("Comco").tickers == ("COM",) and "COMZ" in res.resolve("Comco").other_lines
+    only = _res([("Solo Inc", "SOLO", None, 0)], [("Solo Inc", "SOLO", 5, "NYSE")]).resolve("Solo")
+    assert only.tickers == ("SOLO",)  # 0.0 is a value, but with no capped sibling nothing is demoted
+
+
+def test_company_with_no_positively_identified_common_line_is_annotated_not_named():
+    r = _res([("Ghost Inc", "GHOST", None, 4.0e6)], [("Other Co", "OTH", 1, "NYSE")]).resolve("Ghost")
+    assert r.status == "no_common_line" and r.tickers == () and r.other_lines == ("GHOST",)
+
+
+def test_name_conflict_keeps_each_source_name_on_its_own_entity_and_flags_the_ticker():
+    sec = [("Ready Capital Corp", "RC", 1527590, "NYSE"), ("Ready Capital Corp", "RCD", 1527590, "NYSE")]
+    stocks = [("Ready Capital Corporation", "RC"),
+              ("Invesco S&P 500 Equal Weight Consumer Discretionary ETF", "RCD")]
+    res = _res(stocks, sec)
+    rc, etf = res.resolve("Ready Capital"), res.resolve("Invesco S&P 500 Equal Weight Consumer Discretionary ETF")
+    assert rc.tickers == ("RC", "RCD") and rc.flags == ("name_conflict:RCD",)
+    assert etf.tickers == ("RCD",) and etf.flags == ("name_conflict:RCD",)  # not merged into Ready Capital
+    assert res.resolve("McDonald's").status == UNRESOLVED_STATUS
+    mc = _res([("McDonald's Corporation", "MCD")], [("MCDONALDS CORP", "MCD", 63908, "NYSE")])
+    assert mc.resolve("McDonald's").ticker == "MCD" and mc.resolve("McDonald's").flags == ()  # agree: no conflict
+
+
+def test_symbol_in_the_name_field_is_a_missing_name_not_an_entity_name():
+    res = _res([("EM", "EM"), ("Real Inc", "REAL")], [("Real Inc", "REAL", 3, "NYSE")])
+    assert res.resolve("EM").status == UNRESOLVED_STATUS
+
+
+def test_stocks_only_line_joins_the_one_sec_company_with_the_same_name():
+    sec = [("Rega Group of America Inc", "RGA", 5, "NYSE")]
+    stocks = [("Rega Group of America, Incorporated", "RGA"), ("Rega Group of America, Incorporated", "RZB")]
+    r = _res(stocks, sec).resolve("Rega Group of America")
+    assert r.status == NAMED_STATUS and r.tickers == ("RGA",) and r.other_lines == ("RZB",)  # not ambiguous
+    two = [("Dup Inc", "DUP1", 1, "NYSE"), ("Dup Corp", "DUP2", 2, "NYSE")]
+    amb = _res([("Dup Incorporated", "DUPX")], two).resolve("Dup")
+    assert amb.status == AMBIGUOUS_STATUS  # two SEC companies share the name: the stray line does not pick one
+
+
 _REAL = peer_paths.screener_data_dir()
 _REAL_OK = _REAL is not None and (_REAL / "stocks.json").exists()
 
@@ -201,3 +274,12 @@ def test_required_cases_on_the_real_universe():
     for name, ticker in (("Boeing", "BA"), ("Oracle", "ORCL"), ("Morgan Stanley", "MS"), ("Citigroup", "C"),
                          ("Ford", "F"), ("JPMorgan", "JPM"), ("JPMorgan Chase & Co.", "JPM")):
         assert res.resolve(name, "company").tickers == (ticker,), name
+    for t in ("BHFAL", "BHFAP", "CCZ", "AFGB", "AFGE", "FMCCG", "RZB", "FTAIM", "LILAP"):
+        assert t not in res.common_lines, t
+    assert res.resolve("Brighthouse Financial", "company").tickers == ("BHF",)
+    assert res.resolve("Comcast", "company").tickers == ("CMCSA",)
+    assert res.resolve("Reinsurance Group of America", "company").tickers == ("RGA",)
+    assert res.resolve("FTAI Aviation", "company").tickers == ("FTAI",)
+    assert res.resolve("Ready Capital", "company").tickers == ("RC", "RCD")
+    assert "name_conflict:RCD" in res.resolve("Ready Capital").flags
+    assert res.resolve("Invesco S&P 500 Equal Weight Consumer Discretionary ETF").tickers == ("RCD",)
