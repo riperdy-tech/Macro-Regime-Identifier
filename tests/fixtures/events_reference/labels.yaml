@@ -1,5 +1,6 @@
-# E1 reference labels (plan section 9 step 2). Labelled from title, publisher and date only; see LABELLING.md for the rule.
+# E1 reference labels, reference set v1.1 (v1 is in git history at ad96231). Plan section 9 step 2. Labelled from title, publisher and date only; see LABELLING.md for the rule.
 # event: an event id, NONE (real news, no other item in this set belongs with it) or noise (non-news: advice column, preview, roundup, transcript, promotion).
+# membership: absent = core; `peripheral` = excluded from every pair, gate and rate (see LABELLING.md, core and peripheral). n_items counts core + peripheral, n_core core only.
 # report: items sharing a report id are the same report syndicated or republished; a singleton gets r_<first 6 hex of news_id>.
 events:
   E_HOUTHI_SAUDI:
@@ -7,113 +8,126 @@ events:
       the headline itself attributes to the attacks (casualties, airline suspensions and safety advisories, Gulf-market and oil moves).
     related: []
     n_items: 41
+    n_core: 27
   E_HOUTHI_ADEN_PALACE:
     definition: 'The Houthi missile attack on the Yemeni presidential palace complex in Aden (10-15). A separate event: different target, inside Yemen, against the Yemeni government.'
     related:
     - E_HOUTHI_SAUDI
     n_items: 3
+    n_core: 2
   E_SAUDI_DEFENCE_SUPPORT:
     definition: Third countries (Syria, Turkey) weighing military or defence support for Saudi Arabia; the headlines do not themselves name the airport attacks.
     related:
     - E_HOUTHI_SAUDI
     n_items: 2
+    n_core: 2
   E_COREWEAVE_DISTRESS:
     definition: 'Plan example 1. CoreWeave credit distress: bond yields near 15% (10-14) and record credit default swap cost (10-15), with stock reaction to them.'
     related: []
     n_items: 5
+    n_core: 4
   E_CPI_SEP:
     definition: Plan example 3. The US September CPI release (10-14), its preview, and the market reaction the headline attributes to it (incl. rate-hike odds).
     related: []
     n_items: 5
+    n_core: 3
   E_PPI_SEP:
     definition: The US September PPI release (10-15) and reaction.
     related:
     - E_CPI_SEP
     n_items: 2
+    n_core: 2
   E_FOMC_MINUTES:
     definition: FOMC minutes released 10-07 (officials see another hike coming).
     related: []
     n_items: 2
+    n_core: 2
   E_COOK_PANEL:
     definition: Trump's committee to investigate Fed governor Lisa Cook over mortgage-fraud claims (10-09).
     related: []
     n_items: 3
+    n_core: 3
   E_SHELTON_ADVISER:
     definition: Judy Shelton joins Treasury Secretary Bessent as adviser, and her remarks on yields.
     related: []
     n_items: 2
+    n_core: 2
   E_TRUMP_RUSSIA_DIESEL_DEAL:
-    definition: Trump's deal with Russia to supply diesel, its legal and political reaction, and diesel-price coverage naming his moves.
+    definition: 'Trump''s deal with Russia to supply diesel (first reported 10-09T22:00), its legal and political reaction, and diesel-price coverage naming the deal. Core headlines name the Russia deal. Peripheral: diesel-price coverage that names only Trump''s diesel moves or order and not the Russia deal (e2220c, 9c7ec0, 10d6af).'
     related: []
-    n_items: 7
+    n_items: 9
+    n_core: 6
   E_ENERGY_CEASEFIRE:
-    definition: The Russia-Ukraine energy-infrastructure ceasefire declared 10-11, its alleged violation and its breakdown (10-15).
+    definition: 'The Russia-Ukraine energy-infrastructure ceasefire declared 10-11 and the first report on its scope (10-12). The 10-15 breakdown report (34653b) is labelled NONE with related_events here, because it arrives 88h after the last member and plan 5.4 links within 72h only.'
     related: []
-    n_items: 3
+    n_items: 2
+    n_core: 2
   E_IRAN_HORMUZ_ATTACKS:
     definition: Iran's attacks on shipping in the Strait of Hormuz (ships sunk, tactics shifted, oil price reaction named in the headline).
     related: []
     n_items: 4
-  E_IEA_RESERVE_RELEASE:
-    definition: IEA emergency oil reserve release (10-07 acceleration, 10-15 speed-up).
-    related: []
-    n_items: 2
+    n_core: 4
   E_BOFA_PENALTY:
     definition: Bank of America's US$1.2bn money-laundering/sanctions fine and the share drop after it and Q3 revenue miss.
     related: []
     n_items: 3
+    n_core: 3
   E_GEORGIEVA_AI:
     definition: 'Same CNBC report republished twice: IMF chief Georgieva on AI as hope and hazard.'
     related: []
     n_items: 2
+    n_core: 2
   E_WB_JOBS_COUNCIL:
     definition: 'Same CNBC report republished twice: World Bank jobs council urges crisis-era employment support.'
     related: []
     n_items: 2
+    n_core: 2
   E_ANDURIL_CEO_DEFENCE:
     definition: 'Same CNBC report republished twice: Anduril CEO defends Trump administration contracts.'
     related: []
     n_items: 2
+    n_core: 2
   E_ADVICE_LOSER_PORTFOLIO:
     definition: Same MarketWatch advice column republished twice (not news, but a real duplicate).
     related: []
-    n_items: 2
+    n_items: 3
+    n_core: 2
   E_ADVICE_SISTER_HOME:
     definition: Same MarketWatch advice column republished with a new headline.
     related: []
     n_items: 2
+    n_core: 2
   E_OPENAI_RECORDING_DEVICE:
     definition: Saudi OpenAI employee charged with planting a recording device.
     related: []
     n_items: 2
+    n_core: 2
   E_ZACHARIA_CREDENTIALS:
     definition: New White House press secretary Katie Zacharia and her bar-exam claim.
     related: []
     n_items: 3
+    n_core: 3
   E_SPAIN_EVICTION:
     definition: Death of the Spanish pensioner whose eviction sparked protests, and the protests.
     related: []
     n_items: 2
+    n_core: 2
   E_NEPAL_FLOODS:
     definition: Floods in Nepal (10-11..13).
     related: []
     n_items: 2
+    n_core: 2
   E_HURRICANE_ISAIAS:
     definition: Hurricane Isaias landfall and aftermath.
     related: []
     n_items: 2
-  E_JNJ_Q3:
-    definition: Johnson & Johnson Q3 2026 results and call.
-    related: []
-    n_items: 2
+    n_core: 2
   E_ANTHROPIC_REVENUE:
     definition: Anthropic quarterly revenue disclosure ahead of IPO.
     related: []
     n_items: 2
-  E_SPACEX_WIRELESS:
-    definition: SpaceX wireless/Starlink Mobile plans pressuring carriers and AST SpaceMobile.
-    related: []
-    n_items: 2
+    n_core: 2
+
 items:
   news_f4545cd7fe5a0b22:
     event: NONE
@@ -191,8 +205,9 @@ items:
     event: NONE
     report: r_093f54
   news_e2220cb357c07536:
-    event: NONE
+    event: E_TRUMP_RUSSIA_DIESEL_DEAL
     report: r_e2220c
+    membership: peripheral
   news_4a683bdda1d92a33:
     event: NONE
     report: r_4a683b
@@ -200,8 +215,9 @@ items:
     event: NONE
     report: r_033dc8
   news_a55bfb7ecd7ea817:
-    event: E_IEA_RESERVE_RELEASE
+    event: NONE
     report: r_a55bfb
+    related_items: [news_9d81b0]
   news_1c88318eed760860:
     event: NONE
     report: r_1c8831
@@ -269,8 +285,9 @@ items:
     event: noise
     report: r_f13e4e
   news_d52ce130fddc5590:
-    event: E_SPACEX_WIRELESS
+    event: NONE
     report: r_d52ce1
+    related_items: [news_7f2ec6]
   news_dceb40fa09652a76:
     event: NONE
     report: r_dceb40
@@ -353,8 +370,9 @@ items:
     event: noise
     report: r_613b11
   news_2958e2937d56bc16:
-    event: noise
+    event: E_ADVICE_LOSER_PORTFOLIO
     report: r_2958e2
+    membership: peripheral
   news_7da7a824e84b35ce:
     event: noise
     report: r_7da7a8
@@ -385,6 +403,7 @@ items:
   news_ffed4f7845a7bef1:
     event: E_HOUTHI_SAUDI
     report: r_ffed4f
+    membership: peripheral
   news_a35a03d67347d8a1:
     event: NONE
     report: r_a35a03
@@ -403,6 +422,7 @@ items:
   news_9c7ec0deb56ae855:
     event: E_TRUMP_RUSSIA_DIESEL_DEAL
     report: r_9c7ec0
+    membership: peripheral
   news_55c0643d4fbaf58e:
     event: NONE
     report: r_55c064
@@ -517,6 +537,7 @@ items:
   news_d337233aed036154:
     event: E_HOUTHI_SAUDI
     report: r_d33723
+    membership: peripheral
   news_74560913d453622e:
     event: NONE
     report: r_745609
@@ -526,6 +547,7 @@ items:
   news_c465c9bc8b45f6cf:
     event: E_HOUTHI_SAUDI
     report: r_c465c9
+    membership: peripheral
   news_84621631c0025b8a:
     event: E_HOUTHI_SAUDI
     report: r_846216
@@ -631,6 +653,7 @@ items:
   news_48d77d4730dd4f82:
     event: E_HOUTHI_SAUDI
     report: r_48d77d
+    membership: peripheral
   news_b11523b7fc358f6e:
     event: E_HOUTHI_SAUDI
     report: r_b11523
@@ -664,9 +687,11 @@ items:
   news_794292f5974a902e:
     event: E_HOUTHI_SAUDI
     report: r_794292
+    membership: peripheral
   news_bb3286c410c7739d:
     event: E_CPI_SEP
     report: r_bb3286
+    membership: peripheral
   news_784213cd626ce15d:
     event: NONE
     report: r_784213
@@ -677,7 +702,7 @@ items:
     event: noise
     report: r_13f9b7
   news_aeb14bae933d0aee:
-    event: E_JNJ_Q3
+    event: NONE
     report: r_aeb14b
   news_b34aa9bfc63d41b0:
     event: NONE
@@ -725,7 +750,7 @@ items:
     event: noise
     report: r_429b5f
   news_0bfedcf6565e5389:
-    event: E_JNJ_Q3
+    event: noise
     report: r_0bfedc
   news_5da967b8e03a5530:
     event: noise
@@ -734,8 +759,9 @@ items:
     event: noise
     report: r_fdcfa1
   news_7f2ec6b45bda73e9:
-    event: E_SPACEX_WIRELESS
+    event: NONE
     report: r_7f2ec6
+    related_items: [news_d52ce1]
   news_3000b3e4692b2f99:
     event: E_BOFA_PENALTY
     report: r_3000b3
@@ -748,9 +774,11 @@ items:
   news_9fb4d5049b8d9332:
     event: E_HOUTHI_SAUDI
     report: r_9fb4d5
+    membership: peripheral
   news_f870575ae01abbb4:
     event: E_HOUTHI_SAUDI
     report: R_AVIATION_CROSSHAIRS
+    membership: peripheral
   news_fd5eaab4f90ae908:
     event: E_IRAN_HORMUZ_ATTACKS
     report: r_fd5eaa
@@ -769,9 +797,11 @@ items:
   news_8cfd212b7cfea759:
     event: E_HOUTHI_SAUDI
     report: r_8cfd21
+    membership: peripheral
   news_a9a1ae918c43501e:
     event: E_HOUTHI_SAUDI
     report: R_AVIATION_CROSSHAIRS
+    membership: peripheral
   news_be046477bae64797:
     event: NONE
     report: r_be0464
@@ -853,18 +883,22 @@ items:
   news_4b60c322198a0d2f:
     event: E_CPI_SEP
     report: r_4b60c3
+    membership: peripheral
   news_10d6af645898c707:
-    event: NONE
+    event: E_TRUMP_RUSSIA_DIESEL_DEAL
     report: r_10d6af
+    membership: peripheral
   news_c8aa6298ac5464f6:
     event: E_HOUTHI_SAUDI
     report: r_c8aa62
+    membership: peripheral
   news_d0e9d1ec869daa0d:
     event: NONE
     report: r_d0e9d1
   news_c17a527e8a3e30fd:
     event: E_HOUTHI_SAUDI
     report: r_c17a52
+    membership: peripheral
   news_7b89ece8a209716a:
     event: NONE
     report: r_7b89ec
@@ -877,6 +911,7 @@ items:
   news_aed6818270998e8b:
     event: E_HOUTHI_SAUDI
     report: r_aed681
+    membership: peripheral
   news_30921030a4df162d:
     event: NONE
     report: r_309210
@@ -911,8 +946,9 @@ items:
     event: NONE
     report: r_120c06
   news_9d81b0acadb3cbe0:
-    event: E_IEA_RESERVE_RELEASE
+    event: NONE
     report: r_9d81b0
+    related_items: [news_a55bfb]
   news_9c748b8b10e6316d:
     event: NONE
     report: r_9c748b
@@ -938,8 +974,9 @@ items:
     event: NONE
     report: r_676b20
   news_34653bd790f059bc:
-    event: E_ENERGY_CEASEFIRE
+    event: NONE
     report: r_34653b
+    related_events: [E_ENERGY_CEASEFIRE]
   news_a4f0f673a4d00d12:
     event: NONE
     report: r_a4f0f6
@@ -967,6 +1004,7 @@ items:
   news_e3a48524ee064ac4:
     event: E_COREWEAVE_DISTRESS
     report: r_e3a485
+    membership: peripheral
   news_f9a03e323dececf3:
     event: NONE
     report: r_f9a03e
@@ -994,6 +1032,7 @@ items:
   news_2ad0fa0b235613f8:
     event: E_HOUTHI_ADEN_PALACE
     report: r_2ad0fa
+    membership: peripheral
   news_98b1ee39ceb8008a:
     event: NONE
     report: r_98b1ee
@@ -1006,9 +1045,11 @@ items:
   news_b2343d94ec34f008:
     event: E_HOUTHI_SAUDI
     report: r_b2343d
+    membership: peripheral
   news_24fd57ba0dad298c:
     event: E_HOUTHI_SAUDI
     report: r_24fd57
+    membership: peripheral
   news_6ba3595cc5732bc6:
     event: NONE
     report: r_6ba359
