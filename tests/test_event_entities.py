@@ -22,13 +22,17 @@ from macro_engine.events.entities import (
 STOCKS = [
     ("CoreWeave, Inc.", "CRWV"),
     ("Dell Technologies Inc.", "DELL"),
-    ("Alphabet Inc.", "GOOGL"),
-    ("Alphabet Inc.", "GOOG"),
+    ("Alphabet Inc.", "GOOGL", 1652044),
+    ("Alphabet Inc.", "GOOG", 1652044),
     ("Meta Platforms, Inc.", "META"),
     ("The Coca-Cola Company", "KO"),
     ("Amazon.com, Inc.", "AMZN"),
-    ("Foo Holdings Class A", "FOOA"),
+    ("Foo Holdings Class A", "FOOA"),  # no cik anywhere: issuer-name fallback groups the classes
     ("Foo Holdings Class B", "FOOB"),
+    ("JPMorgan Chase & Co.", "JPM", 19617),
+    ("Morgan Stanley", "MS", 895421),
+    ("Bar Inc.", "BAR1", 10),  # two distinct companies, same normalised name
+    ("Bar Corp", "BAR2", 20),
 ]
 SEC = [
     ("CoreWeave, Inc.", "CRWV"),  # same ticker from the second source: still ONE candidate
@@ -36,6 +40,14 @@ SEC = [
     ("Dell Technologies Inc.", "DELL"),
     ("Acme Corp", "ACME1"),
     ("Acme Corporation", "ACME2"),  # normalises to the same name as "Acme Corp": two tickers
+    ("MORGAN STANLEY", "MS-PK", 895421),  # preferred line of the same issuer
+    ("MORGAN STANLEY", "MS", 895421),
+    ("WELLS FARGO & COMPANY/MN", "WFC", 72971),
+    ("BERKSHIRE HATHAWAY INC", "BRK-B", 1067983),
+    ("BERKSHIRE HATHAWAY INC", "BRK-A", 1067983),
+    ("Quux Corp", "QUUX", 30),
+    ("Quux Corp", "QUUX-WT", 30),
+    ("Quux Corp", "QUUX-U", 30),
 ]
 
 
@@ -68,15 +80,38 @@ def test_ambiguous_name_is_rejected_not_picked(resolver):
     assert resolver.named_tickers([r]) == []
 
 
-def test_share_classes_of_one_issuer_are_ambiguous_without_an_alias(resolver):
-    r = resolver.resolve("Foo Holdings")
-    assert r.status == AMBIGUOUS_STATUS and r.candidates == ("FOOA", "FOOB")
+def test_share_classes_of_one_issuer_are_one_entity_named_as_a_set(resolver):
+    r = resolver.resolve("Alphabet")  # same cik: GOOG and GOOGL, no alias needed
+    assert (r.status, r.tier, r.ticker, r.tickers) == (NAMED_STATUS, "exact", None, ("GOOG", "GOOGL"))
+    assert resolver.named_tickers([r]) == ["GOOG", "GOOGL"]
+    b = resolver.resolve("Berkshire Hathaway")
+    assert b.status == NAMED_STATUS and b.tickers == ("BRK-A", "BRK-B")
+    f = resolver.resolve("Foo Holdings")  # no cik: issuer-name fallback with "Class X" removed
+    assert f.status == NAMED_STATUS and f.tickers == ("FOOA", "FOOB")
 
 
-def test_alias_wins_over_ambiguity_and_is_tiered_alias(resolver):
-    r = resolver.resolve("Alphabet")
-    assert (r.status, r.tier, r.ticker) == (NAMED_STATUS, "alias", "GOOGL")
-    assert resolver.resolve("Alphabet Inc.").tier == "alias"
+def test_distinct_companies_sharing_a_normalised_name_stay_ambiguous(resolver):
+    r = resolver.resolve("Bar")
+    assert r.status == AMBIGUOUS_STATUS and r.candidates == ("BAR1", "BAR2") and r.tickers == ()
+
+
+def test_preferred_warrant_and_unit_lines_are_recorded_not_named(resolver):
+    ms = resolver.resolve("Morgan Stanley")
+    assert (ms.status, ms.ticker, ms.tickers, ms.other_lines) == (NAMED_STATUS, "MS", ("MS",), ("MS-PK",))
+    q = resolver.resolve("Quux")  # SEC only, no stocks.json line: pattern drops warrant and unit
+    assert q.tickers == ("QUUX",) and q.other_lines == ("QUUX-U", "QUUX-WT")
+
+
+def test_alias_is_tiered_alias_and_expands_to_the_company_lines(resolver):
+    r = resolver.resolve("Google")
+    assert (r.status, r.tier, r.tickers) == (NAMED_STATUS, "alias", ("GOOG", "GOOGL"))
+    assert resolver.resolve("Meta").tier == "alias" and resolver.resolve("Meta").ticker == "META"
+
+
+def test_ampersand_and_sec_region_suffix_normalise(resolver):
+    assert normalize_name("JPMorgan Chase & Co.", load_entity_config()["legal_suffixes"]) == "jpmorgan chase"
+    assert resolver.resolve("JPMorgan Chase").ticker == "JPM"
+    assert resolver.resolve("Wells Fargo").ticker == "WFC"  # SEC "WELLS FARGO & COMPANY/MN"
 
 
 def test_alias_to_unknown_ticker_is_ignored_and_reported():
@@ -98,7 +133,9 @@ def test_generic_entities_and_non_company_types_are_annotated_not_dropped(resolv
     g = resolver.resolve("United States government", "other")
     assert g.status == GENERIC_STATUS and g.ticker is None
     assert resolver.resolve("U.S. Government").status == GENERIC_STATUS
-    assert resolver.resolve("White House").status == GENERIC_STATUS
+    assert resolver.resolve("investors").status == GENERIC_STATUS
+    for discriminating in ("Federal Reserve", "The Fed", "Treasury", "White House", "China", "European Union"):
+        assert resolver.resolve(discriminating).status == UNRESOLVED_STATUS  # linkable by E1, not stop-listed
     c = resolver.resolve("Meta", "country")
     assert c.status == SKIPPED_TYPE_STATUS  # the type says it is not a company, the name is still recorded
     assert c.name == "Meta"
@@ -159,4 +196,8 @@ def test_required_cases_on_the_real_universe():
     assert res.resolve("CoreWeave", "company").ticker == "CRWV"
     assert res.resolve("Dell Technologies", "company").ticker == "DELL"
     assert res.resolve("Aramco", "company").status == UNRESOLVED_STATUS
-    assert res.resolve("Berkshire Hathaway", "company").status == AMBIGUOUS_STATUS
+    assert res.resolve("Berkshire Hathaway", "company").tickers == ("BRK-A", "BRK-B")
+    assert res.resolve("Alphabet", "company").tickers == ("GOOG", "GOOGL")
+    for name, ticker in (("Boeing", "BA"), ("Oracle", "ORCL"), ("Morgan Stanley", "MS"), ("Citigroup", "C"),
+                         ("Ford", "F"), ("JPMorgan", "JPM"), ("JPMorgan Chase & Co.", "JPM")):
+        assert res.resolve(name, "company").tickers == (ticker,), name

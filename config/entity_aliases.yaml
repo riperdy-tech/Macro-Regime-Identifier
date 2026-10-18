@@ -21,25 +21,26 @@ legal_suffixes:
   - co
   - company
 
-# Curated names a news item uses that differ from the legal name, or that exact matching would reject as
-# ambiguous (several share classes of one issuer). Each target must exist in the stocks.json / SEC universe or
-# the alias is ignored and reported. An alias wins over an exact match for the same normalised name.
-# Keep this list short and reviewed; every line is a claim that the name is that company and no other.
+# Curated nicknames and rebrands: names a news item uses that are NOT the legal name of any listed company, so
+# grouping by SEC cik cannot reach them. An alias names one ticker and resolves to that company's common lines
+# ("google" -> GOOGL and GOOG). Each target must exist in the stocks.json / SEC universe or the alias is
+# ignored and reported. An alias wins over an exact match for the same normalised name. Do not add a name
+# because exact matching rejected it as ambiguous: that means two companies share it, and the answer is no.
 aliases:
-  meta: META
-  facebook: META
-  alphabet: GOOGL      # primary share class; GOOG is the same issuer
-  google: GOOGL
-  exxon: XOM
+  meta: META           # Meta Platforms
+  facebook: META       # former name
+  google: GOOGL        # Alphabet's product name
+  exxon: XOM           # ExxonMobil
   exxon mobil: XOM
-  amazon: AMZN
-  jpmorgan chase: JPM
-  jpmorgan: JPM
-  lululemon: LULU
-  ford: F
+  amazon: AMZN         # Amazon.com
+  jpmorgan: JPM        # JPMorgan Chase
+  lululemon: LULU      # lululemon athletica
+  ford: F              # Ford Motor
 
-# Entities that name no tradable issuer and link unrelated events together if used as a shared entity (E1).
+# Entities that name no particular event actor and would link unrelated events if used as a shared entity (E1).
 # Compared after the same normalisation. They resolve to status `generic` and are never `named`.
+# Deliberately NOT here: the Fed, Treasury, White House, Congress, named countries, the EU. They discriminate
+# events, and plan section 5.4 needs the Fed as a linking entity.
 generic_entities:
   - united states
   - us
@@ -51,24 +52,12 @@ generic_entities:
   - u s federal government
   - federal government
   - government
-  - white house
-  - congress
-  - senate
-  - house of representatives
-  - supreme court
-  - federal reserve
-  - the fed
-  - fed
-  - treasury
-  - u s treasury
-  - us treasury
-  - treasury department
-  - european union
-  - eu
-  - china
-  - russia
+  - the market
   - markets
   - wall street
+  - investors
+  - economists
+  - analysts
 
 # Classifier entity types that are never companies; they are recorded as `skipped_type`, not dropped.
 non_company_entity_types:
