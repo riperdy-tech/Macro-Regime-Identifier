@@ -232,15 +232,17 @@ def test_company_with_no_positively_identified_common_line_is_annotated_not_name
 
 def test_name_conflict_keeps_each_source_name_on_its_own_entity_and_flags_the_ticker():
     sec = [("Ready Capital Corp", "RC", 1527590, "NYSE"), ("Ready Capital Corp", "RCD", 1527590, "NYSE")]
-    stocks = [("Ready Capital Corporation", "RC"),
-              ("Invesco S&P 500 Equal Weight Consumer Discretionary ETF", "RCD")]
+    stocks = [("Ready Capital Corporation", "RC", None, 2.7e8),
+              ("Invesco S&P 500 Equal Weight Consumer Discretionary ETF", "RCD", None, 0.0)]
     res = _res(stocks, sec)
     rc, etf = res.resolve("Ready Capital"), res.resolve("Invesco S&P 500 Equal Weight Consumer Discretionary ETF")
-    assert rc.tickers == ("RC", "RCD") and rc.flags == ("name_conflict:RCD",)
-    assert etf.tickers == ("RCD",) and etf.flags == ("name_conflict:RCD",)  # not merged into Ready Capital
+    # the demotion is per company: RCD lacks a market cap beside RC's, so it is not Ready Capital's common line,
+    # yet it is the only (hence common) line of the Invesco ETF's own entity
+    assert rc.tickers == ("RC",) and rc.other_lines == ("RCD",) and "name_conflict:RCD" in rc.flags
+    assert etf.tickers == ("RCD",) and "name_conflict:RCD" in etf.flags  # not merged into Ready Capital
     assert res.resolve("McDonald's").status == UNRESOLVED_STATUS
     mc = _res([("McDonald's Corporation", "MCD")], [("MCDONALDS CORP", "MCD", 63908, "NYSE")])
-    assert mc.resolve("McDonald's").ticker == "MCD" and mc.resolve("McDonald's").flags == ()  # agree: no conflict
+    assert mc.resolve("McDonald's").ticker == "MCD" and not any(f.startswith("name_conflict") for f in mc.resolve("McDonald's").flags)  # agree
 
 
 def test_symbol_in_the_name_field_is_a_missing_name_not_an_entity_name():
@@ -256,6 +258,64 @@ def test_stocks_only_line_joins_the_one_sec_company_with_the_same_name():
     two = [("Dup Inc", "DUP1", 1, "NYSE"), ("Dup Corp", "DUP2", 2, "NYSE")]
     amb = _res([("Dup Incorporated", "DUPX")], two).resolve("Dup")
     assert amb.status == AMBIGUOUS_STATUS  # two SEC companies share the name: the stray line does not pick one
+
+
+def test_unconfirmed_tier_names_a_capped_line_sec_does_not_know_and_flags_it():
+    sec = [("Live Corp", "LIVE", 1, "NYSE")]
+    stocks = [("Live Corporation", "LIVE", None, 5.0e8), ("Gone Holdings, Inc.", "GONE", None, 4.0e7),
+              ("Zero Co", "ZERO", None, 0.0), ("Nocap Co", "NOCAP", None, None),
+              ("Gone Holdings Acquisition Units", "GONEU", None, 9.0e6), ("Gone Rights Corp", "GONER", None, 9.0e6)]
+    res = _res(stocks, sec)
+    gone = res.resolve("Gone Holdings")
+    assert gone.status == NAMED_STATUS and gone.tickers == ("GONE",) and gone.flags == ("listing_unconfirmed:GONE",)
+    assert res.resolve("Live").flags == ()  # SEC-confirmed: no flag
+    assert res.resolve("Zero").status == "no_common_line"  # 0.0 is a value: no capitalisation, not named
+    assert res.resolve("Nocap").status == "no_common_line"  # absent: not named either
+    assert res.resolve("Gone Holdings Acquisition Units").status == "no_common_line"  # unit by name
+    assert res.resolve("Gone Rights").status == "no_common_line"  # name word
+    assert res.unconfirmed == {"GONE"}
+
+
+def test_a_description_word_in_the_company_own_sec_title_does_not_demote():
+    sec = [("Preferred Bank", "PFBC", 11, "Nasdaq"), ("Nuveen Preferred Income Fund", "JPC", 12, "NYSE"),
+           ("Acme Corp", "ACME", 13, "NYSE"), ("Acme Corp", "ACMEX", 13, "NYSE")]
+    stocks = [("Preferred Bank", "PFBC", None, 1.2e9), ("Nuveen Preferred Income Fund", "JPC", None, 2.6e9),
+              ("Acme Corp", "ACME", None, 3e9), ("Acme Corp Preferred Shares", "ACMEX", None, 3e9),
+              ("Acme Corp 5% Notes", "ACMEY", None, 3e9)]
+    res = _res(stocks, sec)
+    assert res.resolve("Preferred Bank").tickers == ("PFBC",)
+    assert res.resolve("Nuveen Preferred Income Fund").tickers == ("JPC",)
+    assert res.resolve("Acme").tickers == ("ACME",)  # SEC's title lacks the word: the preferred line stays demoted
+
+
+def test_uncapped_company_is_flagged_and_structure_demotes_sibling_derivative_lines():
+    sec = [("Penny Mortgage Trust", t, 21, "NYSE") for t in ("PMT", "PMTU", "PMTV")] + [
+        ("Valley Authority", "TVC", 22, "NYSE"), ("Valley Authority", "TVE", 22, "NYSE"),
+        ("Bank PLC", "ETNA", 23, "NYSE"), ("Bank PLC", "ETNB", 23, "NYSE"), ("Okay Fund", "OKF", 24, "NYSE")]
+    stocks = [("Penny Mortgage Trust", "PMT", None, 0), ("Penny Mortgage Trust", "PMTU", None, 0),
+              ("Penny Mortgage Trust", "PMTV", None, 0), ("Valley Authority", "TVC", None, 0),
+              ("Valley Authority PARRS A 2029", "TVE", None, 0)]
+    res = _res(stocks, sec)
+    pmt = res.resolve("Penny Mortgage Trust")
+    assert pmt.tickers == ("PMT",) and set(pmt.other_lines) == {"PMTU", "PMTV"} and "market_cap_unknown" in pmt.flags
+    tv = res.resolve("Valley Authority")
+    assert tv.tickers == ("TVC",) and tv.other_lines == ("TVE",)
+    etn = res.resolve("Bank PLC")  # no structure tells these apart: named as a set, flagged as unverified
+    assert etn.tickers == ("ETNA", "ETNB") and {"market_cap_unknown", "common_lines_unverified"} <= set(etn.flags)
+    assert "common_lines_unverified" not in res.resolve("Okay Fund").flags
+
+
+def test_stale_renamed_ticker_joins_the_one_company_its_name_matches():
+    sec = [("Newname Oldname SA", "NEWN", 31, "Nasdaq"), ("Other Oncology Inc", "STLN", 32, "Nasdaq")]
+    stocks = [("Oldname S.A.", "OLDN", None, 2.0e8), ("Oldname S.A.", "NEWN", None, 1.9e8),
+              ("The Oncology Institute, Inc.", "TOI", None, 6e8), ("The Oncology Institute, Inc.", "STLN", None, 7e8),
+              ("Twin Inc", "TW1", None, 1e8), ("Dup Inc", "DUPA", None, 1e8)]
+    res = _res(stocks, sec + [("Dup Inc", "DUP1", 41, "NYSE"), ("Dup Inc.", "DUP2", 42, "NYSE")])
+    assert res.company_of["OLDN"] == res.company_of["NEWN"] == "cik:31"
+    assert res.company_of["TOI"] == res.company_of["STLN"] == "cik:32"
+    r = res.resolve("Oldname S.A.")
+    assert r.tickers == ("NEWN", "OLDN") and r.flags == ("listing_unconfirmed:OLDN",)
+    assert res.company_of["DUPA"].startswith("issuer:")  # two SEC companies share the name: it picks neither
 
 
 _REAL = peer_paths.screener_data_dir()
@@ -280,6 +340,8 @@ def test_required_cases_on_the_real_universe():
     assert res.resolve("Comcast", "company").tickers == ("CMCSA",)
     assert res.resolve("Reinsurance Group of America", "company").tickers == ("RGA",)
     assert res.resolve("FTAI Aviation", "company").tickers == ("FTAI",)
-    assert res.resolve("Ready Capital", "company").tickers == ("RC", "RCD")
-    assert "name_conflict:RCD" in res.resolve("Ready Capital").flags
+    assert res.resolve("Ready Capital", "company").tickers == ("RC",)
+    assert "RCD" in res.resolve("Ready Capital").other_lines and "name_conflict:RCD" in res.resolve("Ready Capital").flags
+    assert res.resolve("Preferred Bank", "company").tickers == ("PFBC",)
+    assert res.resolve("Bank of New York Mellon").tickers[0] in {"BNY", "BK"}
     assert res.resolve("Invesco S&P 500 Equal Weight Consumer Discretionary ETF").tickers == ("RCD",)

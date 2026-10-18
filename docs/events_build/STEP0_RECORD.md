@@ -76,3 +76,39 @@ Defects found and fixed while running it for the first time:
   `decode(..., errors="replace")` sites (`news/fulltext.py:50`, `news/gdelt_backfill.py:195`,
   `news/ingest.py:613`) can in principle introduce it from a badly encoded response; they are unchanged because
   nothing has been observed and replacing them would change ingest behaviour outside this phase.
+
+## Phase 1 fixes, round 3 (2026-10-18)
+
+Resolver, measured on the real universe (stocks.json 6,944 lines; SEC copy company_tickers_2026-10-10, 10,445 tickers):
+
+- **A. Demotion is per company.** "Ready Capital" now names {RC}; RCD sits in `other_lines` with `name_conflict:RCD`, and
+  the Invesco ETF name resolves to RCD. Before: (RC, RCD).
+- **C. Unconfirmed tier.** A stocks.json line with market cap > 0 that SEC's file does not list, and that passes the
+  ticker-shape and name tests, is named with `listing_unconfirmed:<T>`. 243 stocks.json lines are absent from the SEC file
+  with a market cap above zero; 226 reach `tickers` flagged, 17 stay out by shape (SPAC units/rights, `...V` when-issued,
+  an ADS line): e.g. KVACU, MLACR, OCTVV, SKHYV. The 226 include renamed tickers (BK -> BNY) and names newer or older than
+  the 10-10 SEC copy (NUVL, WBS, LEG, KW, APM, TBPH).
+- **D. Name-word demotion.** 21 stocks.json lines with a market cap were demoted by a description word in their own
+  company name. A word is now ignored when SEC's title for the same ticker carries it: 20 are common again (PFBC, FFC,
+  JPC, BBN, PFD, DFP, PSF, RNP, NPFD, HPS, HPF, FPF, PTA, VBF, DMB, GBAB, DSM, EIM, OBAI, ISD). PHOS stays demoted: its
+  name says "American Depositary Shares", SEC's title ("First Phosphate Corp.") does not.
+- **E. Residual non-common lines.** Companies with no market-cap line cannot use the cap test. Two structural tests now
+  apply there: a ticker that is a sibling ticker plus a non-common letter (PMT, PMTU/V/W) and a name that extends a
+  sibling's name (TVC, TVE "PARRS A 2029"); "ETN" joins the description words. Such companies carry
+  `market_cap_unknown` (2,278 of 8,247 companies), and where they still name several lines also
+  `common_lines_unverified`. Before: 13 companies / about 62 lines named as sets of common lines; after: 11 companies / 56
+  lines, all flagged. **Not closable by structure**: the Credit Suisse AG, UBS AG and Barclays Bank PLC ETN families
+  (cik 1053092, 1114446, 312070), Maiden Holdings MHLA/MHNC and Qwest CTGG/CTHH (stocks.json carries the symbol as the
+  name), and the commodity/volatility fund trusts (ProShares Trust II, Teucrium, USCF, Amplify, VS Trust, Texas Precious
+  Metals). Nothing in either source separates their lines from common stock, so they are named as a flagged set rather than
+  patched ticker by ticker.
+- **F. Stale renamed tickers.** A line SEC does not know now joins the single `cik` company its normalised name matches,
+  through either source's names: EDAP -> FOCL, ISSC -> IA, TOI -> STLN. 425 stocks.json lines are absent from SEC: 76
+  joined a cik group, 349 keep an issuer-name key (no match); 0 match more than one company (ambiguous). A name matching
+  two companies still joins neither.
+
+Confirmation prices (B): after a detected split/dividend restatement a failed backfill writes nothing for that symbol, so
+the next run detects it again; the report is `ok: False` and `repull_error` is kept.
+
+**G. Known limit (pre-existing).** Raw closes older than the 3-year backfill window are not rescaled after a split:
+the re-pull rewrites closes and adjclose inside the window only (adjclose outside it is dropped, closes are not).
