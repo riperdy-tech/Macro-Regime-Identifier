@@ -3,7 +3,8 @@
 Two read-only measurements over the local store; nothing here changes classification behaviour.
 
 * `rolling_classified_share` - of the items first held in the last `window_days` days, the share with a
-  successful, non-mock classification. The plan's criterion (>= 85%) is only *evaluable* once the window
+  successful `origin=live` classification made within 14 days of publication (plan section 3.2; imported and
+  replayed classifications do not count). The plan's criterion (>= 85%) is only *evaluable* once the window
   holds `window_days` observed days; until then the report says so rather than claiming a pass.
 * `daily_token_usage` - provider token usage per classification day, from the usage the classifier stored
   with each live response (`_provider_usage`). The durable run-history snapshot deliberately omits raw
@@ -17,20 +18,30 @@ from typing import Any
 
 import pandas as pd
 
+from macro_engine.news.provenance import is_forward_evidence
 from macro_engine.news.usage_report import _usage_row
 
 TARGET_SHARE = 0.85
 DEFAULT_WINDOW_DAYS = 14
 
 
-def _is_countable(classifications: pd.DataFrame) -> pd.DataFrame:
-    """Successful, non-mock classifications. `origin` null (pre-N1 rows) is allowed; mock/replay is not."""
+def _is_countable(classifications: pd.DataFrame, items: pd.DataFrame) -> pd.DataFrame:
+    """Classifications that count as evidence under plan section 3.2: successful, `origin=live` (a null origin
+    is live unless the provider is mock, as in `news.provenance`), and made within 14 days of the item's
+    publication. Imported and replayed classifications never count."""
     if classifications.empty:
         return classifications
-    ok = classifications["classification_status"].eq("success") & ~classifications["ai_provider"].eq("mock")
-    if "origin" in classifications.columns:
-        ok &= classifications["origin"].isna() | classifications["origin"].isin(["live", "imported"])
-    return classifications[ok]
+    df = classifications.reset_index(drop=True)
+    if "published_at" not in df.columns:
+        pub = items[["news_id", "published_at"]].drop_duplicates("news_id", keep="last") if not items.empty else None
+        df = df.merge(pub, on="news_id", how="left") if pub is not None else df.assign(published_at=pd.NaT)
+    origin = df["origin"] if "origin" in df.columns else pd.Series([None] * len(df))
+    live = origin.fillna(df["ai_provider"].map(lambda p: "mock" if p == "mock" else "live"))
+    keep = [
+        is_forward_evidence(effective_origin=o, classification_status=s, classified_at=c, published_at=p)
+        for o, s, c, p in zip(live, df["classification_status"], df["classified_at"], df["published_at"])
+    ]
+    return df[pd.Series(keep, index=df.index)]
 
 
 def rolling_classified_share(
@@ -65,7 +76,7 @@ def rolling_classified_share(
         frame = pd.DataFrame({"news_id": items["news_id"], "day": seen.dt.tz_localize(None).dt.normalize()})
         frame = frame.dropna(subset=["day"]).drop_duplicates("news_id")
     frame = frame[(frame["day"] >= start) & (frame["day"] <= pd.Timestamp(as_of))]
-    counted = set(_is_countable(classifications)["news_id"].astype(str)) if not classifications.empty else set()
+    counted = set(_is_countable(classifications, items)["news_id"].astype(str)) if not classifications.empty else set()
     frame = frame.assign(classified=frame["news_id"].astype(str).isin(counted))
 
     for day, group in frame.groupby("day"):
@@ -111,7 +122,8 @@ def daily_token_usage(
         d["items"] += 1
         for key in ("prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens",
                     "prompt_cache_miss_tokens"):
-            d[key] += int(r["usage"].get(key) or 0)
+            value = r["usage"].get(key)
+            d[key] += 0 if value is None else int(value)
     n = len(with_usage)
     totals = {k: sum(v[k] for v in by_day.values()) for k in
               ("prompt_tokens", "completion_tokens", "total_tokens", "prompt_cache_hit_tokens",

@@ -83,3 +83,23 @@ def test_empty_inputs_do_not_raise():
 
 def test_live_config_cap_is_150():
     assert load_daily_pipeline_config("config/daily_pipeline_github_live.yaml").live_ai_safety.max_items_per_run == 150
+
+
+def test_only_live_origin_within_14_days_of_publication_counts():
+    items = _items({"2026-10-15": 4})
+    ids = list(items["news_id"])
+    c = pd.concat([
+        _cls(ids[:1]),  # live, same day: counts
+        _cls(ids[1:2], origin="imported"),  # backfilled: does not count
+        _cls(ids[2:3], origin="replay"),
+        _cls(ids[3:4], at="2026-11-10"),  # classified 26 days after publication: does not count
+    ])
+    out = rolling_classified_share(items, c, as_of=date(2026, 10, 16))
+    assert out["items"] == 4 and out["classified"] == 1
+
+
+def test_missing_usage_field_is_zero_not_a_default_but_present_zero_stays_zero():
+    usage = {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10}
+    out = daily_token_usage(_cls(["a"], usage=usage))
+    assert out["per_day"]["2026-10-16"]["completion_tokens"] == 0
+    assert out["per_day"]["2026-10-16"]["prompt_cache_hit_tokens"] == 0
