@@ -54,7 +54,7 @@ back removes the events job and nothing else. Without the task, run the script b
 Rollback of data: delete nothing. A bad register is superseded by the next successful run; the archive keeps each day's copy.
 The additive tables (`event_state_*`, `event_register_*`) are not read by any existing output.
 
-## Open decision (blocks registering): who owns local news hydration
+## Decided 2026-10-22: the events job owns local news hydration (option a below; STEP0_RECORD.md)
 
 Step 2 depends on local hydration running daily. `STEP0_RECORD.md` records that no scheduled owner is ratified. Until the
 operator names one, nothing should be scheduled that depends on it silently. Two clean options: (a) this job owns it, as built
@@ -92,3 +92,35 @@ confirmed. Candidates from reports first seen 10-11 and 10-12 were closed on the
 - `RegisterStore.record` keeps the first-seen detail of a report; the daily job refreshes the stored detail of a report that
   was unclassified when first seen and has since been classified (otherwise it would show "unclassified" for good). It
   does not rewrite the state's `entity_keys` for that report, which matters only to the linker arms.
+
+## Schedule change, 2026-10-22: 13:00 KST, not 08:30
+
+The 08:30 time assumed the cloud news commit lands about 07:40 KST. Measured over 2026-10-08..10-21, GitHub starts the
+`37 22 * * *` cron 1.5-4.5 h late, so `run-history` is committed at about 09:45-12:40 KST. At 08:30 the job would always
+build from the previous day's news. The registrar default is now 13:00 KST. A cloud run later than that still leaves the
+store within the 48 h freshness limit, so the job builds from the previous day's items and says so through `as_of_date`.
+
+The job now also exports `event_register.json` and `event_register_run.json` to `C:\ProgramData\stocks-mri\outputs` (step 4),
+and `run_local_daily.ps1` exports `shock_register.json` there as an optional file (D5).
+
+## E2 and E4 added, 2026-10-22
+
+- New step 2b, `refresh-confirmation-prices`: base instruments, sector ETFs, and the tickers named by yesterday's open
+  candidates. Never fatal. A ticker named for the first time is fetched the next day, so its company check reads
+  `no_stock_series` on day one and is filled on the next run (the register recomputes every candidate daily).
+- `events-daily` fills `market_response` (`events/market_check.py`) and `sector_exposure` (`events/exposure.py`) and adds
+  `market_checks`. Rulings on the seven open E2 details: `config/events.yaml` `unratified.*.ruling`.
+- E3 (plan §7's active / decaying / closed lifecycle) is not built. It is defined over linked events, and the register runs
+  in `syndication` mode (one report per candidate) until a linker passes the blind holdout. Each candidate keeps its 3-day
+  `status_window`. E3 is built with the first approved linker.
+- Dry run 2026-10-22 on a copy of the store (as of 10-21; nothing in the repo's `outputs/` or store was written):
+  648 candidates; theme results aligned 37, no_signal 136, pending 122, display_only 198, not_scored 80; 49 shared check
+  keys; firewall OK; 17 s.
+
+## Risk: the store lock during a GPU run
+
+DuckDB allows one writer and no concurrent readers from other processes. rs2 (`rs2_data._mri_query`) reads the MRI store
+for the risk-free legs and returns an empty result when the file is locked, so the run continues **without** the input.
+This job holds the store for about 20 s a day; the 06:30 MRI daily holds it longer. A GPU run that reads the risk-free rate
+during either window loses that input silently. Until rs2 retries on a locked file, avoid scheduling GPU runs across
+13:00 KST, or have rs2 read a copy.

@@ -131,3 +131,18 @@ with LF line endings the same code gives `d452c8a015a7bd11`, checked). Same temp
 The brief's estimate was about 216k tokens; the measured total is 298,685, of which completion is the larger-than-expected
 part (the prompt is mostly served from the provider's cache). Money is not computed here: no price is recorded in the repo,
 and I did not invent one. Source: the stored `raw_ai_response_json` usage via `build_live_ai_usage_report` over the 158 new rows.
+
+## Operator rulings, 2026-10-22
+
+The operator approved the plan's recommendations D1-D5 ("I agree with your recommendations on D1~5. Get it
+done"):
+
+- **D1** News never alters a number through Stages 1-2: approved.
+- **D2** Classification cap 60 -> 150/day and the GDELT pacing repair, as separate items with measured cost and
+  coverage: approved. The cloud workflow's `--max-live-items` default moves from 60 to 150 (the daily runner takes
+  the minimum of the flag and `max_items_per_run`, so the config change alone had no effect).
+- **D3** The events job at about 08:30 KST, triggered by successful hydration: approved. **Hydration owner
+  ratified: option (a), the MRI events job owns the daily cloud -> local pull** (`scripts/run_events_daily.ps1`
+  step 2), failing loudly if the pull fails.
+- **D4** Telegram alerts: deferred until after the shadow run, as recommended.
+- **D5** Additive, versioned `event_register.json` and `shock_register.json` handed to the screener: approved.

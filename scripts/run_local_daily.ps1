@@ -103,5 +103,12 @@ foreach ($name in @("current_sector_ranking.json", "current_regime.json", "cost_
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
     Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force   # no reader sees half a file
 }
+# Optional (D5, 2026-10-22): the shock register. A missing file is skipped, never a failure of this run.
+foreach ($name in @("shock_register.json")) {
+    $src = Join-Path $RepoRoot "outputs\$name"
+    if (-not (Test-Path $src)) { Log "export skipped (optional): $src is missing"; continue }
+    Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
+    Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force
+}
 Log "done"
 exit 0

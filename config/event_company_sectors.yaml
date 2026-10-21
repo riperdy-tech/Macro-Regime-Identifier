@@ -1,0 +1,24 @@
+# E2 company-specific checks (plan v2 §6): the named stock's 2-session return minus its sector ETF's.
+# The screener's stocks.json carries a Yahoo-style `sector` string per ticker. This maps that string to the MRI
+# sector_id whose proxy_ticker (config/sectors.yaml) is the benchmark ETF. It mirrors the screener's
+# GICS_TO_MACRO_ID (scripts/score_factors_dual_door.py); MRI does not import screener code (workspace rule), so the
+# mapping is restated here. A sector string not listed (e.g. "Unknown", "") gives data_unavailable, reason
+# no_sector_benchmark; it is never guessed.
+version: 1
+yahoo_sector_to_sector_id:
+  Communication Services: communication_services
+  Consumer Cyclical: consumer_discretionary
+  Consumer Defensive: consumer_staples
+  Energy: energy
+  Financial Services: financials
+  Healthcare: health_care
+  Industrials: industrials
+  Technology: information_technology
+  Basic Materials: materials
+  Real Estate: real_estate
+  Utilities: utilities
+# Themes whose company-level reaction has an expected sign. Any other theme still gets the company check, recorded
+# with expected_sign null and result recorded (no aligned/opposed call).
+company_expected_sign:
+  credit_stress: -1
+  credit_easing: 1

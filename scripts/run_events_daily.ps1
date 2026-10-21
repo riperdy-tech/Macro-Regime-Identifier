@@ -3,13 +3,21 @@
 #   1. the import check (a stale editable install must fail loudly, as in run_daily_diagnostic.ps1)
 #   2. hydration: scripts/pull_news_history.ps1 (git fetch of run-history, then `import-news-history` with its
 #      freshness / exit semantics). A failed hydration stops the job: the register is built only from a hydrated store.
+#   2b. confirmation prices (E2): `refresh-confirmation-prices` for the base instruments, the sector ETFs and the
+#      tickers named by yesterday's open candidates (Yahoo daily closes, standing approval O5). Never fatal: a failed or
+#      partial refresh leaves the affected checks pending or data_unavailable, which the register says. A ticker named
+#      for the first time today is fetched by tomorrow's run.
 #   3. `events-daily`: freshness check, build, firewall assertion, atomic write of outputs/event_register.json,
 #      a dated copy under outputs/archive/, and outputs/event_register_run.json.
+#   4. export event_register.json and event_register_run.json to $ExportDir, the folder every account can read (the
+#      screener runner runs as NETWORK SERVICE; see run_local_daily.ps1 step 7). The run record is exported on failure
+#      too, so the screener can show a stale register as stale; the register itself only after a successful build.
 #
 # Logs: logs/events/events_daily_<timestamp>.log. On any failure the script exits non-zero and writes a short summary to
 # logs/events/last_failure.txt (removed on success); the previous event_register.json is left in place.
 # No window, no prompt: safe under a hidden scheduled task. It never pushes and never registers anything.
 # Registered by a separate, operator-run script (register_events_daily_task.ps1); this script does not.
+param([string]$ExportDir = "C:\ProgramData\stocks-mri\outputs")
 $ErrorActionPreference = "Continue"
 
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -25,6 +33,17 @@ $MaxAgeHours = if ($env:NEWS_HYDRATION_MAX_AGE_HOURS) { $env:NEWS_HYDRATION_MAX_
 
 function Log([string]$msg) {
     Add-Content -Path $LogPath -Value ((Get-Date -Format "yyyy-MM-dd HH:mm:ss") + " " + $msg) -Encoding utf8
+}
+
+function Export([string[]]$names) {
+    New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
+    foreach ($name in $names) {
+        $src = Join-Path $RepoRoot "outputs\$name"
+        if (-not (Test-Path $src)) { Log "export skipped: $src is missing"; continue }
+        Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
+        Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force   # no reader sees half a file
+        Log "exported $name -> $ExportDir"
+    }
 }
 
 function Fail([string]$step, [int]$code) {
@@ -45,9 +64,26 @@ Log "step: hydration"
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ScriptDir "pull_news_history.ps1") *>> $LogPath
 if ($LASTEXITCODE -ne 0) { Fail "hydration" $LASTEXITCODE }
 
+Log "step: confirmation prices"
+$Named = @()
+$PrevRegister = Join-Path $RepoRoot "outputs\event_register.json"
+if (Test-Path $PrevRegister) {
+    try {
+        $prev = Get-Content $PrevRegister -Raw -Encoding utf8 | ConvertFrom-Json
+        $Named = @($prev.candidates | Where-Object { $_.status_window.status -eq "open" } |
+                   ForEach-Object { $_.entities_resolved } | ForEach-Object { @($_.tickers)[0] } |
+                   Where-Object { $_ } | Sort-Object -Unique)
+    } catch { Log "confirmation prices: previous register unreadable ($_); base instruments only" }
+}
+& $Py -m macro_engine.cli refresh-confirmation-prices --db-path $DbPath --tickers ($Named -join ",") *>> $LogPath
+if ($LASTEXITCODE -ne 0) { Log "confirmation prices: refresh incomplete (exit $LASTEXITCODE); continuing, the register says which checks lack data" }
+
 Log "step: events-daily"
 & $Py -m macro_engine.cli events-daily --db-path $DbPath --outputs-dir outputs --max-age-hours $MaxAgeHours *>> $LogPath
-if ($LASTEXITCODE -ne 0) { Fail "events-daily" $LASTEXITCODE }
+if ($LASTEXITCODE -ne 0) { Export @("event_register_run.json"); Fail "events-daily" $LASTEXITCODE }
+
+Log "step: export -> $ExportDir"
+Export @("event_register.json", "event_register_run.json")
 
 Remove-Item -Force -ErrorAction SilentlyContinue $FailPath
 Log "events_daily ok"

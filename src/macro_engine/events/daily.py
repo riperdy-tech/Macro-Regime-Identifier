@@ -30,6 +30,7 @@ import yaml
 from macro_engine import peer_paths
 from macro_engine.events.config import load_e1_config, load_generic_entities
 from macro_engine.events.entities import load_resolver, normalize_name
+from macro_engine.events.market_check import attach_market_response, read_stock_sectors
 from macro_engine.events.linker import ArmALinker, ArmBLinker, load_arm_a_config, load_arm_b_config
 from macro_engine.events.register import (
     REGISTER_FILENAME,
@@ -73,6 +74,24 @@ def load_grouping(path: str | Path = DEFAULT_CONFIG_PATH) -> str:
     if mode not in GROUPING_MODES:
         raise ValueError(f"{path}: register.grouping must be one of {GROUPING_MODES}, got {mode!r}")
     return str(mode)
+
+
+def load_window_days(path: str | Path = DEFAULT_CONFIG_PATH) -> int:
+    doc = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
+    return int((doc.get("register") or {})["window_days"])
+
+
+def window_candidates(doc: dict[str, Any], as_of_day: date, days: int) -> dict[str, Any]:
+    """Keep candidates whose latest report is within `days` of `as_of_day`; say how many were left out."""
+    cutoff = as_of_day - timedelta(days=days)
+    keep = [c for c in doc["candidates"]
+            if c.get("last_report_at") is None or datetime.fromisoformat(c["last_report_at"]).date() >= cutoff]
+    out = dict(doc)
+    out["candidates"] = keep
+    out["candidate_count"] = len(keep)
+    out["window"] = {"days": days, "since": cutoff.isoformat(), "omitted_older": len(doc["candidates"]) - len(keep),
+                     "note": "Older candidates remain in the store's event tables and in the dated archive copies."}
+    return out
 
 
 def as_of_instant(day: date) -> datetime:
@@ -183,6 +202,15 @@ def summarize(doc: dict[str, Any]) -> dict[str, Any]:
 # ----------------------------------------------------------------------------- the job
 
 
+def _stock_sectors(warnings: list[str]) -> dict[str, str]:
+    """Ticker -> stocks.json sector string, for E2 company checks. Missing: the checks say no_sector_benchmark."""
+    try:
+        return read_stock_sectors(peer_paths.screener_data_dir(required=True) / "stocks.json")
+    except Exception as exc:  # noqa: BLE001 - company checks are annotations; say so, do not stop the register
+        warnings.append(f"stock_sectors_unavailable:{type(exc).__name__}")
+        return {}
+
+
 def _build(db_path: Path, mode: str, as_of_day: date, warnings: list[str]) -> tuple[dict[str, Any], dict[str, Any]]:
     import duckdb
 
@@ -223,8 +251,10 @@ def _build(db_path: Path, mode: str, as_of_day: date, warnings: list[str]) -> tu
         result.closed += state.close_stale(when.date())
         store.record(pool, state)
         refreshed = refresh_report_details(con, pool, state)
-        doc = finalize_document(build_register(con, when, config=cfg, arm=arm, open_days=state.cfg.open_days),
-                                mode, as_of_day, warnings)
+        doc = window_candidates(build_register(con, when, config=cfg, arm=arm, open_days=state.cfg.open_days),
+                                as_of_day, load_window_days())
+        doc = finalize_document(doc, mode, as_of_day, warnings)
+        doc = attach_market_response(con, doc, as_of_day, stock_sectors=_stock_sectors(warnings))
         counts = {"pool_reports": len(pool), "pool_items": sum(len(p.item_ids) for p in pool),
                   "created": len(result.created), "joined": len(result.joined),
                   "already_assigned": len(result.skipped_existing), "closed": len(result.closed),

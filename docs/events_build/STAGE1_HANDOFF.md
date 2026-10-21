@@ -78,3 +78,34 @@ names for publishing) define `SNAPSHOT_FILES`, a tuple of five names copied from
 - `entities_unresolved` of status `generic` (e.g. "United States") are not companies; do not link them to tickers.
 - Themes are annotations. Never use them to group or merge candidates.
 - Nothing on this page may change a screener score, rank or verdict.
+
+## Added 2026-10-22: E2 market response and E4 sector exposure
+
+Both are additive; `schema_version` stays 1.
+
+**Per candidate, `market_response`** (it was `{"checks": []}`):
+
+- `checks[]`, one entry per theme the candidate carries: `theme_id`, `direction`, `result`, `reason`, `families[]`
+  (`family`, `instrument`, `expected_sign`, `check_key`, `result`, `response_current`, `provisional`), `provisional`.
+  `result` is one of `aligned`, `opposed`, `mixed`, `no_signal`, `pending`, `data_unavailable`, `display_only`, `not_scored`.
+- `company_checks[]`, one per resolved ticker: `ticker`, `benchmark` (its sector ETF), `abnormal_move` (log %), `z`,
+  `expected_sign` (set only for credit themes), `result` (`aligned` / `opposed` / `no_signal` / `recorded` / `pending` /
+  `data_unavailable`), `recorded_as: "equity_reaction_only"`, `bond_data: "unavailable"`.
+- `bond_data: "unavailable"`.
+
+**Top level:** `market_checks` (one entry per check key, with `shared_with`; count keys, not candidates) and
+`market_response_method` (window, threshold, and a plain-language `meaning` to show).
+
+**Per candidate, `sector_exposure[]`:** classifier sector impacts clearing confidence ≥ 0.6 and |impact| ≥ 0.3, with
+`sector_id`, `impact_score`, `confidence`, `impact_direction`, `report_id`, and `flags`. A `guardrail_contradiction:<theme>`
+flag is a review warning, not a validation. The screener expands `sector_exposure` and the resolved tickers to the
+`named` / `peer` / `sector` tiers with its own taxonomy.
+
+**Display rules (in addition to those above):**
+
+- Label the block "What the market did after this news". Never "confirmed", "validated" or "impact". A move on the same
+  days is not evidence that this news caused it; unrelated stories show `aligned` on busy days. Show the `meaning` text.
+- Show `pending` as "waiting for 2 trading days", and `data_unavailable` with its reason. Never show a zero.
+- Mark `provisional` results (the oil tail) as provisional.
+- `display_only` and `not_scored` themes are listed without a market result.
+- A company check is about the stock only. Show "bond data unavailable" and never word it as a credit-market result.

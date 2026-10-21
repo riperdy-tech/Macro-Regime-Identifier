@@ -41,6 +41,7 @@ from macro_engine.events.builder import (
 )
 from macro_engine.events.config import E1Config
 from macro_engine.events.entities import EntityResolver
+from macro_engine.events.exposure import sector_exposure
 from macro_engine.events.linker import ArmAConfig, ArmBConfig, Background, make_background
 from macro_engine.events.state import CLOSED, OPEN, DayResult, EventState, Linker, Report
 
@@ -133,6 +134,7 @@ def collapse_pool(
             "classified_item_id": rep.canonical.item.news_id if cls is not None else None,
             "entities": [_entity_detail(e) for e in refs], "flags": flags,
             "official_hosts": sorted({m.host for m in rep.members if m.host in config.official_source_domains}),
+            "sector_exposure": sector_exposure(cls.sector_impacts, _theme_dirs(cls)) if cls is not None else [],
         }
         out.append(PoolReport(report, tuple(m["item_id"] for m in members), members, detail))
     out.sort(key=lambda p: (p.report.first_seen_at, p.report.published_at is None,
@@ -383,6 +385,9 @@ def build_register(
             "resolver_flags": sorted(resolver_flags),
             "themes": [{"theme_id": t, "direction": d, "reports": n, "role": "annotation_only"}
                        for (t, d), n in sorted(themes.items())],
+            "sector_exposure": sorted((dict(e, report_id=r["report_id"]) for r in reps
+                                       for e in r["detail"].get("sector_exposure", [])),
+                                      key=lambda e: (e["sector_id"], e["report_id"])),
             "related_candidates": related,
             "storyline": None,
             "onset": _iso(ev["onset_published_at"]),

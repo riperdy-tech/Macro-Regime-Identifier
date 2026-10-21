@@ -107,6 +107,7 @@ unratified:
     rationale: "Plan says trading days / US calendar but names no holiday table. E0.4 deliberately keeps none (weekday lags carry the slack)."
     proposed: "NYSE full-day closures table maintained in the repository, with a freshness test; alternative: weekday-only with the same slack."
   onset_timezone_for_date:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): America/New_York, as proposed (matches e2.p_ref_timezone)."
     rationale: "P_ref is 'dated before the onset date (US calendar)'; the timezone that turns a UTC published_at into a US date is not stated."
     proposed: America/New_York
   price_series_for_returns:
@@ -115,9 +116,11 @@ unratified:
     options: ["<SYM> close", "<SYM>#adjclose"]
     note: "No #adjclose series was present in the local store at freeze (all instruments were pulled before E0.4 stored adjclose); a re-pull is needed first if adjclose is chosen."
   theme_direction_scoring:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: a theme is scored only when its classifier direction is positive; other directions give result not_scored with reason direction_<d>, kept on the record."
     rationale: "The theme map is keyed by theme alone, but the classifier gives each theme a direction (positive/negative/mixed/neutral/unclear). The plan does not say which directions are scored, or what a negative direction means (e.g. monetary_tightening negative)."
     proposed: "Score a theme only when its classifier direction is positive (the theme is occurring); negative, mixed, neutral, unclear => not scored for that theme, kept on the record."
   event_theme_selection:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: every market-checkable theme the candidate carries, one result per theme."
     rationale: "An event may carry several themes across its reports; which of them are scored is not stated."
     proposed: "Score every market-checkable theme the event carries; one theme result per theme."
   p_ref_vs_after_close_news:
@@ -125,15 +128,19 @@ unratified:
     rationale: "Plan s6 says P_ref excludes the onset-date close because news arrives after the US close, 'to avoid counting a move made before the news'. For news that arrives after the close, the onset-date close is itself before the news, so excluding it puts the pre-news onset-day move inside move_k. Transcribed exactly as written; flagged for a ruling."
     proposed: "Operator to rule; no behaviour chosen here."
   session_counting_for_k:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: k counts stored observations of the instrument after P_ref."
     rationale: "'k = 2 sessions after P_ref' and 'move over k' are not defined when the series has a gap or P_ref is days before onset."
     proposed: "move_k = value at the k-th observed session after P_ref minus value at P_ref, counted in stored observations."
   mad_zero:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: data_unavailable with reason mad_zero."
     rationale: "A robust SD of 0 (MAD = 0) makes z undefined."
     proposed: "result data_unavailable with reason mad_zero."
   wti_series:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: the baseline is FRED DCOILWTICO; sessions past FRED's last observation come from the chained CL=F tail (shocks/register._oil_levels_with_tail) and the result carries provisional."
     rationale: "Plan says 'WTI (FRED + Yahoo tail)'. The existing oil tail chains Yahoo CL=F daily returns onto the last FRED DCOILWTICO level (shocks/register.py), and CL=F in the store holds about 67 rows, below the 250 required for a z baseline."
     proposed: "Baseline on FRED DCOILWTICO; a result that uses tail sessions carries the provisional flag."
   series_staleness_limits:
+    ruling: "Orchestrator-ruled 2026-10-22 under the operator's D1-D5 go (STEP0_RECORD.md): as proposed: 3 weekdays for every listed FRED series; newer data missing within the limit gives pending, beyond it data_unavailable with reason stale_series."
     rationale: "Plan asks for per-instrument lag limits but gives none for FRED series. E0.4 uses default_max_lag_weekdays 3 for Yahoo."
     proposed_default_weekdays: 3
     series: [DGS2, T10YIE, T10Y2Y, BAMLH0A0HYM2, BAA10Y, VIXCLS, DCOILWTICO]

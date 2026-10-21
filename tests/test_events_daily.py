@@ -89,7 +89,11 @@ def test_syndication_shape(world):
     assert c["publisher_count"] == 1 and c["official_source"] is False
     assert c["corroboration"]["category"] == "single_source" and "single_source" in c["flags"]
     assert c["classification_status"]["classified_reports"] == 1
-    assert c["market_response"] == {"checks": []}
+    # E2 (2026-10-22) fills the block; this fixture has no price series, so nothing is computed and nothing is guessed.
+    mr = c["market_response"]
+    assert mr["bond_data"] == "unavailable" and mr["company_checks"] == []
+    assert all(chk["result"] in ("not_scored", "display_only", "data_unavailable") for chk in mr["checks"])
+    assert "market_checks" in doc and "market_response_method" in doc
     assert c["themes"] and all(t["role"] == "annotation_only" for t in c["themes"])
     assert by_title[TITLES["n2"]]["official_source"] is True
     assert by_title[TITLES["n2"]]["corroboration"]["category"] == "officially_sourced"
@@ -257,3 +261,17 @@ def test_cli_exit_codes(world):
                                      "--as-of", "2026-10-18", "--max-age-hours", "0.001"])
     assert stale.exit_code == 1
     assert json.loads((out / RUN_FILENAME).read_text(encoding="utf-8"))["status"] == "failed"
+
+
+def test_window_keeps_recent_candidates_and_says_how_many_it_left_out():
+    from macro_engine.events.daily import window_candidates
+
+    doc = {"candidate_count": 3, "candidates": [
+        {"candidate_id": "evt_old", "last_report_at": "2026-09-01T10:00:00"},
+        {"candidate_id": "evt_edge", "last_report_at": "2026-09-22T00:00:00"},
+        {"candidate_id": "evt_new", "last_report_at": "2026-10-21T08:00:00"},
+    ]}
+    out = window_candidates(doc, date(2026, 10, 22), 30)
+    assert [c["candidate_id"] for c in out["candidates"]] == ["evt_edge", "evt_new"]
+    assert out["candidate_count"] == 2
+    assert out["window"]["omitted_older"] == 1 and out["window"]["since"] == "2026-09-22"
