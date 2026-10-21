@@ -124,3 +124,8 @@ for the risk-free legs and returns an empty result when the file is locked, so t
 This job holds the store for about 20 s a day; the 06:30 MRI daily holds it longer. A GPU run that reads the risk-free rate
 during either window loses that input silently. Until rs2 retries on a locked file, avoid scheduling GPU runs across
 13:00 KST, or have rs2 read a copy.
+
+Update 2026-10-22: rs2 `mri/query-retry-on-lock` (dd7f9ff) retries a locked store 6 x 10 s, then raises `MriStoreLocked`.
+The Phase 4 coordinator approved it; it merges into `review-2026-10/r26-int` after the full rs2 suite. Exposure is mainly
+in point-in-time builds (time_travel_trial, the acceptance tools). Live-mode packs read the anchor JSONs, and
+`bill_rate_mean` reads a parquet, so neither touches the store.
