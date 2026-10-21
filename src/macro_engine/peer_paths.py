@@ -93,6 +93,32 @@ def screener_data_dir(required: bool = False) -> Path | None:
     return None
 
 
+def sec_company_tickers_path(required: bool = False) -> Path | None:
+    """SEC `company_tickers_exchange.json`, a local copy only (the entity resolver never downloads).
+
+    SEC_COMPANY_TICKERS_PATH is used verbatim when set. Otherwise the newest dated folder under
+    `<root>/stocks-workspace/data/sec_bulk/company_tickers_*/` that holds the file.
+    """
+    env = (os.environ.get("SEC_COMPANY_TICKERS_PATH") or "").strip()
+    if env:
+        return Path(env).expanduser()
+
+    for root in _candidate_roots():
+        bulk = root / "stocks-workspace" / "data" / "sec_bulk"
+        hits = sorted(bulk.glob("company_tickers_*/company_tickers_exchange.json")) if bulk.is_dir() else []
+        if hits:
+            return hits[-1]
+
+    if required:
+        tried = ", ".join(str(r / "stocks-workspace" / "data" / "sec_bulk") for r in _candidate_roots())
+        raise FileNotFoundError(
+            f"cannot locate a local SEC company_tickers_exchange.json. Tried SEC_COMPANY_TICKERS_PATH, "
+            f"then company_tickers_*/ under: {tried}. Set SEC_COMPANY_TICKERS_PATH or STOCKS_ROOT - do "
+            f"not guess."
+        )
+    return None
+
+
 def rs2_config_path(required: bool = False) -> Path | None:
     """RS2's config.json, read only to borrow `anchor_max_age_days`.
 
@@ -119,6 +145,7 @@ def rs2_config_path(required: bool = False) -> Path | None:
 if __name__ == "__main__":
     print(f"roots              = {', '.join(str(r) for r in _candidate_roots())}")
     for label, value in (("screener_data_dir", screener_data_dir()),
-                         ("rs2_config_path", rs2_config_path())):
+                         ("rs2_config_path", rs2_config_path()),
+                         ("sec_company_tickers", sec_company_tickers_path())):
         state = "" if value is None else ("(exists)" if value.exists() else "(MISSING)")
         print(f"{label:18s} = {value}  {state}")

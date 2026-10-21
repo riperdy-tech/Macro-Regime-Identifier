@@ -234,7 +234,8 @@ class TestGitHubWorkflowConfig:
         assert "live_ai_flag=--live-ai" in content
         assert "${{ steps.mode.outputs.live_ai_flag }}" in content
         assert "--max-live-items" in content
-        assert "${{ inputs.max_live_items || '60' }}" in content
+        # D2 (operator, 2026-10-22): the scheduled default moved 60 -> 150 to match max_items_per_run.
+        assert "${{ inputs.max_live_items || '150' }}" in content
         assert "pipeline_config=config/daily_pipeline_github_live.yaml" in content
         assert "default_source_profile=live_rss" in content
         assert "--config \"${{ steps.mode.outputs.pipeline_config }}\"" in content

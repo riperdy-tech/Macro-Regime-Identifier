@@ -1810,13 +1810,166 @@ def export_news_history_cli(
 def import_news_history_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
     snapshot_dir: Annotated[str, typer.Option("--snapshot-dir")] = "outputs/news_history",
+    max_age_hours: Annotated[
+        float | None,
+        typer.Option(
+            "--max-age-hours",
+            help="Fail (exit 1) if the store's newest first_seen_at is older than this.",
+        ),
+    ] = None,
+    report_path: Annotated[
+        str | None, typer.Option("--report-path", help="Also write the JSON report here.")
+    ] = None,
 ) -> None:
     """N1.4: insert-if-absent hydrate of the durable snapshot into the local
-    store. Additive only -- never displaces an existing real classification."""
-    from macro_engine.news.history import import_news_history
+    store. Additive only -- never displaces an existing real classification.
+    With --max-age-hours the run is also a freshness check: any hydrate error,
+    an empty manifest or a stale store exits non-zero."""
+    from macro_engine.news.history import (
+        hydration_problems,
+        import_news_history,
+        news_store_freshness,
+    )
 
     result = import_news_history(db_path=db_path, history_dir=snapshot_dir)
-    console.print_json(data=result)
+    if max_age_hours is None and report_path is None:
+        console.print_json(data=result)
+        return
+    freshness = news_store_freshness(db_path)
+    problems = (
+        hydration_problems(result, freshness, max_age_hours)
+        if max_age_hours is not None
+        else list(result.get("errors") or [])
+    )
+    report = {"hydrate": result, "freshness": freshness, "problems": problems, "ok": not problems}
+    if report_path:
+        Path(report_path).parent.mkdir(parents=True, exist_ok=True)
+        Path(report_path).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+    if problems:
+        raise typer.Exit(code=1)
+
+
+@app.command("events-daily")
+def events_daily_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    grouping: Annotated[
+        str | None,
+        typer.Option("--grouping", help="syndication | arm_a | arm_b; default config/events_register.yaml."),
+    ] = None,
+    max_age_hours: Annotated[
+        float,
+        typer.Option("--max-age-hours", help="Fail (exit 1, no register) if the news store's newest first_seen_at is older."),
+    ] = 48.0,
+    protected_dir: Annotated[
+        str | None, typer.Option("--protected-dir", help="Where the firewall reads protected artifacts; default --outputs-dir.")
+    ] = None,
+) -> None:
+    """Daily candidate register: freshness check, build, firewall assertion, atomic write of event_register.json
+    (+ dated archive copy) and event_register_run.json. Exits 1 and keeps the previous register on any failure."""
+    from datetime import date
+
+    from macro_engine.events.daily import load_grouping, run_events_daily
+
+    day = date.fromisoformat(as_of) if as_of else pd.Timestamp.now(tz="UTC").date()
+    code, run = run_events_daily(
+        db_path=db_path, outputs_dir=outputs_dir, as_of_day=day, grouping=grouping or load_grouping(),
+        max_age_hours=max_age_hours, protected_dir=protected_dir,
+    )
+    console.print_json(data={k: run.get(k) for k in (
+        "status", "as_of_date", "grouping_mode", "counts", "summary", "freshness", "firewall", "errors", "warnings")})
+    if code:
+        raise typer.Exit(code=code)
+
+
+@app.command("report-news-classification-coverage")
+def report_news_classification_coverage_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    window_days: Annotated[int, typer.Option("--window-days")] = 14,
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    cap: Annotated[int | None, typer.Option("--cap", help="Items/day cap to project token cost at.")] = None,
+    since: Annotated[
+        str | None, typer.Option("--since", help="Count only days on/after this date (cap change day).")
+    ] = None,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.2a: rolling classified share (target >= 85%) and measured token usage per day.
+    Read-only. Does not claim the criterion is met until the window holds `window-days` days."""
+    from macro_engine.news.coverage_report import daily_token_usage, rolling_classified_share
+
+    store = DuckDBStore(db_path)
+    store.initialize()
+    items = store.read_table("news_items")
+    classifications = store.read_table("news_classifications")
+    day = pd.Timestamp(as_of).date() if as_of else pd.Timestamp.now(tz="UTC").date()
+    report = {
+        "coverage": rolling_classified_share(items, classifications, as_of=day, window_days=window_days,
+                                         since=pd.Timestamp(since).date() if since else None),
+        "tokens": daily_token_usage(classifications, cap_items_per_day=cap),
+    }
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+
+
+@app.command("report-gdelt-success")
+def report_gdelt_success_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    window_days: Annotated[int, typer.Option("--window-days")] = 14,
+    as_of: Annotated[str | None, typer.Option("--as-of", help="UTC date; default today.")] = None,
+    since: Annotated[
+        str | None, typer.Option("--since", help="Count only days on/after this date (repair day).")
+    ] = None,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.2b: rolling GDELT success rate over scheduled pulls (target >= 90%). Read-only."""
+    from macro_engine.news.gdelt_report import rolling_gdelt_success_rate
+
+    store = DuckDBStore(db_path)
+    store.initialize()
+    day = pd.Timestamp(as_of).date() if as_of else pd.Timestamp.now(tz="UTC").date()
+    report = rolling_gdelt_success_rate(
+        store.read_table("news_source_runs"),
+        as_of=day,
+        window_days=window_days,
+        since=pd.Timestamp(since).date() if since else None,
+    )
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+
+
+@app.command("refresh-confirmation-prices")
+def refresh_confirmation_prices_cli(
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+    tickers: Annotated[
+        str, typer.Option("--tickers", help="Comma-separated named tickers to add to the base instruments.")
+    ] = "",
+    check_only: Annotated[
+        bool, typer.Option("--check-only", help="Report freshness of stored closes; fetch nothing.")
+    ] = False,
+    out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
+) -> None:
+    """E0.4: pull daily Yahoo closes (SPY, XLE, KBE, the 11 sector ETFs, named tickers) into
+    market_observations and report per-instrument freshness. Exits 1 if any instrument is not fresh."""
+    from macro_engine.events import confirmation_prices as cp
+
+    cfg = cp.load_config()
+    named = [t for t in tickers.split(",") if t.strip()]
+    if check_only:
+        report = cp.freshness_report(db_path, cp.instrument_list(cfg, named), cfg)
+    else:
+        report = cp.refresh_confirmation_prices(db_path, named, cfg=cfg)
+    if out:
+        Path(out).parent.mkdir(parents=True, exist_ok=True)
+        Path(out).write_text(json.dumps(report, indent=2, default=str), encoding="utf-8")
+    console.print_json(data=report)
+    if not report["ok"]:
+        raise typer.Exit(code=1)
 
 
 def _latest_news_score_date(themes: pd.DataFrame, sectors: pd.DataFrame) -> pd.Timestamp:

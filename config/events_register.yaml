@@ -1,0 +1,15 @@
+# Daily candidate register (events-daily). docs/events_build/STAGE1_RUNBOOK.md.
+#
+# grouping:
+#   syndication  (default) syndication-collapsed reports only; no linking across reports. This is the Stage 1 production mode
+#                (V23_PREREGISTRATION.md section 7: linker arms remain experimental).
+#   arm_a        arm A linker groups reports into candidates. EXPERIMENTAL, labelled so in the file.
+#   arm_b        arm B (arm A plus stored dense title vectors). EXPERIMENTAL, labelled so in the file.
+# One store holds one grouping mode: events-daily refuses to switch the mode on a store that already holds
+# candidates written under another one.
+register:
+  grouping: syndication
+  # The daily file lists candidates whose latest report is at most this many days old (2026-10-22). Older candidates stay
+  # in the store's event tables and in each day's archive copy; the file states how many it left out. A display window,
+  # not a filter on the evidence: without it the file grew by ~100 candidates a day (2.3 MB after one week).
+  window_days: 30

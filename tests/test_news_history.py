@@ -355,9 +355,42 @@ def test_corrupt_partition_is_skipped_and_reported(tmp_path: Path):
     dst_db = tmp_path / "dest.duckdb"
     result = hydrate_news_history(db_path=dst_db, history_dir=history_dir)
     assert any(code.startswith("snapshot_partition_corrupt:") for code in result["errors"])
-    # The run continues: the classifications partition still hydrates.
+    # Classifications whose item did not make it in are not hydrated (no stranded rows), and say so.
+    assert any(code.startswith("snapshot_classifications_without_item:classifications/") for code in result["errors"])
     dst_store = DuckDBStore(dst_db)
-    assert len(dst_store.read_table("news_classifications")) == 2
+    assert len(dst_store.read_table("news_classifications")) == 0
+    assert result["classifications_inserted"] == 0
+
+
+def test_classification_in_a_different_day_file_than_its_item_is_hydrated(tmp_path: Path):
+    src_db = tmp_path / "source.duckdb"
+    history_dir = tmp_path / "history"
+    store = DuckDBStore(src_db)
+    store.initialize()
+    seen = datetime(2026, 6, 1, 9, 0, 0, tzinfo=UTC)
+    store.merge_news_items(pd.DataFrame([_item("news_a", first_seen_at=seen), _item("news_b", first_seen_at=seen)]))
+    later = datetime(2026, 6, 3, 11, 0, 0, tzinfo=UTC)  # classified two days after the item was first seen
+    store.write_news_classifications(
+        pd.DataFrame([_classification("cls_a", "news_a", classified_at=later),
+                      _classification("cls_b", "news_b", classified_at=later)]),
+        pd.DataFrame(), pd.DataFrame(), origin="live",
+    )
+    export_news_history(db_path=src_db, history_dir=history_dir)
+    parts = json.loads((history_dir / "manifest.json").read_text())["partitions"]
+    assert any("2026-06-01" in p for p in parts if p.startswith("items/"))
+    assert any("2026-06-03" in p for p in parts if p.startswith("classifications/"))
+
+    dst_db = tmp_path / "dest.duckdb"
+    result = hydrate_news_history(db_path=dst_db, history_dir=history_dir)
+    assert result["errors"] == [] and result["classifications_inserted"] == 2
+
+    # an items file that fails its checksum drops only the classifications whose item is missing
+    items_part = next(p for p in parts if p.startswith("items/"))
+    (history_dir / items_part).write_bytes(b"not a real parquet file")
+    cold = tmp_path / "cold.duckdb"
+    bad = hydrate_news_history(db_path=cold, history_dir=history_dir)
+    assert bad["classifications_inserted"] == 0
+    assert any(c.startswith("snapshot_classifications_without_item:") and c.endswith(":2") for c in bad["errors"])
 
 
 def test_import_news_history_is_the_same_as_hydrate(tmp_path: Path):
@@ -636,3 +669,107 @@ def test_local_import_never_displaces_existing_real_rows(tmp_path: Path):
     row = dst_store.read_table("news_classifications")
     row = row[row["news_id"] == "news_1"].iloc[0]
     assert row["classification_id"] == "local_real_1"
+
+
+# --- E0.1: daily hydration is idempotent and fails loudly ---------------------------------------
+
+
+def _seed_with_first_seen(db_path: Path, first_seen: datetime) -> None:
+    store = DuckDBStore(db_path)
+    store.initialize()
+    store.merge_news_items(pd.DataFrame([_item("news_1", first_seen_at=first_seen)]))
+    store.write_news_classifications(
+        pd.DataFrame([_classification("cls_1", "news_1")]), pd.DataFrame(), pd.DataFrame(), origin="live"
+    )
+
+
+def test_second_hydration_is_a_no_op(tmp_path: Path):
+    src_db, history_dir, dst_db = tmp_path / "s.duckdb", tmp_path / "h", tmp_path / "d.duckdb"
+    _seed_store(src_db, n=2)
+    export_news_history(db_path=src_db, history_dir=history_dir)
+    first = import_news_history(db_path=dst_db, history_dir=history_dir)
+    second = import_news_history(db_path=dst_db, history_dir=history_dir)
+    assert first["items_inserted"] == 2
+    assert second["items_inserted"] == 0
+    assert second["classifications_inserted"] == 0
+    assert second["errors"] == []
+    assert len(DuckDBStore(dst_db).read_news_items()) == 2
+
+
+def test_freshness_reports_age_and_treats_null_first_seen_as_not_fresh(tmp_path: Path):
+    from macro_engine.news.history import news_store_freshness
+
+    db = tmp_path / "f.duckdb"
+    _seed_with_first_seen(db, datetime(2026, 10, 16, 20, 0, 0))
+    fresh = news_store_freshness(db, now=datetime(2026, 10, 17, 8, 0, 0, tzinfo=UTC))
+    assert fresh["items"] == 1
+    assert fresh["age_hours"] == 12.0
+
+    legacy = tmp_path / "legacy.duckdb"
+    store = DuckDBStore(legacy)
+    store.initialize()
+    store.merge_news_items(pd.DataFrame([_item("news_1")]))
+    import duckdb
+
+    con = duckdb.connect(str(legacy))
+    con.execute("UPDATE news_items SET first_seen_at = NULL")  # pre-migration rows
+    con.close()
+    out = news_store_freshness(legacy, now=datetime(2026, 10, 17, tzinfo=UTC))
+    assert out["items"] == 1 and out["age_hours"] is None
+
+
+def test_hydration_problems_flags_errors_empty_manifest_and_stale_store():
+    from macro_engine.news.history import hydration_problems
+
+    ok = {"errors": [], "manifest_totals": {"items": 5}}
+    assert hydration_problems(ok, {"age_hours": 0.0, "error": None}, 48) == []  # 0.0 is a value
+    assert hydration_problems(ok, {"age_hours": 49.0, "error": None}, 48) == ["store_stale:49.0h>48h"]
+    assert "snapshot_manifest_missing_or_empty" in hydration_problems(
+        {"errors": [], "manifest_totals": {}}, {"age_hours": 1.0, "error": None}, 48
+    )
+    assert "snapshot_partition_corrupt:x" in hydration_problems(
+        {"errors": ["snapshot_partition_corrupt:x"], "manifest_totals": {"items": 1}},
+        {"age_hours": 1.0, "error": None},
+        48,
+    )
+    assert hydration_problems(ok, {"age_hours": None, "error": None}, 48) == ["store_has_no_first_seen_at"]
+
+
+def test_cli_import_exits_nonzero_when_stale_and_writes_report(tmp_path: Path):
+    from typer.testing import CliRunner
+
+    from macro_engine.cli import app
+
+    src_db, history_dir, dst_db = tmp_path / "s.duckdb", tmp_path / "h", tmp_path / "d.duckdb"
+    _seed_with_first_seen(src_db, datetime(2020, 1, 1))  # years old: always stale
+    export_news_history(db_path=src_db, history_dir=history_dir)
+    report = tmp_path / "r" / "report.json"
+    args = [
+        "import-news-history", "--db-path", str(dst_db), "--snapshot-dir", str(history_dir),
+        "--max-age-hours", "48", "--report-path", str(report),
+    ]
+    res = CliRunner().invoke(app, args)
+    assert res.exit_code == 1
+    body = json.loads(report.read_text(encoding="utf-8"))
+    assert body["ok"] is False and body["hydrate"]["items_inserted"] == 1
+    assert any(p.startswith("store_stale") for p in body["problems"])
+
+    missing = CliRunner().invoke(
+        app, ["import-news-history", "--db-path", str(dst_db), "--snapshot-dir",
+              str(tmp_path / "nope"), "--max-age-hours", "99999"]
+    )
+    assert missing.exit_code == 1
+
+
+def test_hydrate_order_puts_items_before_classifications():
+    from macro_engine.news.history import _hydrate_order
+
+    paths = [
+        "classifications/2026/10/classifications_2026-10-01.parquet",
+        "source_runs/2026/10/source_runs_2026-10-01.parquet",
+        "items/2026/10/items_2026-10-01.parquet",
+        "items/2026/09/items_2026-09-30.parquet",
+    ]
+    ordered = sorted(paths, key=_hydrate_order)
+    assert [p.split("/")[0] for p in ordered] == ["items", "items", "classifications", "source_runs"]
+    assert ordered[0].endswith("2026-09-30.parquet")

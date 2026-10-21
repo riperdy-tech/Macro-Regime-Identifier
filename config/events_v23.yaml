@@ -1,0 +1,34 @@
+# MRI events v2.3, Stage 1 linker arm configuration (docs/events_build/V23_PREREGISTRATION.md, section 2).
+# Arm A: character 3-5-gram TF-IDF of the canonical title, linked against an event's ANCHORS (its first reports),
+# with the IDF of resolved entity keys as a SECONDARY additive term. Themes and directions are never read here.
+#
+# Every number below is a free parameter set on the DEVELOPMENT set only (docs/events_build/V23_DEV_TUNING.md) and then
+# frozen; none is read from, or adjusted after seeing, any holdout item. Values written by Phase 4b tuning.
+version: 1
+status: DEV_TUNED_PENDING_FREEZE   # cell 30 of V23_DEV_TUNING.md (optimistic: seen data); becomes frozen by commit hash; see the freeze record in V23_PREREGISTRATION.md
+
+arm_a:
+  ngram_min: 3                 # prereg: char n-gram range 3-5 (fixed by the pre-registration, not tuned)
+  ngram_max: 5
+  title_idf_offset: 1.0        # idf = ln((N + 1) / (df + 1)) + offset, N = background days, df = background days holding the n-gram
+  background_days: 28          # days before the pool start used as the IDF background (tuned on the development set)
+  anchor_count: 3              # prereg: the event's first 3 reports (state.py pins them)
+  entity_weight: 0.25          # weight of the entity-IDF cosine added to the title cosine
+  cutoff: 0.35                 # link only if the best anchor score (title cosine + weight * entity cosine) >= this
+  title_cosine_floor: 0.10     # evidence floor: the best anchor's title cosine ...
+  entity_idf_floor: 2.0        # ... or the IDF of an entity key shared with that anchor, must reach this
+  ambiguity_margin: 0.05       # other events scoring within this of the best (and >= cutoff) mark the decision ambiguous
+  near_miss_fraction: 0.8      # an event scoring >= this fraction of the cutoff but not linked is recorded as a near-miss proposal
+
+# ----- arm B (A plus a dense title-embedding term; docs/events_build/V23_DEV_TUNING_B.md, MODEL_PROVENANCE.md) -----
+# `arm` selects the linker. Which arm is primary is a freeze decision (V23_PREREGISTRATION.md section 1), not a code default.
+arm: A
+dense:
+  model_name: bge-small-en-v1.5          # directory data/models/<model_name>/ (git-ignored)
+  model_sha256: 828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35       # onnx/model.onnx @ BAAI/bge-small-en-v1.5 5c38ec7c405e
+  tokenizer_sha256: d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66   # tokenizer.json, same revision
+  preprocess_version: canon-title-cls-l2-v1
+arm_b:                                   # laid over arm_a; cell 7 of V23_DEV_TUNING_B.md (optimistic: seen data; criteria NOT met)
+  dense_weight: 0.5
+  cutoff: 0.70
+  entity_weight: 0.0

@@ -64,7 +64,23 @@ def test_raising_feed_gives_error_status(tmp_path: Path):
     assert "feed exploded" in results[0].error
 
 
-def test_429_then_429_opens_circuit_for_remaining_gdelt_sources(tmp_path: Path):
+def test_two_consecutive_exhausted_sources_open_circuit_for_the_rest(tmp_path: Path):
+    """E0.2b: one exhausted source no longer opens the breaker (it used to, and took the
+    other five sources of the day with it); GDELT_CIRCUIT_THRESHOLD consecutive ones do."""
+    config_path = _write_gdelt_config(tmp_path, 4)
+    calls: list[str] = []
+
+    def fake_fetch(url: str) -> str:
+        calls.append(url)
+        raise _http_error(429)
+
+    items, results = load_news_items_with_report(config_path, gdelt_fetch=fake_fetch)
+    assert [r.status for r in results] == ["rate_limited", "rate_limited", "circuit_open", "circuit_open"]
+    # No request was made for the circuit_open sources.
+    assert len(calls) == 2
+
+
+def test_one_exhausted_source_does_not_stop_the_next(tmp_path: Path):
     config_path = _write_gdelt_config(tmp_path, 3)
     calls: list[str] = []
 
@@ -75,12 +91,8 @@ def test_429_then_429_opens_circuit_for_remaining_gdelt_sources(tmp_path: Path):
         return json.dumps({"articles": []})
 
     items, results = load_news_items_with_report(config_path, gdelt_fetch=fake_fetch)
-    assert len(results) == 3
-    assert results[0].status == "rate_limited"
-    assert results[1].status == "circuit_open"
-    assert results[2].status == "circuit_open"
-    # No request was made for the circuit_open sources.
-    assert len(calls) == 1
+    assert [r.status for r in results] == ["rate_limited", "empty", "empty"]
+    assert len(calls) == 3
 
 
 def test_single_429_recovers_and_does_not_open_circuit(tmp_path: Path):

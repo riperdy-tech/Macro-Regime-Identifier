@@ -20,6 +20,15 @@ mkdir -p "$PULL_DIR"
 git archive origin/run-history outputs/news_history | tar -x -C "$PULL_DIR"
 
 echo "Hydrating $DB_PATH from $PULL_DIR/outputs/news_history..."
-python -m macro_engine.cli import-news-history \
+# Same interpreter as the .ps1: the repo venv (Scripts/ on Windows Git Bash, bin/ on POSIX).
+if [ -x "$REPO_ROOT/.venv/Scripts/python.exe" ]; then
+  PY="$REPO_ROOT/.venv/Scripts/python.exe"
+else
+  PY="$REPO_ROOT/.venv/bin/python"
+fi
+# Idempotent; exits non-zero on a hydrate error, an empty manifest or a stale store (see the .ps1).
+"$PY" -m macro_engine.cli import-news-history \
   --db-path "$DB_PATH" \
-  --snapshot-dir "$PULL_DIR/outputs/news_history"
+  --snapshot-dir "$PULL_DIR/outputs/news_history" \
+  --max-age-hours "${NEWS_HYDRATION_MAX_AGE_HOURS:-48}" \
+  --report-path "$REPO_ROOT/logs/news_hydration/last_hydration.json"

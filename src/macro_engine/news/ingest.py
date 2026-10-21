@@ -4,8 +4,10 @@ from datetime import UTC, date, datetime
 import hashlib
 import json
 import os
+import random
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Literal
 from urllib.error import HTTPError, URLError
@@ -69,8 +71,9 @@ def load_news_items_with_report(
 ) -> tuple[list[NewsItem], list[SourceResult]]:
     """Fetch every selected source and return both the deduped items AND one
     `SourceResult` per source (N1.5). GDELT sources get a run-level circuit
-    breaker: once one source's retry ALSO hits 429, every remaining GDELT
-    source this run is `circuit_open` with no request made.
+    breaker: once GDELT_CIRCUIT_THRESHOLD consecutive sources have exhausted
+    their 429 backoff, every remaining GDELT source this run is
+    `circuit_open` with no request made.
 
     `gdelt_fetch` / `finnhub_fetch` are test-only network injection points
     (mirrors `load_gdelt_source`/`load_finnhub_source`'s own `fetch` param);
@@ -94,6 +97,8 @@ def load_news_items_with_report(
         results.append(result)
 
     circuit_open = False
+    exhausted_in_a_row = 0
+    pacer = GdeltPacer()
     for source in gdelt:
         if circuit_open:
             results.append(
@@ -106,11 +111,14 @@ def load_news_items_with_report(
             )
             continue
         source_items, result = _load_one_source(
-            source, config.source_group_rules, gdelt_fetch=gdelt_fetch
+            source, config.source_group_rules, gdelt_fetch=gdelt_fetch, gdelt_pacer=pacer
         )
         items.extend(source_items)
         results.append(result)
-        if result.status == "rate_limited":
+        # E0.2b: one source that exhausts its backoff no longer takes the other five down with it.
+        # The breaker opens only after GDELT_CIRCUIT_THRESHOLD consecutive exhausted sources.
+        exhausted_in_a_row = exhausted_in_a_row + 1 if result.status == "rate_limited" else 0
+        if exhausted_in_a_row >= GDELT_CIRCUIT_THRESHOLD:
             circuit_open = True
 
     return dedupe_news_items(items), results
@@ -131,6 +139,7 @@ def _load_one_source(
     *,
     gdelt_fetch: HttpFetchFn | None = None,
     finnhub_fetch: HttpFetchFn | None = None,
+    gdelt_pacer: GdeltPacer | None = None,
 ) -> tuple[list[NewsItem], SourceResult]:
     started = time.monotonic()
     try:
@@ -143,7 +152,9 @@ def _load_one_source(
         elif source.provider == "rss":
             raw_items = load_rss_source(source, rules=rules)
         elif source.provider == "gdelt":
-            raw_items = load_gdelt_source(source, rules=rules, fetch=gdelt_fetch)
+            raw_items = load_gdelt_source(
+                source, rules=rules, fetch=gdelt_fetch, pacer=gdelt_pacer
+            )
         elif source.provider == "finnhub":
             raw_items = load_finnhub_source(source, rules=rules, fetch=finnhub_fetch)
         else:
@@ -407,6 +418,7 @@ def load_gdelt_source(
     *,
     rules: list[NewsSourceGroupRule] | None = None,
     fetch: HttpFetchFn | None = None,
+    pacer: GdeltPacer | None = None,
 ) -> list[NewsItem]:
     """Load recent articles from the free key-less GDELT DOC 2.0 API.
 
@@ -425,9 +437,9 @@ def load_gdelt_source(
     }
     url = f"{GDELT_DOC_URL}?{urlencode(params)}"
     if fetch is None:
-        # GDELT rate-limits bursty callers (HTTP 429). Space out real requests
-        # and retry once with a backoff; injected fetches (tests) skip this.
-        raw = _polite_gdelt_fetch(url, source.source_id)
+        # GDELT rate-limits callers (HTTP 429). Real requests go through the run's
+        # pacer (spacing + bounded exponential backoff); injected fetches (tests) skip it.
+        raw = (pacer or GdeltPacer()).fetch(url, source.source_id)
     else:
         raw = fetch(url)
     try:
@@ -524,26 +536,71 @@ def load_finnhub_source(
     return items[: source.max_items]
 
 
-GDELT_POLITE_DELAY_SECONDS = 5.0
-GDELT_RETRY_BACKOFF_SECONDS = 20.0
+GDELT_POLITE_DELAY_SECONDS = 5.0  # GDELT's stated floor: one request per 5 seconds
+GDELT_RETRY_BACKOFF_SECONDS = (20.0, 40.0, 80.0)  # waits before retry 1, 2, 3 of a 429
+GDELT_WAIT_BUDGET_SECONDS = 180.0  # total backoff sleeping per run; bounds the ingest step's cost
+GDELT_CIRCUIT_THRESHOLD = 2  # consecutive sources that exhausted their backoff before the run gives up
 
 
-def _polite_gdelt_fetch(url: str, source_id: str) -> str:
-    import time
-    from urllib.error import HTTPError
+@dataclass
+class GdeltPacer:
+    """E0.2b: one per ingest run. Spaces requests from the END of the previous request (the old code slept
+    a fixed 5 s before every call, including retries, regardless of how long the last call had taken),
+    retries a 429 up to len(backoff_s) times with exponential backoff (jittered, never shorter than a
+    Retry-After header), and stops retrying once the run's wait budget is spent. A non-429 error is
+    raised at once. Clock, sleep, jitter and the HTTP call are injectable so tests need no real time."""
 
-    time.sleep(GDELT_POLITE_DELAY_SECONDS)
+    min_interval_s: float = GDELT_POLITE_DELAY_SECONDS
+    backoff_s: tuple[float, ...] = GDELT_RETRY_BACKOFF_SECONDS
+    wait_budget_s: float = GDELT_WAIT_BUDGET_SECONDS
+    sleep: Callable[[float], None] = time.sleep
+    clock: Callable[[], float] = time.monotonic
+    jitter: Callable[[], float] = field(default=lambda: random.uniform(0.9, 1.1))
+    http_fetch: Callable[[str], str] | None = None
+    waited_s: float = 0.0
+    _last_end: float | None = field(default=None, repr=False)
+
+    def _space(self) -> None:
+        if self._last_end is None:
+            self.sleep(self.min_interval_s)
+            return
+        gap = self.clock() - self._last_end
+        if gap < self.min_interval_s:
+            self.sleep(self.min_interval_s - gap)
+
+    def fetch(self, url: str, source_id: str) -> str:
+        do_fetch = self.http_fetch or _default_http_fetch
+        attempt = 0
+        while True:
+            self._space()
+            try:
+                body = do_fetch(url)
+                self._last_end = self.clock()
+                return body
+            except HTTPError as exc:
+                self._last_end = self.clock()
+                if exc.code != 429 or attempt >= len(self.backoff_s):
+                    raise
+                wait = self.backoff_s[attempt] * self.jitter()
+                wait = max(wait, _retry_after_seconds(exc))
+                if self.waited_s + wait > self.wait_budget_s:
+                    raise
+                print(
+                    f"WARN gdelt source {source_id} rate-limited (429); retry {attempt + 1}/"
+                    f"{len(self.backoff_s)} in {wait:.0f}s",
+                    file=sys.stderr,
+                )
+                self.sleep(wait)
+                self.waited_s += wait
+                attempt += 1
+
+
+def _retry_after_seconds(exc: HTTPError) -> float:
     try:
-        return _default_http_fetch(url)
-    except HTTPError as exc:
-        if exc.code != 429:
-            raise
-        print(
-            f"WARN gdelt source {source_id} rate-limited (429); retrying once",
-            file=sys.stderr,
-        )
-        time.sleep(GDELT_RETRY_BACKOFF_SECONDS)
-        return _default_http_fetch(url)
+        value = exc.headers.get("Retry-After") if exc.headers is not None else None
+        return max(0.0, float(value)) if value is not None else 0.0
+    except (TypeError, ValueError, AttributeError):
+        return 0.0
 
 
 def _default_http_fetch(url: str) -> str:

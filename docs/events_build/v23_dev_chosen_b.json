@@ -1,0 +1,788 @@
+{
+  "ambiguous_links": 2,
+  "arm_config": {
+    "ambiguity_margin": 0.05,
+    "anchor_count": 3,
+    "background_days": 28.0,
+    "cutoff": 0.7,
+    "dense_weight": 0.5,
+    "entity_idf_floor": 2.0,
+    "entity_weight": 0.0,
+    "near_miss_fraction": 0.8,
+    "ngram_max": 5,
+    "ngram_min": 3,
+    "title_cosine_floor": 0.1,
+    "title_idf_offset": 1.0
+  },
+  "behaviour": {
+    "coreweave": {
+      "clusters": 2,
+      "core_items": 4,
+      "episode": "E_COREWEAVE_DISTRESS",
+      "homes": {
+        "evt_ba58e052d889486e": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_f86ba43efc1b9a95": {
+          "cluster_core_items": 3,
+          "core_here": 3,
+          "outsider_episodes": {}
+        }
+      }
+    },
+    "cpi_sep": {
+      "clusters": 3,
+      "core_items": 3,
+      "episode": "E_CPI_SEP",
+      "homes": {
+        "evt_4f8ea88713767df5": {
+          "cluster_core_items": 2,
+          "core_here": 1,
+          "outsider_episodes": {
+            "E_PPI_SEP": 1
+          }
+        },
+        "evt_b5040fd396ece254": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_efed49e65add1a09": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        }
+      }
+    },
+    "houthi_aden": {
+      "clusters": 2,
+      "core_items": 2,
+      "episode": "E_HOUTHI_ADEN_PALACE",
+      "homes": {
+        "evt_25e7a28b063f5bff": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_2a7918117cca2f4c": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        }
+      }
+    },
+    "houthi_saudi": {
+      "clusters": 16,
+      "core_items": 27,
+      "episode": "E_HOUTHI_SAUDI",
+      "homes": {
+        "evt_01ccf1ec8913909a": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_12f47ffb5aad350d": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_4063ff869e386765": {
+          "cluster_core_items": 3,
+          "core_here": 3,
+          "outsider_episodes": {}
+        },
+        "evt_4f3a9a9a1a97abef": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_504285d70515eb7b": {
+          "cluster_core_items": 8,
+          "core_here": 8,
+          "outsider_episodes": {}
+        },
+        "evt_714c3d94ed9b9d11": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_7354627dbd9c393c": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_7fbca255d33eae50": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_82a1d0c0d5b98ce8": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_92953a7e23db3804": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_951ef587396bb86d": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_a522ff1dcdc39383": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_b1554a3c9cfc99f6": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_b8c4c6e36749a6a0": {
+          "cluster_core_items": 1,
+          "core_here": 1,
+          "outsider_episodes": {}
+        },
+        "evt_f6f107fe9b83fa7a": {
+          "cluster_core_items": 2,
+          "core_here": 2,
+          "outsider_episodes": {}
+        },
+        "evt_ffbb160026302c4b": {
+          "cluster_core_items": 2,
+          "core_here": 2,
+          "outsider_episodes": {}
+        }
+      }
+    }
+  },
+  "clusters": {
+    "news_003fd4a71fa1a6f5": "evt_01d769696e5524ed",
+    "news_01be1ec0d6871cd5": "evt_4f8ea88713767df5",
+    "news_033dc8f135e2f33c": "evt_c2594e6c71f0e060",
+    "news_04122d3ed99f33ff": "evt_43b4de38c4d8472c",
+    "news_0486ef15592c0420": "evt_30ed33d2cebe1184",
+    "news_0636c38cc5b8d768": "evt_47d9d88410bc4393",
+    "news_0639774e56a95fde": "evt_25e7a28b063f5bff",
+    "news_093f54b91c48a478": "evt_0349069b24340c2c",
+    "news_0bfedcf6565e5389": "evt_7ffc87b72a22fa1e",
+    "news_0c2750ed204eaaff": "evt_d0c254add5d22fcf",
+    "news_0cedf40ac1557d33": "evt_f86ba43efc1b9a95",
+    "news_0d63766c4730c5d3": "evt_b5040fd396ece254",
+    "news_0df9911bfed877da": "evt_040b2aeabcd2054d",
+    "news_0e2b17457c53c49c": "evt_4f3a9a9a1a97abef",
+    "news_0f1b09800c055edf": "evt_ad01642394d750f4",
+    "news_10d6af645898c707": "evt_3fb4c287912ef0a0",
+    "news_120c06696ee11c3d": "evt_13c4561b7d2ef754",
+    "news_1299ae6dbb2402b4": "evt_1e539cc0fa9d32ad",
+    "news_13ad5430941fce9f": "evt_7bdd9d49a4704e61",
+    "news_13f9b714837bb9b2": "evt_3c2341a5157054d0",
+    "news_14d01f49ef65b3df": "evt_dd79f8d32576e82b",
+    "news_1584f43045f81b67": "evt_454156b24ae2aeeb",
+    "news_15f4a2a66810d5b0": "evt_eb5f717080b54a88",
+    "news_16286119f968feb0": "evt_298f58a9542b0f51",
+    "news_16bdc228b787dbc1": "evt_44cccfba57da5392",
+    "news_172174956f504a0e": "evt_7b52a1d45b5acf15",
+    "news_17cb93bbab3b2af7": "evt_411af45917ddeaa2",
+    "news_1c6a5114489a14aa": "evt_b5a30231dd277273",
+    "news_1c88318eed760860": "evt_bcae0e40d7beba66",
+    "news_1ca756c13c614ad3": "evt_86d382999765bb54",
+    "news_1cc3c6d6127c58ee": "evt_26549835d6871268",
+    "news_1d71704a28d883a3": "evt_c960065158dd5bd2",
+    "news_1fd5dae34eba52bd": "evt_af1bd38b585ccf71",
+    "news_20ea91f588366255": "evt_d35812022ef53d87",
+    "news_229a22373b27ec25": "evt_9bd0bb98c30786a8",
+    "news_23930a683d207347": "evt_3195a47ca6042a1d",
+    "news_24fd57ba0dad298c": "evt_d2807c25105db3f3",
+    "news_254f9bbe4a4f1b97": "evt_214aae7b63984381",
+    "news_25b00b5149c7c013": "evt_504285d70515eb7b",
+    "news_25ef069faa0f97b7": "evt_ef7329fa0bb8f0a7",
+    "news_260feff01f06e8c7": "evt_ffbb160026302c4b",
+    "news_263c42b9574ce0c7": "evt_6b8b289c0ebafdf9",
+    "news_2727a29a79ab0a36": "evt_862528b0210cdcb3",
+    "news_2849db258941c161": "evt_00f2c0ad6e1991ca",
+    "news_294f1c83cccff401": "evt_4be8c9da800d5de9",
+    "news_2958e2937d56bc16": "evt_bf72e822259cabe8",
+    "news_297d2500196cb81f": "evt_e0cdf97fc90a3d9f",
+    "news_2a23f96569602310": "evt_0b82a050cc4f382f",
+    "news_2ad0fa0b235613f8": "evt_25e7a28b063f5bff",
+    "news_2be107bf6672217d": "evt_7e8b5ae60be4d2a8",
+    "news_2e0131ec9363774a": "evt_47116ceee254578a",
+    "news_2e2ea28d5f128fa2": "evt_a6074499ae886679",
+    "news_2f05eb8c43f7bd75": "evt_c0e35f0f467aecd6",
+    "news_3000b3e4692b2f99": "evt_e8b8e28a447197a7",
+    "news_30921030a4df162d": "evt_4e13d587f520694b",
+    "news_310c156308ae6df2": "evt_c47a02cede6b7c1c",
+    "news_33030475c06b5649": "evt_fa659c2d355d458b",
+    "news_33d90001a9ff802b": "evt_4d3463271ffbddf8",
+    "news_33fb22d08f201397": "evt_6cec12a6366f63db",
+    "news_34653bd790f059bc": "evt_fa50f43289ecd063",
+    "news_34e41d05b972ed99": "evt_6fd1e03143517834",
+    "news_36378b63450016d6": "evt_76b48eb5ae9e49c6",
+    "news_383ef383dd9cb488": "evt_f20342bda5b5dd3a",
+    "news_38828d2fcf5dd34d": "evt_f9957f4b7767d2b8",
+    "news_3a95f5dea219675e": "evt_73b7ae639b82fc33",
+    "news_3ad70ecbf2e3dad4": "evt_704c057f5af8d5db",
+    "news_3af8e657fa36dca8": "evt_4d107060e3c1ca37",
+    "news_3bbdde7e9d718cdd": "evt_757658ff53d25be1",
+    "news_3bdcd28246000343": "evt_6225bae7d0826a32",
+    "news_3cc312fe4a55da2a": "evt_97651569a9528947",
+    "news_3d62868410358bdc": "evt_f6f107fe9b83fa7a",
+    "news_3ecbaf09719781e9": "evt_2a8b103d8995c529",
+    "news_3fa4f52279520a2f": "evt_b281454b78d8afef",
+    "news_40db9edf32d3b177": "evt_0366880e7e4d8e74",
+    "news_4251c05cea5ff5f5": "evt_ab013c502d8e2b07",
+    "news_427982cd5b27e3a3": "evt_916604d77ca2e72b",
+    "news_429b5f091d76e957": "evt_7ffc87b72a22fa1e",
+    "news_431820fb1bc2270c": "evt_b4cabb7ddb28af84",
+    "news_4370823b27ff4efc": "evt_f3d0d952b33adf97",
+    "news_441ce539518f7c58": "evt_949a1bcda1b37b2e",
+    "news_45233472939c9d70": "evt_1d85f23d94584a73",
+    "news_4525b4fff3fd1bd6": "evt_f86ba43efc1b9a95",
+    "news_4560c4d77973f135": "evt_f18606965a9c920b",
+    "news_45a1e1c983d185be": "evt_1af9e97478ef7618",
+    "news_45a1e8d9b1b36139": "evt_bfe031b51c76a3f5",
+    "news_4608189858bee0bc": "evt_a200ef7fa653867e",
+    "news_46aad60b813598f8": "evt_845d6dcc1dfacfcd",
+    "news_47202145435b4846": "evt_7fbca255d33eae50",
+    "news_48d77d4730dd4f82": "evt_4be8c9da800d5de9",
+    "news_492957ea383c5649": "evt_609171ab3672d627",
+    "news_4a683bdda1d92a33": "evt_9f57692c860a576b",
+    "news_4b23b9eb0d81b326": "evt_f6f107fe9b83fa7a",
+    "news_4b60c322198a0d2f": "evt_e7df46000b13944b",
+    "news_4d582e6960f494ad": "evt_1dcb042cf2467e73",
+    "news_4e4fe49ac28cbb4b": "evt_9fcbb515097f40b0",
+    "news_4e5fac4c3bce1f73": "evt_164d137babf69507",
+    "news_517777c7702ec589": "evt_8cc61ca369e0a1f5",
+    "news_51d62e0e220bc8b7": "evt_714c3d94ed9b9d11",
+    "news_52922e3186804c2b": "evt_7064982c0972d9ed",
+    "news_53f9bddfd79b6d2e": "evt_802c36362b066d28",
+    "news_54bed4cb623b3061": "evt_1d76a2dfbe80e5c3",
+    "news_54c7ff540e334c8e": "evt_e630e8ced8746543",
+    "news_55c0643d4fbaf58e": "evt_2305c25c027cb422",
+    "news_56424549beff2244": "evt_504285d70515eb7b",
+    "news_564dd5755a9416cc": "evt_504285d70515eb7b",
+    "news_56a65f1e2eb9d8b7": "evt_504285d70515eb7b",
+    "news_56ce746ab2a35fed": "evt_753747689ca033fc",
+    "news_58f8a43144000f02": "evt_3e2b338e62f4e296",
+    "news_5c2c7764729ebcd1": "evt_e418466f9ceeb24e",
+    "news_5da967b8e03a5530": "evt_7ffc87b72a22fa1e",
+    "news_5ed12f1c3ed6363a": "evt_951ef587396bb86d",
+    "news_61178271d1272417": "evt_ec23d84679a5b5c9",
+    "news_613b115b008a0319": "evt_d15ad24752b76066",
+    "news_6419dba7c8dc65b3": "evt_9b82124b137e47b0",
+    "news_657b175f275be67f": "evt_4dec4dc2078394a2",
+    "news_66031e748d4978d3": "evt_27991554128c6ab6",
+    "news_66b948b25f5711cd": "evt_da0290f03ab96e64",
+    "news_676b20f10245090e": "evt_1d7737dfbce48631",
+    "news_68163782e771d34f": "evt_3abe37f87c4a94f8",
+    "news_683bff63984d904e": "evt_504285d70515eb7b",
+    "news_69dc6738651ec479": "evt_916604d77ca2e72b",
+    "news_6ba3595cc5732bc6": "evt_bfae6f945cf73d19",
+    "news_6ca9d36dd440c531": "evt_4bbfd80125be550a",
+    "news_6f47a0dc36a7ea01": "evt_6212fc2286319750",
+    "news_70c205290c0074fe": "evt_a522ff1dcdc39383",
+    "news_71bfcde4ea25c79d": "evt_5a0ff01fc2d1a4b0",
+    "news_7383b28e9f5b269f": "evt_3cd9c44130d374e9",
+    "news_74560913d453622e": "evt_4fada98831c24dfe",
+    "news_762345d2c931d47d": "evt_eebc2dc8319579f2",
+    "news_7690bb6444b1e3b4": "evt_cab1bb560f2393dd",
+    "news_7718bd51f5930b0e": "evt_b1e635575fb71932",
+    "news_775655f5d53f3dcb": "evt_072cc712129a7f88",
+    "news_784213cd626ce15d": "evt_779566df55605a5c",
+    "news_785fbc7ebfeeeccf": "evt_85bcb1687033e9f2",
+    "news_7891365c990bede4": "evt_2be443221fc6517c",
+    "news_794292f5974a902e": "evt_fa8ea53a5a4447d6",
+    "news_7b59ecfd6ff58e68": "evt_2fff29d33c0f0ab3",
+    "news_7b89ece8a209716a": "evt_b47702617bc2aaf8",
+    "news_7bbadfefced338b4": "evt_a95e48530487641f",
+    "news_7bbc202e3817b048": "evt_b8c4c6e36749a6a0",
+    "news_7c555cfa4a21d5ad": "evt_882bb495315db8ed",
+    "news_7c7cb90685c9471c": "evt_2cab85bac1419da6",
+    "news_7da7a824e84b35ce": "evt_9964590a7a31b17b",
+    "news_7f2ec6b45bda73e9": "evt_9118634328936f7d",
+    "news_7fb3da1839ce5c4b": "evt_e418466f9ceeb24e",
+    "news_81a1c36d0dfbeb4c": "evt_7b540f7a8dcc8ce2",
+    "news_84621631c0025b8a": "evt_504285d70515eb7b",
+    "news_84d960826e2afc83": "evt_efe8f358635d7702",
+    "news_86f86aa91291a739": "evt_6178bca562a8dd1d",
+    "news_88a9d491ae625701": "evt_efb6a49c24cd2c08",
+    "news_8bf9bb21ff8eb5f8": "evt_bfd587bced046e2d",
+    "news_8c97fbf4ab645da6": "evt_83d2901a4672cdb9",
+    "news_8c986344b496acf4": "evt_61d47077a81b9ef2",
+    "news_8cb6821b729b4229": "evt_ac33c9816bd3f3f5",
+    "news_8cfd212b7cfea759": "evt_f6f107fe9b83fa7a",
+    "news_8eb20684fc413232": "evt_ba58e052d889486e",
+    "news_8fdbe4397a167a65": "evt_def6ed7c9ba9204f",
+    "news_8ffb7d4f99cf57d3": "evt_180d4cb0ad12b55d",
+    "news_90a522e5c9aeb553": "evt_d7e395cce58f327f",
+    "news_935b33e8eea196af": "evt_52b22bd84675c214",
+    "news_9462c87a133b7b67": "evt_009bfe93d43f0042",
+    "news_98b1ee39ceb8008a": "evt_4981bb7ac42da88a",
+    "news_99b9c90885615987": "evt_ad1de6c1a175e5fc",
+    "news_9b1e30474f064396": "evt_3abe37f87c4a94f8",
+    "news_9b6b84a281f82924": "evt_4ad5a894c575d256",
+    "news_9c748b8b10e6316d": "evt_e3c4958946ab5965",
+    "news_9c7ec0deb56ae855": "evt_20b3c685ebd185e4",
+    "news_9c933306ab25293b": "evt_9c430ca1e52be25a",
+    "news_9d81b0acadb3cbe0": "evt_042d70f3cd04358a",
+    "news_9e08b766a91521de": "evt_fbf53432d60f20c7",
+    "news_9e2b2abb54a60172": "evt_214aae7b63984381",
+    "news_9f4509510dd94c69": "evt_4bbfd80125be550a",
+    "news_9f732b3c9900b96a": "evt_61cbb208954cbacc",
+    "news_9fb4d5049b8d9332": "evt_6f734f98975a6220",
+    "news_9fde84d1e089c65a": "evt_0c34bbf4088eab61",
+    "news_a0690c74015b15a8": "evt_09985147c3ad03b3",
+    "news_a0bffe95cad7581a": "evt_435195f1b91eb402",
+    "news_a1b4198d5050a8a6": "evt_ae10dce20b82c8c2",
+    "news_a234329268a96a43": "evt_da0290f03ab96e64",
+    "news_a35a03d67347d8a1": "evt_77d74ce2a76968dc",
+    "news_a4f0f673a4d00d12": "evt_e554acf44332dc3d",
+    "news_a55bfb7ecd7ea817": "evt_4d406a7f51d599a5",
+    "news_a69f3dec43902513": "evt_e942e4e86e2b5e56",
+    "news_a6d2f3143dac9abc": "evt_e2d2443c2b323d55",
+    "news_a74e2813ab294a40": "evt_b43bc2f152d1dab1",
+    "news_a7f77994a09f8e2c": "evt_01ccf1ec8913909a",
+    "news_a8808c5fa47c57d4": "evt_4063ff869e386765",
+    "news_a9a1ae918c43501e": "evt_987a107f8a773b33",
+    "news_a9b36b4377a77e6f": "evt_c8adc922210a135b",
+    "news_aab32c65186536d6": "evt_92953a7e23db3804",
+    "news_aaea6fe1812ac7db": "evt_2a7918117cca2f4c",
+    "news_ab0e2140eeab1817": "evt_b39d2f8734ce81b0",
+    "news_ab59e8c28fb5fe2c": "evt_ea223ea4f7c0567f",
+    "news_abbd72dbb474f6de": "evt_82a1d0c0d5b98ce8",
+    "news_ad8410520e914f88": "evt_56e3a0fae1d3044a",
+    "news_ad86e7a94d321a97": "evt_afbb3052567bd842",
+    "news_ae91788a74bc12e1": "evt_e43c0678bba4634b",
+    "news_aeb14bae933d0aee": "evt_7b1062c9937980a1",
+    "news_aed6818270998e8b": "evt_b10b20fe03bcdeb4",
+    "news_af233ddf6a3acd7e": "evt_7354627dbd9c393c",
+    "news_af604a2bf7a1cb1b": "evt_a05b7739f4e96946",
+    "news_aff653a8da6cbc82": "evt_886299bf2f67a895",
+    "news_b11523b7fc358f6e": "evt_4063ff869e386765",
+    "news_b11939bed5092865": "evt_df59c9db3e8746a1",
+    "news_b142e665db355e5f": "evt_4be8c9da800d5de9",
+    "news_b2343d94ec34f008": "evt_d2807c25105db3f3",
+    "news_b34aa9bfc63d41b0": "evt_75b6bfc9cbc4e50b",
+    "news_b4c90f95fbe527c4": "evt_58e5f33b8e9e1fa2",
+    "news_b4ffd662d4640410": "evt_7742c9c7e2501644",
+    "news_b56fcbe9599b97e7": "evt_1fd48a10fda30b60",
+    "news_b68502c3d5343ede": "evt_180d4cb0ad12b55d",
+    "news_b7f5492160848bcf": "evt_d35812022ef53d87",
+    "news_b91e36a638628c67": "evt_acd743c38537888e",
+    "news_ba1bf6410386fae8": "evt_c7578a8403e3176a",
+    "news_bb3286c410c7739d": "evt_b5040fd396ece254",
+    "news_bb66f9f7ad9c42f4": "evt_75b84bc3070e2a28",
+    "news_bc5faf9886dcf952": "evt_09c3e9cde09a2d99",
+    "news_bc789b80749e3f48": "evt_2f16eca7c9e3afb5",
+    "news_bd4fb846d0ab37f8": "evt_bbe6e7961dd790f7",
+    "news_be046477bae64797": "evt_a9bcb6070b903e02",
+    "news_be33a90afa237caa": "evt_fe30bf1c7867157a",
+    "news_be4aab7091707e3e": "evt_e86e420521df8b9f",
+    "news_bedce356ac0f96aa": "evt_64a4189e9bdbd409",
+    "news_bf52e979fa412ac3": "evt_ae10dce20b82c8c2",
+    "news_c0a29035cfa6d5fc": "evt_8fbf7d741cab7d1d",
+    "news_c17a527e8a3e30fd": "evt_0540859adbbf599f",
+    "news_c3908004d9f55a8e": "evt_fbec2667b946f003",
+    "news_c3bcf67dd3f9ea0d": "evt_47d9d88410bc4393",
+    "news_c465c9bc8b45f6cf": "evt_753c6ce6081cde18",
+    "news_c4906e64d4579652": "evt_0b8c8048855c41bb",
+    "news_c53a8d9844026015": "evt_b1554a3c9cfc99f6",
+    "news_c6d50c9b34a64e91": "evt_86b107f1e0fbc241",
+    "news_c7b3d98eb471941e": "evt_059266c821759e75",
+    "news_c8aa6298ac5464f6": "evt_0540859adbbf599f",
+    "news_c90863560e3aa184": "evt_1dcb042cf2467e73",
+    "news_c9441ea265c42a05": "evt_4063ff869e386765",
+    "news_cb9c9e7a3a1cef01": "evt_294af3942a3c2b5b",
+    "news_cd2aeacf062d5523": "evt_8e74b8fe1fd87eba",
+    "news_cf616cf3680549e0": "evt_ffbb160026302c4b",
+    "news_d0161abed402e1fa": "evt_3843f112648a0aac",
+    "news_d0b18e3ac1fcea06": "evt_2a062139c04c1947",
+    "news_d0e9d1ec869daa0d": "evt_96dc272e0faf1180",
+    "news_d1642b4f32748389": "evt_73896d4f05aecfb6",
+    "news_d337233aed036154": "evt_951ef587396bb86d",
+    "news_d469c5c288e25836": "evt_71a89136cc4c814c",
+    "news_d52ce130fddc5590": "evt_e705c75ee5dcfb47",
+    "news_d5398f13ad87f84d": "evt_20b3c685ebd185e4",
+    "news_d6f4b4001e44f117": "evt_327849a061eda0f9",
+    "news_d77cd8150afae6d2": "evt_c412cea2ce649ed5",
+    "news_d948385a9e4c9df8": "evt_b57776f65d1a8b80",
+    "news_daa24248e256c607": "evt_e1da9058cf4de02a",
+    "news_daaf943fee10dda7": "evt_504285d70515eb7b",
+    "news_db3f3c7203e3f811": "evt_943e660577020453",
+    "news_dceb40fa09652a76": "evt_720b1237eeed98ca",
+    "news_dd3eb6ef5e6a28e6": "evt_454156b24ae2aeeb",
+    "news_de3f6456e4ae3b5e": "evt_6343edaf4b1bed47",
+    "news_dfd1306a2d1e320f": "evt_f86ba43efc1b9a95",
+    "news_e0b15805a29afe3c": "evt_efed49e65add1a09",
+    "news_e11d759d1ebecd4e": "evt_4df746a4381924ba",
+    "news_e2220cb357c07536": "evt_030c3a337efd6f53",
+    "news_e22776cf581d4dc9": "evt_504285d70515eb7b",
+    "news_e278d4ccb6825773": "evt_6cf11a6b7d798f21",
+    "news_e2f060f5f3650b1e": "evt_67d1368861c954c7",
+    "news_e2ffb1e153e46433": "evt_4f8ea88713767df5",
+    "news_e3a48524ee064ac4": "evt_f86ba43efc1b9a95",
+    "news_e4c3d06d4c118b93": "evt_644ac8eca1c9eb24",
+    "news_e4ebf17e7b7f247f": "evt_12f47ffb5aad350d",
+    "news_e54ddacad6dd9e93": "evt_47d9d88410bc4393",
+    "news_ea114faacff787ef": "evt_3f54b160c6fe8d0a",
+    "news_ea26dfd4d774a032": "evt_708e8662c1d8301c",
+    "news_eb19a84436ad8434": "evt_05bc465399396ecc",
+    "news_eb2a6ddf27310e68": "evt_b1e2912d1e94fa0a",
+    "news_ecb2f3393721cb48": "evt_012960ebc6c23cd0",
+    "news_ecd5f43aee00e1b8": "evt_c69d4851908d0001",
+    "news_ecf5b38e9e3023d2": "evt_02eabff8e610f001",
+    "news_ee6a1f91d1538367": "evt_708e8662c1d8301c",
+    "news_f13e4efc87f89a42": "evt_530a74b029ea5958",
+    "news_f21ff0de50e1e2d5": "evt_166c44b1e1685782",
+    "news_f25ba516daf4585e": "evt_9439352112241be9",
+    "news_f2aa952e9d1ca226": "evt_92701a1b6a69708f",
+    "news_f3bf488e64357890": "evt_949a1bcda1b37b2e",
+    "news_f4545cd7fe5a0b22": "evt_1e539cc0fa9d32ad",
+    "news_f46b89c10af8ca18": "evt_7baf7cc0f9d56750",
+    "news_f51bfaf30696439c": "evt_2d420c2d0163bc1a",
+    "news_f59a3f85a98c96ae": "evt_23e0724c1f8001d0",
+    "news_f5c5fe1b53fd9c94": "evt_7e22df4d41260a58",
+    "news_f61abc75a7e08e0c": "evt_9746697c68f1d63b",
+    "news_f651f84a3b21bec2": "evt_3e32a7b67c0a4923",
+    "news_f870575ae01abbb4": "evt_987a107f8a773b33",
+    "news_f9a03e323dececf3": "evt_a60a68cfbd357e75",
+    "news_fca81d3992f410fc": "evt_e071b03a79ed5819",
+    "news_fd0a578cc03ab0b2": "evt_9abfcc5fb294433d",
+    "news_fd5eaab4f90ae908": "evt_19020b2b96835ff9",
+    "news_fdcfa151cc675115": "evt_7ffc87b72a22fa1e",
+    "news_fdf79fd2ed3c0fa9": "evt_8b611e3883c16bcc",
+    "news_fea2564a5b757e8f": "evt_6e4dadd5b28b27de",
+    "news_ff12cae845c92e7a": "evt_2739ffd61c713591",
+    "news_ff27c1194e211c9c": "evt_2d420c2d0163bc1a",
+    "news_ff2b9b66debd3f25": "evt_d874333d5c1be44c",
+    "news_ffed4f7845a7bef1": "evt_eebf7be3e674a2ab"
+  },
+  "daily": [
+    {
+      "as_of": "2026-10-09T00:00:00",
+      "closed": 0,
+      "created": 108,
+      "joined": 6,
+      "largest_cluster_items": 3,
+      "pool_reports": 114,
+      "proposals": 17
+    },
+    {
+      "as_of": "2026-10-10T00:00:00",
+      "closed": 0,
+      "created": 92,
+      "joined": 8,
+      "largest_cluster_items": 4,
+      "pool_reports": 214,
+      "proposals": 24
+    },
+    {
+      "as_of": "2026-10-11T00:00:00",
+      "closed": 0,
+      "created": 83,
+      "joined": 18,
+      "largest_cluster_items": 5,
+      "pool_reports": 315,
+      "proposals": 44
+    },
+    {
+      "as_of": "2026-10-12T00:00:00",
+      "closed": 103,
+      "created": 60,
+      "joined": 11,
+      "largest_cluster_items": 6,
+      "pool_reports": 386,
+      "proposals": 18
+    },
+    {
+      "as_of": "2026-10-13T00:00:00",
+      "closed": 86,
+      "created": 51,
+      "joined": 9,
+      "largest_cluster_items": 6,
+      "pool_reports": 446,
+      "proposals": 28
+    },
+    {
+      "as_of": "2026-10-14T00:00:00",
+      "closed": 86,
+      "created": 84,
+      "joined": 14,
+      "largest_cluster_items": 8,
+      "pool_reports": 544,
+      "proposals": 46
+    },
+    {
+      "as_of": "2026-10-15T00:00:00",
+      "closed": 65,
+      "created": 92,
+      "joined": 14,
+      "largest_cluster_items": 8,
+      "pool_reports": 650,
+      "proposals": 19
+    },
+    {
+      "as_of": "2026-10-16T00:00:00",
+      "closed": 46,
+      "created": 98,
+      "joined": 14,
+      "largest_cluster_items": 8,
+      "pool_reports": 648,
+      "proposals": 48
+    },
+    {
+      "as_of": "2026-10-17T00:00:00",
+      "closed": 94,
+      "created": 101,
+      "joined": 16,
+      "largest_cluster_items": 8,
+      "pool_reports": 660,
+      "proposals": 35
+    }
+  ],
+  "events": 753,
+  "fragmentation": [
+    {
+      "core_items": 27,
+      "episode_id": "E_HOUTHI_SAUDI",
+      "fragments": 16,
+      "largest_fragment": 8,
+      "recall": 0.2962962962962963,
+      "storyline_id": "E_HOUTHI_SAUDI"
+    },
+    {
+      "core_items": 6,
+      "episode_id": "E_TRUMP_RUSSIA_DIESEL_DEAL",
+      "fragments": 5,
+      "largest_fragment": 2,
+      "recall": 0.3333333333333333,
+      "storyline_id": "E_TRUMP_RUSSIA_DIESEL_DEAL"
+    },
+    {
+      "core_items": 4,
+      "episode_id": "E_COREWEAVE_DISTRESS",
+      "fragments": 2,
+      "largest_fragment": 3,
+      "recall": 0.75,
+      "storyline_id": "E_COREWEAVE_DISTRESS"
+    },
+    {
+      "core_items": 4,
+      "episode_id": "E_IRAN_HORMUZ_ATTACKS",
+      "fragments": 3,
+      "largest_fragment": 2,
+      "recall": 0.5,
+      "storyline_id": "E_IRAN_HORMUZ_ATTACKS"
+    },
+    {
+      "core_items": 3,
+      "episode_id": "E_BOFA_PENALTY",
+      "fragments": 2,
+      "largest_fragment": 2,
+      "recall": 0.6666666666666666,
+      "storyline_id": "E_BOFA_PENALTY"
+    },
+    {
+      "core_items": 3,
+      "episode_id": "E_COOK_PANEL",
+      "fragments": 1,
+      "largest_fragment": 3,
+      "recall": 1.0,
+      "storyline_id": "E_COOK_PANEL"
+    },
+    {
+      "core_items": 3,
+      "episode_id": "E_CPI_SEP",
+      "fragments": 3,
+      "largest_fragment": 1,
+      "recall": 0.3333333333333333,
+      "storyline_id": "E_CPI_SEP"
+    },
+    {
+      "core_items": 3,
+      "episode_id": "E_ZACHARIA_CREDENTIALS",
+      "fragments": 2,
+      "largest_fragment": 2,
+      "recall": 0.6666666666666666,
+      "storyline_id": "E_ZACHARIA_CREDENTIALS"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_ADVICE_LOSER_PORTFOLIO",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_ADVICE_LOSER_PORTFOLIO"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_ADVICE_SISTER_HOME",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_ADVICE_SISTER_HOME"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_ANDURIL_CEO_DEFENCE",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_ANDURIL_CEO_DEFENCE"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_ANTHROPIC_REVENUE",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_ANTHROPIC_REVENUE"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_ENERGY_CEASEFIRE",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_ENERGY_CEASEFIRE"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_FOMC_MINUTES",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_FOMC_MINUTES"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_GEORGIEVA_AI",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_GEORGIEVA_AI"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_HOUTHI_ADEN_PALACE",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_HOUTHI_ADEN_PALACE"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_HURRICANE_ISAIAS",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_HURRICANE_ISAIAS"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_NEPAL_FLOODS",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_NEPAL_FLOODS"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_OPENAI_RECORDING_DEVICE",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_OPENAI_RECORDING_DEVICE"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_PPI_SEP",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_PPI_SEP"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_SAUDI_DEFENCE_SUPPORT",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_SAUDI_DEFENCE_SUPPORT"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_SHELTON_ADVISER",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_SHELTON_ADVISER"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_SPAIN_EVICTION",
+      "fragments": 2,
+      "largest_fragment": 1,
+      "recall": 0.5,
+      "storyline_id": "E_SPAIN_EVICTION"
+    },
+    {
+      "core_items": 2,
+      "episode_id": "E_WB_JOBS_COUNCIL",
+      "fragments": 1,
+      "largest_fragment": 2,
+      "recall": 1.0,
+      "storyline_id": "E_WB_JOBS_COUNCIL"
+    }
+  ],
+  "headline": {
+    "baseline_episode_recall": 0.5362654320987655,
+    "bcubed": {
+      "f1": 0.9036278236539673,
+      "precision": 0.9748201438848921,
+      "recall": 0.8421262989608314
+    },
+    "checks": {
+      "contamination_upper_le_0_15": false,
+      "episode_recall_uplift_ge_0_15": true,
+      "largest_cluster_le_1_5x_largest_episode": true
+    },
+    "cluster_to_episode_ratio": 0.1951219512195122,
+    "contamination": 0.11864406779661017,
+    "contamination_ci90": [
+      0.02082259450171821,
+      0.15384615384615385
+    ],
+    "contamination_upper": 0.15384615384615385,
+    "episode_recall": 0.7102623456790124,
+    "largest_cluster": 8,
+    "largest_episode": 41,
+    "multi_item_clusters": 24,
+    "pairwise": {
+      "cluster_pairs": 62,
+      "episode_pairs": 406,
+      "precision": 0.8387096774193549,
+      "recall": 0.12807881773399016
+    },
+    "pass": false,
+    "recall_uplift": 0.17399691358024683,
+    "storyline_recall_info": {
+      "baseline": 0.5362654320987655,
+      "value": 0.7102623456790124
+    },
+    "uplift_ci90": [
+      0.10084929757343539,
+      0.2564204314204313
+    ]
+  },
+  "linker": "B",
+  "optimistic": true,
+  "proposed_links": 279,
+  "set": "reference"
+}

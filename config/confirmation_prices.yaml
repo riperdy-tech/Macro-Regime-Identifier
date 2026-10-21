@@ -1,0 +1,32 @@
+# E0.4 confirmation prices (MRI_EVENTS_PLAN v2 section 9, step 1).
+#
+# Daily Yahoo closes written to market_observations (never raw_observations), used only to check whether the
+# market reacted to an event. Instruments here plus the 11 GICS sector ETFs (the proxy_ticker of every
+# parentless sector in config/sectors.yaml) plus any caller-supplied named tickers.
+
+base_instruments:
+  - SPY
+  - XLE
+  - KBE
+
+# Freshness limit, in WEEKDAYS between the newest stored close and the latest weekday whose session has closed.
+# The key says weekdays on purpose: no NYSE holiday table is kept, so an exchange holiday counts as a weekday
+# and can overstate the lag by one; the limits carry that slack. The events job runs ~08:30 KST, so the newest
+# closed session is normally the previous New York day (lag 0).
+default_max_lag_weekdays: 3
+max_lag_weekdays:
+  SPY: 2
+  XLE: 2
+  KBE: 2
+
+# Series needed for the E2 z-score: >= 250 observations out of a 504-session window. Every run pulls
+# `daily_range`. `backfill_range` is pulled only when (a) the stored history is shorter than `min_history_rows`
+# AND does not already reach back to the instrument's listing date (Yahoo meta.firstTradeDate), or (b) a split
+# or dividend is detected on the overlap (stored close / adjclose ratio differs from the fresh bars), or (c)
+# the adjusted series has not been stored yet.
+min_history_rows: 520
+backfill_range: 3y
+daily_range: 3mo
+
+# Seconds between Yahoo requests.
+pause_seconds: 0.25
