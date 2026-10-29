@@ -163,6 +163,8 @@ def _summary_by_news_id(news_classifications: pd.DataFrame) -> dict[str, str]:
     if news_classifications.empty or "summary" not in news_classifications.columns:
         return {}
     frame = news_classifications.dropna(subset=["summary"])
+    if "classification_status" in frame.columns:
+        frame = frame[frame["classification_status"] == "success"]
     return dict(zip(frame["news_id"].astype(str), frame["summary"].astype(str)))
 
 

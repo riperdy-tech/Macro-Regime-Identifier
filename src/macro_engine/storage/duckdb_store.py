@@ -1746,42 +1746,59 @@ class DuckDBStore:
             con.register("incoming_news_ids", news_id_frame)
             existing_df = con.execute(
                 """
-                SELECT news_id, ai_provider
+                SELECT classification_id, news_id, ai_provider, classification_status
                 FROM news_classifications
                 WHERE news_id IN (SELECT news_id FROM incoming_news_ids)
                 """
             ).fetchdf()
 
-            existing_map = dict(
-                zip(
-                    existing_df["news_id"].astype(str),
-                    existing_df["ai_provider"].astype(str),
-                )
-            )
+            existing_cids = set(existing_df["classification_id"].dropna().astype(str))
+            # Per news_id: "mock" (only mock rows), "failed" (only real non-success
+            # rows, N1 C4: a real retry may follow them) or "protected".
+            existing_state: dict[str, str] = {}
+            for nid, group in existing_df.groupby(existing_df["news_id"].astype(str)):
+                is_mock = group["ai_provider"].astype(str) == "mock"
+                if is_mock.all():
+                    existing_state[nid] = "mock"
+                elif (~is_mock).all() and (group["classification_status"] != "success").all():
+                    existing_state[nid] = "failed"
+                else:
+                    existing_state[nid] = "protected"
 
-            insert_ids: list[str] = []
             upgrade_ids: list[str] = []
-            for _, row in frame.iterrows():
+            write_positions: list[int] = []
+            for position, (_, row) in enumerate(frame.iterrows()):
                 nid = str(row["news_id"])
-                incoming_provider = str(row.get("ai_provider", ""))
-                incoming_is_real = incoming_provider != "mock"
-                existing_provider = existing_map.get(nid)
+                incoming_is_real = str(row.get("ai_provider", "")) != "mock"
+                state = existing_state.get(nid)
 
-                if existing_provider is None:
-                    insert_ids.append(nid)
+                if str(row.get("classification_id")) in existing_cids:
+                    result["skipped_protected"] += 1
+                    continue
+                if state is None:
                     result["inserted"] += 1
-                elif existing_provider == "mock":
-                    if incoming_is_real:
-                        upgrade_ids.append(nid)
-                        result["upgraded"] += 1
-                    else:
-                        pass
+                elif state == "mock":
+                    if not incoming_is_real:
+                        continue
+                    upgrade_ids.append(nid)
+                    result["upgraded"] += 1
+                elif state == "failed" and incoming_is_real:
+                    result["inserted"] += 1
                 else:
                     result["skipped_protected"] += 1
+                    continue
+                write_positions.append(position)
+                if not incoming_is_real:
+                    existing_state[nid] = "mock"
+                elif row.get("classification_status") != "success":
+                    existing_state[nid] = "failed"
+                else:
+                    existing_state[nid] = "protected"
 
-            ids_to_write = insert_ids + upgrade_ids
-            if not ids_to_write:
+            if not write_positions:
                 return result
+            write_frame = frame.iloc[write_positions].copy()
+            ids_to_write = write_frame["news_id"].astype(str).unique().tolist()
 
             con.execute("BEGIN TRANSACTION")
             try:
@@ -1810,7 +1827,6 @@ class DuckDBStore:
                         """
                     )
 
-                write_frame = frame[frame["news_id"].astype(str).isin(ids_to_write)].copy()
                 con.register("news_classification_write_frame", write_frame)
 
                 extra_cols = []
@@ -1907,11 +1923,19 @@ class DuckDBStore:
 
             where_clause = f"WHERE ({eff_expr}) != 'mock'" if has_real else ""
 
+            # One row per news_id (N1 C4: a retried item holds error rows beside its
+            # success): a success outranks any error, then the latest attempt wins.
             query = f"""
                 SELECT *,
                        {eff_expr} AS effective_origin
                 FROM news_classifications
                 {where_clause}
+                QUALIFY row_number() OVER (
+                    PARTITION BY news_id
+                    ORDER BY (classification_status = 'success') DESC NULLS LAST,
+                             classified_at DESC NULLS LAST,
+                             classification_id DESC
+                ) = 1
             """
             classifications = con.execute(query).fetchdf()
 

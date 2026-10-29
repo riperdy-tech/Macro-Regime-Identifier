@@ -25,11 +25,15 @@ from macro_engine.news.fulltext import enrich_items_with_fulltext
 from macro_engine.news.ingest import SourceResult, load_news_items_with_report
 from macro_engine.news.selection import rank_and_select
 from macro_engine.news.providers.openai_classifier import DeepSeekNewsClassifier
+from macro_engine.news.provenance import DEFAULT_MAX_AGE_DAYS
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 # Don't enforce the failure-rate guard until enough items are attempted; a
 # couple of early transient errors should not abort the whole run.
 _MIN_ATTEMPTS_BEFORE_RATE_GUARD = 10
+# N1 C4: a failed classification is retried until its news_id holds this many
+# error rows; the retries come out of the same max_items_per_run budget.
+_MAX_CLASSIFICATION_ERRORS = 2
 
 
 def ingest_stored_news(
@@ -135,6 +139,7 @@ def classify_stored_news(
     store.initialize()
     news_items = store.read_news_items()
     existing = store.read_table("news_classifications")
+    retry_ids: set[str] = set()
     if not existing.empty:
         all_ids = set(existing["news_id"].dropna().astype(str))
         real_ids = set(
@@ -142,10 +147,12 @@ def classify_stored_news(
         )
         if use_mock:
             news_items = news_items[~news_items["news_id"].astype(str).isin(all_ids)].copy()
-        elif only_unclassified:
-            news_items = news_items[~news_items["news_id"].astype(str).isin(all_ids)].copy()
         else:
-            news_items = news_items[~news_items["news_id"].astype(str).isin(real_ids)].copy()
+            retry_ids = _retryable_error_ids(existing, news_items, now=datetime.now(UTC))
+            done_ids = all_ids if only_unclassified else real_ids
+            news_items = news_items[
+                ~news_items["news_id"].astype(str).isin(done_ids - retry_ids)
+            ].copy()
     if limit is not None:
         if selection_config_path is not None and not news_items.empty:
             # Importance-ranked selection within the budget (pure, no LLM).
@@ -161,6 +168,7 @@ def classify_stored_news(
     records = []
     rows = news_items.to_dict(orient="records")
     total = len(rows)
+    retried = sum(1 for row in rows if str(row["news_id"]) in retry_ids)
     failure_count = 0
     inserted_count = 0
     upgraded_count = 0
@@ -178,7 +186,8 @@ def classify_stored_news(
     )
     _emit_progress(
         f"classify-news: selected {total} item(s)"
-        + (" using only-unclassified mode" if only_unclassified else ""),
+        + (" using only-unclassified mode" if only_unclassified else "")
+        + f" (retrying {retried} earlier error(s))",
         enabled=progress,
         callback=progress_callback,
     )
@@ -250,7 +259,34 @@ def classify_stored_news(
         "inserted": inserted_count,
         "upgraded": upgraded_count,
         "skipped_protected": skipped_protected_count,
+        "retried": retried,
     }
+
+
+def _retryable_error_ids(
+    existing: pd.DataFrame, news_items: pd.DataFrame, *, now: datetime
+) -> set[str]:
+    """News ids whose earlier live classification failed and that may be tried again (N1 C4).
+
+    An id qualifies while every row it has is a real (non-mock) non-success row, it has fewer
+    than `_MAX_CLASSIFICATION_ERRORS` of them, and it was published within the forward-evidence
+    window: a success classified any later could not count as forward evidence anyway.
+    """
+    if existing.empty or news_items.empty:
+        return set()
+    rows = existing[["news_id", "ai_provider", "classification_status"]].dropna(subset=["news_id"])
+    rows = rows.assign(
+        news_id=rows["news_id"].astype(str),
+        failed=(rows["ai_provider"] != "mock") & (rows["classification_status"] != "success"),
+    )
+    per_id = rows.groupby("news_id")["failed"].agg(["all", "sum"])
+    failed_ids = set(per_id.index[per_id["all"] & (per_id["sum"] < _MAX_CLASSIFICATION_ERRORS)])
+    if not failed_ids:
+        return set()
+    published = pd.to_datetime(news_items["published_at"], errors="coerce", utc=True)
+    fresh = published >= pd.Timestamp(now) - pd.Timedelta(days=DEFAULT_MAX_AGE_DAYS)
+    fresh_ids = set(news_items.loc[fresh, "news_id"].astype(str))
+    return failed_ids & fresh_ids
 
 
 def _emit_progress(
