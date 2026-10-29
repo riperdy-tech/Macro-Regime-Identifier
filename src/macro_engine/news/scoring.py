@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 import hashlib
 import math
+import sys
 import uuid
 
 import numpy as np
@@ -58,6 +59,11 @@ def build_stored_news_scores(
         )
         previous = None if full else store.read_news_score_state()
         only_dates = _recompute_dates(previous, item_state, meta, config)
+        print(
+            _scoring_mode_line(full, previous, only_dates, meta, len(item_state)),
+            file=sys.stderr,
+            flush=True,
+        )
         result = build_news_scores(
             news_items=news_items,
             classifications=classifications,
@@ -346,6 +352,26 @@ def _recompute_dates(
     touched.update(set(_day_range(start, end)) ^ set(_day_range(old_start, old_end)))
     weeks = {_week_start(day) for day in touched}
     return {day for day in _day_range(start, end) if _week_start(day) in weeks}
+
+
+def _scoring_mode_line(
+    full: bool,
+    previous: tuple[pd.DataFrame, dict] | None,
+    only_dates: set[date] | None,
+    meta: dict,
+    item_count: int,
+) -> str:
+    """One log line saying which path this build takes, so a run log shows it."""
+    if only_dates is not None:
+        range_days = len(_day_range(meta["range_start"], meta["range_end"]))
+        mode = f"mode=incremental dates={len(only_dates)}/{range_days}"
+    elif full:
+        mode = "mode=full reason=forced"
+    elif previous is None:
+        mode = "mode=full reason=no_state"
+    else:
+        mode = "mode=full reason=state_mismatch"
+    return f"news-scoring: {mode} items={item_count}"
 
 
 def _day_range(first: date, last: date) -> list[date]:
