@@ -731,6 +731,27 @@ class DuckDBStore:
                 )
                 """
             )
+            # N1 C1: what the news score tables were last built from, so the next
+            # build recomputes only the weeks a changed item reaches.
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_score_item_state (
+                    news_id TEXT,
+                    fingerprint TEXT,
+                    published_date DATE
+                )
+                """
+            )
+            con.execute(
+                """
+                CREATE TABLE IF NOT EXISTS news_score_state_meta (
+                    state_version TEXT,
+                    config_json TEXT,
+                    range_start DATE,
+                    range_end DATE
+                )
+                """
+            )
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS combined_sector_diagnostics (
@@ -2064,74 +2085,14 @@ class DuckDBStore:
             con.execute("DELETE FROM news_weekly_sector_scores")
             con.execute("DELETE FROM news_score_components")
             con.execute("DELETE FROM news_scoring_runs")
-            if not daily_theme_scores.empty:
-                frame = daily_theme_scores.copy()
-                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
-                con.register("news_daily_theme_frame", frame)
-                con.execute(
-                    """
-                    INSERT INTO news_daily_theme_scores
-                    SELECT score_date, theme_id, raw_score, adjusted_score,
-                           item_count, avg_confidence, avg_severity,
-                           top_news_ids_json, created_at
-                    FROM news_daily_theme_frame
-                    """
-                )
-            if not daily_sector_scores.empty:
-                frame = daily_sector_scores.copy()
-                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
-                con.register("news_daily_sector_frame", frame)
-                con.execute(
-                    """
-                    INSERT INTO news_daily_sector_scores
-                    SELECT score_date, sector_id, raw_news_score,
-                           adjusted_news_score, positive_item_count,
-                           negative_item_count, neutral_item_count,
-                           avg_confidence, avg_severity, top_news_ids_json,
-                           created_at
-                    FROM news_daily_sector_frame
-                    """
-                )
-            if not weekly_theme_scores.empty:
-                frame = weekly_theme_scores.copy()
-                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
-                con.register("news_weekly_theme_frame", frame)
-                con.execute(
-                    """
-                    INSERT INTO news_weekly_theme_scores
-                    SELECT week_start_date, theme_id, raw_score, adjusted_score,
-                           item_count, avg_confidence, avg_severity,
-                           top_news_ids_json, created_at
-                    FROM news_weekly_theme_frame
-                    """
-                )
-            if not weekly_sector_scores.empty:
-                frame = weekly_sector_scores.copy()
-                frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
-                con.register("news_weekly_sector_frame", frame)
-                con.execute(
-                    """
-                    INSERT INTO news_weekly_sector_scores
-                    SELECT week_start_date, sector_id, raw_news_score,
-                           adjusted_news_score, positive_item_count,
-                           negative_item_count, neutral_item_count,
-                           avg_confidence, avg_severity, top_news_ids_json,
-                           created_at
-                    FROM news_weekly_sector_frame
-                    """
-                )
-            if not components.empty:
-                con.register("news_score_component_frame", components)
-                con.execute(
-                    """
-                    INSERT INTO news_score_components
-                    SELECT score_date, frequency, news_id, theme_id, sector_id,
-                           component_type, direction, raw_component,
-                           adjusted_component, severity, confidence, source_weight,
-                           freshness_weight, rationale
-                    FROM news_score_component_frame
-                    """
-                )
+            _insert_news_score_rows(
+                con,
+                daily_theme_scores,
+                daily_sector_scores,
+                weekly_theme_scores,
+                weekly_sector_scores,
+                components,
+            )
             if not runs.empty:
                 con.register("news_scoring_run_frame", runs)
                 con.execute(
@@ -2142,6 +2103,125 @@ class DuckDBStore:
                     FROM news_scoring_run_frame
                     """
                 )
+
+    def update_news_score_outputs(
+        self,
+        *,
+        score_dates: set,
+        range_start,
+        range_end,
+        daily_theme_scores: pd.DataFrame,
+        daily_sector_scores: pd.DataFrame,
+        weekly_theme_scores: pd.DataFrame,
+        weekly_sector_scores: pd.DataFrame,
+        components: pd.DataFrame,
+        runs: pd.DataFrame,
+    ) -> pd.DataFrame:
+        """N1 C1: replace only the rows of ``score_dates`` (whole weeks) and of
+        their weeks, drop rows outside [range_start, range_end], keep the rest.
+        One transaction. The run row's scored_item_count is counted over the
+        merged components table; the run frame written is returned."""
+        days = pd.to_datetime(pd.Series(sorted(score_dates), dtype="object"))
+        dates = pd.DataFrame({"day": days})
+        weeks = pd.DataFrame(
+            {"day": (days - pd.to_timedelta(days.dt.weekday, unit="D")).drop_duplicates()}
+        )
+        start, end = pd.Timestamp(range_start), pd.Timestamp(range_end)
+        first_week = start - pd.Timedelta(days=start.weekday())
+        last_week = end - pd.Timedelta(days=end.weekday())
+        with self._connect() as con:
+            con.begin()
+            con.register("news_score_update_dates", dates)
+            con.register("news_score_update_weeks", weeks)
+            for table in ("news_daily_theme_scores", "news_daily_sector_scores", "news_score_components"):
+                con.execute(
+                    f"""
+                    DELETE FROM {table}
+                    WHERE score_date IN (SELECT CAST(day AS DATE) FROM news_score_update_dates)
+                       OR score_date < CAST(? AS DATE) OR score_date > CAST(? AS DATE)
+                    """,
+                    [start, end],
+                )
+            for table in ("news_weekly_theme_scores", "news_weekly_sector_scores"):
+                con.execute(
+                    f"""
+                    DELETE FROM {table}
+                    WHERE week_start_date IN (SELECT CAST(day AS DATE) FROM news_score_update_weeks)
+                       OR week_start_date < CAST(? AS DATE) OR week_start_date > CAST(? AS DATE)
+                    """,
+                    [first_week, last_week],
+                )
+            _insert_news_score_rows(
+                con,
+                daily_theme_scores,
+                daily_sector_scores,
+                weekly_theme_scores,
+                weekly_sector_scores,
+                components,
+            )
+            runs = runs.copy()
+            if not runs.empty:
+                runs["scored_item_count"] = int(
+                    con.execute(
+                        "SELECT count(DISTINCT news_id) FROM news_score_components"
+                    ).fetchone()[0]
+                )
+            con.execute("DELETE FROM news_scoring_runs")
+            if not runs.empty:
+                con.register("news_scoring_run_frame", runs)
+                con.execute(
+                    """
+                    INSERT OR REPLACE INTO news_scoring_runs
+                    SELECT run_id, started_at, completed_at, status, frequency,
+                           item_count, scored_item_count, error_message
+                    FROM news_scoring_run_frame
+                    """
+                )
+            con.commit()
+        return runs
+
+    def read_news_score_state(self) -> tuple[pd.DataFrame, dict[str, Any]] | None:
+        """The item state and meta the score tables were last built from, or None."""
+        with self._connect() as con:
+            meta = con.execute(
+                "SELECT state_version, config_json, range_start, range_end FROM news_score_state_meta"
+            ).fetchall()
+            if len(meta) != 1:
+                return None
+            items = con.execute(
+                "SELECT news_id, fingerprint, published_date FROM news_score_item_state"
+            ).fetchdf()
+        keys = ("state_version", "config_json", "range_start", "range_end")
+        return items, dict(zip(keys, meta[0]))
+
+    def replace_news_score_state(
+        self, items: pd.DataFrame | None, meta: dict[str, Any] | None
+    ) -> None:
+        """Replace the scoring state; ``None`` clears it (the next build is full)."""
+        with self._connect() as con:
+            con.begin()
+            con.execute("DELETE FROM news_score_item_state")
+            con.execute("DELETE FROM news_score_state_meta")
+            if meta is not None:
+                if items is not None and not items.empty:
+                    con.register("news_score_item_state_frame", items)
+                    con.execute(
+                        """
+                        INSERT INTO news_score_item_state
+                        SELECT news_id, fingerprint, CAST(published_date AS DATE)
+                        FROM news_score_item_state_frame
+                        """
+                    )
+                con.execute(
+                    "INSERT INTO news_score_state_meta VALUES (?, ?, ?, ?)",
+                    [
+                        meta["state_version"],
+                        meta["config_json"],
+                        meta["range_start"],
+                        meta["range_end"],
+                    ],
+                )
+            con.commit()
 
     def replace_combined_sector_outputs(
         self,
@@ -2577,6 +2657,84 @@ class DuckDBStore:
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
         return duckdb.connect(str(self.db_path))
+
+
+def _insert_news_score_rows(
+    con: duckdb.DuckDBPyConnection,
+    daily_theme_scores: pd.DataFrame,
+    daily_sector_scores: pd.DataFrame,
+    weekly_theme_scores: pd.DataFrame,
+    weekly_sector_scores: pd.DataFrame,
+    components: pd.DataFrame,
+) -> None:
+    if not daily_theme_scores.empty:
+        frame = daily_theme_scores.copy()
+        frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+        con.register("news_daily_theme_frame", frame)
+        con.execute(
+            """
+            INSERT INTO news_daily_theme_scores
+            SELECT score_date, theme_id, raw_score, adjusted_score,
+                   item_count, avg_confidence, avg_severity,
+                   top_news_ids_json, created_at
+            FROM news_daily_theme_frame
+            """
+        )
+    if not daily_sector_scores.empty:
+        frame = daily_sector_scores.copy()
+        frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+        con.register("news_daily_sector_frame", frame)
+        con.execute(
+            """
+            INSERT INTO news_daily_sector_scores
+            SELECT score_date, sector_id, raw_news_score,
+                   adjusted_news_score, positive_item_count,
+                   negative_item_count, neutral_item_count,
+                   avg_confidence, avg_severity, top_news_ids_json,
+                   created_at
+            FROM news_daily_sector_frame
+            """
+        )
+    if not weekly_theme_scores.empty:
+        frame = weekly_theme_scores.copy()
+        frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+        con.register("news_weekly_theme_frame", frame)
+        con.execute(
+            """
+            INSERT INTO news_weekly_theme_scores
+            SELECT week_start_date, theme_id, raw_score, adjusted_score,
+                   item_count, avg_confidence, avg_severity,
+                   top_news_ids_json, created_at
+            FROM news_weekly_theme_frame
+            """
+        )
+    if not weekly_sector_scores.empty:
+        frame = weekly_sector_scores.copy()
+        frame["top_news_ids_json"] = frame["top_news_ids"].map(json.dumps)
+        con.register("news_weekly_sector_frame", frame)
+        con.execute(
+            """
+            INSERT INTO news_weekly_sector_scores
+            SELECT week_start_date, sector_id, raw_news_score,
+                   adjusted_news_score, positive_item_count,
+                   negative_item_count, neutral_item_count,
+                   avg_confidence, avg_severity, top_news_ids_json,
+                   created_at
+            FROM news_weekly_sector_frame
+            """
+        )
+    if not components.empty:
+        con.register("news_score_component_frame", components)
+        con.execute(
+            """
+            INSERT INTO news_score_components
+            SELECT score_date, frequency, news_id, theme_id, sector_id,
+                   component_type, direction, raw_component,
+                   adjusted_component, severity, confidence, source_weight,
+                   freshness_weight, rationale
+            FROM news_score_component_frame
+            """
+        )
 
 
 def _ensure_timeline_columns(timeline: pd.DataFrame) -> pd.DataFrame:
