@@ -263,7 +263,7 @@ def test_duckdb_can_query_stored_parquet(tmp_path):
 
     count = duckdb.sql(
         f"SELECT count(*) FROM read_parquet('{(parquet_dir / 'raw_observations.parquet').as_posix()}')"
-    ).fetchone()[0]
+    ).fetchall()[0][0]
 
     assert count > 0
 
