@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import random
 from datetime import UTC, datetime, timedelta
 
 import pandas as pd
@@ -266,6 +267,50 @@ def test_assign_event_ids_standalone_clusters_duplicates():
 
 def test_assign_event_ids_empty_safe():
     assert assign_event_ids(pd.DataFrame()) == {}
+
+
+def _scan_every_canonical(items: pd.DataFrame, threshold: float) -> dict[str, str]:
+    """The clusterer before its candidate index (N1 C1): compare with every canonical."""
+    tokens = {
+        str(r.news_id): {t for t in f"{r.title} {r.body}".lower().split() if len(t) > 1}
+        for r in items.itertuples()
+    }
+    event_of: dict[str, str] = {}
+    canonical: list[str] = []
+    for news_id in sorted(str(n) for n in items["news_id"]):
+        match = next(
+            (
+                c
+                for c in canonical
+                if tokens[news_id]
+                and tokens[c]
+                and len(tokens[news_id] & tokens[c]) / len(tokens[news_id] | tokens[c]) >= threshold
+                or (threshold <= 0.0)
+            ),
+            None,
+        )
+        event_of[news_id] = match if match is not None else news_id
+        if match is None:
+            canonical.append(news_id)
+    return event_of
+
+
+def test_assign_event_ids_index_matches_a_scan_of_every_canonical():
+    rng = random.Random(7)
+    words = [f"w{i}" for i in range(30)]
+    for _ in range(200):
+        stories = [rng.sample(words, rng.randint(0, 8)) for _ in range(5)]
+        rows = []
+        for _ in range(rng.randint(0, 50)):
+            text = list(rng.choice(stories)) + [rng.choice(words) for _ in range(rng.randint(0, 3))]
+            if text and rng.random() < 0.3:
+                text.pop(rng.randrange(len(text)))
+            rows.append({"news_id": f"n{rng.randint(0, 70)}", "title": " ".join(text[:2]), "body": " ".join(text[2:])})
+        items = pd.DataFrame(rows, columns=["news_id", "title", "body"])
+        for threshold in (0.0, 0.3, 0.5, 0.6, 0.75, 1.0):
+            assert assign_event_ids(items, similarity_threshold=threshold) == _scan_every_canonical(
+                items, threshold
+            )
 
 
 def test_rank_and_select_uses_real_keyword_lexicon():

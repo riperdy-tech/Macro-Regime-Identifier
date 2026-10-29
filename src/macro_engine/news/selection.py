@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import math
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -248,12 +249,27 @@ def assign_event_ids(
 
     event_of: dict[str, str] = {}
     canonical: list[str] = []
+    # Exact candidate index (prefix filtering): two token sets with Jaccard >= t
+    # share a token among the first |A| - ceil(t*|A|) + 1 tokens of each, taken
+    # in one global order (rarest first). Only canonicals indexed under such a
+    # token can match, and the earliest matching canonical still wins, so the
+    # result equals a scan of every canonical, without the quadratic cost.
+    frequency = Counter(tok for toks in tokens.values() for tok in toks)
+    index: dict[str, list[int]] = {}
     for news_id in order:
+        toks = tokens[news_id]
+        ranked = sorted(toks, key=lambda tok: (frequency[tok], tok))
+        # The 1e-9 only lengthens the prefix, so float error never drops a match.
+        head = ranked[: len(ranked) - math.ceil(similarity_threshold * len(ranked) - 1e-9) + 1]
+        if similarity_threshold > 0.0:
+            candidates = sorted({pos for tok in head for pos in index.get(tok, ())})
+        else:  # at zero every pair matches, shared token or not
+            candidates = range(len(canonical))
         match = next(
             (
-                c
-                for c in canonical
-                if _jaccard(tokens[news_id], tokens[c]) >= similarity_threshold
+                canonical[pos]
+                for pos in candidates
+                if _jaccard(toks, tokens[canonical[pos]]) >= similarity_threshold
             ),
             None,
         )
@@ -261,6 +277,8 @@ def assign_event_ids(
             event_of[news_id] = match
         else:
             event_of[news_id] = news_id
+            for tok in head:
+                index.setdefault(tok, []).append(len(canonical))
             canonical.append(news_id)
     return event_of
 

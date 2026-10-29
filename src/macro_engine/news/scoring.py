@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+import hashlib
 import math
 import uuid
 
+import numpy as np
 import pandas as pd
 
 from macro_engine.news.config import NewsScoringConfig, load_news_scoring_config
 from macro_engine.news.selection import assign_event_ids
 from macro_engine.storage.duckdb_store import DuckDBStore
+
+# Bump when a change to this module alters scored output for unchanged inputs, so
+# the next stored build recomputes every row instead of only the affected weeks.
+SCORING_STATE_VERSION = "1"
 
 
 @dataclass(frozen=True)
@@ -27,30 +33,75 @@ def build_stored_news_scores(
     *,
     config_path: str | Path = "config/news_scoring.yaml",
     db_path: str | Path = "data/macro_engine.duckdb",
+    full: bool = False,
 ) -> NewsScoreBuildResult:
+    """Score the stored classifications and write the score tables.
+
+    Incremental by default (N1 C1): the store keeps a fingerprint of every
+    scorable item as last scored, and only the weeks an added, changed or
+    removed item can reach are recomputed and replaced; older rows are left as
+    they are. A missing state, a config change or a SCORING_STATE_VERSION bump
+    (or ``full=True``) recomputes everything. The returned frames hold only the
+    rows this run wrote; the run row counts over the whole merged store."""
     config = load_news_scoring_config(config_path)
     store = DuckDBStore(db_path)
     store.initialize()
     started_at = datetime.now(UTC)
     try:
         classifications, theme_scores, sector_impacts = store.read_effective_news_classifications()
+        news_items = store.read_table("news_items")
+        event_map = assign_event_ids(
+            news_items, similarity_threshold=config.event_dedupe_similarity_threshold
+        )
+        item_state, meta = _scoring_state(
+            news_items, classifications, theme_scores, sector_impacts, event_map, config
+        )
+        previous = None if full else store.read_news_score_state()
+        only_dates = _recompute_dates(previous, item_state, meta, config)
         result = build_news_scores(
-            news_items=store.read_table("news_items"),
+            news_items=news_items,
             classifications=classifications,
             theme_scores=theme_scores,
             sector_impacts=sector_impacts,
             config=config,
             started_at=started_at,
+            event_map=event_map,
+            only_dates=only_dates,
         )
-        store.replace_news_score_outputs(
+        # Drop the state before touching outputs: a run that dies part-way then
+        # leaves no state behind, and the next run rebuilds in full.
+        store.replace_news_score_state(None, None)
+        if only_dates is None:
+            store.replace_news_score_outputs(
+                result.daily_theme_scores,
+                result.daily_sector_scores,
+                result.weekly_theme_scores,
+                result.weekly_sector_scores,
+                result.components,
+                result.runs,
+            )
+            runs = result.runs
+        else:
+            runs = store.update_news_score_outputs(
+                score_dates=only_dates,
+                range_start=meta["range_start"],
+                range_end=meta["range_end"],
+                daily_theme_scores=result.daily_theme_scores,
+                daily_sector_scores=result.daily_sector_scores,
+                weekly_theme_scores=result.weekly_theme_scores,
+                weekly_sector_scores=result.weekly_sector_scores,
+                components=result.components,
+                runs=result.runs,
+            )
+        store.replace_news_score_state(item_state, meta)
+        return NewsScoreBuildResult(
             result.daily_theme_scores,
             result.daily_sector_scores,
             result.weekly_theme_scores,
             result.weekly_sector_scores,
             result.components,
-            result.runs,
+            runs,
         )
-        return result
     except Exception as exc:
         completed_at = datetime.now(UTC)
         runs = pd.DataFrame(
@@ -67,6 +118,7 @@ def build_stored_news_scores(
                 }
             ]
         )
+        store.replace_news_score_state(None, None)
         store.replace_news_score_outputs(
             _daily_theme_frame(),
             _daily_sector_frame(),
@@ -86,7 +138,12 @@ def build_news_scores(
     sector_impacts: pd.DataFrame,
     config: NewsScoringConfig,
     started_at: datetime | None = None,
+    event_map: dict[str, str] | None = None,
+    only_dates: set[date] | None = None,
 ) -> NewsScoreBuildResult:
+    """Score the given inputs. ``event_map`` is computed from ``news_items`` when
+    not given. ``only_dates`` restricts the output to those score dates; weekly
+    rows are complete only for weeks whose in-range dates are all included."""
     started_at = started_at or datetime.now(UTC)
     completed_at = datetime.now(UTC)
     if news_items.empty or classifications.empty:
@@ -108,12 +165,7 @@ def build_news_scores(
             runs,
         )
 
-    items = news_items.copy()
-    items["published_at"] = pd.to_datetime(items["published_at"], errors="coerce", utc=True)
-    classes = classifications.copy()
-    classes = classes[classes["classification_status"] == "success"].copy()
-    classes["severity"] = pd.to_numeric(classes["severity"], errors="coerce").fillna(0.0)
-    classes["confidence"] = pd.to_numeric(classes["confidence"], errors="coerce").fillna(0.0)
+    items, classes = _scoring_inputs(news_items, classifications)
     if classes.empty:
         runs = _run_frame(
             started_at=started_at,
@@ -139,12 +191,14 @@ def build_news_scores(
         theme_scores=theme_scores,
         sector_impacts=sector_impacts,
         config=config,
+        only_dates=only_dates,
     )
     # Lexical event clustering over the article corpus so one near-duplicate
     # narrative (carried by many articles/sources) cannot dominate a sector.
-    event_map = assign_event_ids(
-        items, similarity_threshold=config.event_dedupe_similarity_threshold
-    )
+    if event_map is None:
+        event_map = assign_event_ids(
+            items, similarity_threshold=config.event_dedupe_similarity_threshold
+        )
     daily_theme = _aggregate_daily_theme(daily_components, config, completed_at)
     daily_sector = _aggregate_daily_sector(daily_components, config, completed_at, event_map)
     weekly_theme = _aggregate_weekly_theme(daily_theme, completed_at)
@@ -169,6 +223,139 @@ def build_news_scores(
     )
 
 
+def _scoring_inputs(
+    news_items: pd.DataFrame, classifications: pd.DataFrame
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    items = news_items.copy()
+    items["published_at"] = pd.to_datetime(items["published_at"], errors="coerce", utc=True)
+    classes = classifications.copy()
+    classes = classes[classes["classification_status"] == "success"].copy()
+    classes["severity"] = pd.to_numeric(classes["severity"], errors="coerce").fillna(0.0)
+    classes["confidence"] = pd.to_numeric(classes["confidence"], errors="coerce").fillna(0.0)
+    return items, classes
+
+
+# Every base-row field that a component or an aggregate reads, per base kind.
+_THEME_STATE_FIELDS = ("theme_id", "direction", "severity", "confidence", "source", "published_at")
+_SECTOR_STATE_FIELDS = (
+    "sector_id",
+    "impact_direction",
+    "impact_score",
+    "confidence",
+    "rationale",
+    "severity",
+    "source",
+    "published_at",
+)
+
+
+def _scoring_state(
+    news_items: pd.DataFrame,
+    classifications: pd.DataFrame,
+    theme_scores: pd.DataFrame,
+    sector_impacts: pd.DataFrame,
+    event_map: dict[str, str],
+    config: NewsScoringConfig,
+) -> tuple[pd.DataFrame, dict]:
+    """One row per scorable news_id: a fingerprint of everything scoring reads
+    for it (its theme and sector rows, source, publication time, event id) and
+    its publication date. ``meta`` holds what applies to every row."""
+    parts: dict[str, list[str]] = {}
+    published: dict[str, object] = {}
+    dates = pd.DatetimeIndex([])
+    if not news_items.empty and not classifications.empty:
+        items, classes = _scoring_inputs(news_items, classifications)
+        bases = (
+            ("theme", _theme_base(items, classes, theme_scores), _THEME_STATE_FIELDS),
+            ("sector", _sector_base(items, classes, sector_impacts), _SECTOR_STATE_FIELDS),
+        )
+        for kind, base, fields in bases:
+            for row in base.to_dict(orient="records"):
+                news_id = str(row["news_id"])
+                values = tuple(row.get(field) for field in fields)
+                parts.setdefault(news_id, []).append(
+                    repr((kind, values, event_map.get(news_id, news_id)))
+                )
+                published[news_id] = row.get("published_at")
+        dates = _score_dates(items, config)
+    state = pd.DataFrame(
+        [
+            {
+                "news_id": news_id,
+                "fingerprint": hashlib.sha256("\n".join(sorted(rows)).encode()).hexdigest(),
+                "published_date": _published_date(published[news_id]),
+            }
+            for news_id, rows in sorted(parts.items())
+        ],
+        columns=["news_id", "fingerprint", "published_date"],
+    )
+    meta = {
+        "state_version": SCORING_STATE_VERSION,
+        "config_json": config.model_dump_json(),
+        "range_start": dates[0].date() if len(dates) else None,
+        "range_end": dates[-1].date() if len(dates) else None,
+    }
+    return state, meta
+
+
+def _published_date(published_at) -> date | None:
+    if published_at is None or pd.isna(published_at):
+        return None
+    stamp = pd.Timestamp(published_at)
+    if stamp.tzinfo is None:
+        stamp = stamp.tz_localize("UTC")
+    return stamp.tz_convert("UTC").date()
+
+
+def _recompute_dates(
+    previous: tuple[pd.DataFrame, dict] | None,
+    state: pd.DataFrame,
+    meta: dict,
+    config: NewsScoringConfig,
+) -> set[date] | None:
+    """Score dates to recompute, or None for a full rebuild.
+
+    An item published on day P reaches score dates P..P+max_age_days (to the
+    end of the range when freshness decay is off). The days an added, changed
+    or removed item reaches, and the days entering or leaving the date range,
+    are widened to whole weeks, because a weekly row averages its days."""
+    if previous is None:
+        return None
+    previous_state, previous_meta = previous
+    if (
+        previous_meta.get("state_version") != meta["state_version"]
+        or previous_meta.get("config_json") != meta["config_json"]
+        or previous_meta.get("range_start") is None
+        or meta["range_start"] is None
+    ):
+        return None
+    start, end = meta["range_start"], meta["range_end"]
+    old_start, old_end = previous_meta["range_start"], previous_meta["range_end"]
+    last = max(end, old_end)
+    merged = previous_state.merge(state, on="news_id", how="outer", suffixes=("_old", "_new"))
+    changed = merged[merged["fingerprint_old"].fillna("") != merged["fingerprint_new"].fillna("")]
+    touched: set[date] = set()
+    for published in pd.concat([changed["published_date_old"], changed["published_date_new"]]):
+        if published is None or pd.isna(published):
+            continue
+        first = pd.Timestamp(published).date()
+        stop = last
+        if config.freshness_decay.enabled:
+            stop = min(last, first + timedelta(days=config.freshness_decay.max_age_days))
+        touched.update(_day_range(first, stop))
+    touched.update(set(_day_range(start, end)) ^ set(_day_range(old_start, old_end)))
+    weeks = {_week_start(day) for day in touched}
+    return {day for day in _day_range(start, end) if _week_start(day) in weeks}
+
+
+def _day_range(first: date, last: date) -> list[date]:
+    return [first + timedelta(days=offset) for offset in range((last - first).days + 1)]
+
+
+def _week_start(day: date) -> date:
+    return day - timedelta(days=day.weekday())
+
+
 def freshness_weight(age_days: int, config: NewsScoringConfig) -> float:
     if not config.freshness_decay.enabled:
         return 1.0
@@ -186,20 +373,49 @@ def _daily_components(
     theme_scores: pd.DataFrame,
     sector_impacts: pd.DataFrame,
     config: NewsScoringConfig,
+    only_dates: set[date] | None = None,
 ) -> pd.DataFrame:
     dates = _score_dates(items, config)
-    theme_base = _theme_base(items, classifications, theme_scores)
-    sector_base = _sector_base(items, classifications, sector_impacts)
+    if only_dates is not None:
+        dates = dates[[score_date.date() in only_dates for score_date in dates]]
+    theme_rows = _rows_by_day(_theme_base(items, classifications, theme_scores))
+    sector_rows = _rows_by_day(_sector_base(items, classifications, sector_impacts))
     rows: list[dict] = []
     for score_date in dates:
-        for row in theme_base.to_dict(orient="records"):
+        for row in _rows_in_reach(theme_rows, score_date, config):
             rows.extend(_component_for_theme_row(row, score_date, config))
-        for row in sector_base.to_dict(orient="records"):
+        for row in _rows_in_reach(sector_rows, score_date, config):
             rows.extend(_component_for_sector_row(row, score_date, config))
     if not rows:
         return _component_frame(with_source=True)
     frame = pd.DataFrame(rows)
     return frame[_component_columns() + ["source"]]
+
+
+def _rows_by_day(base: pd.DataFrame) -> tuple[list[dict], np.ndarray]:
+    """Base rows as records, beside each row's publication day number (NaN when
+    unknown), so a score date can pick out the rows it can reach."""
+    if base.empty:
+        return [], np.array([], dtype=float)
+    published = pd.to_datetime(base["published_at"], errors="coerce", utc=True)
+    days = (published.dt.normalize() - pd.Timestamp(0, tz="UTC")).dt.days.to_numpy(dtype=float)
+    return base.to_dict(orient="records"), days
+
+
+def _rows_in_reach(
+    rows: tuple[list[dict], np.ndarray],
+    score_date: pd.Timestamp,
+    config: NewsScoringConfig,
+) -> list[dict]:
+    """Rows that can be eligible on score_date, in base order: published on or
+    before it and, with decay on, at most max_age_days earlier. Eligibility is
+    still decided per row; this only skips rows that cannot pass it."""
+    records, days = rows
+    day = (score_date.normalize() - pd.Timestamp(0, tz="UTC")).days
+    mask = days <= day
+    if config.freshness_decay.enabled:
+        mask &= days >= day - config.freshness_decay.max_age_days
+    return [records[position] for position in np.flatnonzero(mask)]
 
 
 def _theme_base(
