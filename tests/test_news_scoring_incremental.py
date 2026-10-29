@@ -271,3 +271,18 @@ def test_config_change_and_error_force_full_rebuild(tmp_path: Path, monkeypatch)
     with pytest.raises(RuntimeError):
         build_stored_news_scores(config_path=_config(tmp_path, decay=False), db_path=db_path)
     assert store.read_news_score_state() is None
+
+
+def test_build_logs_which_scoring_path_it_took(tmp_path: Path, capsys):
+    config = _config(tmp_path, decay=True)
+    db_path = tmp_path / "macro.duckdb"
+    _seed(db_path)
+
+    build_stored_news_scores(config_path=config, db_path=db_path)
+    assert "news-scoring: mode=full reason=no_state" in capsys.readouterr().err
+
+    build_stored_news_scores(config_path=config, db_path=db_path)
+    assert "news-scoring: mode=incremental dates=0/" in capsys.readouterr().err
+
+    build_stored_news_scores(config_path=config, db_path=db_path, full=True)
+    assert "news-scoring: mode=full reason=forced" in capsys.readouterr().err

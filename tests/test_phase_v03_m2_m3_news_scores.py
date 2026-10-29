@@ -119,7 +119,7 @@ def test_build_news_scores_cli_and_report(tmp_path: Path):
         ["build-news-scores", "--config", str(config_path), "--db-path", str(db_path)],
     )
     assert build.exit_code == 0, build.output
-    assert json.loads(build.output)["daily_sector_rows"] > 0
+    assert json.loads(build.stdout)["daily_sector_rows"] > 0
 
     summary = runner.invoke(app, ["current-news-summary", "--db-path", str(db_path)])
     assert summary.exit_code == 0, summary.output
