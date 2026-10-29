@@ -4,7 +4,7 @@
     "cost_of_capital": {
       "anchor_id": "cost_of_capital",
       "asof": "2026-10-29",
-      "built_at": "2026-10-29T15:03:58.510871+00:00",
+      "built_at": "2026-10-29T15:38:40.273078+00:00",
       "degraded": true,
       "equity_aggregate": null,
       "erp_basis": "unavailable",
@@ -48,22 +48,22 @@
       },
       "sector_loadings": {
         "banks": 1.009,
-        "biotech": 1.136,
+        "biotech": 1.135,
         "communication_services": 0.997,
         "consumer_discretionary": 1.223,
         "consumer_staples": 0.354,
         "energy": 0.561,
-        "financials": 0.838,
+        "financials": 0.837,
         "health_care": 0.526,
-        "homebuilders": 1.121,
-        "industrials": 0.866,
+        "homebuilders": 1.12,
+        "industrials": 0.865,
         "information_technology": 1.379,
-        "materials": 0.847,
-        "oil_gas_ep": 0.816,
+        "materials": 0.846,
+        "oil_gas_ep": 0.817,
         "real_estate": 0.696,
         "semiconductors": 1.747,
-        "software": 1.315,
-        "utilities": 0.436
+        "software": 1.316,
+        "utilities": 0.435
       },
       "source_files": [
         "config/phase_b_sources.yaml",
@@ -79,7 +79,7 @@
     "long_run_growth": {
       "anchor_id": "long_run_growth",
       "asof": "2026-10-29",
-      "built_at": "2026-10-29T15:03:58.510871+00:00",
+      "built_at": "2026-10-29T15:38:40.273078+00:00",
       "clamp": {
         "ceiling": 0.05,
         "floor": 0.0,
@@ -521,7 +521,7 @@
           "sector_id": "utilities"
         }
       ],
-      "built_at": "2026-10-29T15:03:58.510871+00:00",
+      "built_at": "2026-10-29T15:38:40.273078+00:00",
       "degraded": true,
       "panel_measure": "pe_ttm",
       "panel_measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
@@ -560,7 +560,7 @@
     },
     "terminal_g_suggestion": 0.0375
   },
-  "computed_at": "2026-10-29T15:04:14.547048+00:00",
+  "computed_at": "2026-10-29T15:38:53.295975+00:00",
   "confidence": 0.06407263185744161,
   "current_regime_age_days": 28,
   "current_regime_date": "2026-10-01",
@@ -579,17 +579,17 @@
   "raw_regime_probability": 0.33357354425594554,
   "readiness_label": "monitor_ready",
   "regime_probability": 0.33357354425594554,
-  "secular_theme_computed_at": "2026-10-29T15:04:09.610946+00:00",
+  "secular_theme_computed_at": "2026-10-29T15:38:49.324369+00:00",
   "secular_theme_scores": {
     "ai_compute": {
       "avg_confidence": 0.6321932114882507,
-      "avg_severity": 0.4114621409921671,
+      "avg_severity": 0.41146214099216705,
       "item_count": 383,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6460784313725491,
+          "avg_confidence": 0.646078431372549,
           "item_count": 51,
           "period_start": "2026-07-01",
           "score": 1.875354925500742
@@ -607,7 +607,7 @@
           "score": 7.513032470728383
         },
         {
-          "avg_confidence": 0.6679452054794521,
+          "avg_confidence": 0.667945205479452,
           "item_count": 146,
           "period_start": "2026-10-01",
           "score": 10.83628619747381
@@ -615,19 +615,19 @@
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.610168776371308,
+          "avg_confidence": 0.6101687763713078,
           "item_count": 237,
           "period_start": "2026-07-01",
           "score": 12.787704982278376
         },
         {
-          "avg_confidence": 0.6679452054794521,
+          "avg_confidence": 0.667945205479452,
           "item_count": 146,
           "period_start": "2026-10-01",
           "score": 10.83628619747381
         }
       ],
-      "raw_score": 157.59,
+      "raw_score": 157.58999999999997,
       "score": 23.62399117975219,
       "source_mix": {
         "CNBC": 4,
@@ -698,12 +698,12 @@
           "title": "Samsung Electronics shares slid despite record profit in the third-quarter"
         }
       ],
-      "trend_30d": 17.584344985280328
+      "trend_30d": 17.58434498528033
     },
     "cloud_software": {
-      "avg_confidence": 0.6541666666666667,
-      "avg_severity": 0.2791666666666667,
-      "item_count": 12,
+      "avg_confidence": 0.6764285714285715,
+      "avg_severity": 0.30357142857142855,
+      "item_count": 14,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -720,10 +720,10 @@
           "score": 0.27322718615952046
         },
         {
-          "avg_confidence": 0.6916666666666668,
-          "item_count": 6,
+          "avg_confidence": 0.72125,
+          "item_count": 8,
           "period_start": "2026-10-01",
-          "score": 0.71844529352482
+          "score": 1.41844529352482
         }
       ],
       "quarterly_scores": [
@@ -734,30 +734,46 @@
           "score": 0.28277560219862463
         },
         {
-          "avg_confidence": 0.6916666666666668,
-          "item_count": 6,
+          "avg_confidence": 0.72125,
+          "item_count": 8,
           "period_start": "2026-10-01",
-          "score": 0.71844529352482
+          "score": 1.41844529352482
         }
       ],
-      "raw_score": 3.35,
-      "score": 1.0012208957234447,
+      "raw_score": 4.25,
+      "score": 1.7012208957234445,
       "source_mix": {
         "cnbc_finance": 1,
-        "cnbc_markets": 3,
-        "cnbc_tech": 4,
+        "cnbc_markets": 4,
+        "cnbc_tech": 5,
         "housingwire": 3,
         "marketwatch": 1
       },
       "theme_id": "cloud_software",
       "top_news_ids": [
+        "news_1084c30018083b1a",
+        "news_bf70eafe559ac0f3",
         "news_68db326535f4aaa9",
         "news_0ff55be351b25244",
-        "news_264784853adba78b",
-        "news_496f9000ee18a0ab",
-        "news_6d4b4fd6a6090d4a"
+        "news_264784853adba78b"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.82,
+          "news_id": "news_1084c30018083b1a",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/10/29/servicenow-now-earnings-q3-2026.html",
+          "title": "ServiceNow shares plunge 24% after earnings revive AI disruption fears"
+        },
+        {
+          "confidence": 0.8,
+          "news_id": "news_bf70eafe559ac0f3",
+          "score_component": 0.35,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/10/29/servicenow-now-earnings-q3-2026.html",
+          "title": "ServiceNow shares plunge 24% after earnings revive AI disruption fears"
+        },
         {
           "confidence": 0.7,
           "news_id": "news_68db326535f4aaa9",
@@ -781,28 +797,12 @@
           "source": "cnbc_markets",
           "source_url": "https://www.cnbc.com/2026/08/26/salesforce-crm-q2-earnings-report-2027.html",
           "title": "Salesforce stock jumps 18% on AI growth and Anthropic investment gain"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_496f9000ee18a0ab",
-          "score_component": 0.08378352982565015,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/10/01/linkedin-chief-roslansky-microsoft-exit.html",
-          "title": "Former LinkedIn chief Roslansky to leave Microsoft, following other exec departures"
-        },
-        {
-          "confidence": 0.9,
-          "news_id": "news_6d4b4fd6a6090d4a",
-          "score_component": 0.07310271567206121,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/10/20/salesforce-braze-acquisition-deal.html",
-          "title": "Salesforce announces $5.66 billion deal for Braze, sending BRZE stock soaring 51%"
         }
       ],
-      "trend_30d": 0.7184452935248199
+      "trend_30d": 1.4184452935248197
     },
     "cybersecurity": {
-      "avg_confidence": 0.6486486486486487,
+      "avg_confidence": 0.6486486486486488,
       "avg_severity": 0.35945945945945945,
       "item_count": 37,
       "label": "Cybersecurity",
@@ -827,7 +827,7 @@
           "score": 1.6019228300778974
         },
         {
-          "avg_confidence": 0.6541666666666666,
+          "avg_confidence": 0.6541666666666667,
           "item_count": 12,
           "period_start": "2026-10-01",
           "score": 1.7829725193647339
@@ -841,7 +841,7 @@
           "score": 2.1109382548333127
         },
         {
-          "avg_confidence": 0.6541666666666666,
+          "avg_confidence": 0.6541666666666667,
           "item_count": 12,
           "period_start": "2026-10-01",
           "score": 1.7829725193647339
@@ -921,19 +921,19 @@
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.607142857142857,
+          "avg_confidence": 0.6071428571428571,
           "item_count": 14,
           "period_start": "2026-07-01",
           "score": 0.4513721510348061
         },
         {
-          "avg_confidence": 0.5476190476190476,
+          "avg_confidence": 0.5476190476190477,
           "item_count": 21,
           "period_start": "2026-08-01",
           "score": 0.972544195777301
         },
         {
-          "avg_confidence": 0.5562068965517241,
+          "avg_confidence": 0.5562068965517242,
           "item_count": 29,
           "period_start": "2026-09-01",
           "score": 1.7644180314960953
@@ -1025,7 +1025,7 @@
       "trend_30d": 5.25658707967316
     },
     "glp1_metabolic": {
-      "avg_confidence": 0.6857894736842106,
+      "avg_confidence": 0.6857894736842105,
       "avg_severity": 0.3236842105263158,
       "item_count": 19,
       "label": "GLP-1 / Metabolic Health",
@@ -1044,7 +1044,7 @@
           "score": 0.045471496995311944
         },
         {
-          "avg_confidence": 0.715,
+          "avg_confidence": 0.7150000000000001,
           "item_count": 10,
           "period_start": "2026-09-01",
           "score": 1.2724936115600365
@@ -1129,7 +1129,7 @@
           "title": "Eli Lilly says closely watched combo obesity regimen boosts weight loss in mid-stage trial"
         }
       ],
-      "trend_30d": 0.7739050210463944
+      "trend_30d": 0.7739050210463946
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.614,
@@ -1165,7 +1165,7 @@
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.5769230769230768,
+          "avg_confidence": 0.5769230769230769,
           "item_count": 13,
           "period_start": "2026-07-01",
           "score": 0.7521153107835417
@@ -1238,7 +1238,7 @@
       "trend_30d": 1.5792530287582507
     },
     "physical_ai": {
-      "avg_confidence": 0.604848484848485,
+      "avg_confidence": 0.6048484848484849,
       "avg_severity": 0.36363636363636365,
       "item_count": 33,
       "label": "Physical AI / Robotics",
@@ -1348,7 +1348,7 @@
           "title": "As Waymo expands overseas, it remains a niche cash-burning business"
         }
       ],
-      "trend_30d": 2.0986601556052946
+      "trend_30d": 2.0986601556052955
     },
     "quantum_computing": {
       "avg_confidence": 0.6666666666666666,
@@ -1426,9 +1426,9 @@
       "trend_30d": 0.01399656077596767
     },
     "space_economy": {
-      "avg_confidence": 0.603793103448276,
-      "avg_severity": 0.33517241379310336,
-      "item_count": 29,
+      "avg_confidence": 0.6120000000000001,
+      "avg_severity": 0.3279999999999999,
+      "item_count": 30,
       "label": "Space Economy",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1451,10 +1451,10 @@
           "score": 0.3757674189217131
         },
         {
-          "avg_confidence": 0.6953333333333334,
-          "item_count": 15,
+          "avg_confidence": 0.705,
+          "item_count": 16,
           "period_start": "2026-10-01",
-          "score": 2.786463570778637
+          "score": 2.8884635707786375
         }
       ],
       "quarterly_scores": [
@@ -1465,20 +1465,20 @@
           "score": 0.5010781438075744
         },
         {
-          "avg_confidence": 0.6953333333333334,
-          "item_count": 15,
+          "avg_confidence": 0.705,
+          "item_count": 16,
           "period_start": "2026-10-01",
-          "score": 2.786463570778637
+          "score": 2.8884635707786375
         }
       ],
-      "raw_score": 9.719999999999997,
-      "score": 3.2875417145862116,
+      "raw_score": 9.839999999999996,
+      "score": 3.389541714586211,
       "source_mix": {
         "bbc_world": 2,
         "cnbc_tech": 10,
         "housingwire": 1,
         "marketwatch": 2,
-        "nasdaq_markets": 4,
+        "nasdaq_markets": 5,
         "oilprice": 3,
         "scmp": 7
       },
@@ -1532,7 +1532,7 @@
           "title": "Musk ordered slowdown of Starlink service Ukraine military relies on, report says"
         }
       ],
-      "trend_30d": 3.142500720279011
+      "trend_30d": 3.244500720279011
     }
   },
   "source_files": {
