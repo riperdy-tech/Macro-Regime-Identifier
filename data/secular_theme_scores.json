@@ -1,6 +1,6 @@
 {
   "classification_scope": "stored_successful_classifications_with_secular_theme",
-  "computed_at": "2026-10-29T06:11:01.046161+00:00",
+  "computed_at": "2026-10-29T15:04:09.610946+00:00",
   "disclaimer": "This is a diagnostic secular-theme tracker built from stored news classifications. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "frequencies": [
     "monthly",
@@ -11,81 +11,89 @@
   "theme_count": 9,
   "themes": {
     "ai_compute": {
-      "avg_confidence": 0.6302406417112298,
-      "avg_severity": 0.4099999999999999,
-      "item_count": 374,
+      "avg_confidence": 0.6321932114882507,
+      "avg_severity": 0.4114621409921671,
+      "item_count": 383,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.646078431372549,
+          "avg_confidence": 0.6460784313725491,
           "item_count": 51,
           "period_start": "2026-07-01",
-          "score": 1.8753549255007418
+          "score": 1.875354925500742
         },
         {
-          "avg_confidence": 0.5835820895522387,
+          "avg_confidence": 0.5835820895522388,
           "item_count": 67,
           "period_start": "2026-08-01",
-          "score": 3.399317586049249
+          "score": 3.3993175860492495
         },
         {
-          "avg_confidence": 0.6097478991596638,
+          "avg_confidence": 0.6097478991596637,
           "item_count": 119,
           "period_start": "2026-09-01",
           "score": 7.513032470728383
         },
         {
-          "avg_confidence": 0.664963503649635,
-          "item_count": 137,
+          "avg_confidence": 0.6679452054794521,
+          "item_count": 146,
           "period_start": "2026-10-01",
-          "score": 10.330915491472721
+          "score": 10.83628619747381
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6101687763713078,
+          "avg_confidence": 0.610168776371308,
           "item_count": 237,
           "period_start": "2026-07-01",
           "score": 12.787704982278376
         },
         {
-          "avg_confidence": 0.664963503649635,
-          "item_count": 137,
+          "avg_confidence": 0.6679452054794521,
+          "item_count": 146,
           "period_start": "2026-10-01",
-          "score": 10.330915491472721
+          "score": 10.83628619747381
         }
       ],
-      "raw_score": 153.33999999999997,
-      "score": 23.118620473751097,
+      "raw_score": 157.59,
+      "score": 23.62399117975219,
       "source_mix": {
         "CNBC": 4,
         "bbc_world": 6,
-        "cnbc_economy": 7,
+        "cnbc_economy": 8,
         "cnbc_energy": 1,
         "cnbc_finance": 32,
         "cnbc_health": 6,
-        "cnbc_markets": 48,
+        "cnbc_markets": 50,
         "cnbc_retail": 1,
-        "cnbc_tech": 179,
+        "cnbc_tech": 184,
         "eia_energy": 1,
         "federal_reserve_speeches": 4,
         "housingwire": 7,
         "marketwatch": 16,
         "nasdaq_markets": 22,
         "oilprice": 21,
-        "scmp": 18,
+        "scmp": 19,
         "zerohedge.com": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_11b264474bfc02ae",
         "news_2d1e736501f28cfb",
         "news_39aec6bc62d9d2e2",
-        "news_5642da32a535ab06",
-        "news_810d79b6fe9a7072",
-        "news_8eb20684fc413232"
+        "news_4fcdc5eba8593fb8",
+        "news_5642da32a535ab06"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.75,
+          "news_id": "news_11b264474bfc02ae",
+          "score_component": 0.35,
+          "source": "cnbc_economy",
+          "source_url": "https://www.cnbc.com/2026/10/29/pce-inflation-report-september-2026-.html",
+          "title": "Third-quarter U.S. GDP increases a better-than-expected 3.4% as September inflation accelerates"
+        },
         {
           "confidence": 0.9,
           "news_id": "news_2d1e736501f28cfb",
@@ -104,30 +112,22 @@
         },
         {
           "confidence": 0.85,
+          "news_id": "news_4fcdc5eba8593fb8",
+          "score_component": 0.35,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/10/29/samsung-electronics-third-quarter-earnings.html",
+          "title": "Samsung Electronics shares slid despite record profit in the third-quarter"
+        },
+        {
+          "confidence": 0.85,
           "news_id": "news_5642da32a535ab06",
           "score_component": 0.35,
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/10/29/samsung-electronics-third-quarter-earnings.html",
           "title": "Samsung Electronics shares slid despite record profit in the third-quarter"
-        },
-        {
-          "confidence": 0.9,
-          "news_id": "news_810d79b6fe9a7072",
-          "score_component": 0.35,
-          "source": "cnbc_markets",
-          "source_url": "https://www.cnbc.com/2026/10/28/microsoft-msft-q1-earnings-report-2027.html",
-          "title": "Microsoft stock jumps 4% as cloud growth drives earnings and revenue beat"
-        },
-        {
-          "confidence": 0.8,
-          "news_id": "news_8eb20684fc413232",
-          "score_component": 0.35,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/10/15/coreweave-credit-default-swaps-hit-distress-levels-as-investors-sour-on-ai-debt.html",
-          "title": "CoreWeave credit default swaps hit distress levels as investors sour on AI debt"
         }
       ],
-      "trend_30d": 15.609344985280329
+      "trend_30d": 17.584344985280328
     },
     "cloud_software": {
       "avg_confidence": 0.6541666666666667,
@@ -157,7 +157,7 @@
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6166666666666667,
+          "avg_confidence": 0.6166666666666666,
           "item_count": 6,
           "period_start": "2026-07-01",
           "score": 0.28277560219862463
@@ -231,9 +231,9 @@
       "trend_30d": 0.7184452935248199
     },
     "cybersecurity": {
-      "avg_confidence": 0.6541666666666667,
-      "avg_severity": 0.3638888888888888,
-      "item_count": 36,
+      "avg_confidence": 0.6486486486486487,
+      "avg_severity": 0.35945945945945945,
+      "item_count": 37,
       "label": "Cybersecurity",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -256,10 +256,10 @@
           "score": 1.6019228300778974
         },
         {
-          "avg_confidence": 0.6727272727272727,
-          "item_count": 11,
+          "avg_confidence": 0.6541666666666666,
+          "item_count": 12,
           "period_start": "2026-10-01",
-          "score": 1.692972519364734
+          "score": 1.7829725193647339
         }
       ],
       "quarterly_scores": [
@@ -270,16 +270,16 @@
           "score": 2.1109382548333127
         },
         {
-          "avg_confidence": 0.6727272727272727,
-          "item_count": 11,
+          "avg_confidence": 0.6541666666666666,
+          "item_count": 12,
           "period_start": "2026-10-01",
-          "score": 1.692972519364734
+          "score": 1.7829725193647339
         }
       ],
-      "raw_score": 13.099999999999998,
-      "score": 3.8039107741980467,
+      "raw_score": 13.299999999999999,
+      "score": 3.8939107741980465,
       "source_mix": {
-        "bbc_world": 6,
+        "bbc_world": 7,
         "cnbc_business": 1,
         "cnbc_economy": 1,
         "cnbc_finance": 3,
@@ -340,17 +340,17 @@
           "title": "Interpol says AI is increasing the speed and scale of cyber threats. Here\u2019s what companies should watch"
         }
       ],
-      "trend_30d": 0.4332448222472236
+      "trend_30d": 0.2307448222472237
     },
     "energy_transition": {
-      "avg_confidence": 0.5743396226415095,
-      "avg_severity": 0.38952830188679244,
-      "item_count": 106,
+      "avg_confidence": 0.5755140186915888,
+      "avg_severity": 0.3882242990654205,
+      "item_count": 107,
       "label": "Energy Transition & Clean Tech",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
         {
-          "avg_confidence": 0.6071428571428571,
+          "avg_confidence": 0.607142857142857,
           "item_count": 14,
           "period_start": "2026-07-01",
           "score": 0.4513721510348061
@@ -362,14 +362,14 @@
           "score": 0.972544195777301
         },
         {
-          "avg_confidence": 0.5562068965517242,
+          "avg_confidence": 0.5562068965517241,
           "item_count": 29,
           "period_start": "2026-09-01",
           "score": 1.7644180314960953
         },
         {
-          "avg_confidence": 0.5892857142857143,
-          "item_count": 42,
+          "avg_confidence": 0.5918604651162791,
+          "item_count": 43,
           "period_start": "2026-10-01",
           "score": 2.9476791521435803
         }
@@ -382,13 +382,13 @@
           "score": 3.1883343783082023
         },
         {
-          "avg_confidence": 0.5892857142857143,
-          "item_count": 42,
+          "avg_confidence": 0.5918604651162791,
+          "item_count": 43,
           "period_start": "2026-10-01",
           "score": 2.9476791521435803
         }
       ],
-      "raw_score": 41.29,
+      "raw_score": 41.53999999999999,
       "score": 6.136013530451782,
       "source_mix": {
         "bbc_world": 1,
@@ -397,7 +397,7 @@
         "cnbc_tech": 2,
         "eia_energy": 7,
         "nasdaq_markets": 1,
-        "oilprice": 81,
+        "oilprice": 82,
         "prwire.com.au": 1,
         "scmp": 9
       },
@@ -451,12 +451,12 @@
           "title": "UK Pays Record Sums to Balance Grid as Transmission Falls Behind"
         }
       ],
-      "trend_30d": 5.07158707967316
+      "trend_30d": 5.25658707967316
     },
     "glp1_metabolic": {
-      "avg_confidence": 0.6811764705882354,
-      "avg_severity": 0.3264705882352942,
-      "item_count": 17,
+      "avg_confidence": 0.6857894736842106,
+      "avg_severity": 0.3236842105263158,
+      "item_count": 19,
       "label": "GLP-1 / Metabolic Health",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -473,16 +473,16 @@
           "score": 0.045471496995311944
         },
         {
-          "avg_confidence": 0.7150000000000001,
+          "avg_confidence": 0.715,
           "item_count": 10,
           "period_start": "2026-09-01",
           "score": 1.2724936115600365
         },
         {
-          "avg_confidence": 0.6825,
-          "item_count": 4,
+          "avg_confidence": 0.6966666666666667,
+          "item_count": 6,
           "period_start": "2026-10-01",
-          "score": 0.48568735140997854
+          "score": 0.9206873514099785
         }
       ],
       "quarterly_scores": [
@@ -493,29 +493,46 @@
           "score": 1.348815656930358
         },
         {
-          "avg_confidence": 0.6825,
-          "item_count": 4,
+          "avg_confidence": 0.6966666666666667,
+          "item_count": 6,
           "period_start": "2026-10-01",
-          "score": 0.48568735140997854
+          "score": 0.9206873514099785
         }
       ],
-      "raw_score": 5.550000000000001,
-      "score": 1.8345030083403366,
+      "raw_score": 6.15,
+      "score": 2.2695030083403367,
       "source_mix": {
         "cnbc_business": 3,
-        "cnbc_health": 12,
+        "cnbc_health": 13,
+        "cnbc_markets": 1,
         "cnbc_tech": 1,
         "nasdaq_markets": 1
       },
       "theme_id": "glp1_metabolic",
       "top_news_ids": [
+        "news_8bc22340731a0b6d",
+        "news_07883d2ed289e66c",
         "news_99c197152932adee",
         "news_902e6d11e2ee60ce",
-        "news_00daf6599ff60273",
-        "news_eec8e09ffba78864",
-        "news_bef0fd5b28568bde"
+        "news_00daf6599ff60273"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.75,
+          "news_id": "news_8bc22340731a0b6d",
+          "score_component": 0.22499999999999998,
+          "source": "cnbc_health",
+          "source_url": "https://www.cnbc.com/2026/10/29/eli-lilly-lly-earnings-q3-2026.html",
+          "title": "Eli Lilly hikes sales outlook, as CEO says there's room for 'dramatic' obesity market expansion"
+        },
+        {
+          "confidence": 0.7,
+          "news_id": "news_07883d2ed289e66c",
+          "score_component": 0.21,
+          "source": "cnbc_markets",
+          "source_url": "https://www.cnbc.com/2026/10/29/eli-lilly-lly-earnings-q3-2026.html",
+          "title": "Eli Lilly hikes sales outlook, as CEO says there's room for 'dramatic' obesity market expansion"
+        },
         {
           "confidence": 0.75,
           "news_id": "news_99c197152932adee",
@@ -539,25 +556,9 @@
           "source": "cnbc_business",
           "source_url": "https://www.cnbc.com/2026/09/30/eli-lilly-obesity-drug-amylin-tirzepatide-weight-loss-trial.html",
           "title": "Eli Lilly says closely watched combo obesity regimen boosts weight loss in mid-stage trial"
-        },
-        {
-          "confidence": 0.88,
-          "news_id": "news_eec8e09ffba78864",
-          "score_component": 0.16505311323058913,
-          "source": "cnbc_health",
-          "source_url": "https://www.cnbc.com/2026/10/02/lilly-novo-amylin-obesity-drugs.html",
-          "title": "Why Lilly and Novo are betting on amylin to power a new wave of obesity drugs after GLP-1s"
-        },
-        {
-          "confidence": 0.6,
-          "news_id": "news_bef0fd5b28568bde",
-          "score_component": 0.164110047940479,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/09/25/5-things-to-know-before-the-stock-market-opens.html",
-          "title": "Yields keep rising, Novo's tough week, why cat product sales are surging and more in Morning Squawk"
         }
       ],
-      "trend_30d": 0.33890502104639453
+      "trend_30d": 0.7739050210463944
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.614,
@@ -663,10 +664,10 @@
           "title": "3 Stocks To Play The Nuclear Energy Boom"
         }
       ],
-      "trend_30d": 1.5792530287582502
+      "trend_30d": 1.5792530287582507
     },
     "physical_ai": {
-      "avg_confidence": 0.6048484848484849,
+      "avg_confidence": 0.604848484848485,
       "avg_severity": 0.36363636363636365,
       "item_count": 33,
       "label": "Physical AI / Robotics",
@@ -776,7 +777,7 @@
           "title": "As Waymo expands overseas, it remains a niche cash-burning business"
         }
       ],
-      "trend_30d": 2.3586601556052953
+      "trend_30d": 2.0986601556052946
     },
     "quantum_computing": {
       "avg_confidence": 0.6666666666666666,
@@ -960,7 +961,7 @@
           "title": "Musk ordered slowdown of Starlink service Ukraine military relies on, report says"
         }
       ],
-      "trend_30d": 3.1425007202790116
+      "trend_30d": 3.142500720279011
     }
   },
   "trend_window_days": 30,

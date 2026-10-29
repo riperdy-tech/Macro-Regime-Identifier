@@ -1,39 +1,42 @@
 {
-  "archive_path": "outputs/archive/2026-10-29/20261029T055623Z-b41cc590",
+  "archive_path": "outputs/archive/2026-10-29/20261029T144401Z-9bb3253b",
   "combined_top": [
     {
-      "combined_score": 1.3725368701348672,
-      "news_item_count": 67,
+      "combined_score": 1.3837652841296753,
+      "news_item_count": 71,
       "rank": 1,
       "sector_id": "materials"
     },
     {
-      "combined_score": 1.0558238634938628,
-      "news_item_count": 192,
+      "combined_score": 1.0838871044307918,
+      "news_item_count": 201,
       "rank": 2,
       "sector_id": "energy"
     },
     {
-      "combined_score": 1.042059077418427,
+      "combined_score": 1.026117509043957,
       "news_item_count": 0,
       "rank": 3,
       "sector_id": "software"
     },
     {
-      "combined_score": 0.9381280823101559,
+      "combined_score": 0.9713238033019501,
       "news_item_count": 0,
       "rank": 4,
       "sector_id": "oil_gas_ep"
     },
     {
-      "combined_score": 0.7791941277897106,
+      "combined_score": 0.7629686012491708,
       "news_item_count": 0,
       "rank": 5,
       "sector_id": "semiconductors"
     }
   ],
   "disclaimer": "This daily package is a diagnostic research artifact. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
-  "errors": [],
+  "errors": [
+    "outputs/news_classification_report.md:recommend",
+    "daily report guardrail audit failed"
+  ],
   "feature_freshness": {
     "gap_days": 0,
     "max_feature_date": "2026-10-28",
@@ -63,95 +66,87 @@
     "outputs/news_monitoring_report.md"
   ],
   "macro": {
-    "confidence": 0.06441581806448637,
+    "confidence": 0.06407263185744161,
     "date": "2026-10-01",
     "raw_dominant_regime": "goldilocks",
     "reported_regime": "goldilocks"
   },
   "monitoring": {
-    "as_of_run_id": "20261029T061055Z-213080bd",
+    "as_of_run_id": "20261029T150402Z-e7dbae1f",
     "max_rank_change": 0,
-    "repair_rate": 0.00012980269989615784,
-    "retry_rate": 0.11993769470404984,
-    "success_rate": 0.995067497403946,
+    "repair_rate": 0.0001288161793121216,
+    "retry_rate": 0.1210872085533943,
+    "success_rate": 0.9951049851861393,
     "warning_count": 0
   },
   "news": {
     "top_sector_headwinds": [
       {
         "id": "consumer_discretionary",
-        "score": -4.958442420078542
+        "score": -6.145063637632605
       },
       {
         "id": "real_estate",
-        "score": -4.259577228021889
+        "score": -5.929577228021889
       },
       {
         "id": "communication_services",
-        "score": -1.5505896472276108
-      },
-      {
-        "id": "consumer_staples",
-        "score": -0.4262584135932596
+        "score": -3.1005896472276104
       },
       {
         "id": "materials",
-        "score": -0.32793455461627036
+        "score": -0.7977345546162703
+      },
+      {
+        "id": "consumer_staples",
+        "score": -0.7537584135932595
       }
     ],
     "top_sector_tailwinds": [
       {
         "id": "energy",
-        "score": 8.579393365308992
+        "score": 10.15139336530899
       },
       {
         "id": "information_technology",
-        "score": 1.75191928435654
+        "score": 2.76141928435654
       },
       {
         "id": "health_care",
-        "score": 0.5716492796571051
-      },
-      {
-        "id": "utilities",
-        "score": 0.28841494946708696
-      },
-      {
-        "id": "industrials",
-        "score": 0.2433909105227862
+        "score": 1.2716492796571053
       }
     ],
     "top_themes": [
       {
         "id": "inflation_pressure",
-        "score": 6.385397966344889
+        "score": 7.116887836153772
       },
       {
         "id": "geopolitical_risk",
         "score": 6.157614887558168
       },
       {
-        "id": "commodity_pressure",
-        "score": 4.291824573558118
-      },
-      {
         "id": "growth_acceleration",
-        "score": 4.258763336768445
+        "score": 5.003763336768446
       },
       {
         "id": "energy_supply_shock",
-        "score": 4.196080031502798
+        "score": 4.388580031502798
+      },
+      {
+        "id": "commodity_pressure",
+        "score": 4.291824573558118
       }
     ]
   },
   "news_health": {
     "classification": {
-      "attempted": 5,
-      "completed": 5,
+      "attempted": 59,
+      "completed": 59,
       "deadline_hit": false,
       "failed": 0,
       "failure_rate": 0.0,
-      "selected": 5
+      "selected": 59
     },
     "groups": [
       {
@@ -255,24 +250,24 @@
       }
     ],
     "history": {
-      "distinct_runs_considered": 34,
-      "gdelt_dead_streak_runs": 5
+      "distinct_runs_considered": 35,
+      "gdelt_dead_streak_runs": 6
     },
     "notes": [
-      "gdelt_rate_limited:4/6",
-      "group_concentration:macro_general",
+      "gdelt_rate_limited:6/6",
       "undated_items:eia_energy_rss"
     ],
     "reasons": [
       "source_dead:cnbc_finance_rss",
+      "source_dead:fed_speeches_rss",
       "source_dead:marketwatch_pulse_rss"
     ],
     "sources": [
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 9,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "bbc_world_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -289,8 +284,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 3,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_business_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -298,8 +293,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 3,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_economy_rss",
         "stale_after_hours": 96,
         "status": "ok"
@@ -307,14 +302,14 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 3,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_energy_rss",
         "stale_after_hours": 72,
         "status": "ok"
       },
       {
-        "consecutive_bad_runs": 2,
+        "consecutive_bad_runs": 3,
         "dead": true,
         "items_new": 0,
         "last_new_at": "2026-10-21T01:03:35.123472+00:00",
@@ -325,8 +320,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 2,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_health_rss",
         "stale_after_hours": 168,
         "status": "ok"
@@ -334,8 +329,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 6,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_markets_rss",
         "stale_after_hours": 192,
         "status": "ok"
@@ -343,8 +338,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 1,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_retail_rss",
         "stale_after_hours": 240,
         "status": "ok"
@@ -352,8 +347,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 6,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "cnbc_technology_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -370,8 +365,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 1,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "eia_energy_rss",
         "stale_after_hours": 336,
         "status": "ok"
@@ -386,8 +381,8 @@
         "status": "ok"
       },
       {
-        "consecutive_bad_runs": 2,
-        "dead": false,
+        "consecutive_bad_runs": 3,
+        "dead": true,
         "items_new": 0,
         "last_new_at": "2026-10-16T00:50:36.563160+00:00",
         "source_id": "fed_speeches_rss",
@@ -397,8 +392,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 13,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "finnhub_market_news",
         "stale_after_hours": 72,
         "status": "ok"
@@ -410,7 +405,7 @@
         "last_new_at": "2026-10-03T01:36:12.890171+00:00",
         "source_id": "gdelt_consumer",
         "stale_after_hours": 72,
-        "status": "rate_limited"
+        "status": "circuit_open"
       },
       {
         "consecutive_bad_runs": 0,
@@ -422,13 +417,13 @@
         "status": "circuit_open"
       },
       {
-        "consecutive_bad_runs": 1,
+        "consecutive_bad_runs": 0,
         "dead": false,
         "items_new": 0,
         "last_new_at": "2026-10-18T00:27:22.093973+00:00",
         "source_id": "gdelt_healthcare",
         "stale_after_hours": 72,
-        "status": "empty"
+        "status": "circuit_open"
       },
       {
         "consecutive_bad_runs": 0,
@@ -440,13 +435,13 @@
         "status": "rate_limited"
       },
       {
-        "consecutive_bad_runs": 1,
+        "consecutive_bad_runs": 0,
         "dead": false,
         "items_new": 0,
         "last_new_at": "2026-10-17T00:57:34.804617+00:00",
         "source_id": "gdelt_manufacturing_industrials",
         "stale_after_hours": 72,
-        "status": "empty"
+        "status": "rate_limited"
       },
       {
         "consecutive_bad_runs": 0,
@@ -455,19 +450,19 @@
         "last_new_at": "2026-10-02T01:59:09.938349+00:00",
         "source_id": "gdelt_technology_ai",
         "stale_after_hours": 72,
-        "status": "rate_limited"
+        "status": "circuit_open"
       },
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 8,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "housingwire_rss",
         "stale_after_hours": 72,
         "status": "ok"
       },
       {
-        "consecutive_bad_runs": 34,
+        "consecutive_bad_runs": 35,
         "dead": true,
         "items_new": 0,
         "last_new_at": null,
@@ -478,8 +473,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 10,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "marketwatch_top_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -488,7 +483,7 @@
         "consecutive_bad_runs": 0,
         "dead": false,
         "items_new": 12,
-        "last_new_at": "2026-10-29T06:03:18.183378+00:00",
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "nasdaq_markets_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -496,8 +491,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 0,
-        "last_new_at": "2026-10-29T05:11:23.235892+00:00",
+        "items_new": 9,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "oilprice_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -505,8 +500,8 @@
       {
         "consecutive_bad_runs": 0,
         "dead": false,
-        "items_new": 3,
-        "last_new_at": "2026-10-29T06:03:18.183378+00:00",
+        "items_new": 10,
+        "last_new_at": "2026-10-29T14:51:00.257699+00:00",
         "source_id": "scmp_news_rss",
         "stale_after_hours": 72,
         "status": "ok"
@@ -516,67 +511,67 @@
   },
   "news_history": {
     "export": {
-      "classifications_written": 100,
-      "conflicts": 13,
+      "classifications_written": 159,
+      "conflicts": 0,
       "errors": [],
-      "items_written": 159,
+      "items_written": 255,
       "manifest_totals": {
-        "classifications": 2883,
-        "items": 10834,
-        "source_runs": 918
+        "classifications": 2942,
+        "items": 10930,
+        "source_runs": 945
       },
       "partitions_written": 3,
-      "source_runs_written": 54
+      "source_runs_written": 81
     },
     "hydrate": {
       "classifications_inserted": 0,
-      "classifications_skipped_protected": 2878,
+      "classifications_skipped_protected": 2883,
       "classifications_upgraded": 0,
       "errors": [],
       "items_inserted": 0,
       "manifest_totals": {
-        "classifications": 2878,
-        "items": 10819,
-        "source_runs": 891
+        "classifications": 2883,
+        "items": 10834,
+        "source_runs": 918
       },
       "source_runs_inserted": 0,
       "store_was_cold": false
     }
   },
   "run_date": "2026-10-29",
-  "run_id": "20261029T055623Z-b41cc590",
+  "run_id": "20261029T144401Z-9bb3253b",
   "sector_macro_top": [
     {
-      "confidence_adjusted_score": 0.13184417345967786,
+      "confidence_adjusted_score": 0.12924947455585817,
       "rank": 1,
       "sector_id": "software"
     },
     {
-      "confidence_adjusted_score": 0.1940289887328254,
+      "confidence_adjusted_score": 0.19677561395220527,
       "rank": 1,
       "sector_id": "materials"
     },
     {
-      "confidence_adjusted_score": 0.1344342436496885,
+      "confidence_adjusted_score": 0.14015673589706748,
       "rank": 2,
       "sector_id": "energy"
     },
     {
-      "confidence_adjusted_score": 0.11228785265869859,
+      "confidence_adjusted_score": 0.11890407981352993,
       "rank": 2,
       "sector_id": "oil_gas_ep"
     },
     {
-      "confidence_adjusted_score": 0.08238182320586676,
+      "confidence_adjusted_score": 0.07956531302154304,
       "rank": 3,
       "sector_id": "semiconductors"
     }
   ],
-  "status": "success_with_warnings",
+  "status": "failed",
   "step_statuses": {
     "anchors_status": "success",
     "combined_status": "success",
-    "guardrail_status": "passed",
+    "guardrail_status": "failed",
     "macro_status": "success",
     "monitoring_status": "success",
     "news_classification_status": "success",
@@ -597,6 +592,6 @@
     "point_in_time_start": "2014-02-01"
   },
   "warnings": [
-    "news_health_degraded:source_dead:cnbc_finance_rss,source_dead:marketwatch_pulse_rss"
+    "news_health_degraded:source_dead:cnbc_finance_rss,source_dead:fed_speeches_rss,source_dead:marketwatch_pulse_rss"
   ]
 }
