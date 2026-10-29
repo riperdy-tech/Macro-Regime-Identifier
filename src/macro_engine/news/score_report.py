@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 
 from macro_engine.news.config import load_news_scoring_config
-from macro_engine.news.report import FORBIDDEN_REPORT_TERMS
+from macro_engine.news.report import EXTRA_FORBIDDEN_TERMS, FORBIDDEN_REPORT_TERMS
 from macro_engine.storage.duckdb_store import DuckDBStore
 
 NEWS_SCORE_DISCLAIMER = (
@@ -280,7 +280,7 @@ def _ids_from_value(value: Any) -> list[str]:
 
 def _safe_report_text(value: Any) -> str:
     text = "" if value is None or pd.isna(value) else str(value)
-    for term in sorted(FORBIDDEN_REPORT_TERMS, key=len, reverse=True):
+    for term in sorted(FORBIDDEN_REPORT_TERMS + EXTRA_FORBIDDEN_TERMS, key=len, reverse=True):
         text = re.sub(re.escape(term), "market-action term", text, flags=re.IGNORECASE)
     return text
 

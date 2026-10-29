@@ -4,15 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 
-from macro_engine.news.report import FORBIDDEN_REPORT_TERMS
-
-
-EXTRA_FORBIDDEN_TERMS = [
-    "recommend",
-    "should own",
-    "should short",
-    "invest in",
-]
+from macro_engine.news.report import EXTRA_FORBIDDEN_TERMS, FORBIDDEN_REPORT_TERMS
 
 
 @dataclass(frozen=True)

@@ -29,6 +29,16 @@ FORBIDDEN_REPORT_TERMS = [
     "portfolio allocation",
 ]
 
+# Also banned by the daily guardrail (macro_engine.guardrails). Kept here so the
+# report writers scrub quoted article text against every term the guardrail
+# rejects, not only FORBIDDEN_REPORT_TERMS.
+EXTRA_FORBIDDEN_TERMS = [
+    "recommend",
+    "should own",
+    "should short",
+    "invest in",
+]
+
 
 def write_news_report(
     *,
@@ -245,7 +255,7 @@ def _format_optional_score(value: Any) -> str:
 
 def _safe_report_text(value: Any) -> str:
     text = "" if value is None or pd.isna(value) else str(value)
-    for term in sorted(FORBIDDEN_REPORT_TERMS, key=len, reverse=True):
+    for term in sorted(FORBIDDEN_REPORT_TERMS + EXTRA_FORBIDDEN_TERMS, key=len, reverse=True):
         text = re.sub(re.escape(term), "market-action term", text, flags=re.IGNORECASE)
     return text
 
