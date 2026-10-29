@@ -1765,6 +1765,13 @@ class DuckDBStore:
                 else:
                     existing_state[nid] = "protected"
 
+            # Decide rows oldest first: a hydrated partition can carry an id's error
+            # row after its later success, and the error must not be refused for it.
+            if "classified_at" in frame.columns:
+                order = pd.to_datetime(frame["classified_at"], utc=True, errors="coerce")
+                frame = frame.iloc[order.reset_index(drop=True).sort_values(
+                    kind="stable", na_position="last"
+                ).index]
             upgrade_ids: list[str] = []
             write_positions: list[int] = []
             for position, (_, row) in enumerate(frame.iterrows()):

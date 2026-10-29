@@ -184,6 +184,23 @@ def test_mock_row_never_lands_on_a_failed_real_item(tmp_path: Path, live, monkey
     assert len(_rows(store, "n1")) == 1
 
 
+def test_writer_keeps_an_error_row_listed_after_its_success(tmp_path: Path, live):
+    """A hydrated partition may list an id's success before its earlier error."""
+    store, db_path = _store(tmp_path, _item("n1", NOW - timedelta(days=1)))
+    live(fail=True)
+    classify_stored_news(db_path=db_path, only_unclassified=True)
+    live(fail=False)
+    classify_stored_news(db_path=db_path, only_unclassified=True)
+    rows = _rows(store, "n1")
+    reversed_frame = rows.iloc[::-1].reset_index(drop=True)
+
+    cold = DuckDBStore(tmp_path / "cold.duckdb")
+    cold.initialize()
+    res = cold.write_news_classifications(reversed_frame, pd.DataFrame(), pd.DataFrame())
+    assert res["inserted"] == 2
+    assert list(_rows(cold, "n1")["classification_status"]) == ["error", "success"]
+
+
 def _error_then_success(tmp_path: Path, live) -> tuple[DuckDBStore, Path]:
     store, db_path = _store(tmp_path, _item("n1", NOW - timedelta(days=1)))
     live(fail=True)
