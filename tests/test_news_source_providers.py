@@ -243,3 +243,15 @@ def test_production_config_declares_new_sources_and_enrichment():
     assert "gdelt" not in providers.values()
     assert config.fulltext_enrichment.enabled is True
     assert config.fulltext_enrichment.max_items_per_run >= 1
+
+
+def test_every_required_source_group_has_a_live_feed():
+    """Removing the live GDELT sources left inflation_rates and defensive_sectors with no
+    feed at all (2026-10-30); a group with no source is never flagged by news_health."""
+    from macro_engine.news.config import REQUIRED_NEWS_SOURCE_GROUPS
+
+    config = load_news_sources_config("config/news_sources.yaml")
+    covered = {source.source_group for source in config.news_sources if "live_rss" in source.profiles}
+    # ai_compute is fed by the vendor blogs of the separate ai_compute_rss profile, never live_rss.
+    required_live = REQUIRED_NEWS_SOURCE_GROUPS - {"ai_compute"}
+    assert required_live <= covered, sorted(required_live - covered)
