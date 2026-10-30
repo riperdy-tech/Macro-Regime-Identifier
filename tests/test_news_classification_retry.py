@@ -234,9 +234,7 @@ def test_every_consumer_prefers_the_later_success(tmp_path: Path, live):
         items = load_all_items(con)
     finally:
         con.close()
-    # A day ahead: the writer stores an aware classified_at in the session's local
-    # wall clock (a separate, pre-existing defect), so "now" may precede it locally.
-    as_of = (datetime.now(UTC) + timedelta(days=1)).replace(tzinfo=None)
+    as_of = datetime.now(UTC).replace(tzinfo=None)
     chosen, _ = select_classification(items[0], as_of)
     assert chosen is not None and chosen.status == "success"
 

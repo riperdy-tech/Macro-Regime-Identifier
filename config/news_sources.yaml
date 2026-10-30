@@ -137,18 +137,6 @@ news_sources:
     lookback_days: 3
     stale_after_hours: 192  # measured max gap 117.8h, probed 2026-09-23; 1.5x rounded up to whole days
 
-  - source_id: cnbc_finance_rss
-    provider: rss
-    enabled: false
-    profiles:
-      - live_rss
-    feed_url: https://www.cnbc.com/id/10000664/device/rss/rss.html
-    source: cnbc_finance
-    source_group: credit_financial_conditions
-    max_items: 12
-    lookback_days: 3
-    stale_after_hours: 120  # measured max gap 68.6h, probed 2026-09-23; 1.5x rounded up to whole days
-
   - source_id: fed_press_rss
     provider: rss
     enabled: false
@@ -347,18 +335,6 @@ news_sources:
     lookback_days: 3
     stale_after_hours: 72  # measured max gap 40.5h (group range 0.5-40.5h across the 72h-floor feeds, probed 2026-09-23)
 
-  - source_id: marketwatch_pulse_rss
-    provider: rss
-    enabled: false
-    profiles:
-      - live_rss
-    feed_url: http://feeds.marketwatch.com/marketwatch/marketpulse/
-    source: marketwatch_pulse
-    source_group: macro_general
-    max_items: 12
-    lookback_days: 3
-    stale_after_hours: 72  # n/a: feed returned 0 items at probe time (2026-09-23); floor value pending N1.6 dead-feed flagging
-
   - source_id: manual_text_example
     provider: manual_text
     enabled: false
@@ -370,69 +346,6 @@ news_sources:
         source: synthetic_manual
         source_url:
         published_at: "2026-05-01T12:00:00Z"
-
-  # --- GDELT DOC 2.0 discovery (free, no key) --------------------------------
-  # Fills source groups that RSS feeds leave empty. GDELT returns headline +
-  # URL only; the fulltext_enrichment step below fetches the article body.
-  - source_id: gdelt_healthcare
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '(healthcare OR pharmaceutical OR "drug pricing" OR FDA) sourcelang:english'
-    source_group: healthcare
-    max_items: 8
-    timespan_hours: 36
-
-  - source_id: gdelt_technology_ai
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '("artificial intelligence" OR semiconductor OR "chip maker") sourcelang:english'
-    source_group: technology_ai
-    max_items: 8
-    timespan_hours: 36
-
-  - source_id: gdelt_consumer
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '("consumer spending" OR "retail sales" OR "consumer confidence") sourcelang:english'
-    source_group: consumer
-    max_items: 8
-    timespan_hours: 36
-
-  - source_id: gdelt_defensive_sectors
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '(utilities OR "consumer staples" OR "dividend stocks") sourcelang:english'
-    source_group: defensive_sectors
-    max_items: 8
-    timespan_hours: 36
-
-  - source_id: gdelt_manufacturing_industrials
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '(manufacturing OR "industrial production" OR "factory orders" OR PMI) sourcelang:english'
-    source_group: manufacturing_industrials
-    max_items: 8
-    timespan_hours: 36
-
-  - source_id: gdelt_inflation_rates
-    provider: gdelt
-    enabled: false
-    profiles:
-      - live_rss
-    query: '(inflation OR "consumer price index" OR "interest rate decision" OR "central bank") sourcelang:english'
-    source_group: inflation_rates
-    max_items: 8
-    timespan_hours: 36
 
   # --- Finnhub market news (free tier, needs FINNHUB_API_KEY) ----------------
   # Skipped gracefully when the key is not set.

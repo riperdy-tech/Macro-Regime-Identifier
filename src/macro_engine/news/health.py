@@ -44,6 +44,7 @@ def compute_news_health(
     export_result: dict[str, Any] | None,
     store_was_cold: bool,
     max_single_group_pct: float = DEFAULT_MAX_SINGLE_GROUP_PCT,
+    configured_sources: set[str] | None = None,
 ) -> dict[str, Any]:
     history = source_runs_history.copy() if source_runs_history is not None else pd.DataFrame()
     if not history.empty:
@@ -51,12 +52,17 @@ def compute_news_health(
         history["source_id"] = history["source_id"].astype(str)
         history["status"] = history["status"].astype(str)
     this_run = history[history["run_id"] == run_id] if not history.empty else pd.DataFrame()
+    # The run table keeps every source ever ingested; a source removed from the
+    # config is no longer judged dead (its old runs would flag it forever).
+    judged = history
+    if configured_sources is not None and not history.empty:
+        judged = history[history["source_id"].isin(configured_sources)]
 
     reasons: list[str] = []
     notes: list[str] = []
 
     sources_out, dead_by_source, source_provider = _per_source_rollup(
-        history, this_run, run_at, stale_after_hours, reasons
+        judged, this_run, run_at, stale_after_hours, reasons
     )
 
     groups_out: list[dict[str, Any]] = []
@@ -94,7 +100,7 @@ def compute_news_health(
 
     # D1 already appended per source above (reasons list mutated in place).
     # D2 gdelt_dead.
-    gdelt_streak = _gdelt_dead_streak(history)
+    gdelt_streak = _gdelt_dead_streak(judged)
     if gdelt_streak >= _GDELT_DEAD_STREAK_RUNS:
         reasons.append("gdelt_dead")
 

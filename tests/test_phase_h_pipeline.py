@@ -440,14 +440,25 @@ def test_pipeline_summary_is_deterministic_shape(tmp_path):
 
 @pytest.mark.skipif(not os.getenv("FRED_API_KEY"), reason="FRED_API_KEY not set")
 def test_optional_live_pipeline_smoke(tmp_path):
+    # The shipped config (live scoring basis) with only output_dir moved to tmp_path:
+    # unredirected, this run overwrote the repo's outputs/current_regime.* (2026-10-29).
+    config_path = tmp_path / "pipeline_config.yaml"
+    source_config = open("config/phase_b_sources.yaml", encoding="utf-8").read()
+    assert "output_dir: outputs" in source_config
+    config_path.write_text(
+        source_config.replace("output_dir: outputs", f"output_dir: {(tmp_path / 'outputs').as_posix()}"),
+        encoding="utf-8",
+    )
     summary = run_pipeline(
-        config_path="config/phase_b_sources.yaml",
+        config_path=config_path,
         db_path=tmp_path / "macro.duckdb",
         parquet_dir=tmp_path / "fred",
+        vintage_parquet_dir=tmp_path / "alfred",
         mode="live",
     )
 
     assert summary.series_succeeded is not None
+    assert (tmp_path / "outputs" / "current_regime.json").exists()
 
 
 def test_run_vintage_backfill_restricts_to_point_in_time_start(tmp_path, monkeypatch):
