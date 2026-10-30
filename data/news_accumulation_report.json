@@ -1,12 +1,6 @@
 {
-  "classification_success_rate": 0.9875252865812543,
+  "classification_success_rate": 0.9878048780487805,
   "combined_rank_change_history": [
-    {
-      "diagnostic_date": "2026-10-20",
-      "max_rank_change": 0,
-      "news_item_count": 2138,
-      "thin_news_warning": true
-    },
     {
       "diagnostic_date": "2026-10-21",
       "max_rank_change": 0,
@@ -58,7 +52,13 @@
     {
       "diagnostic_date": "2026-10-29",
       "max_rank_change": 0,
-      "news_item_count": 1380,
+      "news_item_count": 1453,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-10-30",
+      "max_rank_change": 0,
+      "news_item_count": 1360,
       "thin_news_warning": true
     }
   ],
@@ -208,9 +208,10 @@
     "2026-10-26": 6,
     "2026-10-27": 15,
     "2026-10-28": 82,
-    "2026-10-29": 177
+    "2026-10-29": 252,
+    "2026-10-30": 34
   },
-  "date_end": "2026-10-29T15:26:40",
+  "date_end": "2026-10-30T02:18:18",
   "date_start": "2026-05-01T09:00:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -220,20 +221,20 @@
     "validation_candidate": "60+ run dates with stable source coverage"
   },
   "latest_run": {
-    "classified_items": 2929,
-    "created_at": "2026-10-29T15:38:46.567284",
-    "date_max": "2026-10-29T15:26:40",
+    "classified_items": 2997,
+    "created_at": "2026-10-30T02:38:20.564271",
+    "date_max": "2026-10-30T02:18:18",
     "date_min": "2026-05-01T09:00:00",
     "duplicate_items": 0,
     "failed_items": 37,
-    "new_unique_items": 10966,
+    "new_unique_items": 11075,
     "quality_status": "ok",
-    "raw_item_count": 10966,
-    "run_date": "2026-10-29T00:00:00",
-    "run_id": "20261029T153846Z-63cafa96",
+    "raw_item_count": 11075,
+    "run_date": "2026-10-30T00:00:00",
+    "run_id": "20261030T023820Z-d7c3cf01",
     "source_count": 472,
     "source_group_count": 13,
-    "success_rate": 0.9875252865812543,
+    "success_rate": 0.9878048780487805,
     "warning_json": "[]"
   },
   "readiness_label": "monitor_ready",
@@ -245,15 +246,15 @@
       "id": "monetary_tightening"
     },
     {
-      "count": 120,
+      "count": 121,
       "id": "commodity_pressure"
     },
     {
-      "count": 97,
+      "count": 98,
       "id": "geopolitical_risk"
     },
     {
-      "count": 97,
+      "count": 98,
       "id": "inflation_pressure"
     },
     {
@@ -263,15 +264,15 @@
   ],
   "top_recurring_sector_headwinds": [
     {
-      "count": 178,
+      "count": 179,
       "id": "real_estate"
     },
     {
-      "count": 95,
+      "count": 96,
       "id": "consumer_discretionary"
     },
     {
-      "count": 93,
+      "count": 94,
       "id": "consumer_staples"
     },
     {
@@ -279,21 +280,21 @@
       "id": "industrials"
     },
     {
-      "count": 40,
+      "count": 41,
       "id": "communication_services"
     }
   ],
   "top_recurring_sector_tailwinds": [
     {
-      "count": 170,
+      "count": 171,
       "id": "energy"
     },
     {
-      "count": 91,
+      "count": 92,
       "id": "information_technology"
     },
     {
-      "count": 62,
+      "count": 63,
       "id": "health_care"
     },
     {
@@ -305,8 +306,8 @@
       "id": "financials"
     }
   ],
-  "total_accumulated_news_items": 10966,
-  "total_classified_items": 2929,
+  "total_accumulated_news_items": 11075,
+  "total_classified_items": 2997,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
 }
