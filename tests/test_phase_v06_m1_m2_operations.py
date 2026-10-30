@@ -424,3 +424,56 @@ def _news_items() -> pd.DataFrame:
             },
         ]
     )
+
+
+def test_rss_feed_with_only_old_items_is_quiet_not_empty(monkeypatch):
+    """A feed that answers with items all older than lookback_days reports status ok
+    and its real newest date, so news_health judges it by stale_after_hours; only a
+    feed that lists nothing is `empty` (3 empty runs = source_dead, spec N1.6)."""
+    from macro_engine.news.config import NewsSourceDefinition
+    from macro_engine.news.ingest import _load_one_source
+
+    feeds = {
+        "old": b"""<?xml version="1.0"?>
+<rss><channel>
+  <item><title>Old speech</title><description>Governor remarks on policy.</description>
+    <link>https://example.invalid/a</link>
+    <pubDate>Thu, 15 Oct 2026 02:55:00 GMT</pubDate></item>
+</channel></rss>
+""",
+        "none": b"""<?xml version="1.0"?><rss><channel></channel></rss>""",
+    }
+
+    def fake_urlopen(request, **_kwargs):
+        body = feeds[request.full_url.rsplit("/", 1)[-1]]
+
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_):
+                return False
+
+            def read(self):
+                return body
+
+        return Response()
+
+    monkeypatch.setattr("macro_engine.news.ingest.urlopen", fake_urlopen)
+
+    def source(name: str) -> NewsSourceDefinition:
+        return NewsSourceDefinition(
+            source_id=f"feed_{name}", provider="rss", feed_url=f"https://example.invalid/{name}",
+            source_group="macro_general", lookback_days=3,
+        )
+
+    items, result = _load_one_source(source("old"), [])
+    assert items == []
+    assert result.status == "ok"
+    assert result.items_fetched == 0
+    assert result.newest_published_at is not None
+    assert result.newest_published_at.date().isoformat() == "2026-10-15"
+
+    items, result = _load_one_source(source("none"), [])
+    assert result.status == "empty"
+    assert result.newest_published_at is None

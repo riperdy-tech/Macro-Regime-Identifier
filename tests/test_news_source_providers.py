@@ -238,17 +238,8 @@ def test_production_config_declares_new_sources_and_enrichment():
     config = load_news_sources_config("config/news_sources.yaml")
     providers = {source.source_id: source.provider for source in config.news_sources}
     assert providers.get("finnhub_market_news") == "finnhub"
-    gdelt_groups = {
-        source.source_group
-        for source in config.news_sources
-        if source.provider == "gdelt" and "live_rss" in source.profiles
-    }
-    assert {
-        "healthcare",
-        "technology_ai",
-        "consumer",
-        "defensive_sectors",
-        "manufacturing_industrials",
-    } <= gdelt_groups
+    # Live GDELT sources were removed 2026-10-30 (operator): from the cloud runner they
+    # were rate-limited (HTTP 429) on all but 2 of 27 days.
+    assert "gdelt" not in providers.values()
     assert config.fulltext_enrichment.enabled is True
     assert config.fulltext_enrichment.max_items_per_run >= 1

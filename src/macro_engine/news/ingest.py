@@ -142,6 +142,10 @@ def _load_one_source(
     gdelt_pacer: GdeltPacer | None = None,
 ) -> tuple[list[NewsItem], SourceResult]:
     started = time.monotonic()
+    # What the source listed, before any lookback filter: a feed that answers with
+    # only older items is quiet, not empty, and its newest date is the freshness
+    # evidence news_health judges against the feed's stale_after_hours.
+    listed_items: list[NewsItem] | None = None
     try:
         if source.provider == "local_csv":
             raw_items = load_local_csv_source(source, rules=rules)
@@ -150,7 +154,8 @@ def _load_one_source(
         elif source.provider == "manual_text":
             raw_items = load_manual_text_source(source, rules=rules)
         elif source.provider == "rss":
-            raw_items = load_rss_source(source, rules=rules)
+            listed_items = _fetch_rss_items(source, rules=rules)
+            raw_items = _rss_within_lookback(listed_items, source)
         elif source.provider == "gdelt":
             raw_items = load_gdelt_source(
                 source, rules=rules, fetch=gdelt_fetch, pacer=gdelt_pacer
@@ -187,15 +192,17 @@ def _load_one_source(
         )
 
     elapsed = time.monotonic() - started
-    dated = [item.published_at for item in raw_items if item.published_at is not None]
+    listed = raw_items if listed_items is None else listed_items
+    listed_dated = [item.published_at for item in listed if item.published_at is not None]
+    undated = sum(1 for item in raw_items if item.published_at is None)
     result = SourceResult(
         source_id=source.source_id,
         provider=source.provider,
         source_group=source.source_group,
-        status="ok" if raw_items else "empty",
+        status="ok" if listed else "empty",
         items_fetched=len(raw_items),
-        newest_published_at=max(dated) if dated else None,
-        undated_count=len(raw_items) - len(dated),
+        newest_published_at=max(listed_dated) if listed_dated else None,
+        undated_count=undated,
         elapsed_seconds=elapsed,
     )
     return raw_items, result
@@ -375,6 +382,15 @@ def load_rss_source(
     *,
     rules: list[NewsSourceGroupRule] | None = None,
 ) -> list[NewsItem]:
+    return _rss_within_lookback(_fetch_rss_items(source, rules=rules), source)
+
+
+def _fetch_rss_items(
+    source: NewsSourceDefinition,
+    *,
+    rules: list[NewsSourceGroupRule] | None = None,
+) -> list[NewsItem]:
+    """Every item the feed lists, before the lookback window and item cap."""
     if source.feed_url is None:
         raise ValueError(f"rss source {source.source_id} requires feed_url")
     request = Request(
@@ -402,6 +418,10 @@ def load_rss_source(
         )
         for record in records
     ]
+    return items
+
+
+def _rss_within_lookback(items: list[NewsItem], source: NewsSourceDefinition) -> list[NewsItem]:
     cutoff = None
     if source.lookback_days:
         cutoff = datetime.now(UTC) - pd.Timedelta(days=source.lookback_days).to_pytimedelta()

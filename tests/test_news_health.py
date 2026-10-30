@@ -483,3 +483,30 @@ def test_replay_of_35829508938_telemetry_is_degraded():
     assert result["status"] == "degraded"
     assert "source_dead:marketwatch_pulse_rss" in result["reasons"]
     assert any(n.startswith("gdelt_rate_limited:4/6") for n in result["notes"])
+
+
+def test_removed_sources_are_not_judged_dead():
+    """A source deleted from the config keeps its old rows in news_source_runs; with
+    configured_sources passed it is no longer flagged, nor counted in the GDELT streak."""
+    rows = [
+        _row(run_id=f"run_{i}", run_at=BASE - timedelta(days=8 - i), source_id="gone_rss",
+             status="empty", items_fetched=0, items_new=0)
+        for i in range(8)
+    ]
+    rows += [
+        _row(run_id=f"run_{i}", run_at=BASE - timedelta(days=8 - i), source_id="gdelt_gone",
+             provider="gdelt", status="rate_limited", items_fetched=0, items_new=0)
+        for i in range(8)
+    ]
+    rows.append(_row(run_id="run_today", run_at=BASE, source_id="feed_a", newest_published_at=BASE))
+    history = _history(rows)
+
+    unfiltered = compute_news_health(**_base_kwargs(source_runs_history=history))
+    assert "source_dead:gone_rss" in unfiltered["reasons"]
+    assert "gdelt_dead" in unfiltered["reasons"]
+
+    result = compute_news_health(
+        **_base_kwargs(source_runs_history=history), configured_sources={"feed_a"}
+    )
+    assert not any("gone" in reason for reason in result["reasons"])
+    assert "gdelt_dead" not in result["reasons"]

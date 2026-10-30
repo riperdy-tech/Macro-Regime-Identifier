@@ -1102,6 +1102,7 @@ def _compute_news_health(
         hydrate_result=hydrate_result,
         export_result=export_result,
         store_was_cold=bool(hydrate_result.get("store_was_cold", False)),
+        configured_sources=set(stale_map),
     )
 
 
