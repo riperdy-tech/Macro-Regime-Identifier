@@ -2656,7 +2656,12 @@ class DuckDBStore:
                 )
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
-        return duckdb.connect(str(self.db_path))
+        con = duckdb.connect(str(self.db_path))
+        # Every TIMESTAMP column holds naive UTC. DuckDB converts a tz-aware value
+        # into the session time zone on insert, which defaults to the OS zone: on a
+        # KST machine an aware UTC timestamp was stored 9 hours ahead.
+        con.execute("SET TimeZone = 'UTC'")
+        return con
 
 
 def _insert_news_score_rows(
