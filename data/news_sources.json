@@ -1,6 +1,6 @@
 {
   "disclaimer": "News headlines are used as diagnostic inputs only, not republished.",
-  "generated_at": "2026-10-30T02:38:19.047381+00:00",
+  "generated_at": "2026-10-31T02:13:41.581496+00:00",
   "groups": [
     {
       "group": "consumer",
@@ -15,8 +15,8 @@
       "group": "credit_financial_conditions",
       "sources": [
         {
-          "name": "cnbc_finance",
-          "url": "https://www.cnbc.com/id/10000664/device/rss/rss.html"
+          "name": "banking_dive",
+          "url": "https://www.bankingdive.com/feeds/news/"
         },
         {
           "name": "federal_reserve_press",
@@ -25,6 +25,23 @@
         {
           "name": "federal_reserve_speeches",
           "url": "https://www.federalreserve.gov/feeds/speeches.xml"
+        },
+        {
+          "name": "sec_press",
+          "url": "https://www.sec.gov/news/pressreleases.rss"
+        }
+      ]
+    },
+    {
+      "group": "defensive_sectors",
+      "sources": [
+        {
+          "name": "food_dive",
+          "url": "https://www.fooddive.com/feeds/news/"
+        },
+        {
+          "name": "utility_dive",
+          "url": "https://www.utilitydive.com/feeds/news/"
         }
       ]
     },
@@ -68,6 +85,23 @@
       ]
     },
     {
+      "group": "inflation_rates",
+      "sources": [
+        {
+          "name": "bank_of_england",
+          "url": "https://www.bankofengland.co.uk/rss/news"
+        },
+        {
+          "name": "nyfed_liberty_street",
+          "url": "https://libertystreeteconomics.newyorkfed.org/feed/"
+        },
+        {
+          "name": "stlouis_fed_blog",
+          "url": "https://www.stlouisfed.org/rss/page%20resources/publications/blog-entries"
+        }
+      ]
+    },
+    {
       "group": "labor",
       "sources": [
         {
@@ -94,10 +128,6 @@
         {
           "name": "marketwatch",
           "url": "http://feeds.marketwatch.com/marketwatch/topstories/"
-        },
-        {
-          "name": "marketwatch_pulse",
-          "url": "http://feeds.marketwatch.com/marketwatch/marketpulse/"
         },
         {
           "name": "nasdaq_markets",
@@ -134,5 +164,5 @@
     }
   ],
   "profile": "live_rss",
-  "source_count": 20
+  "source_count": 25
 }
