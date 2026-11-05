@@ -1,6 +1,6 @@
 # LLM Confidence Calibration
 
-Ledger rows: 7363  |  Directional calls: 5119
+Ledger rows: 7497  |  Directional calls: 5209
 
 Diagnostic instrumentation only. No recalibration applied. Buckets are unreliable until directional calls are plentiful (target >= 200).
 
@@ -8,10 +8,10 @@ Diagnostic instrumentation only. No recalibration applied. Buckets are unreliabl
 
 | Confidence Bucket | N | Hit Rate | Avg Signed Rel Return | Avg Raw Rel Return |
 | --- | --- | --- | --- | --- |
-| 0.0-0.3 | 134 | 0.5299 | 0.0028 | -0.0031 |
-| 0.3-0.6 | 1028 | 0.4319 | -0.0065 | 0.0101 |
-| 0.6-0.8 | 419 | 0.5060 | 0.0055 | 0.0101 |
-| 0.8-1.0 | 55 | 0.6364 | 0.0219 | 0.0050 |
+| 0.0-0.3 | 138 | 0.5362 | 0.0034 | -0.0005 |
+| 0.3-0.6 | 1088 | 0.4283 | -0.0082 | 0.0123 |
+| 0.6-0.8 | 431 | 0.5081 | 0.0054 | 0.0106 |
+| 0.8-1.0 | 57 | 0.6140 | 0.0172 | 0.0009 |
 
 ## Horizon 3m
 
