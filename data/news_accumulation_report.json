@@ -1,12 +1,6 @@
 {
-  "classification_success_rate": 0.9896445563951861,
+  "classification_success_rate": 0.9897733554449972,
   "combined_rank_change_history": [
-    {
-      "diagnostic_date": "2026-10-29",
-      "max_rank_change": 0,
-      "news_item_count": 1471,
-      "thin_news_warning": true
-    },
     {
       "diagnostic_date": "2026-10-30",
       "max_rank_change": 0,
@@ -46,19 +40,25 @@
     {
       "diagnostic_date": "2026-11-05",
       "max_rank_change": 0,
-      "news_item_count": 1462,
+      "news_item_count": 1464,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-11-06",
       "max_rank_change": 0,
-      "news_item_count": 1443,
+      "news_item_count": 1451,
       "thin_news_warning": true
     },
     {
       "diagnostic_date": "2026-11-07",
       "max_rank_change": 0,
-      "news_item_count": 1353,
+      "news_item_count": 1388,
+      "thin_news_warning": true
+    },
+    {
+      "diagnostic_date": "2026-11-08",
+      "max_rank_change": 0,
+      "news_item_count": 1354,
       "thin_news_warning": true
     }
   ],
@@ -215,11 +215,12 @@
     "2026-11-02": 96,
     "2026-11-03": 146,
     "2026-11-04": 141,
-    "2026-11-05": 123,
-    "2026-11-06": 126,
-    "2026-11-07": 20
+    "2026-11-05": 125,
+    "2026-11-06": 134,
+    "2026-11-07": 76,
+    "2026-11-08": 12
   },
-  "date_end": "2026-11-07T02:15:02",
+  "date_end": "2026-11-08T01:47:41",
   "date_start": "2026-05-01T09:00:00",
   "disclaimer": "This is a diagnostic history report for news classification coverage and combined overlay behavior. It is not investment advice, market action guidance, execution guidance, or instructions for changing holdings.",
   "history_thresholds": {
@@ -229,20 +230,20 @@
     "validation_candidate": "60+ run dates with stable source coverage"
   },
   "latest_run": {
-    "classified_items": 3536,
-    "created_at": "2026-11-07T02:46:20.029071",
-    "date_max": "2026-11-07T02:15:02",
+    "classified_items": 3581,
+    "created_at": "2026-11-08T02:04:48.342136",
+    "date_max": "2026-11-08T01:47:41",
     "date_min": "2026-05-01T09:00:00",
     "duplicate_items": 0,
     "failed_items": 37,
-    "new_unique_items": 12000,
+    "new_unique_items": 12078,
     "quality_status": "ok",
-    "raw_item_count": 12000,
-    "run_date": "2026-11-07T00:00:00",
-    "run_id": "20261107T024620Z-187c8cbd",
+    "raw_item_count": 12078,
+    "run_date": "2026-11-08T00:00:00",
+    "run_id": "20261108T020448Z-2f261dc3",
     "source_count": 479,
     "source_group_count": 13,
-    "success_rate": 0.9896445563951861,
+    "success_rate": 0.9897733554449972,
     "warning_json": "[]"
   },
   "readiness_label": "validation_candidate",
@@ -258,11 +259,11 @@
       "id": "commodity_pressure"
     },
     {
-      "count": 106,
+      "count": 107,
       "id": "geopolitical_risk"
     },
     {
-      "count": 106,
+      "count": 107,
       "id": "inflation_pressure"
     },
     {
@@ -272,11 +273,11 @@
   ],
   "top_recurring_sector_headwinds": [
     {
-      "count": 187,
+      "count": 188,
       "id": "real_estate"
     },
     {
-      "count": 104,
+      "count": 105,
       "id": "consumer_discretionary"
     },
     {
@@ -288,13 +289,13 @@
       "id": "industrials"
     },
     {
-      "count": 49,
+      "count": 50,
       "id": "communication_services"
     }
   ],
   "top_recurring_sector_tailwinds": [
     {
-      "count": 179,
+      "count": 180,
       "id": "energy"
     },
     {
@@ -302,20 +303,20 @@
       "id": "information_technology"
     },
     {
-      "count": 71,
+      "count": 72,
       "id": "health_care"
     },
     {
-      "count": 49,
+      "count": 50,
       "id": "materials"
     },
     {
-      "count": 48,
+      "count": 49,
       "id": "utilities"
     }
   ],
-  "total_accumulated_news_items": 12000,
-  "total_classified_items": 3536,
+  "total_accumulated_news_items": 12078,
+  "total_classified_items": 3581,
   "valid": true,
   "validation_note": "Do not treat the news overlay as empirically validated until enough balanced real-news history exists."
 }
