@@ -1780,6 +1780,19 @@ def write_regime_status_cli(
     console.print_json(data={"json_path": str(json_path)})
 
 
+@app.command("write-risk-state")
+def write_risk_state_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Write the shadow risk dial (outputs/risk_state.json and its dated archive copy). Read-only on the store;
+    nothing reads the file yet (PREREG_risk_dial_v1: MIXED, the dial is the price rule alone)."""
+    from macro_engine.risk_state import write_risk_state
+
+    json_path, archive_path = write_risk_state(db_path=db_path, outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
+
+
 @app.command("prune-news-history")
 def prune_news_history_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
