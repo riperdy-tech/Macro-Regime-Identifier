@@ -46,16 +46,32 @@ function Export([string[]]$names) {
     }
 }
 
+# outputs\job_status.json for a monitor (see run_local_daily.ps1); stdlib-only, never fails this job.
+$JobStatusPy = Join-Path $ScriptDir "job_status.py"
+$NonFatal = @()
+function JobStatus([string[]]$JobArgs) {
+    try { & $Py $JobStatusPy --job events_daily @JobArgs *>> $LogPath } catch { Log "job status not written: $_" }
+    $global:LASTEXITCODE = 0
+}
+function Finish([int]$code) {
+    $a = @("finish", "--exit-code", "$code")
+    if ($code -eq 0) { $a += @("--warnings-from", (Join-Path $RepoRoot "outputs\event_register_run.json")) }
+    foreach ($n in $script:NonFatal) { $a += @("--non-fatal", $n) }
+    JobStatus $a
+    exit $code
+}
+
 function Fail([string]$step, [int]$code) {
     $text = "events_daily FAILED at step '$step' (exit $code) on " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss") + "`r`n" +
             "log: $LogPath`r`n" +
             "The previous outputs\event_register.json was left in place; outputs\event_register_run.json says what failed."
     Set-Content -Path $FailPath -Value $text -Encoding utf8
     Log "FAILED at $step (exit $code)"
-    exit $(if ($code -ne 0) { $code } else { 1 })
+    Finish $(if ($code -ne 0) { $code } else { 1 })
 }
 
 Log "events_daily start; repo $RepoRoot"
+JobStatus @("start")
 
 & $Py (Join-Path $ScriptDir "check_macro_engine_import.py") *>> $LogPath
 if ($LASTEXITCODE -ne 0) { Fail "import_check" $LASTEXITCODE }
@@ -76,7 +92,10 @@ if (Test-Path $PrevRegister) {
     } catch { Log "confirmation prices: previous register unreadable ($_); base instruments only" }
 }
 & $Py -m macro_engine.cli refresh-confirmation-prices --db-path $DbPath --tickers ($Named -join ",") *>> $LogPath
-if ($LASTEXITCODE -ne 0) { Log "confirmation prices: refresh incomplete (exit $LASTEXITCODE); continuing, the register says which checks lack data" }
+if ($LASTEXITCODE -ne 0) {
+    Log "confirmation prices: refresh incomplete (exit $LASTEXITCODE); continuing, the register says which checks lack data"
+    $NonFatal += "confirmation prices"
+}
 
 Log "step: events-daily"
 & $Py -m macro_engine.cli events-daily --db-path $DbPath --outputs-dir outputs --max-age-hours $MaxAgeHours *>> $LogPath
@@ -87,4 +106,4 @@ Export @("event_register.json", "event_register_run.json")
 
 Remove-Item -Force -ErrorAction SilentlyContinue $FailPath
 Log "events_daily ok"
-exit 0
+Finish 0

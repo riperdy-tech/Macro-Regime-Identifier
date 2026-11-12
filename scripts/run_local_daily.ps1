@@ -46,6 +46,23 @@ function Log([string]$msg) {
 
 $global:NonFatalFailures = @()
 
+# outputs\job_status.json (job, last start, last success, last exit code, warnings, non-fatal failures) for a monitor.
+# job_status.py is stdlib-only so it works when the editable install is broken; it never fails this job.
+$JobStatusPy = Join-Path $ScriptDir "job_status.py"
+function JobStatus([string[]]$JobArgs) {
+    try { & $Py $JobStatusPy --job macro_daily @JobArgs *>> $LogPath } catch { Log "job status not written: $_" }
+    $global:LASTEXITCODE = 0
+}
+function Finish([int]$code) {
+    $a = @("finish", "--exit-code", "$code")
+    if ($code -eq 0) { $a += @("--warnings-from", (Join-Path $RepoRoot "outputs\daily_diagnostic_summary.json")) }
+    foreach ($n in $global:NonFatalFailures) { $a += @("--non-fatal", $n) }
+    JobStatus $a
+    exit $code
+}
+trap { Log "unhandled error: $_"; Finish 1 }
+JobStatus @("start")
+
 function Step([string]$name, [scriptblock]$block, [switch]$NonFatal) {
     Log "step: $name"
     # native commands (git, python) write progress to stderr; Windows PowerShell 5.1 turns that into an error record
@@ -60,7 +77,7 @@ function Step([string]$name, [scriptblock]$block, [switch]$NonFatal) {
             return
         }
         Log "step FAILED: $name (exit $LASTEXITCODE); see $LogPath"
-        exit $LASTEXITCODE
+        Finish $LASTEXITCODE
     }
 }
 
@@ -112,7 +129,7 @@ New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
 foreach ($name in @("current_sector_ranking.json", "current_regime.json", "cost_of_capital_anchor.json",
                     "long_run_growth_anchor.json", "sector_multiple_bands.json")) {
     $src = Join-Path $RepoRoot "outputs\$name"
-    if (-not (Test-Path $src)) { Log "export FAILED: $src is missing"; exit 4 }
+    if (-not (Test-Path $src)) { Log "export FAILED: $src is missing"; Finish 4 }
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
     Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force   # no reader sees half a file
 }
@@ -128,4 +145,4 @@ if ($global:NonFatalFailures.Count -gt 0) {
 } else {
     Log "done"
 }
-exit 0
+Finish 0

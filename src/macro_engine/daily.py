@@ -468,6 +468,12 @@ def build_daily_summary_payload(
             "news_history": news_history or {},
             "news_health": news_health or {},
             "warnings": warnings,
+            "warning_count": len(warnings),
+            # steps that failed without taking the run down (`failed_optional`): visible here, not only in
+            # step_statuses, so a monitor does not have to know which steps are optional
+            "non_fatal_failures": [
+                key.removesuffix("_status") for key, value in statuses.items() if value == "failed_optional"
+            ],
             "errors": errors,
             "generated_artifacts": generated_paths,
             "archive_path": archive_path,
@@ -801,10 +807,11 @@ def _run_macro(
     summary = runner(**kwargs)
     print(f"daily: macro pipeline status={summary.status}", flush=True)
 
+    # Every warning the macro step recorded reaches the daily record. Only the vintage_ ones used to be
+    # copied, so a step that ended success_with_warnings with 41 to 46 warnings left the record at 0.
     if warnings is not None:
         for w in getattr(summary, "warnings", ()):
-            if str(w).startswith("vintage_"):
-                warnings.append(str(w))
+            warnings.append(str(w))
 
     if summary.status == "success_with_warnings":
         return
