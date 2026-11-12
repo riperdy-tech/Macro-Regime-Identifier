@@ -25,6 +25,7 @@ import math
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import pandas as pd
 
 from macro_engine.anchors.config import (
@@ -45,6 +46,14 @@ WACC_EXCLUSION_NOTE = (
     "and is compared against market cap, so a firm-level WACC would double-count the "
     "debt claim."
 )
+
+# Per-leg age limits (A4). `asof` is the build date, so nothing else compares an input's own observation
+# date with it. Daily legs (the yields, the breakeven, the term premium) may be at most this many business
+# days behind `asof`. A monthly leg may be this many days late after its period's normal release, which is
+# the period start plus the series' `publication_lag_days` from the macro source config (config/
+# phase_b_sources.yaml, the one table of lags). Both live here and nowhere else.
+DAILY_LEG_MAX_BUSINESS_DAYS = 5
+MONTHLY_LEG_GRACE_DAYS = 45
 
 # A Gordon terminal value is undefined at or below perpetual growth, so the implied-rate
 # search starts strictly above it.
@@ -648,6 +657,54 @@ def sector_loadings(
 # ── Build ─────────────────────────────────────────────────────────────────────
 
 
+def apply_leg_age_gate(
+    *,
+    legs: dict[str, tuple[float | None, list[str], str]],
+    input_dates: dict[str, str],
+    as_of: pd.Timestamp,
+    publication_lag_days: dict[str, int],
+    reasons: list[str],
+) -> tuple[set[str], int | None]:
+    """Which legs are older than their limit, and the age in calendar days of the oldest leg.
+
+    `legs` maps a leg name to (value, [series it was read from], "daily" or "monthly"). A leg that has
+    no value is not judged (its own reason is already written) but its date still counts toward the
+    oldest age. A leg beyond its limit is returned in the set: the caller nulls it and degrades the
+    anchor, and the reason here says which series, how old and what the limit was.
+    """
+    stale: set[str] = set()
+    oldest: int | None = None
+    as_of_day = pd.Timestamp(as_of).normalize()
+    for name, (value, series_ids, kind) in legs.items():
+        for series_id in series_ids:
+            observed = input_dates.get(series_id)
+            if not observed:
+                continue
+            observed_day = pd.Timestamp(observed).normalize()
+            age = (as_of_day - observed_day).days
+            oldest = age if oldest is None else max(oldest, age)
+            if value is None or name in stale:
+                continue
+            if kind == "daily":
+                behind = int(np.busday_count(observed_day.date(), as_of_day.date()))
+                too_old = behind > DAILY_LEG_MAX_BUSINESS_DAYS
+                limit_text = f"{behind} business days behind, limit {DAILY_LEG_MAX_BUSINESS_DAYS}"
+            else:
+                release_lag = int(publication_lag_days.get(series_id, 0))
+                limit = release_lag + MONTHLY_LEG_GRACE_DAYS
+                too_old = age > limit
+                limit_text = (
+                    f"limit {limit} = normal release lag {release_lag} + {MONTHLY_LEG_GRACE_DAYS}"
+                )
+            if too_old:
+                stale.add(name)
+                reasons.append(
+                    f"{name}: {series_id} observed {observed} is {age} days before the as-of "
+                    f"{as_of_day.date().isoformat()} ({limit_text}); no value published"
+                )
+    return stale, oldest
+
+
 def _risk_free_consistency(
     *,
     risk_free: dict[str, float | None],
@@ -717,6 +774,7 @@ def build_cost_of_capital_anchor(
     scoring_mode: str = "calendar_asof",
     vintages: pd.DataFrame | None = None,
     source_files: list[str] | None = None,
+    publication_lag_days: dict[str, int] | None = None,
 ) -> CostOfCapitalAnchor:
     coc = config.cost_of_capital
     input_dates: dict[str, str] = {}
@@ -763,6 +821,41 @@ def build_cost_of_capital_anchor(
         reasons.append(f"inflation: {coc.inflation.cpi} yoy unavailable")
     if pce_yoy is None:
         reasons.append(f"inflation: {coc.inflation.pce} yoy unavailable")
+
+    # A4: each leg's own observation date against `asof`, before any leg is used (the implied solve
+    # below reads the nominal yield). Term premium: an observed series, or the two series of the proxy.
+    if premium_source and premium_source.startswith("proxy:"):
+        premium_series = [ref.series for ref in coc.risk_free.term_premium_proxy.values()]
+    elif premium_source:
+        premium_series = [premium_source.removeprefix("observed:")]
+    else:
+        premium_series = []
+    stale_legs, oldest_leg_age_days = apply_leg_age_gate(
+        legs={
+            "nominal_10y": (nominal, [coc.risk_free.nominal_10y.series], "daily"),
+            "real_10y": (real, [coc.risk_free.real_10y.series], "daily"),
+            "breakeven_10y": (breakeven, [coc.risk_free.breakeven_10y.series], "daily"),
+            "term_premium": (premium, premium_series, "daily"),
+            "cpi_yoy": (cpi_yoy, [coc.inflation.cpi], "monthly"),
+            "pce_yoy": (pce_yoy, [coc.inflation.pce], "monthly"),
+        },
+        input_dates=input_dates,
+        as_of=as_of,
+        publication_lag_days=publication_lag_days or {},
+        reasons=reasons,
+    )
+    if "nominal_10y" in stale_legs:
+        nominal = None
+    if "real_10y" in stale_legs:
+        real = None
+    if "breakeven_10y" in stale_legs:
+        breakeven = None
+    if "term_premium" in stale_legs:
+        premium, premium_source = None, None
+    if "cpi_yoy" in stale_legs:
+        cpi_yoy = None
+    if "pce_yoy" in stale_legs:
+        pce_yoy = None
 
     # The growth anchor is built first and its terminal rate passed in, because the
     # implied discount rate is only comparable with the downstream DCF if both use
@@ -899,6 +992,7 @@ def build_cost_of_capital_anchor(
         or erp_source == "unavailable"
         or curve_inconsistent
         or loadings_stale
+        or bool(stale_legs)
     )
 
     return CostOfCapitalAnchor(
@@ -920,6 +1014,7 @@ def build_cost_of_capital_anchor(
         sector_loadings=loadings,
         loading_source=loading_source,
         degraded=degraded,
+        oldest_leg_age_days=oldest_leg_age_days,
         source_files=list(source_files or []),
         provenance=AnchorProvenance(
             scoring_mode=scoring_mode,

@@ -385,7 +385,10 @@ def test_curve_legs_from_different_vintages_are_flagged():
     )
     joined = " ".join(anchor.provenance.degradation_reasons)
     assert "span" in joined and "not one curve" in joined
-    assert "does not describe a single day's curve" in joined
+    # A4: the four-month-old nominal yield is now null with its own reason, so the identity check has
+    # nothing to compare (it is still covered by the contemporaneous-but-disagreeing test below).
+    assert anchor.risk_free["nominal_10y"] is None
+    assert "DGS10 observed 2026-01-02" in joined
     assert anchor.degraded is True
 
 
@@ -525,6 +528,7 @@ def _healthy_anchor(tmp_path: Path, prices: pd.DataFrame):
         as_of=AS_OF,
         built_at="2026-04-30T00:00:00+00:00",
         terminal_growth=0.025,
+        publication_lag_days={"CPIAUCSL": 44, "PCEPI": 58},
     )
 
 
@@ -787,3 +791,99 @@ def test_a_nan_reaching_an_anchor_writer_is_a_loud_failure_and_no_file(tmp_path:
             bundle=bundle, output_dir=tmp_path / "out2", only=["cost_of_capital"]
         )
     assert not (tmp_path / "out2" / "cost_of_capital_anchor.json").exists()
+
+
+# ── A4: every input has an age; a leg past its limit is null with a reason ───
+
+LAGS = {"CPIAUCSL": 44, "PCEPI": 58}
+
+
+def _leg_anchor(tmp_path: Path, observations: pd.DataFrame, **kwargs):
+    """Every other leg measured (equity aggregate present), so only a leg's age can degrade it."""
+    aggregate_path = tmp_path / "aggregate.json"
+    aggregate_path.write_text(
+        json.dumps(
+            {
+                "growth": 0.05,
+                "coverage_share": 0.90,
+                "basis": "index",
+                "constituents": [{"cash_flow": 1.0e9, "market_cap": 25.0e9} for _ in range(40)],
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = load_anchor_config("config/anchors.yaml")
+    config.cost_of_capital.erp.equity_aggregate_path = str(aggregate_path)
+    return build_cost_of_capital_anchor(
+        observations=observations,
+        prices=pd.DataFrame(),
+        proxies={},
+        benchmark_ticker="SPY",
+        config=config,
+        as_of=AS_OF,
+        built_at="2026-04-30T00:00:00+00:00",
+        terminal_growth=0.025,
+        **kwargs,
+    )
+
+
+def _legs(curve_date: str, tp_date: str, cpi_month: str = "2026-04-01", cpi_base: str = "2025-04-01"):
+    return _observations(
+        {
+            "DGS10": [(curve_date, 4.45)],
+            "DFII10": [(curve_date, 1.95)],
+            "T10YIE": [(curve_date, 2.50)],
+            "THREEFYTP10": [(tp_date, 0.62)],
+            "CPIAUCSL": [(cpi_base, 300.0), (cpi_month, 309.0)],
+            "PCEPI": [("2025-04-01", 124.0), ("2026-04-01", 128.7)],
+        }
+    )
+
+
+def test_curve_legs_twenty_days_old_degrade_the_anchor_even_when_they_agree_with_each_other(tmp_path: Path):
+    """All three legs on the same old day are mutually consistent, which is what hid the age."""
+    anchor = _leg_anchor(tmp_path, _legs("2026-04-10", "2026-04-29"), publication_lag_days=LAGS)
+
+    assert anchor.degraded is True
+    assert anchor.risk_free["nominal_10y"] is None
+    assert anchor.risk_free["real_10y"] is None
+    assert anchor.risk_free["breakeven_10y"] is None
+    assert anchor.risk_free["term_premium"] == pytest.approx(0.0062)
+    reasons = " ".join(anchor.provenance.degradation_reasons)
+    assert "DGS10" in reasons and "business days" in reasons
+    # the oldest of ALL legs: the monthly price indices (period start 2026-04-01) are 29 days on
+    assert anchor.oldest_leg_age_days == 29
+
+
+def test_a_daily_leg_four_business_days_behind_is_kept(tmp_path: Path):
+    anchor = _leg_anchor(tmp_path, _legs("2026-04-24", "2026-04-29"), publication_lag_days=LAGS)  # Friday: 4 business days
+
+    assert anchor.risk_free["nominal_10y"] == pytest.approx(0.0445)
+    assert anchor.degraded is False
+    assert anchor.oldest_leg_age_days == 29
+
+
+def test_a_monthly_leg_past_release_lag_plus_grace_is_null_and_degrades(tmp_path: Path):
+    # CPI for 2026-01: normal release 44 days after the period, plus 45 days = 89; as-of is 119 days on.
+    anchor = _leg_anchor(
+        tmp_path,
+        _legs("2026-04-29", "2026-04-29", cpi_month="2026-01-01", cpi_base="2025-01-01"),
+        publication_lag_days=LAGS,
+    )
+
+    assert anchor.inflation["cpi_yoy"] is None
+    assert anchor.inflation["pce_yoy"] == pytest.approx(0.0379, abs=1e-4)
+    assert anchor.degraded is True
+    assert any("CPIAUCSL" in reason and "45" in reason for reason in anchor.provenance.degradation_reasons)
+    assert anchor.oldest_leg_age_days == 119
+
+
+def test_a_monthly_leg_inside_release_lag_plus_grace_is_kept(tmp_path: Path):
+    anchor = _leg_anchor(
+        tmp_path,
+        _legs("2026-04-29", "2026-04-29", cpi_month="2026-03-01", cpi_base="2025-03-01"),
+        publication_lag_days=LAGS,
+    )
+
+    assert anchor.inflation["cpi_yoy"] == pytest.approx(0.03)
+    assert anchor.degraded is False

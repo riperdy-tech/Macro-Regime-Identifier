@@ -34,6 +34,7 @@ from macro_engine.anchors.multiples import (
 from macro_engine.anchors.pit_calendar import vintage_staleness_days
 from macro_engine.evaluation.asof import normalize_asof
 from macro_engine.evaluation.config import load_evaluation_config
+from macro_engine.ingest.registry import load_ingestion_sources
 from macro_engine.sectors.validation import load_sector_validation_config
 from macro_engine.storage.duckdb_store import DuckDBStore
 
@@ -167,6 +168,10 @@ def build_anchors(
         scoring_mode=scoring_mode,
         vintages=vintages,
         source_files=[macro_config_path, config_path, config.cost_of_capital.sector_loadings.source_config],
+        publication_lag_days={
+            source.series_id: source.publication_lag_days
+            for source in load_ingestion_sources(macro_config_path)
+        },
     )
 
     panel, panel_source, panel_reasons = load_valuation_panel(

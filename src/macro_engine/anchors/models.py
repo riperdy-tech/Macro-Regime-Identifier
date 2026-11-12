@@ -90,6 +90,9 @@ class CostOfCapitalAnchor(BaseModel):
     sector_loadings: dict[str, float] = Field(default_factory=dict)
     loading_source: str | None = None
     degraded: bool = False
+    # Calendar days from `asof` back to the oldest input leg's own observation date (A4). `asof` is the
+    # build date, so this is the only place an old input shows its age.
+    oldest_leg_age_days: int | None = None
     source_files: list[str] = Field(default_factory=list)
     provenance: AnchorProvenance = Field(default_factory=AnchorProvenance)
 
