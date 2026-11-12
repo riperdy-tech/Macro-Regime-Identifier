@@ -270,6 +270,14 @@ Verified panel: 108,247 rows, 18 tickers, 1998-12-22 … 2026-09-18, SPY annuali
 are plausible: semiconductors 1.74, consumer discretionary 1.73, information technology 1.37,
 consumer staples 0.36, health care 0.59.
 
+**Freshness (2026-11-12).** The panel is refreshed by `scripts/run_local_daily.ps1` (step 5,
+`ingest-sector-proxy-prices`, non-fatal). The anchor records the panel's last date in
+`provenance.input_dates["sector_proxy_prices"]`. When that date, or the benchmark's, is more than
+`SECTOR_PANEL_MAX_AGE_DAYS` (10) calendar days before the anchor's `asof`, no loadings are published,
+the reason is stated and the anchor is `degraded`, so the publish guard keeps the last good file. A
+single proxy older than the limit is skipped with a reason. rs2-local reads these loadings as the
+spread, not as information.
+
 Two measurement notes that cost bugs:
 
 * **`ddof` consistency.** pandas' `cov()` defaults to `ddof=1`. Pairing it with `var(ddof=0)`

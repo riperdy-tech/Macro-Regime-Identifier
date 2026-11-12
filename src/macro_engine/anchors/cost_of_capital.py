@@ -525,6 +525,11 @@ def erp_history_percentile(
 
 # ── Sector loadings ───────────────────────────────────────────────────────────
 
+# A loading is a five-year beta, so a few days of lag does not move it; weeks do, and 2026-09-18 -> 2026-11-11 went
+# unremarked. The panel's last date must be within this many calendar days of the anchor's as-of, else no loadings.
+SECTOR_PANEL_MAX_AGE_DAYS = 10
+SECTOR_PANEL_DATE_KEY = "sector_proxy_prices"
+
 
 def sector_loadings(
     *,
@@ -533,8 +538,14 @@ def sector_loadings(
     benchmark_ticker: str,
     config: CostOfCapitalConfig,
     as_of: pd.Timestamp,
-) -> tuple[dict[str, float], str | None, list[str]]:
+    input_dates: dict[str, str],
+) -> tuple[dict[str, float], str | None, list[str], bool]:
     """Sector equity beta vs the benchmark, from the local sector ETF panel.
+
+    Returns (loadings, source, reasons, stale). The panel's last date is written to
+    `input_dates[SECTOR_PANEL_DATE_KEY]`. `stale` is True when the panel (or its benchmark) ends more
+    than SECTOR_PANEL_MAX_AGE_DAYS before `as_of`: no loadings are served then, and the caller degrades
+    the anchor. A single proxy that ends that long before `as_of` is only skipped, with a reason.
 
     Published as INFORMATION. It deliberately does not overwrite any consumer's sector
     spread table: the consumer measured that spreads carry the ranking information
@@ -553,31 +564,51 @@ def sector_loadings(
             "(cost_of_capital.sector_loadings.price_panel_source is 'none'), so no "
             "beta is derived. Betas from an unverified panel would be fabricated "
             "evidence, not measured evidence."
-        ]
+        ], False
     if prices.empty:
-        return {}, None, ["sector_loadings: no local sector ETF price panel available"]
+        return {}, None, ["sector_loadings: no local sector ETF price panel available"], False
     frame = prices.copy()
     frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
     frame["close"] = pd.to_numeric(frame["close"], errors="coerce")
     frame = frame.dropna(subset=["ticker", "date", "close"])
     frame = frame[frame["date"] <= as_of]
+    if frame.empty:
+        return {}, None, ["sector_loadings: price panel holds no observations in the window"], False
+    panel_date = frame["date"].max()
+    input_dates[SECTOR_PANEL_DATE_KEY] = panel_date.date().isoformat()
+    last_date = frame.groupby("ticker")["date"].max()
+    oldest_allowed = as_of - pd.Timedelta(days=SECTOR_PANEL_MAX_AGE_DAYS)
+    benchmark_date = last_date.get(benchmark_ticker)
+    if panel_date < oldest_allowed or (benchmark_date is not None and benchmark_date < oldest_allowed):
+        return {}, None, [
+            f"sector_loadings: the stored sector price panel ends {panel_date.date().isoformat()} "
+            f"({benchmark_ticker} ends "
+            f"{'absent' if benchmark_date is None else benchmark_date.date().isoformat()}), more than "
+            f"{SECTOR_PANEL_MAX_AGE_DAYS} days before the as-of {as_of.date().isoformat()}; no loadings "
+            "published rather than loadings measured on old prices -- refresh the panel "
+            "(ingest-sector-proxy-prices)"
+        ], True
     window_start = as_of - pd.DateOffset(years=config.sector_loadings.window_years)
     frame = frame[frame["date"] >= window_start]
     if frame.empty:
-        return {}, None, ["sector_loadings: price panel holds no observations in the window"]
+        return {}, None, ["sector_loadings: price panel holds no observations in the window"], False
 
     wide = frame.pivot_table(index="date", columns="ticker", values="close", aggfunc="last")
     returns = wide.pct_change().dropna(how="all")
     if benchmark_ticker not in returns.columns:
-        return {}, None, [f"sector_loadings: benchmark {benchmark_ticker} absent from the panel"]
+        return {}, None, [f"sector_loadings: benchmark {benchmark_ticker} absent from the panel"], False
     benchmark = returns[benchmark_ticker]
     minimum = config.sector_loadings.min_return_observations
 
     loadings: dict[str, float] = {}
     skipped: list[str] = []
+    stale_proxies: list[str] = []
     for sector_id, ticker in sorted(proxies.items()):
         if ticker not in returns.columns:
             skipped.append(sector_id)
+            continue
+        if last_date[ticker] < oldest_allowed:
+            stale_proxies.append(sector_id)
             continue
         paired = pd.DataFrame({"sector": returns[ticker], "benchmark": benchmark}).dropna()
         if len(paired) < minimum or paired["benchmark"].var(ddof=0) == 0:
@@ -598,9 +629,14 @@ def sector_loadings(
             "sector_loadings: no usable beta for "
             f"{len(skipped)} sector(s) (thin or missing history): {', '.join(sorted(skipped))}"
         )
+    if stale_proxies:
+        reasons.append(
+            f"sector_loadings: no beta for {len(stale_proxies)} sector(s) whose proxy prices end more than "
+            f"{SECTOR_PANEL_MAX_AGE_DAYS} days before the as-of: {', '.join(sorted(stale_proxies))}"
+        )
     if not loadings:
-        return {}, None, reasons + ["sector_loadings: no sector produced a usable beta"]
-    return loadings, f"beta_vs_{benchmark_ticker}_{config.sector_loadings.window_years}y", reasons
+        return {}, None, reasons + ["sector_loadings: no sector produced a usable beta"], False
+    return loadings, f"beta_vs_{benchmark_ticker}_{config.sector_loadings.window_years}y", reasons, False
 
 
 # ── Build ─────────────────────────────────────────────────────────────────────
@@ -820,12 +856,13 @@ def build_cost_of_capital_anchor(
     if aggregate_note:
         notes.append(f"erp: {aggregate_note}")
 
-    loadings, loading_source, loading_reasons = sector_loadings(
+    loadings, loading_source, loading_reasons, loadings_stale = sector_loadings(
         prices=prices,
         proxies=proxies,
         benchmark_ticker=benchmark_ticker,
         config=coc,
         as_of=as_of,
+        input_dates=input_dates,
     )
     reasons.extend(loading_reasons)
 
@@ -855,6 +892,7 @@ def build_cost_of_capital_anchor(
         any(value is None for value in risk_free.values())
         or erp_source == "unavailable"
         or curve_inconsistent
+        or loadings_stale
     )
 
     return CostOfCapitalAnchor(

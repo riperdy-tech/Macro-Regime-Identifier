@@ -14,10 +14,14 @@
 #      developer tree or the publish clone, which other processes own
 #   3. rebuild data/anchors/equity_aggregate.json from the mirror (the input of the implied ERP)
 #   4. on the 1st of the month, refresh data/anchors/erp_history.csv (Damodaran, annual; a failure keeps the old file)
-#   5. the daily diagnostic with config/daily_pipeline_local.yaml
-#   6. refuse success unless outputs/cost_of_capital_anchor.json is dated today (UTC run date: today or yesterday
+#   5. refresh the stored sector ETF price panel (sector_proxy_prices; the cost-of-capital anchor's sector loadings
+#      are betas measured on it). Non-fatal: a failed refresh is logged as a WARNING and listed in the "done" line,
+#      and the anchor then withholds the loadings and builds degraded when the panel is more than 10 days old, so
+#      step 7 fails loudly instead of the loadings going stale unnoticed (it went unrefreshed 2026-09-18..11-11)
+#   6. the daily diagnostic with config/daily_pipeline_local.yaml
+#   7. refuse success unless outputs/cost_of_capital_anchor.json is dated today (UTC run date: today or yesterday
 #      here) and not degraded
-#   7. export the files the screener reads (stock-screener scripts/mri_sync.py SNAPSHOT_FILES) to $ExportDir, a folder
+#   8. export the files the screener reads (stock-screener scripts/mri_sync.py SNAPSHOT_FILES) to $ExportDir, a folder
 #      every account can read: the screener's PC run is a GitHub runner service running as NETWORK SERVICE, which
 #      cannot read this repository under the user's profile (its log said "MRI outputs directory not found" every
 #      day); the runner's .env points MRI_OUTPUTS_DIR there
@@ -40,6 +44,8 @@ function Log([string]$msg) {
     Add-Content -Path $LogPath -Value $line -Encoding utf8
 }
 
+$global:NonFatalFailures = @()
+
 function Step([string]$name, [scriptblock]$block, [switch]$NonFatal) {
     Log "step: $name"
     # native commands (git, python) write progress to stderr; Windows PowerShell 5.1 turns that into an error record
@@ -49,6 +55,7 @@ function Step([string]$name, [scriptblock]$block, [switch]$NonFatal) {
     if ($LASTEXITCODE -ne 0) {
         if ($NonFatal) {
             Log "step FAILED (non-fatal, kept the previous file): $name (exit $LASTEXITCODE)"
+            $global:NonFatalFailures += $name
             $global:LASTEXITCODE = 0
             return
         }
@@ -76,6 +83,12 @@ Step "equity aggregate" { & $Py scripts/build_equity_aggregate.py --data-dir $Mi
 if ((Get-Date).Day -eq 1) {
     Step "erp history (monthly)" { & $Py scripts/fetch_erp_history.py --out data/anchors/erp_history.csv } -NonFatal
 }
+
+# The panel is read from the store, and `ingest-sector-proxy-prices` fetches every proxy and the benchmark (18 tickers,
+# Yahoo, provider: yahoo in config/sector_validation.yaml) and replaces their stored history in one step.
+Step "sector price panel (ingest-sector-proxy-prices)" {
+    & $Py -m macro_engine.cli ingest-sector-proxy-prices --config config/sector_validation.yaml
+} -NonFatal
 
 Step "daily diagnostic (local config)" {
     & $Py -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline_local.yaml --archive
@@ -110,5 +123,9 @@ foreach ($name in @("shock_register.json")) {
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
     Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force
 }
-Log "done"
+if ($global:NonFatalFailures.Count -gt 0) {
+    Log ("done WITH WARNINGS: non-fatal step(s) failed: " + ($global:NonFatalFailures -join "; "))
+} else {
+    Log "done"
+}
 exit 0

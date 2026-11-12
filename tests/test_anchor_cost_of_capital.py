@@ -443,7 +443,7 @@ def test_a_contemporaneous_but_disagreeing_curve_is_flagged():
 
 def test_sector_loadings_measure_beta_when_the_panel_is_declared():
     """With provenance declared, a synthetic 2x-return sector must measure ~2.0."""
-    dates = pd.date_range("2024-01-01", periods=401, freq="D")
+    dates = pd.date_range(end=AS_OF - pd.Timedelta(days=3), periods=401, freq="D")
     benchmark_returns = [0.001 if index % 2 == 0 else -0.0004 for index in range(400)]
     benchmark, sector = [1.0], [1.0]
     for step in benchmark_returns:
@@ -469,6 +469,97 @@ def test_sector_loadings_measure_beta_when_the_panel_is_declared():
     )
     assert anchor.sector_loadings["information_technology"] == pytest.approx(2.0, abs=1e-6)
     assert anchor.loading_source == "beta_vs_SPY_5y"
+    assert anchor.provenance.input_dates["sector_proxy_prices"] == "2026-04-27"
+
+
+def _panel(end: str, *, xle_end: str | None = None) -> pd.DataFrame:
+    """SPY, XLK and XLE daily closes, 400 days ending `end` (XLE may end earlier); XLK moves at 2x SPY."""
+    import numpy as np
+
+    dates = pd.date_range(end=end, periods=400, freq="D")
+    steps = np.where(np.arange(400) % 2 == 0, 0.001, -0.0004)
+    spy = np.cumprod(1.0 + steps)
+    xlk = np.cumprod(1.0 + 2.0 * steps)
+    xle = np.cumprod(1.0 + 0.5 * steps)
+    frames = []
+    for ticker, closes in (("SPY", spy), ("XLK", xlk), ("XLE", xle)):
+        frame = pd.DataFrame({"ticker": ticker, "date": dates, "close": closes})
+        if ticker == "XLE" and xle_end is not None:
+            frame = frame[frame["date"] <= pd.Timestamp(xle_end)]
+        frames.append(frame)
+    return pd.concat(frames, ignore_index=True)
+
+
+def _healthy_anchor(tmp_path: Path, prices: pd.DataFrame):
+    """An anchor whose every other leg is measured, so only the loadings can degrade it."""
+    aggregate_path = tmp_path / "aggregate.json"
+    aggregate_path.write_text(
+        json.dumps(
+            {
+                "growth": 0.05,
+                "coverage_share": 0.90,
+                "basis": "index",
+                "constituents": [{"cash_flow": 1.0e9, "market_cap": 25.0e9} for _ in range(40)],
+            }
+        ),
+        encoding="utf-8",
+    )
+    config = load_anchor_config("config/anchors.yaml")
+    config.cost_of_capital.erp.equity_aggregate_path = str(aggregate_path)
+    config.cost_of_capital.sector_loadings.price_panel_source = "stored_sector_proxy_prices"
+    return build_cost_of_capital_anchor(
+        observations=_observations(
+            {
+                "DGS10": [("2026-04-29", 4.94)],
+                "DFII10": [("2026-04-29", 2.61)],
+                "T10YIE": [("2026-04-29", 2.33)],
+                "THREEFYTP10": [("2026-04-29", 0.50)],
+                "CPIAUCSL": [("2025-03-01", 100.0), ("2026-03-01", 103.0)],
+                "PCEPI": [("2025-03-01", 100.0), ("2026-03-01", 102.5)],
+            }
+        ),
+        prices=prices,
+        proxies={"information_technology": "XLK", "energy": "XLE"},
+        benchmark_ticker="SPY",
+        config=config,
+        as_of=AS_OF,
+        built_at="2026-04-30T00:00:00+00:00",
+        terminal_growth=0.025,
+    )
+
+
+def test_a_panel_three_days_old_gives_loadings_and_its_date(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-04-27"))
+    assert anchor.degraded is False, anchor.provenance.degradation_reasons
+    assert anchor.sector_loadings["information_technology"] == pytest.approx(2.0, abs=1e-6)
+    assert anchor.provenance.input_dates["sector_proxy_prices"] == "2026-04-27"
+
+
+def test_a_panel_thirty_days_old_is_not_served_as_current(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-03-31"))
+    assert anchor.sector_loadings == {}
+    assert anchor.loading_source is None
+    assert anchor.degraded is True
+    assert anchor.provenance.input_dates["sector_proxy_prices"] == "2026-03-31"
+    assert any(
+        "ends 2026-03-31" in reason and "no loadings published" in reason
+        for reason in anchor.provenance.degradation_reasons
+    )
+
+
+def test_the_panel_age_limit_is_ten_calendar_days(tmp_path: Path):
+    assert _healthy_anchor(tmp_path, _panel("2026-04-20")).degraded is False  # 10 days: kept
+    assert _healthy_anchor(tmp_path, _panel("2026-04-19")).degraded is True   # 11 days: not
+
+
+def test_one_stale_proxy_is_skipped_with_a_reason_and_the_rest_are_kept(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-04-29", xle_end="2026-03-01"))
+    assert list(anchor.sector_loadings) == ["information_technology"]
+    assert anchor.degraded is False
+    assert any(
+        "energy" in reason and "proxy prices end more than" in reason
+        for reason in anchor.provenance.degradation_reasons
+    )
 
 
 def test_erp_history_band_is_published_when_no_implied_erp_exists(tmp_path: Path):
