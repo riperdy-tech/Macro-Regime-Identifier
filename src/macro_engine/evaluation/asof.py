@@ -28,6 +28,7 @@ import pandas as pd
 
 AsOfReason = Literal[
     "ok",
+    "carried_forward",
     "stale_asof_value",
     "not_yet_published",
     "no_prior_valid_feature",

@@ -65,6 +65,7 @@ def build_asof_feature_values(
 
     source_frequency = {source.series_id: source.frequency for source in sources}
     publication_lag = {source.series_id: source.publication_lag_days for source in sources}
+    source_unusable_after = {source.series_id: source.unusable_after_days for source in sources}
     feature_frame = features.copy()
     if feature_frame.empty:
         feature_frame = pd.DataFrame(columns=["feature_id", "date"])
@@ -194,6 +195,18 @@ def build_asof_feature_values(
             frequency = source_frequency.get(feature.series_id, "monthly")
             max_lag = config.max_lag_by_frequency[str(frequency)]
             valid = lag_days <= max_lag
+            reason = "ok" if valid else "stale_asof_value"
+            # B1: one late monthly release must not silently remove a regime dimension (PCE ran 92 to
+            # 122 days late after the 2025 shutdown, against the 75-day limit, and inflation_pressure
+            # was invalid for six months). Past the normal limit but inside the source's own
+            # `unusable_after_days` the last valid reading is carried forward and FLAGGED; past that
+            # it is stale as before. The lag is still published, so the reading's age is visible.
+            if (
+                not valid
+                and str(frequency) == "monthly"
+                and lag_days <= source_unusable_after.get(feature.series_id, 0)
+            ):
+                valid, reason = True, "carried_forward"
             rows.append(
                 _asof_row(
                     evaluation_date=evaluation_date,
@@ -203,7 +216,7 @@ def build_asof_feature_values(
                     normalized_value=latest["normalized_value"],
                     lag_days=lag_days,
                     valid=valid,
-                    reason="ok" if valid else "stale_asof_value",
+                    reason=reason,
                 )
             )
 

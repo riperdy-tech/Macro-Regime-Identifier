@@ -109,7 +109,9 @@ def _build_one_feature(
     frequency: Frequency,
 ) -> list[dict]:
     values = source_rows["value"].astype(float)
-    transformed = apply_feature_transform(values, feature.transform, frequency)
+    transformed = apply_feature_transform(
+        values, feature.transform, frequency, dates=source_rows["date"]
+    )
     normalized, window_start = apply_feature_normalization(
         transformed,
         source_rows["date"],
@@ -127,7 +129,13 @@ def _build_one_feature(
         if pd.isna(raw_value):
             reason = "missing_raw_value"
         elif pd.isna(transformed_value):
-            reason = "insufficient_transform_history"
+            # B1: a value whose base month is absent or empty is not "insufficient history": the
+            # history covers the base period, the base is what is missing.
+            reason = (
+                "missing_base_month"
+                if _base_month_missing(source_rows["date"], values, feature.transform, frequency, position)
+                else "insufficient_transform_history"
+            )
         elif pd.isna(normalized_value):
             reason = "insufficient_normalization_history"
         rows.append(
@@ -151,13 +159,65 @@ def _build_one_feature(
     return rows
 
 
+_LAG_MONTHS = {
+    "diff_3m": 3,
+    "diff_6m": 6,
+    "diff_12m": 12,
+    "yoy_pct_change": 12,
+    "yoy_log_change": 12,
+}
+
+
+def _monthly_prior(values: pd.Series, dates: pd.Series, months: int) -> pd.Series:
+    """The value `months` calendar months before each row, found BY DATE; NaN where that month is absent.
+
+    A positional shift is only right when no month is missing from the file: one absent row moves every
+    later comparison one month. By date, an absent or empty base month leaves a gap and nothing else.
+    """
+    periods = pd.DatetimeIndex(dates).to_period("M")
+    by_month = pd.Series(values.to_numpy(), index=periods)
+    by_month = by_month[~by_month.index.duplicated(keep="last")]
+    prior = by_month.reindex(periods - months)
+    return pd.Series(prior.to_numpy(), index=values.index)
+
+
+def _base_month_missing(
+    dates: pd.Series,
+    values: pd.Series,
+    transform: TransformName,
+    frequency: Frequency,
+    position: int,
+) -> bool:
+    """True when row `position`'s base month lies inside the series' history but has no value."""
+    months = _LAG_MONTHS.get(transform)
+    if months is None or frequency != "monthly":
+        return False
+    row_date = pd.Timestamp(dates.iloc[position])
+    base = row_date.to_period("M") - months
+    if base < pd.Timestamp(dates.min()).to_period("M"):
+        return False
+    prior = _monthly_prior(values, dates, months)
+    return bool(pd.isna(prior.iloc[position]))
+
+
 def apply_feature_transform(
     values: pd.Series,
     transform: TransformName,
     frequency: Frequency,
+    dates: pd.Series | None = None,
 ) -> pd.Series:
     if transform == "level":
         return values
+    if transform == "spread":
+        return values
+    if dates is not None and frequency == "monthly" and transform in _LAG_MONTHS:
+        prior = _monthly_prior(values, dates, _LAG_MONTHS[transform])
+        if transform.startswith("diff_"):
+            return values - prior
+        if transform == "yoy_pct_change":
+            return (values / prior - 1.0) * 100
+        positive = values.where(values > 0)
+        return (np.log(positive) - np.log(prior.where(prior > 0))) * 100
     if transform == "diff_3m":
         return values.diff(_periods_for_months(frequency, 3))
     if transform == "diff_6m":
@@ -166,8 +226,6 @@ def apply_feature_transform(
         return values.diff(_periods_for_months(frequency, 12))
     if transform == "yoy_pct_change":
         return values.pct_change(_periods_for_months(frequency, 12), fill_method=None) * 100
-    if transform == "spread":
-        return values
     if transform == "yoy_log_change":
         positive = values.where(values > 0)
         return np.log(positive).diff(_periods_for_months(frequency, 12)) * 100
