@@ -109,7 +109,9 @@ def build_anchors(
     config = load_anchor_config(config_path)
     evaluation = load_evaluation_config(macro_config_path)
 
-    store = DuckDBStore(db_path)
+    # write=False must write nothing: the store opens read-only, so it takes no writer lock, runs no DDL
+    # and leaves the file's bytes alone (rs2-local's pin_coe.py calls it this way).
+    store = DuckDBStore(db_path, read_only=not write)
     store.initialize()
     observations = store.read_raw_observations()
     resolved_as_of = _resolve_as_of(as_of, observations)

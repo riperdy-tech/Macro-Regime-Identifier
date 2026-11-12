@@ -10,11 +10,19 @@ import pandas as pd
 
 
 class DuckDBStore:
-    def __init__(self, db_path: str | Path = "data/macro_engine.duckdb") -> None:
+    def __init__(
+        self, db_path: str | Path = "data/macro_engine.duckdb", *, read_only: bool = False
+    ) -> None:
         self.db_path = Path(db_path)
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        # A read-only store creates nothing: no directory, no file, no tables. A caller that only
+        # needs to read (build_anchors(write=False)) must not take the writer's lock or change a byte.
+        self.read_only = read_only
+        if not read_only:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
 
     def initialize(self) -> None:
+        if self.read_only:
+            return
         with self._connect() as con:
             con.execute(
                 """
@@ -2656,7 +2664,7 @@ class DuckDBStore:
                 )
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
-        con = duckdb.connect(str(self.db_path))
+        con = duckdb.connect(str(self.db_path), read_only=self.read_only)
         # Every TIMESTAMP column holds naive UTC. DuckDB converts a tz-aware value
         # into the session time zone on insert, which defaults to the OS zone: on a
         # KST machine an aware UTC timestamp was stored 9 hours ahead.
