@@ -427,7 +427,9 @@ def test_config_github_defaults_and_step_timeout_rejected():
 
 def test_run_macro_propagates_vintage_partial_warning():
     """B5 / _run_macro (Test 9.3 #9):
-    _run_macro propagates vintage_partial:* warnings into daily warnings."""
+    _run_macro propagates vintage_partial:* warnings into daily warnings. 2026-11-12: it propagates
+    EVERY warning the macro step recorded (it used to filter to vintage_*, which left the daily
+    record at warning_count 0 while the step had 41 to 46)."""
     from macro_engine.daily import _run_macro
     from macro_engine.operations_config import DailyPipelineConfig
     from macro_engine.pipeline_runner import PipelineSummary
@@ -455,7 +457,7 @@ def test_run_macro_propagates_vintage_partial_warning():
         warnings=warnings,
     )
     assert "vintage_partial:deferred=5:frontier=2020-01-01" in warnings
-    assert "unrelated_warning" not in warnings
+    assert "unrelated_warning" in warnings
 
 
 def test_daily_deadline_stops_classification_and_skips_later_steps(tmp_path, monkeypatch):
