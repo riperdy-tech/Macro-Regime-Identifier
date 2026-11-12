@@ -31,38 +31,11 @@ from pathlib import Path
 
 import numpy as np
 
+# One owner of the registered signals: the package module the daily dial also uses.
+from macro_engine.risk_state import MIN_READINGS, macro_signal, price_signal, reading_series  # noqa: F401
+
 HORIZON = 63
-MIN_READINGS = 36
 NW_LAG = 2
-
-
-# --------------------------------------------------------------------------- signals
-
-
-def price_signal(closes: np.ndarray, i: int, window: int = 200) -> float:
-    """P: 1.0 when closes[i] is strictly below the mean of closes[i-window+1..i], else 0.0.
-    NaN when fewer than `window` closes exist up to and including i."""
-    if i < window - 1:
-        return float("nan")
-    mean = float(np.mean(closes[i - window + 1 : i + 1]))
-    return 1.0 if closes[i] < mean else 0.0
-
-
-def macro_signal(readings: np.ndarray, top_fraction: float = 1.0 / 3.0, min_readings: int = MIN_READINGS) -> np.ndarray:
-    """M per reading: 1.0 when the reading is in the top `top_fraction` of the valid readings up to and
-    including itself (expanding window), else 0.0. NaN where the reading is NaN or fewer than
-    `min_readings` valid readings exist up to and including it. Uses no later reading."""
-    out = np.full(len(readings), np.nan)
-    history: list[float] = []
-    for j, value in enumerate(readings):
-        if np.isnan(value):
-            continue
-        history.append(float(value))
-        if len(history) < min_readings:
-            continue
-        threshold = float(np.quantile(np.asarray(history), 1.0 - top_fraction))
-        out[j] = 1.0 if value >= threshold else 0.0
-    return out
 
 
 # --------------------------------------------------------------------------- outcomes
@@ -254,19 +227,12 @@ def load_inputs(store: str):
 
 def build_sample(spy, reg, vix, top_fraction: float = 1.0 / 3.0):
     """Align the monthly arrays. Returns (sample, info)."""
-    import pandas as pd
-
     closes = spy["close"].to_numpy(dtype=float)
     dates = spy["date"]
     months_spy = dates.dt.to_period("M")
     last_idx = {m: int(np.flatnonzero((months_spy == m).to_numpy())[-1]) for m in months_spy.unique()}
 
-    wide = reg.pivot(index="date", columns="regime_id", values="probability")
-    wide = wide[["recession", "stagflation"]].dropna()
-    wide.index = wide.index.to_period("M")
-    rs = (wide["recession"] + wide["stagflation"]).sort_index()
-    all_months = pd.period_range(rs.index.min(), rs.index.max(), freq="M")
-    series = rs.reindex(all_months).to_numpy(dtype=float)
+    series, all_months = reading_series(reg)
     macro_by_month = dict(zip(all_months, macro_signal(series, top_fraction)))
 
     vix_m = vix.set_index("date")["active"].astype(float)
