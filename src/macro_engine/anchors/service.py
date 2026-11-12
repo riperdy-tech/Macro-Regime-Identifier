@@ -380,7 +380,7 @@ def write_anchor_outputs(
         if _publish_guard_blocks(json_path, payload):
             continue
         json_path.write_text(
-            json.dumps(payload, indent=2, sort_keys=True, default=_json_default),
+            json.dumps(payload, indent=2, sort_keys=True, default=_json_default, allow_nan=False),
             encoding="utf-8",
         )
         written[filename] = json_path
@@ -396,7 +396,7 @@ def write_anchor_outputs(
         repair_path = directory / REPAIR_PACKAGE_JSON
         if not _publish_guard_blocks(repair_path, repair_payload):
             repair_path.write_text(
-                json.dumps(repair_payload, indent=2, sort_keys=True, default=_json_default),
+                json.dumps(repair_payload, indent=2, sort_keys=True, default=_json_default, allow_nan=False),
                 encoding="utf-8",
             )
             written[REPAIR_PACKAGE_JSON] = repair_path

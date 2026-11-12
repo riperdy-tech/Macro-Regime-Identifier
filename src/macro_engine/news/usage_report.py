@@ -42,7 +42,7 @@ def write_live_ai_usage_report(
     output.mkdir(parents=True, exist_ok=True)
     json_path = output / "live_ai_usage_report.json"
     markdown_path = output / "live_ai_usage_report.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 

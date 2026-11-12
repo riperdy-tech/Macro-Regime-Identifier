@@ -69,7 +69,7 @@ def write_current_sector_report(
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "current_sector_ranking.json"
     markdown_path = output_dir / "current_sector_ranking.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 

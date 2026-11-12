@@ -180,7 +180,7 @@ def _write_reports(out_dir: Path, anomalies: pd.DataFrame, checked: int) -> tupl
         ),
     }
     json_path = out_dir / "sector_exposure_guardrails.json"
-    json_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, default=str, allow_nan=False), encoding="utf-8")
 
     lines = [
         "# Sector Exposure Guardrails",

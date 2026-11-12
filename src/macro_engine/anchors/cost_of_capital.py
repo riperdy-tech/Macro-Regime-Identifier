@@ -145,14 +145,20 @@ def yoy_change(
         if row is None:
             return None, None
         frame = frame[frame["date"] <= pd.Timestamp(row["date"])]
+    # An empty month is no observation: drop it, never divide by it. The base must be the
+    # observation of the prior-year MONTH itself; the nearest earlier month is a 13-month
+    # change presented as a 12-month one.
+    frame = frame.dropna(subset=["date", "value"])
     if frame.empty:
         return None, None
 
     latest_date = pd.Timestamp(frame["date"].max())
     prior_date = latest_date - pd.DateOffset(months=int(periods))
-    prior = frame[frame["date"] <= prior_date]
-    if prior.empty:
+    if frame[frame["date"] <= prior_date].empty:
         return None, None
+    prior = frame[frame["date"].dt.to_period("M") == prior_date.to_period("M")]
+    if prior.empty:
+        return None, latest_date.date().isoformat()
     current_value = float(frame[frame["date"] == latest_date].iloc[-1]["value"])
     prior_value = float(prior.iloc[-1]["value"])
     if current_value <= 0 or prior_value <= 0:

@@ -331,5 +331,5 @@ def run_events_daily(
         run["finished_at"] = datetime.now(timezone.utc).isoformat()
         run["duration_s"] = round(time.monotonic() - t0, 3)
         run["previous_register_kept"] = run["status"] != "ok" and (out_dir / REGISTER_FILENAME).exists()
-        _atomic_write_text(out_dir / RUN_FILENAME, json.dumps(run, indent=2, sort_keys=True, default=str) + "\n")
+        _atomic_write_text(out_dir / RUN_FILENAME, json.dumps(run, indent=2, sort_keys=True, default=str, allow_nan=False) + "\n")
     return (0 if run["status"] == "ok" else 1), run

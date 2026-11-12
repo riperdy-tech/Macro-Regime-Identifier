@@ -51,7 +51,7 @@ def write_secular_theme_tracker(
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "secular_theme_scores.json"
     markdown_path = output_dir / f"secular_theme_tracker_{computed_at.date():%Y%m%d}.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 

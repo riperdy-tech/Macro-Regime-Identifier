@@ -237,7 +237,7 @@ def run_stored_nber_benchmark(
     target_dir.mkdir(parents=True, exist_ok=True)
     json_path = target_dir / "nber_benchmark.json"
     md_path = target_dir / "nber_benchmark.md"
-    json_path.write_text(json.dumps(summary, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(summary, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     md_path.write_text(build_markdown_report(summary), encoding="utf-8")
     summary["outputs"] = [str(json_path), str(md_path)]
     return summary

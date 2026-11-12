@@ -86,7 +86,7 @@ def export_dashboard_data(
 
     history_index = _build_history_index(source_dir)
     (target_dir / HISTORY_INDEX_FILE).write_text(
-        json.dumps(history_index, indent=2, sort_keys=True),
+        json.dumps(history_index, indent=2, sort_keys=True, allow_nan=False),
         encoding="utf-8",
     )
 
@@ -114,7 +114,7 @@ def export_dashboard_data(
         "data_status": _data_status(available_files, missing_files),
     }
     (target_dir / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True),
+        json.dumps(manifest, indent=2, sort_keys=True, allow_nan=False),
         encoding="utf-8",
     )
     return manifest

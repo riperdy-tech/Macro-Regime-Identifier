@@ -38,7 +38,7 @@ def write_combined_sector_report(
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "combined_sector_diagnostic.json"
     markdown_path = output_dir / "combined_sector_diagnostic.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 

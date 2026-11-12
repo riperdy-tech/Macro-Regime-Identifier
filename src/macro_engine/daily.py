@@ -482,7 +482,7 @@ def write_daily_summary(payload: dict[str, Any], output_dir: str | Path = "outpu
     json_path = output / "daily_diagnostic_summary.json"
     markdown_path = output / "daily_diagnostic_summary.md"
     markdown = daily_summary_markdown(payload)
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 
@@ -553,7 +553,7 @@ def write_regime_timeline(
         "disclaimer": DAILY_SUMMARY_DISCLAIMER,
     }
     path.write_text(
-        json.dumps(_json_safe(payload), indent=2, sort_keys=True),
+        json.dumps(_json_safe(payload), indent=2, sort_keys=True, allow_nan=False),
         encoding="utf-8",
     )
     return path
@@ -631,7 +631,7 @@ def write_macro_features_timeline(
         "dimensions": dimensions,
         "disclaimer": DAILY_SUMMARY_DISCLAIMER,
     }
-    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     return path
 
 
@@ -676,7 +676,7 @@ def write_news_sources_used(
         ],
         "disclaimer": "News headlines are used as diagnostic inputs only, not republished.",
     }
-    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(json.dumps(_json_safe(payload), indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     return path
 
 

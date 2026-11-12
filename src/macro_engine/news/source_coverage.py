@@ -121,7 +121,7 @@ def write_news_source_coverage_report(
     output_dir.mkdir(parents=True, exist_ok=True)
     json_path = output_dir / "news_source_coverage_report.json"
     markdown_path = output_dir / "news_source_coverage_report.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), encoding="utf-8")
     markdown_path.write_text(markdown, encoding="utf-8")
     return json_path, markdown_path
 

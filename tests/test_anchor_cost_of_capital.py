@@ -640,3 +640,150 @@ def test_anchor_config_declares_units_for_every_rate_series():
         ref.units == "percent"
         for ref in config.growth.inflation_expectation.candidates
     )
+
+
+# ── A3: an empty month is no observation, and no NaN reaches a file ──────────
+
+
+def _vintages(series_id: str, points: list[tuple[str, float]]) -> pd.DataFrame:
+    frame = pd.DataFrame(
+        [
+            {"series_id": series_id, "date": date, "realtime_start": "2025-01-01", "value": value}
+            for date, value in points
+        ]
+    )
+    frame["date"] = pd.to_datetime(frame["date"])
+    return frame
+
+
+def test_yoy_with_an_empty_base_month_is_none_with_the_date_calendar_mode():
+    """An empty October 2025 must not be replaced by September 2025 as the base."""
+    observations = _observations(
+        {
+            "CPIAUCSL": [
+                ("2025-09-01", 300.0),
+                ("2025-10-01", float("nan")),
+                ("2026-10-01", 309.0),
+            ]
+        }
+    )
+    value, date = yoy_change(observations, "CPIAUCSL", pd.Timestamp("2026-11-10"), periods=12)
+    assert value is None
+    assert date == "2026-10-01"
+
+
+def test_yoy_with_an_empty_base_month_is_none_with_the_date_point_in_time_mode():
+    vintages = _vintages(
+        "CPIAUCSL",
+        [("2025-09-01", 300.0), ("2025-10-01", float("nan")), ("2026-10-01", 309.0)],
+    )
+    value, date = yoy_change(
+        pd.DataFrame(),
+        "CPIAUCSL",
+        pd.Timestamp("2026-11-10"),
+        periods=12,
+        scoring_mode="point_in_time",
+        vintages=vintages,
+    )
+    assert value is None
+    assert date == "2026-10-01"
+
+
+def test_yoy_empty_latest_month_falls_back_to_the_latest_real_reading():
+    vintages = _vintages(
+        "CPIAUCSL",
+        [("2025-09-01", 300.0), ("2026-09-01", 306.0), ("2026-10-01", float("nan"))],
+    )
+    value, date = yoy_change(
+        pd.DataFrame(),
+        "CPIAUCSL",
+        pd.Timestamp("2026-11-10"),
+        periods=12,
+        scoring_mode="point_in_time",
+        vintages=vintages,
+    )
+    assert value == pytest.approx(0.02)
+    assert date == "2026-09-01"
+
+
+def test_a_missing_base_month_gets_the_reason_line_and_the_anchor_has_no_nan():
+    observations = _observations(
+        {
+            "DGS10": [("2026-11-09", 4.45)],
+            "DFII10": [("2026-11-09", 1.95)],
+            "T10YIE": [("2026-11-09", 2.50)],
+            "CPIAUCSL": [("2025-09-01", 300.0), ("2026-10-01", 309.0)],
+            "PCEPI": [("2025-10-01", 124.0), ("2026-10-01", 128.7)],
+        }
+    )
+    anchor = build_cost_of_capital_anchor(
+        observations=observations,
+        prices=pd.DataFrame(),
+        proxies={},
+        benchmark_ticker="SPY",
+        config=load_anchor_config("config/anchors.yaml"),
+        as_of=pd.Timestamp("2026-11-10"),
+        built_at="2026-11-10T00:00:00+00:00",
+    )
+    assert anchor.inflation["cpi_yoy"] is None
+    assert any("CPIAUCSL yoy unavailable" in reason for reason in anchor.provenance.degradation_reasons)
+    json.dumps(anchor.model_dump(mode="json"), allow_nan=False)
+
+
+def _strict_loads(text: str):
+    def refuse(token):
+        raise ValueError(f"non-JSON constant {token}")
+
+    return json.loads(text, parse_constant=refuse)
+
+
+def _build_with_empty_cpi_month(tmp_path: Path, *, write: bool):
+    from macro_engine.anchors import service as anchor_service
+    from macro_engine.storage.duckdb_store import DuckDBStore
+    from test_anchor_service import MINIMAL_ANCHOR_CONFIG, _seed_observations
+
+    as_of = pd.Timestamp("2026-04-30")
+    db_path = tmp_path / "db.duckdb"
+    store = DuckDBStore(db_path)
+    store.initialize()
+    seeded = _seed_observations(as_of)
+    cpi = pd.DataFrame(
+        {
+            "series_id": "CPIAUCSL",
+            "date": pd.to_datetime(["2025-03-01", "2025-04-01", "2026-04-01"]),
+            "value": [300.0, float("nan"), 309.0],
+        }
+    )
+    for column in ("realtime_start", "realtime_end", "source", "fetched_at", "frequency", "units"):
+        cpi[column] = seeded.iloc[0][column]
+    store.upsert_raw_observations(pd.concat([seeded, cpi], ignore_index=True))
+    config_path = tmp_path / "anchors.yaml"
+    config_path.write_text(
+        MINIMAL_ANCHOR_CONFIG.format(output_dir=(tmp_path / "out").as_posix()), encoding="utf-8"
+    )
+    return anchor_service.build_anchors(
+        config_path=str(config_path),
+        macro_config_path="config/phase_b_sources.yaml",
+        sector_config_path="config/sectors.yaml",
+        db_path=str(db_path),
+        as_of="2026-04-30",
+        write=write,
+    )
+
+
+def test_the_three_anchor_artifacts_parse_strictly(tmp_path: Path):
+    _build_with_empty_cpi_month(tmp_path, write=True)
+    for name in ("cost_of_capital_anchor.json", "long_run_growth_anchor.json", "sector_multiple_bands.json"):
+        _strict_loads((tmp_path / "out" / name).read_text(encoding="utf-8"))
+
+
+def test_a_nan_reaching_an_anchor_writer_is_a_loud_failure_and_no_file(tmp_path: Path):
+    from macro_engine.anchors import service as anchor_service
+
+    bundle = _build_with_empty_cpi_month(tmp_path, write=False)
+    bundle.cost_of_capital.inflation["cpi_yoy"] = float("nan")
+    with pytest.raises(ValueError):
+        anchor_service.write_anchor_outputs(
+            bundle=bundle, output_dir=tmp_path / "out2", only=["cost_of_capital"]
+        )
+    assert not (tmp_path / "out2" / "cost_of_capital_anchor.json").exists()

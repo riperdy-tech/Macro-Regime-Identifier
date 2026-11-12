@@ -144,6 +144,7 @@ def write_regime_status(
             build_regime_status(outputs_dir=output_dir, db_path=db_path),
             indent=2,
             sort_keys=True,
+            allow_nan=False,
         ),
         encoding="utf-8",
     )

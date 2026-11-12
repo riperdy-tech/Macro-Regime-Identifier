@@ -109,7 +109,7 @@ def write_news_advisory_block(
     json_path = output_dir / config.advisory_block.output_file
     markdown_path = json_path.with_suffix(".md")
     json_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, default=_json_default),
+        json.dumps(payload, indent=2, sort_keys=True, default=_json_default, allow_nan=False),
         encoding="utf-8",
     )
     markdown_path.write_text(advisory_markdown(payload), encoding="utf-8")

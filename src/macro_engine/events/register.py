@@ -415,7 +415,7 @@ def write_register(path: str | Path, doc: dict[str, Any]) -> bool:
     target = Path(path)
     if target.name in PROTECTED_NAMES:
         raise ValueError(f"{target.name} is a protected artifact; the register is {REGISTER_FILENAME}")
-    text = json.dumps(doc, indent=2, sort_keys=True, default=str) + "\n"
+    text = json.dumps(doc, indent=2, sort_keys=True, default=str, allow_nan=False) + "\n"
     if target.exists() and target.read_text(encoding="utf-8") == text:
         return False
     target.parent.mkdir(parents=True, exist_ok=True)
