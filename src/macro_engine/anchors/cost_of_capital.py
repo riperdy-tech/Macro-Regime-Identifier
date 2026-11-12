@@ -54,6 +54,14 @@ WACC_EXCLUSION_NOTE = (
 # phase_b_sources.yaml, the one table of lags). Both live here and nowhere else.
 DAILY_LEG_MAX_BUSINESS_DAYS = 5
 MONTHLY_LEG_GRACE_DAYS = 45
+# Measured on the 42 builds of 2026-09-20..11-12 (anchor_runs input_dates; coordinator's audit 2026-11-12): the
+# yields and the breakeven were at most 3 business days behind, but the term premium (published with about a
+# week's delay) was 5 at the median and up to 8, over the daily limit on half the builds. It gets its own limit.
+SLOW_DAILY_LEG_MAX_BUSINESS_DAYS = 10
+# Only a stale leg that a consumer's number rests on degrades the anchor (rs2 and the screener read the
+# yields). A stale term premium or realised-inflation leg is null with its reason and the anchor stays
+# publishable: withholding today's 10-year yield because CPI is late would make the anchor staler, not safer.
+DEGRADING_LEGS = frozenset({"nominal_10y", "real_10y", "breakeven_10y"})
 
 # A Gordon terminal value is undefined at or below perpetual growth, so the implied-rate
 # search starts strictly above it.
@@ -685,10 +693,11 @@ def apply_leg_age_gate(
             oldest = age if oldest is None else max(oldest, age)
             if value is None or name in stale:
                 continue
-            if kind == "daily":
+            if kind in ("daily", "slow_daily"):
                 behind = int(np.busday_count(observed_day.date(), as_of_day.date()))
-                too_old = behind > DAILY_LEG_MAX_BUSINESS_DAYS
-                limit_text = f"{behind} business days behind, limit {DAILY_LEG_MAX_BUSINESS_DAYS}"
+                max_behind = DAILY_LEG_MAX_BUSINESS_DAYS if kind == "daily" else SLOW_DAILY_LEG_MAX_BUSINESS_DAYS
+                too_old = behind > max_behind
+                limit_text = f"{behind} business days behind, limit {max_behind}"
             else:
                 release_lag = int(publication_lag_days.get(series_id, 0))
                 limit = release_lag + MONTHLY_LEG_GRACE_DAYS
@@ -835,7 +844,7 @@ def build_cost_of_capital_anchor(
             "nominal_10y": (nominal, [coc.risk_free.nominal_10y.series], "daily"),
             "real_10y": (real, [coc.risk_free.real_10y.series], "daily"),
             "breakeven_10y": (breakeven, [coc.risk_free.breakeven_10y.series], "daily"),
-            "term_premium": (premium, premium_series, "daily"),
+            "term_premium": (premium, premium_series, "slow_daily"),
             "cpi_yoy": (cpi_yoy, [coc.inflation.cpi], "monthly"),
             "pce_yoy": (pce_yoy, [coc.inflation.pce], "monthly"),
         },
@@ -992,7 +1001,7 @@ def build_cost_of_capital_anchor(
         or erp_source == "unavailable"
         or curve_inconsistent
         or loadings_stale
-        or bool(stale_legs)
+        or bool(stale_legs & DEGRADING_LEGS)
     )
 
     return CostOfCapitalAnchor(

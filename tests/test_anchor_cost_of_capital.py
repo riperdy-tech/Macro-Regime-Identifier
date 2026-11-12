@@ -863,7 +863,7 @@ def test_a_daily_leg_four_business_days_behind_is_kept(tmp_path: Path):
     assert anchor.oldest_leg_age_days == 29
 
 
-def test_a_monthly_leg_past_release_lag_plus_grace_is_null_and_degrades(tmp_path: Path):
+def test_a_monthly_leg_past_release_lag_plus_grace_is_null_and_the_yields_are_still_published(tmp_path: Path):
     # CPI for 2026-01: normal release 44 days after the period, plus 45 days = 89; as-of is 119 days on.
     anchor = _leg_anchor(
         tmp_path,
@@ -873,7 +873,9 @@ def test_a_monthly_leg_past_release_lag_plus_grace_is_null_and_degrades(tmp_path
 
     assert anchor.inflation["cpi_yoy"] is None
     assert anchor.inflation["pce_yoy"] == pytest.approx(0.0379, abs=1e-4)
-    assert anchor.degraded is True
+    # A late CPI is said and its leg is null, but it does not withhold the 10-year yield (DEGRADING_LEGS).
+    assert anchor.degraded is False
+    assert anchor.risk_free["nominal_10y"] == pytest.approx(0.0445)
     assert any("CPIAUCSL" in reason and "45" in reason for reason in anchor.provenance.degradation_reasons)
     assert anchor.oldest_leg_age_days == 119
 
