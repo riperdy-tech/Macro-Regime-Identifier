@@ -142,6 +142,16 @@ def build_current_regime_report(
     )
     if active_shocks_reason is not None:
         reasons.append(active_shocks_reason)
+    # B6: the register has no row on a non-trading date (a month start is often a weekend), so the
+    # last row on or before the date is used and its date is published beside the ids.
+    register_date = (
+        None
+        if active_shocks_on_date is None
+        else _shock_register_date_on_or_before(shock_register, latest_date)
+    )
+    active_shocks_register_date = None if register_date is None else register_date.strftime("%Y-%m-%d")
+    if register_date is not None and register_date != pd.Timestamp(latest_date):
+        reasons.append(f"shock_register_row_from_earlier_date:{active_shocks_register_date}")
 
     payload = {
         "schema_version": 2,
@@ -205,6 +215,7 @@ def build_current_regime_report(
             "reason": reported["transition_filter_reason"],
         },
         "active_shocks_on_date": active_shocks_on_date,
+        "active_shocks_register_date": active_shocks_register_date,
         "top_supporting_dimensions": _contribution_records(
             supporting.head(config.max_contributors)
         ),
@@ -557,17 +568,28 @@ def _active_shocks_for_date(
     shock_register: pd.DataFrame | None, latest_date: Any
 ) -> tuple[list[str] | None, str | None]:
     """S4 (§1.3.4): `active_shocks_on_date` is ids only, provenance only -- an empty list
-    is a value (no shock active that day), `None` means the register had no row for this
-    date, with the reason travelling in the caller's `reasons` list (rule 2)."""
+    is a value (no shock active that day), `None` means the register had no row on or before
+    this date, with the reason travelling in the caller's `reasons` list (rule 2). B6: the row
+    used is the last one on or before the date; `_shock_register_date_on_or_before` says which."""
     if shock_register is None or shock_register.empty:
         return None, "shock_register_unavailable"
-    rows = shock_register[
-        pd.to_datetime(shock_register["date"], errors="coerce") == pd.Timestamp(latest_date)
-    ]
-    if rows.empty:
+    used = _shock_register_date_on_or_before(shock_register, latest_date)
+    if used is None:
         return None, "shock_register_no_row_for_date"
+    rows = shock_register[pd.to_datetime(shock_register["date"], errors="coerce") == used]
     active_ids = sorted(rows.loc[rows["active"].astype(bool), "shock_id"].astype(str).unique().tolist())
     return active_ids, None
+
+
+def _shock_register_date_on_or_before(
+    shock_register: pd.DataFrame | None, latest_date: Any
+) -> pd.Timestamp | None:
+    """Date of the newest register row on or before `latest_date`, or None."""
+    if shock_register is None or shock_register.empty:
+        return None
+    dates = pd.to_datetime(shock_register["date"], errors="coerce").dropna()
+    dates = dates[dates <= pd.Timestamp(latest_date)]
+    return None if dates.empty else pd.Timestamp(dates.max())
 
 
 def _json_safe(value: Any) -> Any:
