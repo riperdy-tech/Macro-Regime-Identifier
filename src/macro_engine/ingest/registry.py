@@ -16,6 +16,11 @@ def load_ingestion_sources(path: str | Path) -> list[IngestionSource]:
     duplicates = {series_id for series_id in series_ids if series_ids.count(series_id) > 1}
     if duplicates:
         raise ValueError(f"duplicate ingestion source IDs: {sorted(duplicates)}")
+    unknown = sorted(
+        {source.fallback_series for source in sources if source.fallback_series} - set(series_ids)
+    )
+    if unknown:
+        raise ValueError(f"fallback_series names no configured source: {unknown}")
     return sources
 
 

@@ -263,6 +263,19 @@ sources:
     stale_after_days: 45
     unusable_after_days: 120
     publication_lag_days: 52
+    # WO_MF3 (2026-11-13): FRED's last NNUSBIS observation is 2026-07. Past the normal age limit
+    # the level is extended from its last observation by the growth of DTWEXBGS's monthly mean,
+    # up to DTWEXBGS's last complete month known on the evaluation date (never a partial month),
+    # flagged `extended_by_fallback` with the months extended. Measured on 235 months 2007-01..
+    # 2026-07 (revised data): mean absolute error of the spliced year-over-year change 0.41 /
+    # 0.65 / 0.82 / 0.97 / 1.10 / 1.23 points at a gap of 1..6 months (0.07..0.18 z; 95th
+    # percentile 0.16..0.47 z; worst 0.92 z), against 1.64 points (0.27 z) for DTWEXBGS's own
+    # year-over-year change. Six months: the 95th-percentile error stays under half a z unit and
+    # the worst case under one; a source silent for longer is a re-sourcing decision, so the input
+    # goes invalid (`fallback_gap_exceeds_limit`).
+    fallback_series: DTWEXBGS
+    fallback_method: ratio_splice_monthly_mean
+    fallback_max_months: 6
 
   # --- Layer-2 shock series (dimension: layer2_shocks) -----------------------
   # Inputs to the shock register ONLY (MRI_S4_PLAN.md, architecture §3).

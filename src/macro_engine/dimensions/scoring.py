@@ -116,8 +116,8 @@ def _build_dimension_contributions(
                 continue
             valid = bool(row["valid"]) and pd.notna(row["normalized_value"])
             reason = "ok" if valid else row.get("reason", "invalid_feature")
-            if valid and row.get("reason") == "carried_forward":
-                reason = "carried_forward"
+            if valid and row.get("reason") in ("carried_forward", "extended_by_fallback"):
+                reason = row["reason"]
             # S1.4 (P0_0 §2.6): a feature that validates outside its declared composition
             # window is an undeclared re-specification of the dimension (the HY OAS case,
             # S0.2), not an ordinary data point. It never SILENTLY widens the valid set --
@@ -206,6 +206,9 @@ def _build_dimension_scores(
         else:
             # B1: a score built on a carried-forward feature is valid and says so
             reason = "carried_forward" if (valid_group["reason"] == "carried_forward").any() else "ok"
+            # WO_MF3: likewise a score built on a feature extended by its fallback series
+            if reason == "ok" and (valid_group["reason"] == "extended_by_fallback").any():
+                reason = "extended_by_fallback"
             score = float(valid_group["contribution"].sum())
         # C3/C9 (MRI_S1_APPROVAL.md S8 item 2, S9 C3): publish the S1.4 composition registry's
         # id for this (dimension, date), so `current_regime.json`'s `factors[dim].composition_id`

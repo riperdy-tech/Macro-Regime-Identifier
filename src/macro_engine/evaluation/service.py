@@ -48,6 +48,16 @@ def build_stored_evaluation_calendar(
                 answered_asofs[str(series_id)] = [
                     pd.Timestamp(t) for t in group["realtime_start"]
                 ]
+    # WO_MF3: raw levels only for a source with a configured fallback, and for that fallback
+    fallback_series = sorted(
+        {source.series_id for source in feature_config.sources if source.fallback_series}
+        | {source.fallback_series for source in feature_config.sources if source.fallback_series}
+    )
+    raw_observations = (
+        pd.concat([store.read_raw_observations(series_id) for series_id in fallback_series])
+        if fallback_series
+        else None
+    )
     asof_values = build_asof_feature_values(
         features=features,
         feature_definitions=feature_config.features,
@@ -59,6 +69,7 @@ def build_stored_evaluation_calendar(
         point_in_time_start=evaluation_config.point_in_time_start,
         answered_asofs=answered_asofs,
         max_evidence_lag_days=evaluation_config.point_in_time_max_lag_days,
+        raw_observations=raw_observations,
     )
     store.replace_evaluation_outputs(calendar, asof_values)
     store.export_parquet(parquet_dir)

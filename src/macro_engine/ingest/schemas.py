@@ -24,6 +24,24 @@ class IngestionSource(BaseModel):
     # observation-date-only behavior. This is a fixed approximation, not
     # ALFRED vintage data.
     publication_lag_days: int = Field(default=0, ge=0)
+    # WO_MF3: when this (monthly) source has stopped publishing, its level is extended from its
+    # last observation by another configured series, for at most `fallback_max_months` months
+    # (evaluation/fallback.py). All three are set together or not at all.
+    fallback_series: str | None = None
+    fallback_method: Literal["ratio_splice_monthly_mean"] | None = None
+    fallback_max_months: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def validate_fallback(self) -> IngestionSource:
+        configured = [self.fallback_series, self.fallback_method, self.fallback_max_months]
+        if any(item is not None for item in configured) and not all(
+            item is not None for item in configured
+        ):
+            raise ValueError(
+                f"{self.series_id}: fallback_series, fallback_method and fallback_max_months "
+                "are set together or not at all"
+            )
+        return self
 
     @model_validator(mode="after")
     def validate_staleness(self) -> IngestionSource:

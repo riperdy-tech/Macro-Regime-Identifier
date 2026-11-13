@@ -196,6 +196,10 @@ class DuckDBStore:
                 )
                 """
             )
+            # WO_MF3: months a reading was extended by its source's fallback series; NULL otherwise
+            con.execute(
+                "ALTER TABLE asof_feature_values ADD COLUMN IF NOT EXISTS fallback_months INTEGER"
+            )
             con.execute(
                 """
                 CREATE TABLE IF NOT EXISTS dimension_feature_contributions (
@@ -1160,7 +1164,8 @@ class DuckDBStore:
                     """
                     INSERT INTO asof_feature_values
                     SELECT evaluation_date, feature_id, source_observation_date,
-                           transformed_value, normalized_value, lag_days, valid, reason
+                           transformed_value, normalized_value, lag_days, valid, reason,
+                           CAST(fallback_months AS INTEGER)
                     FROM asof_feature_values_frame
                     """
                 )

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import pandas as pd
 
 from macro_engine.evaluation.config import EvaluationCalendarConfig
+from macro_engine.evaluation.fallback import UNAVAILABLE, ratio_splice_monthly_mean
 from macro_engine.features.config import FeatureDefinition
 from macro_engine.ingest.schemas import IngestionSource
 
@@ -49,8 +50,12 @@ def build_asof_feature_values(
     point_in_time_start: str | None = None,
     answered_asofs: dict[str, list[pd.Timestamp]] | None = None,
     max_evidence_lag_days: int = 7,
+    raw_observations: pd.DataFrame | None = None,
 ) -> pd.DataFrame:
     """As-of feature values for every evaluation date in `calendar`.
+
+    `raw_observations` is read only for a source with a configured `fallback_series`, and only on
+    a date where that source's own reading is past the normal age limit (see `_fallback_reading`).
 
     `point_in_time_start` makes the point-in-time rule a HYBRID: dates on or after it resolve
     from ALFRED vintages, earlier dates from the calendar rule. Without a per-date switch, a
@@ -66,6 +71,8 @@ def build_asof_feature_values(
     source_frequency = {source.series_id: source.frequency for source in sources}
     publication_lag = {source.series_id: source.publication_lag_days for source in sources}
     source_unusable_after = {source.series_id: source.unusable_after_days for source in sources}
+    fallback_sources = {source.series_id: source for source in sources if source.fallback_series}
+    raw_by_series = _raw_by_series(raw_observations, fallback_sources)
     feature_frame = features.copy()
     if feature_frame.empty:
         feature_frame = pd.DataFrame(columns=["feature_id", "date"])
@@ -78,6 +85,10 @@ def build_asof_feature_values(
     point_in_time_configured = scoring_mode == "point_in_time"
     boundary = pd.Timestamp(point_in_time_start) if point_in_time_start else None
     first_known = _first_known_lookup(publication_index) if point_in_time_configured else {}
+    fallback_first_known = {
+        source.fallback_series: _series_first_known(first_known, source.fallback_series)
+        for source in fallback_sources.values()
+    }
     answered_lookup: dict[str, list[pd.Timestamp]] | None = None
     if answered_asofs is not None:
         answered_lookup = {
@@ -207,20 +218,104 @@ def build_asof_feature_values(
                 and lag_days <= source_unusable_after.get(feature.series_id, 0)
             ):
                 valid, reason = True, "carried_forward"
+            reading = {
+                "source_observation_date": source_date,
+                "transformed_value": latest["transformed_value"],
+                "normalized_value": latest["normalized_value"],
+                "lag_days": lag_days,
+            }
+            # WO_MF3: a source that has stopped publishing (NNUSBIS had nothing after 2026-07) is
+            # extended by its configured fallback instead of being carried or dropped. Only past
+            # the normal limit: where the source has its own reading, that reading is used.
+            source = fallback_sources.get(feature.series_id)
+            if lag_days > max_lag and source is not None and str(frequency) == "monthly":
+                spliced, fallback_reason = _fallback_reading(
+                    source=source,
+                    feature=feature,
+                    source_date=source_date,
+                    evaluation_date=evaluation_date,
+                    raw_by_series=raw_by_series,
+                    first_known=fallback_first_known[source.fallback_series] if point_in_time else None,
+                    publication_lag_days=int(publication_lag.get(source.fallback_series, 0)),
+                    max_lag_days=max_lag,
+                )
+                if spliced is not None:
+                    reading, valid, reason = spliced, True, fallback_reason
+                elif not valid:
+                    reason = fallback_reason
             rows.append(
                 _asof_row(
                     evaluation_date=evaluation_date,
                     feature_id=feature.feature_id,
-                    source_observation_date=source_date,
-                    transformed_value=latest["transformed_value"],
-                    normalized_value=latest["normalized_value"],
-                    lag_days=lag_days,
                     valid=valid,
                     reason=reason,
+                    **reading,
                 )
             )
 
     return pd.DataFrame(rows, columns=_asof_columns())
+
+
+def _raw_by_series(raw_observations: pd.DataFrame | None, fallback_sources: dict) -> dict[str, pd.DataFrame]:
+    """(date, value) per series a fallback needs: each source that has one, and the fallback itself."""
+    if raw_observations is None or raw_observations.empty or not fallback_sources:
+        return {}
+    wanted = set(fallback_sources) | {source.fallback_series for source in fallback_sources.values()}
+    raw = raw_observations[raw_observations["series_id"].isin(wanted)].copy()
+    raw["date"] = pd.to_datetime(raw["date"], errors="coerce")
+    raw["value"] = pd.to_numeric(raw["value"], errors="coerce")
+    raw = raw.dropna(subset=["date"])
+    # the same rule as the feature builder: the latest fetch of a date wins
+    sort_columns = ["date", "fetched_at"] if "fetched_at" in raw.columns else ["date"]
+    return {
+        str(series_id): frame.sort_values(sort_columns).drop_duplicates(subset=["date"], keep="last")[
+            ["date", "value"]
+        ]
+        for series_id, frame in raw.groupby("series_id")
+    }
+
+
+def _series_first_known(
+    first_known: dict[tuple[str, pd.Timestamp], pd.Timestamp], series_id: str
+) -> dict[pd.Timestamp, pd.Timestamp]:
+    return {date: known for (sid, date), known in first_known.items() if sid == series_id}
+
+
+def _fallback_reading(
+    *,
+    source: IngestionSource,
+    feature: FeatureDefinition,
+    source_date: pd.Timestamp,
+    evaluation_date: pd.Timestamp,
+    raw_by_series: dict[str, pd.DataFrame],
+    first_known: dict[pd.Timestamp, pd.Timestamp] | None,
+    publication_lag_days: int,
+    max_lag_days: int,
+) -> tuple[dict | None, str]:
+    """The source's reading extended by its fallback series, as known on the evaluation date.
+
+    No look-ahead: a fallback observation counts only once it was published. On a point-in-time
+    date that is its measured first publication (`first_known`; an observation with no vintage is
+    not known); on a calendar date it is the fallback's own `publication_lag_days`. The values are
+    the stored (revised) ones, as for every other feature.
+    """
+    primary = raw_by_series.get(source.series_id)
+    fallback = raw_by_series.get(source.fallback_series)
+    if primary is None or fallback is None:
+        return None, UNAVAILABLE
+    if first_known is not None:
+        published = pd.to_datetime(fallback["date"].map(first_known))
+        known = fallback[published.notna() & (published <= evaluation_date)]
+    else:
+        known = fallback[fallback["date"] <= evaluation_date - pd.Timedelta(days=publication_lag_days)]
+    return ratio_splice_monthly_mean(
+        primary=primary[primary["date"] <= source_date],
+        fallback_known=known,
+        evaluation_date=evaluation_date,
+        feature=feature,
+        max_months=source.fallback_max_months,
+        max_lag_days=max_lag_days,
+    )
 
 
 def _first_known_lookup(publication_index: pd.DataFrame | None) -> dict[tuple[str, pd.Timestamp], pd.Timestamp]:
@@ -314,6 +409,7 @@ def _asof_row(
     lag_days: int | None,
     valid: bool,
     reason: str,
+    fallback_months: int | None = None,
 ) -> dict:
     return {
         "evaluation_date": evaluation_date,
@@ -324,6 +420,7 @@ def _asof_row(
         "lag_days": lag_days,
         "valid": bool(valid),
         "reason": reason,
+        "fallback_months": fallback_months,
     }
 
 
@@ -337,4 +434,5 @@ def _asof_columns() -> list[str]:
         "lag_days",
         "valid",
         "reason",
+        "fallback_months",
     ]
