@@ -89,6 +89,10 @@ class CostOfCapitalAnchor(BaseModel):
     # Sector equity beta vs the benchmark, measured from the local ETF panel.
     sector_loadings: dict[str, float] = Field(default_factory=dict)
     loading_source: str | None = None
+    # Blume-adjusted loading, `round(0.67 * raw + 0.33, 3)`, one entry per id in `sector_loadings` and
+    # absent exactly where the raw one is (withheld together). `loading_adjustment` names the method.
+    sector_loadings_adjusted: dict[str, float] = Field(default_factory=dict)
+    loading_adjustment: dict[str, Any] | None = None
     degraded: bool = False
     # Calendar days from `asof` back to the oldest input leg's own observation date (A4). `asof` is the
     # build date, so this is the only place an old input shows its age.

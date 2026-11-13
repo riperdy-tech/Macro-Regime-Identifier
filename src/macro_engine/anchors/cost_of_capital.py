@@ -554,6 +554,10 @@ SECTOR_PANEL_MAX_AGE_DAYS = 10
 SECTOR_PANEL_DATE_KEY = "sector_proxy_prices"
 
 
+BLUME_WEIGHT_RAW = 0.67
+BLUME_WEIGHT_ONE = 0.33
+
+
 def sector_loadings(
     *,
     prices: pd.DataFrame,
@@ -973,6 +977,9 @@ def build_cost_of_capital_anchor(
         input_dates=input_dates,
     )
     reasons.extend(loading_reasons)
+    loadings_adjusted = {
+        sector_id: round(BLUME_WEIGHT_RAW * raw + BLUME_WEIGHT_ONE, 3) for sector_id, raw in loadings.items()
+    }
 
     risk_free = {
         "nominal_10y": None if nominal is None else round(nominal, 6),
@@ -1022,6 +1029,12 @@ def build_cost_of_capital_anchor(
         equity_aggregate=aggregate_provenance,
         sector_loadings=loadings,
         loading_source=loading_source,
+        sector_loadings_adjusted=loadings_adjusted,
+        loading_adjustment=(
+            {"method": "blume", "weight_raw": BLUME_WEIGHT_RAW, "weight_one": BLUME_WEIGHT_ONE}
+            if loadings_adjusted
+            else None
+        ),
         degraded=degraded,
         oldest_leg_age_days=oldest_leg_age_days,
         source_files=list(source_files or []),

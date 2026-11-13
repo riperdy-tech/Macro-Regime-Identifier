@@ -889,3 +889,35 @@ def test_a_monthly_leg_inside_release_lag_plus_grace_is_kept(tmp_path: Path):
 
     assert anchor.inflation["cpi_yoy"] == pytest.approx(0.03)
     assert anchor.degraded is False
+
+
+def test_adjusted_loadings_are_published_beside_the_raw_ones(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-04-27"))
+    assert anchor.sector_loadings["energy"] == pytest.approx(0.5, abs=1e-3)
+    assert set(anchor.sector_loadings_adjusted) == set(anchor.sector_loadings)
+    for sector_id, raw in anchor.sector_loadings.items():
+        assert anchor.sector_loadings_adjusted[sector_id] == round(0.67 * raw + 0.33, 3)
+    assert anchor.sector_loadings_adjusted["information_technology"] == pytest.approx(1.67, abs=1e-3)
+    assert anchor.loading_adjustment == {"method": "blume", "weight_raw": 0.67, "weight_one": 0.33}
+
+
+def test_adjusted_loadings_are_withheld_with_the_raw_ones(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-03-31"))
+    assert anchor.sector_loadings == {}
+    assert anchor.sector_loadings_adjusted == {}
+    assert anchor.loading_adjustment is None
+
+
+def test_a_sector_without_a_raw_loading_has_no_adjusted_entry(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-04-29", xle_end="2026-03-01"))
+    assert "energy" not in anchor.sector_loadings
+    assert "energy" not in anchor.sector_loadings_adjusted
+    assert "information_technology" in anchor.sector_loadings_adjusted
+
+
+def test_adjusted_loadings_survive_a_strict_json_parse(tmp_path: Path):
+    anchor = _healthy_anchor(tmp_path, _panel("2026-04-27"))
+    text = anchor.model_dump_json()
+    parsed = json.loads(text, parse_constant=lambda name: (_ for _ in ()).throw(ValueError(name)))
+    assert parsed["sector_loadings_adjusted"] == anchor.sector_loadings_adjusted
+    assert parsed["loading_adjustment"]["weight_raw"] == 0.67
