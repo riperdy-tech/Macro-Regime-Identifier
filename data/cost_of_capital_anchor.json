@@ -1,7 +1,7 @@
 {
   "anchor_id": "cost_of_capital",
-  "asof": "2026-11-12",
-  "built_at": "2026-11-12T03:41:42.544935+00:00",
+  "asof": "2026-11-13",
+  "built_at": "2026-11-13T03:15:02.780352+00:00",
   "degraded": true,
   "equity_aggregate": null,
   "erp_basis": "unavailable",
@@ -12,24 +12,32 @@
   "implied_cost_of_equity": null,
   "implied_erp": null,
   "inflation": {
-    "cpi_yoy": NaN,
+    "cpi_yoy": null,
     "pce_yoy": 0.0365
+  },
+  "loading_adjustment": {
+    "method": "blume",
+    "weight_one": 0.33,
+    "weight_raw": 0.67
   },
   "loading_source": "beta_vs_SPY_5y",
   "market_implied_coe": null,
   "market_implied_erp": null,
+  "oldest_leg_age_days": 73,
   "provenance": {
     "degradation_reasons": [
+      "inflation: CPIAUCSL yoy unavailable",
       "erp: implied method configured but no equity aggregate is available at 'data/anchors/equity_aggregate.json'; MRI holds no equity data by design",
       "erp_history: no ERP history file at data/anchors/erp_history.csv"
     ],
     "input_dates": {
       "CPIAUCSL": "2026-10-01",
-      "DFII10": "2026-11-09",
-      "DGS10": "2026-11-09",
+      "DFII10": "2026-11-10",
+      "DGS10": "2026-11-10",
       "PCEPI": "2026-09-01",
-      "T10YIE": "2026-11-10",
-      "THREEFYTP10": "2026-11-06"
+      "T10YIE": "2026-11-12",
+      "THREEFYTP10": "2026-11-06",
+      "sector_proxy_prices": "2026-11-11"
     },
     "notes": [
       "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
@@ -38,29 +46,48 @@
     "scoring_mode": "point_in_time"
   },
   "risk_free": {
-    "breakeven_10y": 0.022,
-    "nominal_10y": 0.0488,
-    "real_10y": 0.0266,
+    "breakeven_10y": 0.0224,
+    "nominal_10y": 0.0498,
+    "real_10y": 0.0278,
     "term_premium": 0.008738
   },
   "sector_loadings": {
-    "banks": 1.001,
-    "biotech": 1.142,
-    "communication_services": 0.987,
-    "consumer_discretionary": 1.217,
+    "banks": 1.0,
+    "biotech": 1.141,
+    "communication_services": 0.986,
+    "consumer_discretionary": 1.216,
     "consumer_staples": 0.351,
-    "energy": 0.552,
+    "energy": 0.553,
     "financials": 0.835,
     "health_care": 0.528,
-    "homebuilders": 1.117,
+    "homebuilders": 1.115,
     "industrials": 0.866,
-    "information_technology": 1.387,
-    "materials": 0.841,
-    "oil_gas_ep": 0.799,
-    "real_estate": 0.692,
-    "semiconductors": 1.757,
+    "information_technology": 1.388,
+    "materials": 0.84,
+    "oil_gas_ep": 0.8,
+    "real_estate": 0.691,
+    "semiconductors": 1.759,
     "software": 1.311,
     "utilities": 0.431
+  },
+  "sector_loadings_adjusted": {
+    "banks": 1.0,
+    "biotech": 1.094,
+    "communication_services": 0.991,
+    "consumer_discretionary": 1.145,
+    "consumer_staples": 0.565,
+    "energy": 0.701,
+    "financials": 0.889,
+    "health_care": 0.684,
+    "homebuilders": 1.077,
+    "industrials": 0.91,
+    "information_technology": 1.26,
+    "materials": 0.893,
+    "oil_gas_ep": 0.866,
+    "real_estate": 0.793,
+    "semiconductors": 1.509,
+    "software": 1.208,
+    "utilities": 0.619
   },
   "source_files": [
     "config/phase_b_sources.yaml",
