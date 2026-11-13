@@ -4,6 +4,10 @@
 Downloads the public CSV zip files from Kenneth French's Data Library:
   - Monthly: F-F_Research_Data_Factors_CSV.zip
   - Daily:   F-F_Research_Data_Factors_daily_CSV.zip
+With --extra, instead fetch the two files the factor-tilt test (PREREG_factor_tilt_v1) needs:
+  - Monthly momentum:    F-F_Momentum_Factor_CSV.zip (column Mom)
+  - Monthly five-factor: F-F_Research_Data_5_Factors_2x3_CSV.zip (Mkt-RF, SMB, HML, RMW, CMA, RF)
+Their missing-value codes (-99.99, -999) become absent (NaN, an empty cell in the CSV), never a number.
 
 Parses factors (Mkt-RF, SMB, HML, RF), converts percentage values to decimals,
 computes total market return = (Mkt-RF + RF) / 100.0 (stated in decimal),
@@ -30,6 +34,68 @@ FF_MONTHLY_URL = (
 FF_DAILY_URL = (
     "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip"
 )
+FF_MOMENTUM_URL = (
+    "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Momentum_Factor_CSV.zip"
+)
+FF_FIVE_FACTOR_URL = (
+    "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_5_Factors_2x3_CSV.zip"
+)
+FF_MISSING_CODES = (-99.99, -999.0)
+
+
+def parse_ff_monthly_columns(csv_text: str, columns: tuple[str, ...]) -> pd.DataFrame:
+    """Parse the monthly block of a Ken French CSV for the named columns.
+
+    The header is the first line whose cells (after the empty date cell) include every name in `columns`.
+    Rows are read while the first cell is a 6-digit YYYYMM; the annual block (4-digit years) is never read.
+    Percent -> decimal. A missing-value code (-99.99, -999), an empty or non-numeric cell becomes NaN.
+    Output columns: date (month end), year_month, then each column lower-cased with '-' as '_'.
+    """
+    lines = csv_text.splitlines()
+    header_idx = -1
+    header: list[str] = []
+    for i, line in enumerate(lines):
+        cells = [c.strip() for c in line.split(",")]
+        if all(c in cells[1:] for c in columns):
+            header_idx = i
+            header = cells
+            break
+    if header_idx == -1:
+        raise ValueError(f"Could not find header with columns {columns} in monthly CSV text")
+
+    records: list[dict[str, Any]] = []
+    for line in lines[header_idx + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        parts = [p.strip() for p in stripped.split(",")]
+        raw_date = parts[0]
+        if not (raw_date.isdigit() and len(raw_date) == 6):
+            break  # the annual block or the copyright line
+        year = int(raw_date[:4])
+        month = int(raw_date[4:6])
+        period = pd.Period(f"{year:04d}-{month:02d}", freq="M")
+        rec: dict[str, Any] = {
+            "date": str(period.to_timestamp(how="end").date()),
+            "year_month": f"{year:04d}-{month:02d}",
+        }
+        for name in columns:
+            idx = header.index(name)
+            value = float("nan")
+            if idx < len(parts):
+                try:
+                    raw = float(parts[idx])
+                except ValueError:
+                    raw = float("nan")
+                if raw == raw and raw not in FF_MISSING_CODES:
+                    value = raw / 100.0
+            rec[name.lower().replace("-", "_")] = value
+        records.append(rec)
+
+    df = pd.DataFrame(records)
+    if df.empty:
+        raise ValueError("No monthly rows parsed")
+    return df.sort_values("date").reset_index(drop=True)
 
 
 def parse_ff_factors_monthly(csv_text: str) -> pd.DataFrame:
@@ -248,6 +314,56 @@ def fetch_and_cache_factors(
     return provenance
 
 
+def fetch_and_cache_extra_factors(
+    out_dir: str | Path = "data/external",
+    dry_run: bool = False,
+) -> dict[str, Any]:
+    """Fetch the monthly momentum and five-factor files (PREREG_factor_tilt_v1), cache them, write provenance."""
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    fetched_at = datetime.now(timezone.utc).isoformat()
+
+    specs = {
+        "momentum": (FF_MOMENTUM_URL, ("Mom",), "ff_momentum_monthly"),
+        "five_factor": (
+            FF_FIVE_FACTOR_URL,
+            ("Mkt-RF", "SMB", "HML", "RMW", "CMA", "RF"),
+            "ff_5factors_monthly",
+        ),
+    }
+    provenance: dict[str, Any] = {}
+    frames: dict[str, pd.DataFrame] = {}
+    for key, (url, columns, _stem) in specs.items():
+        print(f"Fetching {key} from {url}...")
+        zip_bytes, csv_text = download_and_extract_csv(url)
+        df = parse_ff_monthly_columns(csv_text, columns)
+        frames[key] = df
+        names = [c.lower().replace("-", "_") for c in columns]
+        provenance[key] = {
+            "url": url,
+            "fetched_at": fetched_at,
+            "sha256": hashlib.sha256(zip_bytes).hexdigest(),
+            "row_count": len(df),
+            "first_date": str(df["date"].min()),
+            "last_date": str(df["date"].max()),
+            "missing_by_column": {n: int(df[n].isna().sum()) for n in names},
+            "units": "percent converted to decimal; missing-value codes -99.99 and -999 are absent (NaN)",
+        }
+
+    if not dry_run:
+        for key, (_url, _cols, stem) in specs.items():
+            frames[key].to_csv(out_path / f"{stem}.csv", index=False)
+            frames[key].to_parquet(out_path / f"{stem}.parquet", index=False)
+            print(f"Saved {key} to {out_path / (stem + '.csv')} ({len(frames[key])} rows)")
+        prov_json = out_path / "ff_extra_provenance.json"
+        with prov_json.open("w", encoding="utf-8") as f:
+            json.dump(provenance, f, indent=2)
+        print(f"Saved provenance to {prov_json}")
+    else:
+        print("Dry run complete; files not written.")
+    return provenance
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -260,9 +376,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="download and parse without writing to disk",
     )
+    parser.add_argument(
+        "--extra",
+        action="store_true",
+        help="fetch only the monthly momentum and five-factor files (PREREG_factor_tilt_v1)",
+    )
     args = parser.parse_args(argv)
 
-    fetch_and_cache_factors(out_dir=args.out_dir, dry_run=args.dry_run)
+    if args.extra:
+        fetch_and_cache_extra_factors(out_dir=args.out_dir, dry_run=args.dry_run)
+    else:
+        fetch_and_cache_factors(out_dir=args.out_dir, dry_run=args.dry_run)
     return 0
 
 
