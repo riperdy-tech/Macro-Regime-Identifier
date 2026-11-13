@@ -111,7 +111,7 @@ Step "daily diagnostic (local config)" {
     & $Py -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline_local.yaml --archive
 }
 
-# Shadow risk dial (WO_RD2): a stamp for the record, read by one paper-only screener book (no real-money book). Not in the screener export list.
+# Shadow risk dial (WO_RD2): a stamp for the record, read by one paper-only screener book (no real-money book). Exported below as an optional file.
 Step "shadow risk dial (write-risk-state)" {
     & $Py -m macro_engine.cli write-risk-state
 } -NonFatal
@@ -138,8 +138,9 @@ foreach ($name in @("current_sector_ranking.json", "current_regime.json", "cost_
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
     Move-Item (Join-Path $ExportDir "$name.tmp") (Join-Path $ExportDir $name) -Force   # no reader sees half a file
 }
-# Optional (D5, 2026-10-22): the shock register. A missing file is skipped, never a failure of this run.
-foreach ($name in @("shock_register.json")) {
+# Optional (D5, 2026-10-22): the shock register; and the risk dial (2026-11-13: the screener's paper-only book equal_dial reads
+# its month_decision). A missing file is skipped, never a failure of this run.
+foreach ($name in @("shock_register.json", "risk_state.json")) {
     $src = Join-Path $RepoRoot "outputs\$name"
     if (-not (Test-Path $src)) { Log "export skipped (optional): $src is missing"; continue }
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force
