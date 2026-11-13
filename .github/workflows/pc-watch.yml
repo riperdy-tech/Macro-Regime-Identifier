@@ -1,0 +1,136 @@
+name: PC Watch
+
+# The operator's PC runs the MRI jobs (MRI-Local-Daily 06:30 KST, MRI-Events-Daily 13:00 KST) and nobody was told when
+# they failed or did not run. scripts/run_health_watch.ps1 (a scheduled task on the PC, 07:20 and 14:10 KST) checks
+# the jobs' records and outputs and dispatches this workflow with the result: a heartbeat on every run.
+#
+#   workflow_dispatch  status critical, or status warning with changed true -> open (or comment on) an issue labelled
+#                      mri-pc-alert, then FAIL the run (GitHub emails a failed run to its actor).
+#                      status ok and an open mri-pc-alert issue -> comment "cleared" and close it.
+#   schedule           the dead-man check, 23:40 UTC = 08:40 KST: the newest dispatched run of this workflow, and the
+#                      newest successful run of daily-dashboard.yml, must each be younger than 30 hours. Otherwise an
+#                      issue and a failed run. A PC that is off, or a watch that never runs, raises this.
+#
+# The inputs are untrusted text: they reach the script only through env:, never interpolated into a shell line.
+
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        description: "ok, warning or critical"
+        required: true
+        type: string
+      changed:
+        description: "true when the set of findings differs from the previous run"
+        required: true
+        type: string
+      message:
+        description: "one line per finding (at most 1,500 characters)"
+        required: false
+        type: string
+        default: ""
+  schedule:
+    - cron: "40 23 * * *"
+
+permissions:
+  issues: write
+  actions: read
+
+concurrency:
+  group: "pc-watch"
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Alert, clear or check for silence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+          IN_STATUS: ${{ inputs.status }}
+          IN_CHANGED: ${{ inputs.changed }}
+          IN_MESSAGE: ${{ inputs.message }}
+        run: |
+          API="https://api.github.com/repos/$REPO"
+          LABEL="mri-pc-alert"
+
+          open_issue_number() {
+            curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+              "$API/issues?state=open&labels=$LABEL&per_page=1" \
+              | python3 -c "import json,sys; d=json.load(sys.stdin); print(d[0].get('number', '') if isinstance(d, list) and d else '')"
+          }
+
+          raise_alert() {
+            # $1: the alert text (names, dates and counts only; the repository is public)
+            export ALERT_MSG="$1"
+            NUMBER=$(open_issue_number)
+            if [ -n "$NUMBER" ]; then
+              BODY=$(python3 -c "import json, os; print(json.dumps({'body': os.environ['ALERT_MSG']}))")
+              curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                "$API/issues/$NUMBER/comments" -d "$BODY" >/dev/null
+            else
+              BODY=$(python3 -c "import json, os; print(json.dumps({'title': 'MRI PC alert', 'body': os.environ['ALERT_MSG'], 'labels': ['$LABEL']}))")
+              curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                "$API/issues" -d "$BODY" >/dev/null
+            fi
+            echo "ALERT raised"
+            exit 1   # a failed run is what GitHub emails
+          }
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            MSG=$(printf '%s' "$IN_MESSAGE" | head -c 1500)
+            case "$IN_STATUS" in
+              ok|warning|critical) ;;
+              *) raise_alert "PC watch sent an unknown status." ;;
+            esac
+            if [ "$IN_STATUS" = "critical" ] || { [ "$IN_STATUS" = "warning" ] && [ "$IN_CHANGED" = "true" ]; }; then
+              raise_alert "PC watch status: $IN_STATUS
+          $MSG"
+            fi
+            if [ "$IN_STATUS" = "ok" ]; then
+              NUMBER=$(open_issue_number)
+              if [ -n "$NUMBER" ]; then
+                curl -s -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                  "$API/issues/$NUMBER/comments" -d '{"body": "cleared"}' >/dev/null
+                curl -s -X PATCH -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+                  "$API/issues/$NUMBER" -d '{"state": "closed"}' >/dev/null
+                echo "cleared issue $NUMBER"
+              fi
+            fi
+            echo "status $IN_STATUS: no alert"
+            exit 0
+          fi
+
+          # schedule: the dead-man check
+          newest_age_hours() {
+            # $1: the runs endpoint query; prints the age in hours of the newest run, or "none"
+            curl -s -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" "$API/actions/workflows/$1" \
+              | python3 -c "
+          import json, sys
+          from datetime import datetime, timezone
+          try:
+              runs = json.load(sys.stdin).get('workflow_runs') or []
+          except ValueError:
+              runs = []
+          if not runs:
+              print('none')
+          else:
+              made = datetime.fromisoformat(runs[0]['created_at'].replace('Z', '+00:00'))
+              print(round((datetime.now(timezone.utc) - made).total_seconds() / 3600, 1))
+          "
+          }
+          PROBLEMS=""
+          HEARTBEAT=$(newest_age_hours "pc-watch.yml/runs?event=workflow_dispatch&per_page=1")
+          DAILY=$(newest_age_hours "daily-dashboard.yml/runs?status=success&per_page=1")
+          echo "heartbeat age (h): $HEARTBEAT; cloud daily success age (h): $DAILY"
+          silent() { [ "$1" = "none" ] || python3 -c "import sys; sys.exit(0 if float('$1') > 30 else 1)"; }
+          if silent "$HEARTBEAT"; then PROBLEMS="$PROBLEMS
+          No PC watch heartbeat in 30 hours (newest: $HEARTBEAT h)."; fi
+          if silent "$DAILY"; then PROBLEMS="$PROBLEMS
+          No successful daily-dashboard.yml run in 30 hours (newest: $DAILY h)."; fi
+          if [ -n "$PROBLEMS" ]; then raise_alert "Dead-man check failed.$PROBLEMS"; fi
+          echo "both heartbeats are fresh"

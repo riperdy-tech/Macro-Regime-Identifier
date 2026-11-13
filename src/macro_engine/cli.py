@@ -1795,6 +1795,35 @@ def write_risk_state_cli(
     console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
 
 
+@app.command("health-watch")
+def health_watch_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    export_dir: Annotated[str | None, typer.Option("--export-dir", help="the folder the screener runner reads")] = None,
+    db_path: Annotated[str | None, typer.Option("--db-path", help="opened read-only; omit to skip the input checks")] = None,
+    compare_regime: Annotated[str | None, typer.Option("--compare-regime", help="the website's regime file")] = None,
+    dimension_config: Annotated[str, typer.Option("--dimension-config")] = "config/phase_b_sources.yaml",
+    out_dir: Annotated[str | None, typer.Option("--out-dir", help="where health_watch*.json go; default outputs-dir")] = None,
+    now: Annotated[str | None, typer.Option("--now", help="ISO time, for tests and replays")] = None,
+) -> None:
+    """Check the scheduled jobs and their outputs (WO_MA1) and write health_watch.json. Always exits 0: the JSON is the result."""
+    from datetime import datetime
+
+    from macro_engine.health_watch import run_health_watch
+
+    summary = run_health_watch(
+        outputs_dir,
+        export_dir=export_dir,
+        db_path=db_path,
+        compare_regime=compare_regime,
+        dimension_config=dimension_config,
+        out_dir=out_dir,
+        now=datetime.fromisoformat(now) if now else None,
+    )
+    console.print_json(
+        data={"status": summary["status"], "counts": summary["counts"], "changed": summary["changed"]}
+    )
+
+
 @app.command("prune-news-history")
 def prune_news_history_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
