@@ -4,7 +4,7 @@
     "cost_of_capital": {
       "anchor_id": "cost_of_capital",
       "asof": "2026-11-13",
-      "built_at": "2026-11-13T03:15:02.780352+00:00",
+      "built_at": "2026-11-13T08:25:46.157102+00:00",
       "degraded": true,
       "equity_aggregate": null,
       "erp_basis": "unavailable",
@@ -40,7 +40,7 @@
           "PCEPI": "2026-09-01",
           "T10YIE": "2026-11-12",
           "THREEFYTP10": "2026-11-06",
-          "sector_proxy_prices": "2026-11-11"
+          "sector_proxy_prices": "2026-11-12"
         },
         "notes": [
           "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
@@ -56,14 +56,14 @@
       },
       "sector_loadings": {
         "banks": 1.0,
-        "biotech": 1.141,
+        "biotech": 1.142,
         "communication_services": 0.986,
         "consumer_discretionary": 1.216,
         "consumer_staples": 0.351,
-        "energy": 0.553,
+        "energy": 0.552,
         "financials": 0.835,
         "health_care": 0.528,
-        "homebuilders": 1.115,
+        "homebuilders": 1.116,
         "industrials": 0.866,
         "information_technology": 1.388,
         "materials": 0.84,
@@ -75,14 +75,14 @@
       },
       "sector_loadings_adjusted": {
         "banks": 1.0,
-        "biotech": 1.094,
+        "biotech": 1.095,
         "communication_services": 0.991,
         "consumer_discretionary": 1.145,
         "consumer_staples": 0.565,
-        "energy": 0.701,
+        "energy": 0.7,
         "financials": 0.889,
         "health_care": 0.684,
-        "homebuilders": 1.077,
+        "homebuilders": 1.078,
         "industrials": 0.91,
         "information_technology": 1.26,
         "materials": 0.893,
@@ -106,7 +106,7 @@
     "long_run_growth": {
       "anchor_id": "long_run_growth",
       "asof": "2026-11-13",
-      "built_at": "2026-11-13T03:15:02.780352+00:00",
+      "built_at": "2026-11-13T08:25:46.157102+00:00",
       "clamp": {
         "ceiling": 0.05,
         "floor": 0.0,
@@ -548,7 +548,7 @@
           "sector_id": "utilities"
         }
       ],
-      "built_at": "2026-11-13T03:15:02.780352+00:00",
+      "built_at": "2026-11-13T08:25:46.157102+00:00",
       "degraded": true,
       "panel_measure": "pe_ttm",
       "panel_measure_definition": "price divided by net income per diluted share of the most recently PUBLISHED fiscal year. Trailing, not forward. Fiscal years are treated as first usable 15 months after the year label (March of N+1 for FY(N)), which can only make the figure staler, never earlier.",
@@ -587,7 +587,7 @@
     },
     "terminal_g_suggestion": 0.0375
   },
-  "computed_at": "2026-11-13T03:15:15.629284+00:00",
+  "computed_at": "2026-11-13T08:25:59.929067+00:00",
   "confidence": 0.05176662944046828,
   "current_regime_age_days": 12,
   "current_regime_date": "2026-11-01",
@@ -606,12 +606,12 @@
   "raw_regime_probability": 0.29714114568990596,
   "readiness_label": "validation_candidate",
   "regime_probability": 0.29714114568990596,
-  "secular_theme_computed_at": "2026-11-13T03:15:11.449784+00:00",
+  "secular_theme_computed_at": "2026-11-13T08:25:55.521530+00:00",
   "secular_theme_scores": {
     "ai_compute": {
-      "avg_confidence": 0.6477996070726915,
-      "avg_severity": 0.4249901768172888,
-      "item_count": 509,
+      "avg_confidence": 0.6486990291262135,
+      "avg_severity": 0.42557281553398063,
+      "item_count": 515,
       "label": "AI Compute Infrastructure",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -640,28 +640,28 @@
           "score": 10.047185434089146
         },
         {
-          "avg_confidence": 0.6966666666666667,
-          "item_count": 102,
+          "avg_confidence": 0.6982407407407407,
+          "item_count": 108,
           "period_start": "2026-11-01",
-          "score": 10.206737049467279
+          "score": 10.73673704946728
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6101687763713078,
+          "avg_confidence": 0.610168776371308,
           "item_count": 237,
           "period_start": "2026-07-01",
           "score": 9.920952565222397
         },
         {
-          "avg_confidence": 0.6805882352941177,
-          "item_count": 272,
+          "avg_confidence": 0.6815467625899281,
+          "item_count": 278,
           "period_start": "2026-10-01",
-          "score": 20.253922483556426
+          "score": 20.783922483556424
         }
       ],
-      "raw_score": 216.32,
-      "score": 30.174875048778823,
+      "raw_score": 219.17000000000002,
+      "score": 30.704875048778824,
       "source_mix": {
         "CNBC": 6,
         "bbc_world": 10,
@@ -671,26 +671,34 @@
         "cnbc_health": 9,
         "cnbc_markets": 72,
         "cnbc_retail": 1,
-        "cnbc_tech": 251,
+        "cnbc_tech": 255,
         "eia_energy": 1,
         "federal_reserve_speeches": 4,
         "housingwire": 7,
         "marketwatch": 20,
         "nasdaq_markets": 24,
         "oilprice": 26,
-        "scmp": 22,
+        "scmp": 24,
         "utility_dive": 10,
         "zerohedge.com": 1
       },
       "theme_id": "ai_compute",
       "top_news_ids": [
+        "news_060dc2fcecbc05bb",
         "news_0a785df4c7607570",
         "news_0f451e3f0840a444",
         "news_15f72a654348ce89",
-        "news_17f49e52d7706ab4",
-        "news_2f4884bf8153784e"
+        "news_17f49e52d7706ab4"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.8,
+          "news_id": "news_060dc2fcecbc05bb",
+          "score_component": 0.35,
+          "source": "scmp",
+          "source_url": "https://www.scmp.com/tech/big-tech/article/3374305/chinas-smic-sees-ai-computing-crunch-until-2028-nvidia-heat-risks-tighter-chip-curbs",
+          "title": "China\u2019s SMIC sees AI computing crunch until 2028 as Nvidia heat risks tighter chip curbs"
+        },
         {
           "confidence": 0.8,
           "news_id": "news_0a785df4c7607570",
@@ -722,22 +730,14 @@
           "source": "cnbc_tech",
           "source_url": "https://www.cnbc.com/2026/11/09/nvidia-jensen-huang-china-spy-trump-lobbying.html",
           "title": "Nvidia\u2019s Trump ties draw scrutiny after reports Huang was targeted by Chinese intelligence"
-        },
-        {
-          "confidence": 0.85,
-          "news_id": "news_2f4884bf8153784e",
-          "score_component": 0.35,
-          "source": "cnbc_markets",
-          "source_url": "https://www.cnbc.com/2026/11/12/cerebras-systems-cbrs-q3-earnings-report-2026.html",
-          "title": "Cerebras surges 17% after beating on quarterly revenue and announcing Microsoft deal"
         }
       ],
-      "trend_30d": 22.39861192770624
+      "trend_30d": 24.10361192770624
     },
     "cloud_software": {
-      "avg_confidence": 0.686,
-      "avg_severity": 0.28250000000000003,
-      "item_count": 20,
+      "avg_confidence": 0.6759090909090908,
+      "avg_severity": 0.28272727272727277,
+      "item_count": 22,
       "label": "Cloud Software & SaaS",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -760,44 +760,52 @@
           "score": 1.263914688051379
         },
         {
-          "avg_confidence": 0.6799999999999999,
-          "item_count": 5,
+          "avg_confidence": 0.65,
+          "item_count": 7,
           "period_start": "2026-11-01",
-          "score": 0.5583675709969695
+          "score": 0.9443675709969694
         }
       ],
       "quarterly_scores": [
         {
-          "avg_confidence": 0.6166666666666667,
+          "avg_confidence": 0.6166666666666666,
           "item_count": 6,
           "period_start": "2026-07-01",
           "score": 0.19995254586875708
         },
         {
-          "avg_confidence": 0.7157142857142859,
-          "item_count": 14,
+          "avg_confidence": 0.698125,
+          "item_count": 16,
           "period_start": "2026-10-01",
-          "score": 1.8222822590483485
+          "score": 2.2082822590483486
         }
       ],
-      "raw_score": 5.65,
-      "score": 2.0222348049171055,
+      "raw_score": 6.220000000000001,
+      "score": 2.4082348049171056,
       "source_mix": {
         "cnbc_finance": 1,
         "cnbc_markets": 7,
-        "cnbc_tech": 7,
-        "housingwire": 4,
+        "cnbc_tech": 8,
+        "housingwire": 5,
         "marketwatch": 1
       },
       "theme_id": "cloud_software",
       "top_news_ids": [
+        "news_b2849c3ce9819cf7",
         "news_1084c30018083b1a",
         "news_bf70eafe559ac0f3",
         "news_e8d6a91c8c959bc8",
-        "news_68db326535f4aaa9",
-        "news_0ff55be351b25244"
+        "news_68db326535f4aaa9"
       ],
       "top_news_items": [
+        {
+          "confidence": 0.85,
+          "news_id": "news_b2849c3ce9819cf7",
+          "score_component": 0.35,
+          "source": "cnbc_tech",
+          "source_url": "https://www.cnbc.com/2026/11/12/microsoft-outage-outlook-aws-google.html",
+          "title": "Widespread Microsoft outage takes down Outlook and other 365 services"
+        },
         {
           "confidence": 0.82,
           "news_id": "news_1084c30018083b1a",
@@ -829,22 +837,14 @@
           "source": "cnbc_finance",
           "source_url": "https://www.cnbc.com/2026/10/17/bending-spoons-wants-to-revive-software-castoffs-berkshire-investing.html",
           "title": "Software\u2019s new consolidator gets big vote of confidence from Berkshire"
-        },
-        {
-          "confidence": 0.75,
-          "news_id": "news_0ff55be351b25244",
-          "score_component": 0.14067026695788845,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/10/17/bending-spoons-wants-to-revive-software-castoffs-berkshire-investing.html",
-          "title": "Software\u2019s new consolidator gets big vote of confidence from Berkshire"
         }
       ],
-      "trend_30d": 1.6367836321660343
+      "trend_30d": 2.0227836321660337
     },
     "cybersecurity": {
-      "avg_confidence": 0.6552941176470588,
-      "avg_severity": 0.3568627450980392,
-      "item_count": 51,
+      "avg_confidence": 0.6571153846153847,
+      "avg_severity": 0.3586538461538462,
+      "item_count": 52,
       "label": "Cybersecurity",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -873,10 +873,10 @@
           "score": 1.6254929147964248
         },
         {
-          "avg_confidence": 0.6766666666666666,
-          "item_count": 12,
+          "avg_confidence": 0.6823076923076923,
+          "item_count": 13,
           "period_start": "2026-11-01",
-          "score": 2.3619485710229977
+          "score": 2.6994485710229976
         }
       ],
       "quarterly_scores": [
@@ -887,17 +887,17 @@
           "score": 1.4926587546587318
         },
         {
-          "avg_confidence": 0.6642307692307692,
-          "item_count": 26,
+          "avg_confidence": 0.6674074074074073,
+          "item_count": 27,
           "period_start": "2026-10-01",
-          "score": 3.9874414858194225
+          "score": 4.324941485819423
         }
       ],
-      "raw_score": 18.2,
-      "score": 5.480100240478155,
+      "raw_score": 18.650000000000002,
+      "score": 5.817600240478155,
       "source_mix": {
         "banking_dive": 1,
-        "bbc_world": 9,
+        "bbc_world": 10,
         "cnbc_business": 1,
         "cnbc_economy": 1,
         "cnbc_finance": 3,
@@ -911,10 +911,10 @@
       "theme_id": "cybersecurity",
       "top_news_ids": [
         "news_0f269a0b284227ad",
+        "news_4f50a9f1b22a4290",
         "news_7d072fe914917f64",
         "news_4ba6f28b532b86bb",
-        "news_bdbd9fb78c9383da",
-        "news_697b5405741f5496"
+        "news_bdbd9fb78c9383da"
       ],
       "top_news_items": [
         {
@@ -924,6 +924,14 @@
           "source": "bbc_world",
           "source_url": "https://www.bbc.co.uk/news/articles/cmg474vk6dyqo?at_medium=RSS&at_campaign=rss",
           "title": "France accuses Iran of supermarket fridge hacking"
+        },
+        {
+          "confidence": 0.75,
+          "news_id": "news_4f50a9f1b22a4290",
+          "score_component": 0.3375,
+          "source": "bbc_world",
+          "source_url": "https://www.bbc.co.uk/news/articles/cqdj1ellpd70o?at_medium=RSS&at_campaign=rss",
+          "title": "North Korean hackers used fake video calls in $400m crypto hack, says FBI"
         },
         {
           "confidence": 0.75,
@@ -948,17 +956,9 @@
           "source": "scmp",
           "source_url": "https://www.scmp.com/news/hong-kong/law-and-crime/article/3373691/hong-kong-records-nearly-18-rise-ransomware-cases-amid-drop-tech-crime",
           "title": "Hong Kong records nearly 18% rise in ransomware cases amid drop in tech crime"
-        },
-        {
-          "confidence": 0.65,
-          "news_id": "news_697b5405741f5496",
-          "score_component": 0.23215740385034922,
-          "source": "cnbc_tech",
-          "source_url": "https://www.cnbc.com/2026/11/03/binance-breach-puts-custody-at-center-of-crypto-infrastructure-trade.html",
-          "title": "Binance breach puts custody at center of crypto infrastructure market-action term"
         }
       ],
-      "trend_30d": 2.070740589065838
+      "trend_30d": 2.408240589065839
     },
     "energy_transition": {
       "avg_confidence": 0.5937333333333333,
@@ -974,7 +974,7 @@
           "score": 0.31916830883546987
         },
         {
-          "avg_confidence": 0.5476190476190474,
+          "avg_confidence": 0.5476190476190476,
           "item_count": 21,
           "period_start": "2026-08-01",
           "score": 0.687692595837747
@@ -1006,7 +1006,7 @@
           "score": 2.6938326878121037
         },
         {
-          "avg_confidence": 0.6154651162790696,
+          "avg_confidence": 0.6154651162790699,
           "item_count": 86,
           "period_start": "2026-10-01",
           "score": 6.6792842754742665
@@ -1080,7 +1080,7 @@
       "trend_30d": 5.692264600328407
     },
     "glp1_metabolic": {
-      "avg_confidence": 0.7290625,
+      "avg_confidence": 0.7290625000000001,
       "avg_severity": 0.3203125,
       "item_count": 32,
       "label": "GLP-1 / Metabolic Health",
@@ -1102,19 +1102,19 @@
           "avg_confidence": 0.7150000000000001,
           "item_count": 10,
           "period_start": "2026-09-01",
-          "score": 0.8997888617506622
+          "score": 0.8997888617506624
         },
         {
-          "avg_confidence": 0.7144444444444444,
+          "avg_confidence": 0.7144444444444445,
           "item_count": 9,
           "period_start": "2026-10-01",
-          "score": 1.257368334402142
+          "score": 1.2573683344021422
         },
         {
           "avg_confidence": 0.805,
           "item_count": 10,
           "period_start": "2026-11-01",
-          "score": 2.1916937998132915
+          "score": 2.191693799813291
         }
       ],
       "quarterly_scores": [
@@ -1132,7 +1132,7 @@
         }
       ],
       "raw_score": 10.25,
-      "score": 4.402818831801478,
+      "score": 4.402818831801477,
       "source_mix": {
         "CNBC": 1,
         "cnbc_business": 4,
@@ -1192,7 +1192,7 @@
           "title": "Eli Lilly\u2019s Foundayo obesity pill eases sleep apnea in late-stage trial, paving way for approval"
         }
       ],
-      "trend_30d": 2.1208647629020447
+      "trend_30d": 2.1208647629020456
     },
     "nuclear_renaissance": {
       "avg_confidence": 0.6308823529411766,
@@ -1240,7 +1240,7 @@
           "score": 0.5318258364892701
         },
         {
-          "avg_confidence": 0.6642857142857141,
+          "avg_confidence": 0.6642857142857143,
           "item_count": 21,
           "period_start": "2026-10-01",
           "score": 2.9682970434294393
@@ -1309,9 +1309,9 @@
       "trend_30d": 1.2252974644786394
     },
     "physical_ai": {
-      "avg_confidence": 0.607027027027027,
-      "avg_severity": 0.34459459459459457,
-      "item_count": 37,
+      "avg_confidence": 0.601578947368421,
+      "avg_severity": 0.3421052631578947,
+      "item_count": 38,
       "label": "Physical AI / Robotics",
       "mock_contribution_ratio": 0.0,
       "monthly_scores": [
@@ -1340,10 +1340,10 @@
           "score": 1.976828076550647
         },
         {
-          "avg_confidence": 0.6249999999999999,
-          "item_count": 4,
+          "avg_confidence": 0.5800000000000001,
+          "item_count": 5,
           "period_start": "2026-11-01",
-          "score": 0.40828547250670844
+          "score": 0.5082854725067084
         }
       ],
       "quarterly_scores": [
@@ -1354,14 +1354,14 @@
           "score": 0.9748948211081825
         },
         {
-          "avg_confidence": 0.6711764705882353,
-          "item_count": 17,
+          "avg_confidence": 0.6561111111111111,
+          "item_count": 18,
           "period_start": "2026-10-01",
-          "score": 2.385113549057355
+          "score": 2.4851135490573553
         }
       ],
-      "raw_score": 12.75,
-      "score": 3.3600083701655374,
+      "raw_score": 12.999999999999998,
+      "score": 3.4600083701655375,
       "source_mix": {
         "cnbc_business": 1,
         "cnbc_economy": 1,
@@ -1373,7 +1373,7 @@
         "housingwire": 1,
         "nasdaq_markets": 1,
         "oilprice": 3,
-        "scmp": 6
+        "scmp": 7
       },
       "theme_id": "physical_ai",
       "top_news_ids": [
@@ -1425,7 +1425,7 @@
           "title": "As Waymo expands overseas, it remains a niche cash-burning business"
         }
       ],
-      "trend_30d": 0.8936595732618817
+      "trend_30d": 0.9936595732618811
     },
     "quantum_computing": {
       "avg_confidence": 0.6375,
@@ -1518,7 +1518,7 @@
       "trend_30d": -0.040276632767349635
     },
     "space_economy": {
-      "avg_confidence": 0.6194285714285716,
+      "avg_confidence": 0.6194285714285714,
       "avg_severity": 0.326,
       "item_count": 35,
       "label": "Space Economy",
@@ -1630,7 +1630,7 @@
           "title": "Verizon posts worst day since 2002 as SpaceX U.S. network plans whack cell provider stocks"
         }
       ],
-      "trend_30d": 1.279234105353829
+      "trend_30d": 1.2792341053538292
     }
   },
   "source_files": {
@@ -1651,198 +1651,198 @@
   },
   "vintage_freshness": [
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-10",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "BAA10Y",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-11",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "BAMLH0A0HYM2",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "CPIAUCSL",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-11",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DCOILWTICO",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-10",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DFII10",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-10",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DGS10",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-10",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DGS2",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-10",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DTB3",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2019-12-31",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DTWEXB",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-06",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "DTWEXBGS",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "FEDFUNDS",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2036-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "GDPPOT",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "HOUST",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-07",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "ICSA",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "INDPRO",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "M2SL",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "MCOILWTICO",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-06",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "NFCI",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-07-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "NNUSBIS",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "PAYEMS",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-09-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "PCEPI",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-12",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "T10Y2Y",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-12",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "T10YIE",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-12",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "T5YIFR",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-06",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "THREEFYTP10",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2019-12-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "TWEXBMTH",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-10-01",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "UNRATE",
       "stale": false
     },
     {
-      "age_days": 1,
+      "age_days": 0,
       "max_observation_date": "2026-11-11",
-      "max_realtime_start": "2026-11-12",
+      "max_realtime_start": "2026-11-13",
       "series_id": "VIXCLS",
       "stale": false
     }

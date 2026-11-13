@@ -1,0 +1,304 @@
+{
+  "schema": "mri.dashboard_data_health.v1",
+  "generated_at": "2026-11-13T08:26:19.862112+00:00",
+  "reading_date": "2026-11-01",
+  "input_groups": [
+    {
+      "group": "commodity",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 1,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "oil_wti_yoy_z",
+          "series_id": "MCOILWTICO",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "credit_liquidity",
+      "oldest_input_date": "2026-10-23",
+      "oldest_input_age_days": 9,
+      "input_count": 2,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "baa_spread_level_z",
+          "series_id": "BAA10Y",
+          "observation_date": "2026-10-29",
+          "age_days": 3,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "nfci_level_z",
+          "series_id": "NFCI",
+          "observation_date": "2026-10-23",
+          "age_days": 9,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "dollar",
+      "oldest_input_date": "2026-07-01",
+      "oldest_input_age_days": 123,
+      "input_count": 1,
+      "carried_forward_count": 0,
+      "not_used_count": 1,
+      "inputs": [
+        {
+          "feature_id": "usd_narrow_yoy_z",
+          "series_id": "NNUSBIS",
+          "observation_date": "2026-07-01",
+          "age_days": 123,
+          "used": false,
+          "reason": "stale_asof_value"
+        }
+      ]
+    },
+    {
+      "group": "growth_momentum",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 4,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "industrial_production_yoy_z",
+          "series_id": "INDPRO",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "initial_claims_level_z",
+          "series_id": "ICSA",
+          "observation_date": "2026-10-24",
+          "age_days": 8,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "payrolls_yoy_z",
+          "series_id": "PAYEMS",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "unemployment_6m_change_z",
+          "series_id": "UNRATE",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "housing_activity",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 1,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "housing_starts_yoy_z",
+          "series_id": "HOUST",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "inflation_pressure",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 2,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "headline_cpi_yoy_z",
+          "series_id": "CPIAUCSL",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "pce_price_yoy_z",
+          "series_id": "PCEPI",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "monetary_liquidity",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 1,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "m2_money_supply_yoy_z",
+          "series_id": "M2SL",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "policy_stance",
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
+      "input_count": 2,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "fed_funds_6m_change_z",
+          "series_id": "FEDFUNDS",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "fed_funds_level_z",
+          "series_id": "FEDFUNDS",
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "real_rates",
+      "oldest_input_date": "2026-10-29",
+      "oldest_input_age_days": 3,
+      "input_count": 2,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "real_rate_10y_6m_change_z",
+          "series_id": "DFII10",
+          "observation_date": "2026-10-29",
+          "age_days": 3,
+          "used": true,
+          "reason": "ok"
+        },
+        {
+          "feature_id": "real_rate_10y_level_z",
+          "series_id": "DFII10",
+          "observation_date": "2026-10-29",
+          "age_days": 3,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    },
+    {
+      "group": "yield_curve",
+      "oldest_input_date": "2026-10-30",
+      "oldest_input_age_days": 2,
+      "input_count": 1,
+      "carried_forward_count": 0,
+      "not_used_count": 0,
+      "inputs": [
+        {
+          "feature_id": "yield_curve_10y2y_level_z",
+          "series_id": "T10Y2Y",
+          "observation_date": "2026-10-30",
+          "age_days": 2,
+          "used": true,
+          "reason": "ok"
+        }
+      ]
+    }
+  ],
+  "input_groups_reason": null,
+  "carried_forward": [],
+  "daily": {
+    "run_date": "2026-11-13",
+    "status": "success_with_warnings",
+    "warning_count": 32,
+    "warnings": [
+      {
+        "warning": "stale_source:INDPRO",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:PCEPI",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:M2SL",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:HOUST",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:DTWEXBGS",
+        "count": 1
+      },
+      {
+        "warning": "invalid_feature:disabled_leading_index_level_z:disabled_feature",
+        "count": 1
+      },
+      {
+        "warning": "invalid_dimension:real_rates:below_min_valid_features",
+        "count": 23
+      },
+      {
+        "warning": "invalid_dimension:dollar:below_min_valid_features",
+        "count": 2
+      },
+      {
+        "warning": "news_health_degraded:source_dead:nasdaq_markets_rss",
+        "count": 1
+      }
+    ],
+    "errors": [],
+    "non_fatal_failures": [],
+    "feature_freshness": {
+      "gap_days": 0,
+      "max_feature_date": "2026-11-12",
+      "max_raw_observation_date": "2026-11-12",
+      "stale": false
+    }
+  },
+  "sector_prices": {
+    "last_price_date": "2026-11-12",
+    "age_days": 1,
+    "fresh": true,
+    "fresh_within_days": 5,
+    "market_observed": true,
+    "reasons": []
+  }
+}
