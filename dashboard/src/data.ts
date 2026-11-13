@@ -1,4 +1,4 @@
-import type { DashboardData, Manifest } from "./types";
+import type { DashboardData, DataHealth, Manifest, RiskState } from "./types";
 
 const FILES = {
   daily: "daily_diagnostic_summary.json",
@@ -14,6 +14,8 @@ const FILES = {
   newsSources: "news_sources.json",
   validation: "sector_validation.json",
   nberBenchmark: "nber_benchmark.json",
+  riskState: "risk_state.json",
+  dataHealth: "data_health.json",
 } as const;
 
 const BASE_URL = import.meta.env.BASE_URL;
@@ -42,6 +44,8 @@ export async function loadDashboardData(): Promise<DashboardData> {
     newsSources: null,
     validation: null,
     nberBenchmark: null,
+    riskState: null,
+    dataHealth: null,
     source: "empty",
   };
 }
@@ -72,6 +76,8 @@ async function loadFromBase(base: string): Promise<Omit<DashboardData, "source">
     newsSources: valueFor(entries, "newsSources"),
     validation: valueFor(entries, "validation"),
     nberBenchmark: valueFor(entries, "nberBenchmark"),
+    riskState: valueFor(entries, "riskState") as RiskState | null,
+    dataHealth: valueFor(entries, "dataHealth") as DataHealth | null,
   };
 }
 
@@ -113,5 +119,7 @@ function emptyData(): Omit<DashboardData, "source"> {
     newsSources: null,
     validation: null,
     nberBenchmark: null,
+    riskState: null,
+    dataHealth: null,
   };
 }

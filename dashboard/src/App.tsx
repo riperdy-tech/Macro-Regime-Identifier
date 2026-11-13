@@ -59,6 +59,7 @@ import {
 } from "./utils";
 import {
   DATA_FLOW,
+  EVIDENCE,
   GLOSSARY,
   GUIDE_DISCLAIMER,
   PIPELINE_DETAIL,
@@ -81,6 +82,7 @@ const TABS: { id: TabId; label: string }[] = [
 ];
 
 const NOT_AVAILABLE = "Not available in this export";
+const NOT_REPORTED = "not reported";
 
 function tabFromHash(): TabId {
   const id = window.location.hash.replace("#", "");
@@ -446,7 +448,10 @@ function Overview({ data }: { data: DashboardData }) {
         }
       >
         {subcopy ? <p className="subcopy">{subcopy}</p> : null}
+        <p className="caption">{EVIDENCE.regime}</p>
       </Head>
+      <RiskDialCard data={data} />
+      <DataHealthCard data={data} />
       <div className="split">
         <Card title="Growth ↑ · Inflation →" info={TOOLTIPS.regime}>
           <QuadrantMap growth={last(growth)} inflation={last(inflation)} trail={trail} regime={reported} />
@@ -480,6 +485,240 @@ function Overview({ data }: { data: DashboardData }) {
         Diagnostic only. Not investment advice. Uses revised FRED data, not point-in-time vintages.
       </Disclaimer>
     </>
+  );
+}
+
+// ---------- Risk dial (shadow) and data health ----------
+
+function yesNo(value: boolean | null | undefined, yes: string, no: string): string {
+  return value === true ? yes : value === false ? no : NOT_REPORTED;
+}
+
+function fixed2(value: unknown): string {
+  const numeric = numberValue(value);
+  return numeric === null ? NOT_REPORTED : numeric.toFixed(2);
+}
+
+function dayCount(value: number | null | undefined): string {
+  return numberValue(value) === null ? `age ${NOT_REPORTED}` : `${value} ${value === 1 ? "day" : "days"}`;
+}
+
+function RiskDialCard({ data }: { data: DashboardData }) {
+  const risk = data.riskState;
+  if (!risk) {
+    return (
+      <Card title="Risk dial · shadow" info={TOOLTIPS.risk_dial} right={<Tag>shadow</Tag>}>
+        <ul className="notes">
+          <li>{EVIDENCE.dialShadow}</li>
+        </ul>
+        <p className="caption">Not available in this run.</p>
+      </Card>
+    );
+  }
+  const state = risk.dial?.state;
+  const price = risk.price_rule;
+  const macro = risk.macro_reading;
+  const reasons = asArray<string>(risk.reasons);
+  const mixed = risk.evidence?.verdict === "MIXED" && risk.evidence?.n_months === 320;
+  return (
+    <Card
+      title="Risk dial · shadow"
+      info={TOOLTIPS.risk_dial}
+      right={
+        <span className="tags">
+          {risk.degraded ? <Tag tone="warn">degraded</Tag> : null}
+          <Tag>shadow</Tag>
+        </span>
+      }
+    >
+      <ul className="notes">
+        <li>{EVIDENCE.dialShadow}</li>
+        {reasons.map((reason, i) => (
+          <li key={i} className="bad">
+            {reason}
+          </li>
+        ))}
+      </ul>
+      <div className="metrics">
+        <div>
+          <span className="label">Dial today</span>
+          <span className="metric-value">{state === "full" ? "Full" : state === "half" ? "Half" : "Not available"}</span>
+          <span className="stat-detail">{risk.dial?.since ? `since ${risk.dial.since}` : `since: ${NOT_REPORTED}`}</span>
+        </div>
+        <div>
+          <span className="label">SPY close</span>
+          <span className="metric-value num">{fixed2(price?.spy_close)}</span>
+          <span className="stat-detail">{risk.asof ? `as of ${risk.asof}` : `date: ${NOT_REPORTED}`}</span>
+        </div>
+        <div>
+          <span className="label">200-day average</span>
+          <span className="metric-value num">{fixed2(price?.mean_200)}</span>
+          <span className="stat-detail">{yesNo(price?.below, "SPY is below it", "SPY is not below it")}</span>
+        </div>
+      </div>
+      <p className="caption">Rule: {EVIDENCE.dialRule}</p>
+      <span className="label">{EVIDENCE.dialContext}</span>
+      <ul className="rows">
+        <li>
+          <span>Recession plus stagflation probability{macro?.month ? ` · ${macro.month}` : ""}</span>
+          <span className="num">
+            {numberValue(macro?.recession_plus_stagflation) === null
+              ? NOT_REPORTED
+              : formatPct(macro?.recession_plus_stagflation)}
+          </span>
+        </li>
+        <li>
+          <span>Top third of its own history starts at</span>
+          <span className="num">
+            {numberValue(macro?.top_third_threshold) === null ? NOT_REPORTED : formatPct(macro?.top_third_threshold)}
+          </span>
+        </li>
+        <li>
+          <span>In the top third now</span>
+          <span className="num">{yesNo(macro?.in_top_third, "yes", "no")}</span>
+        </li>
+        <li>
+          <span>VIX alarm</span>
+          <span className="num">{yesNo(risk.vix_alarm?.active, "active", "not active")}</span>
+        </li>
+      </ul>
+      <p className="caption">
+        {mixed ? EVIDENCE.dialMixed : `Registered test verdict: ${text(risk.evidence?.verdict, NOT_REPORTED)}.`}
+      </p>
+    </Card>
+  );
+}
+
+function DataHealthCard({ data }: { data: DashboardData }) {
+  const health = data.dataHealth;
+  if (!health) {
+    return (
+      <Card title="Data health" info={TOOLTIPS.data_health}>
+        <p className="muted">Not available in this run.</p>
+      </Card>
+    );
+  }
+  const daily = health.daily;
+  const prices = health.sector_prices;
+  const groups = health.input_groups;
+  const carried = health.carried_forward;
+  const failures = daily?.non_fatal_failures;
+  const gap = numberValue(daily?.feature_freshness?.gap_days);
+  const count = numberValue(daily?.warning_count);
+  const priceText = !prices
+    ? NOT_REPORTED
+    : `${yesNo(prices.fresh, "fresh", "stale")} · last price ${text(prices.last_price_date, NOT_REPORTED)}${
+        numberValue(prices.age_days) === null ? "" : ` · ${dayCount(prices.age_days)} before this export`
+      }`;
+  return (
+    <Card
+      title="Data health"
+      info={TOOLTIPS.data_health}
+      right={health.reading_date ? <Tag>reading {health.reading_date}</Tag> : undefined}
+    >
+      <ul className="rows">
+        <li>
+          <span>Daily run status</span>
+          <span className="num">{text(daily?.status, NOT_REPORTED)}</span>
+        </li>
+        <li>
+          <span>Warnings in the daily record</span>
+          <span className="num">{count === null ? NOT_REPORTED : String(count)}</span>
+        </li>
+        <li>
+          <span>Steps that failed without stopping the run</span>
+          <span className="num">{!failures ? NOT_REPORTED : failures.length ? failures.join(", ") : "none"}</span>
+        </li>
+        <li>
+          <span>Indicators behind the raw data</span>
+          <span className="num">
+            {gap === null ? NOT_REPORTED : `${dayCount(gap)}${daily?.feature_freshness?.stale ? " · stale" : ""}`}
+          </span>
+        </li>
+        <li>
+          <span className="stack">
+            <span>Sector price panel</span>
+            {prices && typeof prices.fresh === "boolean" ? (
+              <span className="sub">Fresh means the last price is at most {prices.fresh_within_days} days old.</span>
+            ) : null}
+            {prices?.market_observed === false ? (
+              <span className="sub">Not verified as market data: {(prices.reasons ?? []).join("; ") || NOT_REPORTED}</span>
+            ) : null}
+          </span>
+          <span className="num">{priceText}</span>
+        </li>
+        <li>
+          <span>Late releases carried forward</span>
+          <span className="num">{!carried ? NOT_REPORTED : carried.length ? String(carried.length) : "none"}</span>
+        </li>
+        {(carried ?? []).map((item, i) => (
+          <li key={`c${i}`}>
+            <span className="stack">
+              <span>{seriesName(item.series_id || item.feature_id || "")}</span>
+              <span className="sub">carried forward · {dimensionLabel(item.group ?? "")}</span>
+            </span>
+            <span className="num">
+              {text(item.observation_date, NOT_REPORTED)} · {dayCount(item.age_days)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <span className="label">Oldest input per group</span>
+      {groups ? (
+        <>
+          <ul className="rows">
+            {groups.map((group) => {
+              const notUsed = (group.inputs ?? []).filter((input) => input.used === false);
+              const flags = [
+                ...(group.carried_forward_count ? [`${group.carried_forward_count} carried forward`] : []),
+                ...notUsed.map(
+                  (input) =>
+                    `${seriesName(input.series_id || input.feature_id || "")} not used (${text(input.reason, NOT_REPORTED)})`,
+                ),
+              ];
+              return (
+                <li key={group.group}>
+                  <span className="stack">
+                    <span>{dimensionLabel(group.group ?? "")}</span>
+                    {flags.length ? <span className="sub">{flags.join(" · ")}</span> : null}
+                  </span>
+                  <span className="num">
+                    {text(group.oldest_input_date, NOT_REPORTED)} · {dayCount(group.oldest_input_age_days)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="caption">
+            The date of the oldest input in each group at the {text(health.reading_date, "latest")} reading, and its age
+            in days at that date. An input marked not used was left out of the reading for the reason shown.
+          </p>
+        </>
+      ) : (
+        <p className="caption">
+          Input dates {NOT_REPORTED}
+          {health.input_groups_reason ? ` (${health.input_groups_reason})` : ""}.
+        </p>
+      )}
+      {daily?.warnings?.length || daily?.errors?.length ? (
+        <details className="fold">
+          <summary>Show the warnings</summary>
+          <ul className="notes">
+            {(daily.errors ?? []).map((item, i) => (
+              <li key={`e${i}`} className="bad">
+                {item}
+              </li>
+            ))}
+            {(daily.warnings ?? []).map((item, i) => (
+              <li key={`w${i}`}>
+                {item.warning}
+                {(item.count ?? 1) > 1 ? ` × ${item.count}` : ""}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </Card>
   );
 }
 
@@ -539,6 +778,7 @@ function MacroPanel({ data }: { data: DashboardData }) {
         ]}
       />
       {note ? <p className="caption">{note}</p> : null}
+      <p className="caption">{EVIDENCE.regime}</p>
       <Card title="Probability history · 24 months" info={TOOLTIPS.regime_timeline}>
         {points.length > 1 ? <ProbabilityHistory points={points.slice(-24)} /> : <Missing />}
       </Card>
@@ -643,7 +883,13 @@ function SectorPanel({ data }: { data: DashboardData }) {
   return (
     <>
       <Head tab="sectors" eyebrow="Sectors · macro tailwinds and headwinds" headline={sectorsHeadline(data)} tags={<Tag>experimental</Tag>} />
-      <Card flush info={TOOLTIPS.sector_ranking}>
+      <ul className="notes">
+        <li>{EVIDENCE.sectorRanking}</li>
+      </ul>
+      <details className="fold">
+        <summary>Show the sector ranking (a description; it drives nothing)</summary>
+        <div className="fold-stack">
+          <Card flush info={TOOLTIPS.sector_ranking}>
         {rows.length ? (
           <table className="grid-table">
             <thead>
@@ -683,10 +929,12 @@ function SectorPanel({ data }: { data: DashboardData }) {
         ) : (
           <div className="card-pad"><Missing /></div>
         )}
-      </Card>
-      <Card title={`Selected sector · score components${selected ? ` · ${selected.label ?? prettySectorId(selected.sector_id ?? "")}` : ""}`} info={TOOLTIPS.sector_components}>
-        <DivergingBars rows={components} />
-      </Card>
+          </Card>
+          <Card title={`Selected sector · score components${selected ? ` · ${selected.label ?? prettySectorId(selected.sector_id ?? "")}` : ""}`} info={TOOLTIPS.sector_components}>
+            <DivergingBars rows={components} />
+          </Card>
+        </div>
+      </details>
       <ValidationCard data={data} />
     </>
   );

@@ -75,7 +75,73 @@ export type DashboardData = {
   newsSources: Record<string, unknown> | null;
   validation: Record<string, unknown> | null;
   nberBenchmark: Record<string, unknown> | null;
+  riskState: RiskState | null;
+  dataHealth: DataHealth | null;
   source: "exported" | "sample" | "empty";
+};
+
+// outputs/risk_state.json (macro_engine.risk_state). A part the run could not build is null
+// and named in `reasons`.
+export type RiskState = {
+  asof?: string | null;
+  built_at?: string;
+  status?: string;
+  dial?: { state?: "full" | "half" | null; rule?: string; since?: string | null };
+  price_rule?: { spy_close?: number; mean_200?: number; below?: boolean; closes_used?: number } | null;
+  macro_reading?: {
+    month?: string;
+    recession_plus_stagflation?: number;
+    top_third_threshold?: number | null;
+    in_top_third?: boolean | null;
+  } | null;
+  vix_alarm?: { active?: boolean | null };
+  evidence?: { prereg?: string; verdict?: string; n_months?: number };
+  degraded?: boolean;
+  reasons?: string[];
+};
+
+// data_health.json (macro_engine.dashboard_export.build_data_health). null = not reported.
+export type DataHealthInput = {
+  feature_id?: string;
+  series_id?: string | null;
+  observation_date?: string | null;
+  age_days?: number | null;
+  used?: boolean | null;
+  reason?: string | null;
+};
+export type DataHealthGroup = {
+  group?: string;
+  oldest_input_date?: string | null;
+  oldest_input_age_days?: number | null;
+  input_count?: number;
+  carried_forward_count?: number;
+  not_used_count?: number;
+  inputs?: DataHealthInput[];
+};
+export type DataHealth = {
+  reading_date?: string | null;
+  input_groups?: DataHealthGroup[] | null;
+  input_groups_reason?: string | null;
+  carried_forward?:
+    | { group?: string; feature_id?: string; series_id?: string | null; observation_date?: string | null; age_days?: number | null }[]
+    | null;
+  daily?: {
+    run_date?: string | null;
+    status?: string | null;
+    warning_count?: number | null;
+    warnings?: { warning?: string; count?: number }[] | null;
+    errors?: string[] | null;
+    non_fatal_failures?: string[] | null;
+    feature_freshness?: { gap_days?: number | null; stale?: boolean | null } | null;
+  } | null;
+  sector_prices?: {
+    last_price_date?: string | null;
+    age_days?: number | null;
+    fresh?: boolean | null;
+    fresh_within_days?: number;
+    market_observed?: boolean | null;
+    reasons?: string[] | null;
+  } | null;
 };
 
 export type NewsSourceGroup = {

@@ -26,6 +26,11 @@ export const TOOLTIPS: Record<string, string> = {
   data_source:
     "Exported outputs = real backend run. Sample fixtures = bundled demo data when no run is present.",
 
+  risk_dial:
+    "A shadow stamp, full or half, set by one price rule on SPY. Nothing reads it. The macro reading and the VIX alarm sit beside it as context.",
+  data_health:
+    "How old the inputs behind the latest reading are, which late releases were carried forward, what the daily run warned about, and whether the sector prices are fresh.",
+
   // macro tab
   regime_timeline:
     "Monthly regime label from 1990 to today. Each colored band is one month; faded bands had insufficient data to validate.",
@@ -90,6 +95,21 @@ export const TOOLTIPS: Record<string, string> = {
     "Number of daily pipeline runs archived so far. Grows one per successful run once history persistence is live.",
   avg_confidence:
     "Average macro confidence across the recent recorded runs shown here.",
+};
+
+// What the indicator has been measured to do. The numbers are quoted from the 2026-11-12 review
+// (REPORT_4_mri_capability, PREREG_risk_dial_v1, RR_RD1); change one only with its report.
+export const EVIDENCE = {
+  regime:
+    "This label describes the present state. It has predicted turbulence, not direction: after a high recession-plus-stagflation reading the market's next-three-month volatility was 22% against 14%.",
+  sectorRanking:
+    "Tested, no predictive skill: the ranking's rank correlation with the next 1, 3 and 6 months' sector returns was +0.002, −0.016 and −0.038 over about 310 months. It is shown as a description and drives nothing.",
+  dialShadow: "Shadow: nothing reads this. No book, size, buy or sell changes with it.",
+  dialRule: "Half when the market (SPY) is below its 200-day average, otherwise full.",
+  dialContext: "Context: watched, not in the dial.",
+  // Shown only while risk_state.json reports this verdict and sample (MIXED, 320 months).
+  dialMixed:
+    "Why the macro reading is not in the dial: the registered test's verdict was MIXED. The macro reading adds to predicting volatility (t 3.17 over 320 months), but a dial that also cut on it had a lower return-to-volatility ratio than the price rule alone in both halves of the sample.",
 };
 
 // One-sentence "what this tab is for" line, shown under the tab bar.

@@ -1650,11 +1650,13 @@ def export_dashboard_data(
         str,
         typer.Option("--dashboard-data-dir"),
     ] = "dashboard/public/data",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
 ) -> None:
     """v0.7-M1: export generated backend JSON snapshots for the read-only dashboard."""
     manifest = export_dashboard_data_service(
         outputs_dir=outputs_dir,
         dashboard_data_dir=dashboard_data_dir,
+        db_path=db_path,
     )
     console.print_json(data=manifest)
 

@@ -169,6 +169,13 @@ jobs:
         run: python -m macro_engine.cli ingest-sector-proxy-prices
         continue-on-error: true
 
+      - name: Write shadow risk dial (risk_state.json)
+        # Read-only on the store; read by nothing but the dashboard's risk-dial panel. A missing
+        # part (SPY closes, a regime reading, the VIX alarm) makes the file say so itself
+        # (degraded, with reasons). If the step fails there is no file and the panel says so.
+        run: python -m macro_engine.cli write-risk-state
+        continue-on-error: true
+
       - name: Run sector validation (free stooq prices)
         run: python -m macro_engine.cli run-sector-validation
         continue-on-error: true

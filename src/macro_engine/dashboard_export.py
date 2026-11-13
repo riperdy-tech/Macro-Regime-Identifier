@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 import shutil
 from typing import Any
+
+from macro_engine.risk_state import STALE_DAYS
 
 
 DASHBOARD_OUTPUT_FILES = [
@@ -51,14 +53,20 @@ OPTIONAL_OUTPUT_FILES = [
     # (N1.6), read straight from daily_diagnostic_summary.json. A local run
     # can still produce this file, so it stays optional rather than removed.
     "news_source_coverage_report.json",
+    # WO_MS1: the shadow risk dial. Read by nothing but the dashboard panel; a run that did not
+    # write it (or wrote it degraded) shows that on the page and changes no other consumer.
+    "risk_state.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"
+DATA_HEALTH_FILE = "data_health.json"
+DATA_HEALTH_SCHEMA = "mri.dashboard_data_health.v1"
 
 
 def export_dashboard_data(
     *,
     outputs_dir: str | Path = "outputs",
     dashboard_data_dir: str | Path = "dashboard/public/data",
+    db_path: str | Path | None = None,
 ) -> dict[str, Any]:
     source_dir = Path(outputs_dir)
     target_dir = Path(dashboard_data_dir)
@@ -90,6 +98,11 @@ def export_dashboard_data(
         encoding="utf-8",
     )
 
+    (target_dir / DATA_HEALTH_FILE).write_text(
+        json.dumps(build_data_health(source_dir, db_path=db_path), indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+
     snapshots = {
         name: _read_json(target_dir / name) for name in [*available_files, *optional_available]
     }
@@ -118,6 +131,166 @@ def export_dashboard_data(
         encoding="utf-8",
     )
     return manifest
+
+
+def build_data_health(
+    outputs_dir: str | Path,
+    *,
+    db_path: str | Path | None = None,
+    today: date | None = None,
+) -> dict[str, Any]:
+    """The dashboard's data-health panel, from what the run already has (WO_MS1).
+
+    The dashboard computes nothing, so the ages and the grouping are done here. A fact the run did
+    not write is null (with a reason where one exists): the panel shows it as "not reported".
+    """
+    source_dir = Path(outputs_dir)
+    today = today or datetime.now(UTC).date()
+    reading_date, groups, carried, reason = _input_groups(db_path)
+    return {
+        "schema": DATA_HEALTH_SCHEMA,
+        "generated_at": datetime.now(UTC).isoformat(),
+        "reading_date": reading_date,
+        "input_groups": groups,
+        "input_groups_reason": reason,
+        "carried_forward": carried,
+        "daily": _daily_health(_read_json(source_dir / "daily_diagnostic_summary.json")),
+        "sector_prices": _sector_price_health(_read_json(source_dir / "sector_validation.json"), today),
+    }
+
+
+def _daily_health(summary: dict[str, Any]) -> dict[str, Any] | None:
+    if not summary:
+        return None
+    warnings = summary.get("warnings")
+    grouped: list[dict[str, Any]] | None = None
+    if isinstance(warnings, list):
+        counts: dict[str, int] = {}
+        for item in warnings:
+            counts[str(item)] = counts.get(str(item), 0) + 1
+        grouped = [{"warning": warning, "count": count} for warning, count in counts.items()]
+    warning_count = summary.get("warning_count")
+    if not isinstance(warning_count, int) or isinstance(warning_count, bool):
+        warning_count = len(warnings) if isinstance(warnings, list) else None
+    freshness = summary.get("feature_freshness")
+    return {
+        "run_date": summary.get("run_date"),
+        "status": summary.get("status"),
+        "warning_count": warning_count,
+        "warnings": grouped,
+        "errors": _strings_or_none(summary.get("errors")),
+        "non_fatal_failures": _strings_or_none(summary.get("non_fatal_failures")),
+        "feature_freshness": freshness if isinstance(freshness, dict) else None,
+    }
+
+
+def _sector_price_health(validation: dict[str, Any], today: date) -> dict[str, Any] | None:
+    if not validation:
+        return None
+    panel = validation.get("price_panel")
+    panel = panel if isinstance(panel, dict) else {}
+    last = validation.get("price_end_date")
+    age_days: int | None = None
+    try:
+        age_days = (today - date.fromisoformat(str(last)[:10])).days
+    except ValueError:
+        last = None
+    market_observed = panel.get("market_observed")
+    return {
+        "last_price_date": last,
+        "age_days": age_days,
+        # The risk dial's own staleness rule for SPY (risk_state.STALE_DAYS), applied to the panel.
+        "fresh": None if age_days is None else age_days <= STALE_DAYS,
+        "fresh_within_days": STALE_DAYS,
+        "market_observed": market_observed if isinstance(market_observed, bool) else None,
+        "reasons": _strings_or_none(panel.get("reasons")),
+    }
+
+
+_INPUT_GROUPS_SQL = """
+SELECT c.date, c.dimension_id, c.feature_id, h.series_id, c.valid, c.reason,
+       a.source_observation_date, a.lag_days
+FROM dimension_feature_contributions c
+LEFT JOIN asof_feature_values a
+       ON a.feature_id = c.feature_id AND a.evaluation_date = CAST(c.date AS DATE)
+LEFT JOIN feature_health h ON h.feature_id = c.feature_id
+WHERE c.date = (SELECT max(date) FROM dimension_feature_contributions)
+ORDER BY c.dimension_id, c.feature_id
+"""
+
+
+def _input_groups(
+    db_path: str | Path | None,
+) -> tuple[str | None, list[dict[str, Any]] | None, list[dict[str, Any]] | None, str | None]:
+    """(reading date, groups, carried-forward releases, reason) for the latest reading in the store.
+
+    One group per regime dimension. Each input's date and age are the ones the reading used
+    (`asof_feature_values`: the observation date and its lag in days at the reading date). The store
+    is opened read-only and never created."""
+    if db_path is None:
+        return None, None, None, "store_not_read"
+    if not Path(db_path).exists():
+        return None, None, None, "store_missing"
+    try:
+        import duckdb
+
+        con = duckdb.connect(str(db_path), read_only=True)
+        try:
+            rows = con.execute(_INPUT_GROUPS_SQL).fetchall()
+        finally:
+            con.close()
+    except Exception as exc:  # a locked store, or one without these tables: named, never fatal
+        return None, None, None, f"store_unreadable: {type(exc).__name__}"
+    if not rows:
+        return None, None, None, "no_reading_in_store"
+
+    groups: dict[str, dict[str, Any]] = {}
+    carried: list[dict[str, Any]] = []
+    for _, dimension_id, feature_id, series_id, valid, reason, observed, lag_days in rows:
+        entry = {
+            "feature_id": feature_id,
+            "series_id": series_id,
+            "observation_date": None if observed is None else str(observed)[:10],
+            "age_days": None if lag_days is None else int(lag_days),
+            "used": None if valid is None else bool(valid),
+            "reason": reason,
+        }
+        group = groups.setdefault(
+            dimension_id,
+            {
+                "group": dimension_id,
+                "oldest_input_date": None,
+                "oldest_input_age_days": None,
+                "input_count": 0,
+                "carried_forward_count": 0,
+                "not_used_count": 0,
+                "inputs": [],
+            },
+        )
+        group["inputs"].append(entry)
+        group["input_count"] += 1
+        if entry["used"] is False:
+            group["not_used_count"] += 1
+        oldest = group["oldest_input_date"]
+        if entry["observation_date"] is not None and (oldest is None or entry["observation_date"] < oldest):
+            group["oldest_input_date"] = entry["observation_date"]
+            group["oldest_input_age_days"] = entry["age_days"]
+        if reason == "carried_forward":
+            group["carried_forward_count"] += 1
+            carried.append(
+                {
+                    "group": dimension_id,
+                    "feature_id": feature_id,
+                    "series_id": series_id,
+                    "observation_date": entry["observation_date"],
+                    "age_days": entry["age_days"],
+                }
+            )
+    return str(rows[0][0])[:10], list(groups.values()), carried, None
+
+
+def _strings_or_none(value: Any) -> list[str] | None:
+    return [str(item) for item in value] if isinstance(value, list) else None
 
 
 def _build_history_index(outputs_dir: Path) -> dict[str, Any]:
