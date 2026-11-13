@@ -18,9 +18,11 @@ NOW = datetime(2026, 10, 17, 12, 0, tzinfo=UTC)
 
 
 def _payload(symbol: str, dates: list[str], closes: list[float | None], adj: list[float | None] | None = None,
-             first_trade: str | None = None) -> bytes:
+             first_trade: str | None = None, last_trade: str | None = None) -> bytes:
     ts = [int(pd.Timestamp(f"{d} 16:00", tz="America/New_York").timestamp()) for d in dates]
     meta = {"exchangeTimezoneName": "America/New_York"}
+    if last_trade:
+        meta["regularMarketTime"] = int(pd.Timestamp(f"{last_trade} 16:00", tz="America/New_York").timestamp())
     if first_trade:
         meta["firstTradeDate"] = int(pd.Timestamp(f"{first_trade} 09:30", tz="America/New_York").timestamp())
     indicators = {"quote": [{"close": closes}]}
@@ -310,3 +312,51 @@ def test_failed_repull_writes_nothing_and_the_next_run_detects_the_split_again(t
     r2 = cp.refresh_confirmation_prices(db, cfg=cfg, fetcher=good, now=NOW, sleep=lambda s: None, sectors_path=sec)
     assert r2["instruments"]["AAA"]["fetch"]["repull_reason"] == "close_changed_on_overlap"  # detected again
     assert r2["repull_errors"] == [] and _stored(db, "AAA")[date(2026, 10, 16)] == 51.5
+
+
+def _ended_run(tmp_path, payloads, named=("GONE",)):
+    base = {
+        "SPY": _payload("SPY", ["2026-10-15", "2026-10-16"], [600.0, 601.5], last_trade="2026-10-16"),
+        "XLE": _payload("XLE", ["2026-10-15", "2026-10-16"], [90.0, 91.0], last_trade="2026-10-16"),
+        "KBE": _payload("KBE", ["2026-10-15", "2026-10-16"], [55.0, 56.0], last_trade="2026-10-16"),
+        "XLK": _payload("XLK", ["2026-10-15", "2026-10-16"], [200.0, 201.0], last_trade="2026-10-16"),
+    }
+    base.update(payloads)
+    return cp.refresh_confirmation_prices(
+        tmp_path / "s.duckdb", list(named), cfg=_cfg(), fetcher=_fetcher(base, []), now=NOW,
+        sleep=lambda s: None, sectors_path=_sectors(tmp_path),
+    )
+
+
+def test_named_ticker_that_stopped_trading_at_the_source_is_marked_and_does_not_fail_the_refresh(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _payload("GONE", ["2026-09-30", "2026-10-01"], [9.0, 9.5],
+                                                 last_trade="2026-10-02")})
+    inst = rep["instruments"]["GONE"]
+    assert inst["status"] == "ended_at_source" and inst["newest"] == "2026-10-01" and inst["lag"] == 11
+    assert inst["fetch"]["source_last_trade"] == "2026-10-02" and inst["fetch"]["source_newest_bar"] == "2026-10-01"
+    assert rep["ended_at_source"] == ["GONE"] and rep["not_fresh"] == [] and rep["ok"] is True
+
+
+def test_named_ticker_stale_while_the_source_still_trades_stays_a_failure(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _payload("GONE", ["2026-09-30", "2026-10-01"], [9.0, 9.5],
+                                                 last_trade="2026-10-16")})
+    assert rep["instruments"]["GONE"]["status"] == "stale"
+    assert rep["ended_at_source"] == [] and rep["not_fresh"] == ["GONE"] and rep["ok"] is False
+
+
+def test_named_ticker_stale_with_no_last_trade_from_the_source_stays_a_failure(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _payload("GONE", ["2026-09-30", "2026-10-01"], [9.0, 9.5])})
+    assert rep["instruments"]["GONE"]["status"] == "stale" and rep["ok"] is False
+
+
+def test_base_instrument_is_never_excused_as_ended_at_source(tmp_path):
+    rep = _ended_run(tmp_path, {"KBE": _payload("KBE", ["2026-09-30", "2026-10-01"], [55.0, 56.0],
+                                                last_trade="2026-10-02")}, named=())
+    assert rep["instruments"]["KBE"]["status"] == "stale"
+    assert rep["ended_at_source"] == [] and rep["not_fresh"] == ["KBE"] and rep["ok"] is False
+
+
+def test_named_ticker_with_no_bars_at_all_stays_missing_and_a_failure(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _payload("GONE", [], [], last_trade="2026-10-02")})
+    assert rep["instruments"]["GONE"]["status"] == "missing"
+    assert rep["ended_at_source"] == [] and rep["not_fresh"] == ["GONE"] and rep["ok"] is False

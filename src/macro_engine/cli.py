@@ -1999,7 +1999,8 @@ def refresh_confirmation_prices_cli(
     out: Annotated[str | None, typer.Option("--out", help="Also write the JSON report here.")] = None,
 ) -> None:
     """E0.4: pull daily Yahoo closes (SPY, XLE, KBE, the 11 sector ETFs, named tickers) into
-    market_observations and report per-instrument freshness. Exits 1 if any instrument is not fresh."""
+    market_observations and report per-instrument freshness. Exits 1 if any instrument is not fresh; a named
+    ticker that has stopped trading at the source is reported as `ended_at_source` and does not count."""
     from macro_engine.events import confirmation_prices as cp
 
     cfg = cp.load_config()

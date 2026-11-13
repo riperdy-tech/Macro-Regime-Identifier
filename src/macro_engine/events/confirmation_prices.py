@@ -139,6 +139,17 @@ def first_trade_date(payload: bytes) -> date | None:
     return pd.Timestamp(stamp, unit="s", tz="UTC").tz_convert(tz_name).date()
 
 
+def source_last_trade(payload: bytes) -> date | None:
+    """Date of the last trade Yahoo knows for the instrument (meta `regularMarketTime`), if present."""
+    result = ((json.loads(payload).get("chart") or {}).get("result") or [None])[0] or {}
+    meta = result.get("meta") or {}
+    stamp = meta.get("regularMarketTime")
+    if stamp is None:
+        return None
+    tz_name = meta.get("exchangeTimezoneName") or "America/New_York"
+    return pd.Timestamp(stamp, unit="s", tz="UTC").tz_convert(tz_name).date()
+
+
 def history_changed(
     db_path: str | Path, symbol: str, close: pd.DataFrame, adj: pd.DataFrame
 ) -> str | None:
@@ -270,6 +281,7 @@ def refresh_confirmation_prices(
             adj = parse_adjclose_bars(payload, sym, now=now)
             reason = history_changed(db_path, sym, close, adj)
             listed = first_trade_date(payload)
+            last_trade = source_last_trade(payload)
             earliest = [d for d in (before[sym]["earliest"], min(close["date"]) if not close.empty else None) if d]
             # History is complete once we hold bars back to the listing date; a young instrument (CRWV) is then
             # never re-pulled for 3 years it does not have.
@@ -302,7 +314,10 @@ def refresh_confirmation_prices(
             if repulled:
                 _drop_adjclose_outside(db_path, sym, adj)
             outcomes[sym] = {"range": range_, "rows_fetched": int(written), "error": None, "repull_reason": reason,
-                             "repull_error": repull_error, "history_complete_since_listing": complete}
+                             "repull_error": repull_error, "history_complete_since_listing": complete,
+                             "source_last_trade": str(last_trade) if last_trade else None,
+                             "source_newest_bar": str(pd.Timestamp(max(close["date"])).date())
+                             if not close.empty else None}
         except Exception as exc:  # noqa: BLE001 - one bad symbol must not stop the rest
             outcomes[sym] = {"range": range_, "rows_fetched": 0, "error": f"{type(exc).__name__}: {exc}",
                              "repull_reason": None, "repull_error": None, "history_complete_since_listing": None}
@@ -312,5 +327,24 @@ def refresh_confirmation_prices(
         report["instruments"][sym].update(fetch=out)
     report["fetch_errors"] = sorted(s for s, o in outcomes.items() if o["error"])
     report["repull_errors"] = sorted(s for s, o in outcomes.items() if o.get("repull_error"))
-    report["ok"] = report["ok"] and not report["fetch_errors"] and not report["repull_errors"]
+    # A named ticker can stop trading (a merger closes, a delisting). The source then has no newer bar to give and
+    # never will: that is a fact about the instrument, recorded on it, not a failed refresh. It applies only when
+    # the fetch worked, the source's own last trade is past the lag limit, and the store holds every bar the source
+    # returned. Base instruments and sector ETFs are never excused this way.
+    core = set(instrument_list(cfg, (), sectors_path))
+    expected = date.fromisoformat(report["expected_session"])
+    ended = []
+    for sym in report["not_fresh"]:
+        inst, out = report["instruments"][sym], outcomes.get(sym) or {}
+        if sym in core or inst["status"] != "stale" or out.get("error") or out.get("repull_error"):
+            continue
+        last_trade, newest_bar = out.get("source_last_trade"), out.get("source_newest_bar")
+        if not last_trade or not newest_bar:
+            continue
+        if weekday_lag(date.fromisoformat(last_trade), expected) > inst["limit"] and inst["newest"] >= newest_bar:
+            inst["status"] = "ended_at_source"
+            ended.append(sym)
+    report["ended_at_source"] = ended
+    report["not_fresh"] = [s for s in report["not_fresh"] if s not in ended]
+    report["ok"] = not report["not_fresh"] and not report["fetch_errors"] and not report["repull_errors"]
     return report
