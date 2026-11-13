@@ -225,3 +225,110 @@ def test_cli_command_registered(tmp_path):
     )
     assert res.exit_code == 0, res.output
     assert (tmp_path / "o" / "risk_state.json").exists()
+
+
+# --------------------------------------------------------------------------- the month decision (WO_DB1)
+
+
+def _md_store(tmp_path, closes, days):
+    _store(tmp_path / "s.duckdb", closes, days)
+    return tmp_path / "s.duckdb"
+
+
+def _md_path():
+    """Flat 100 for 300 sessions, then a fall below the 200-day mean on 2026-10-30 (the last close of October),
+    a recovery on 2026-11-02 (the first session of November) and a fall again on 2026-11-09."""
+    days = pd.bdate_range("2025-09-01", "2026-11-11")
+    closes = np.full(len(days), 100.0)
+    idx = {d.date().isoformat(): i for i, d in enumerate(days)}
+    closes[idx["2026-10-30"]] = 90.0  # below
+    closes[idx["2026-11-02"]] = 105.0  # above
+    closes[idx["2026-11-09"]] = 95.0  # below
+    return days, closes, idx
+
+
+def test_month_decision_uses_last_close_before_the_month(tmp_path):
+    days, closes, _ = _md_path()
+    d = rs.build_risk_state(_md_store(tmp_path, closes, days), NOW)
+    md = d["month_decision"]
+    assert md["month"] == "2026-11" and md["decided_on"] == "2026-10-30"
+    assert md["dial"] == "half" and md["spy_close"] == 90.0
+    assert md["spy_mean_200"] == pytest.approx((199 * 100.0 + 90.0) / 200)
+    # the daily dial on 2026-11-11 is a different matter: close 100, flat mean ~ above
+    assert d["dial"]["state"] == "full"
+
+
+def test_month_decision_same_on_first_session_and_mid_month(tmp_path):
+    days, closes, idx = _md_path()
+    first = rs.build_risk_state(
+        _md_store(tmp_path, closes[: idx["2026-11-02"] + 1], days[: idx["2026-11-02"] + 1]),
+        datetime(2026, 11, 3, 6, 0, tzinfo=timezone.utc),
+    )
+    (tmp_path / "s.duckdb").unlink()
+    mid = rs.build_risk_state(_md_store(tmp_path, closes, days), NOW)
+    assert first["asof"] == "2026-11-02" and mid["asof"] == "2026-11-11"
+    assert first["month_decision"] == mid["month_decision"]
+    assert first["month_decision"]["decided_on"] == "2026-10-30"
+
+
+def test_month_decision_unchanged_by_a_daily_dial_change_inside_the_month(tmp_path):
+    days, closes, idx = _md_path()
+    states = {}
+    for last in ("2026-11-02", "2026-11-09"):  # the daily dial is full, then half
+        n = idx[last] + 1
+        path = tmp_path / f"{last}.duckdb"
+        _store(path, closes[:n], days[:n])
+        states[last] = rs.build_risk_state(path, datetime(2026, 11, 12, 6, 0, tzinfo=timezone.utc) if last > "2026-11-05" else datetime(2026, 11, 3, 6, 0, tzinfo=timezone.utc))
+    assert states["2026-11-02"]["dial"]["state"] == "full" and states["2026-11-09"]["dial"]["state"] == "half"
+    assert states["2026-11-02"]["month_decision"] == states["2026-11-09"]["month_decision"]
+
+
+def test_month_decision_rolls_at_month_boundary(tmp_path):
+    days, closes, idx = _md_path()
+    n = idx["2026-10-30"] + 1  # as-of the last October close: October's decision, taken on 2026-09-30
+    d = rs.build_risk_state(_md_store(tmp_path, closes[:n], days[:n]), datetime(2026, 10, 31, 6, 0, tzinfo=timezone.utc))
+    md = d["month_decision"]
+    assert md["month"] == "2026-10" and md["decided_on"] == "2026-09-30"
+    assert md["dial"] == "full" and md["spy_close"] == 100.0
+
+
+def test_month_decision_null_with_reason_when_too_few_closes(tmp_path):
+    days = pd.bdate_range("2026-03-02", "2026-11-11")  # fewer than 200 closes before November
+    d = rs.build_risk_state(_md_store(tmp_path, np.full(len(days), 100.0), days), NOW)
+    md = d["month_decision"]
+    assert md["month"] == "2026-11" and md["dial"] is None
+    assert md["reason"].startswith("month_decision_short")
+
+
+def test_month_decision_null_when_no_close_before_the_month(tmp_path):
+    days = pd.bdate_range("2026-11-02", "2026-11-11")
+    d = rs.build_risk_state(_md_store(tmp_path, np.full(len(days), 100.0), days), NOW)
+    assert d["month_decision"]["dial"] is None and d["month_decision"]["reason"]
+
+
+def test_month_decision_null_when_store_has_no_spy(tmp_path):
+    days = pd.bdate_range("2026-03-02", "2026-11-11")
+    _store(tmp_path / "s.duckdb", np.full(len(days), 100.0), days)
+    con = duckdb.connect(str(tmp_path / "s.duckdb"))
+    con.execute("DELETE FROM sector_proxy_prices")
+    con.close()
+    md = rs.build_risk_state(tmp_path / "s.duckdb", NOW)["month_decision"]
+    assert md["dial"] is None and md["reason"]
+
+
+def test_month_decision_uses_the_daily_rule_function(tmp_path, monkeypatch):
+    days, closes, idx = _md_path()
+    calls = []
+    real = rs.price_signal
+    monkeypatch.setattr(rs, "price_signal", lambda *a, **k: calls.append(a[1]) or real(*a, **k))
+    d = rs.build_risk_state(_md_store(tmp_path, closes, days), NOW)
+    assert idx["2026-10-30"] in calls and d["month_decision"]["dial"] == "half"
+
+
+def test_status_stays_shadow_and_names_the_consumer_and_the_truth(tmp_path):
+    days, closes, _ = _md_path()
+    d = rs.build_risk_state(_md_store(tmp_path, closes, days), NOW)
+    assert d["status"] == "shadow"
+    assert d["consumers"] == ["screener paper book equal_dial"]
+    assert "paper" in d["changes"] and "no real-money" in d["changes"]
+    assert "nothing" not in d["changes"].lower()

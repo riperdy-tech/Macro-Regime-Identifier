@@ -2,7 +2,11 @@
 
 The dial is the price rule alone: half when SPY's latest close is strictly below the mean of its last 200 closes, else
 full. The macro reading (recession plus stagflation probability against its expanding top third) is stamped beside it as
-context. The file changes nothing: no book, size, buy, sell or hold reads it. The store is opened read-only.
+context. One paper-only book of the screener follows the month decision (half its positions in cash when the dial
+says half); no real-money book, order or size reads it. The store is opened read-only.
+
+`month_decision` is the dial as PREREG_risk_dial_v1's portfolio test took it: one decision a month, at the last SPY close
+before the month began, held all month. The MRI is its single owner; the book follows it, not the daily state.
 
 `price_signal` and `macro_signal` are the registered definitions; scripts/risk_dial_test.py imports them from here.
 """
@@ -69,6 +73,34 @@ def reading_series(reg):
     rs = (wide["recession"] + wide["stagflation"]).sort_index()
     months = pd.period_range(rs.index.min(), rs.index.max(), freq="M")
     return rs.reindex(months).to_numpy(dtype=float), months
+
+
+def month_decision(closes: np.ndarray, dates: list[date], asof: date | None) -> dict[str, Any]:
+    """The dial for the calendar month of `asof`: the price rule (`price_signal`, the same function as the daily dial)
+    on the closes up to and including the last close dated before that month began. `dial` is null, with a reason,
+    when that cannot be computed. Never a guess."""
+    if asof is None:
+        return {"month": None, "dial": None, "reason": "month_decision_no_asof: no SPY close in the store"}
+    month = f"{asof.year:04d}-{asof.month:02d}"
+    first = date(asof.year, asof.month, 1)
+    k = sum(1 for d in dates if d < first) - 1  # dates are ascending
+    if k < 0:
+        return {"month": month, "dial": None, "reason": f"month_decision_no_close: no SPY close before {first}"}
+    p = price_signal(closes, k)
+    if np.isnan(p):
+        return {
+            "month": month,
+            "dial": None,
+            "decided_on": dates[k].isoformat(),
+            "reason": f"month_decision_short: {k + 1} closes up to {dates[k]}, fewer than {PRICE_WINDOW}",
+        }
+    return {
+        "month": month,
+        "dial": "half" if p == 1.0 else "full",
+        "decided_on": dates[k].isoformat(),
+        "spy_close": float(closes[k]),
+        "spy_mean_200": float(np.mean(closes[k - PRICE_WINDOW + 1 : k + 1])),
+    }
 
 
 # --------------------------------------------------------------------------- the state
@@ -170,8 +202,10 @@ def build_risk_state(db_path: str | Path, now: datetime | None = None) -> dict[s
         "asof": spy_last.isoformat() if spy_last else None,
         "built_at": now.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "status": "shadow",
-        "changes": "nothing: no book, size, buy, sell or hold reads this file",
+        "changes": "one paper-only book of the screener follows the month decision (half its positions in cash when the dial says half); no real-money book, order or size reads it",
+        "consumers": ["screener paper book equal_dial"],
         "dial": dial,
+        "month_decision": month_decision(closes, dates, spy_last),
         "price_rule": price_rule,
         "macro_reading": macro,
         "vix_alarm": vix_alarm,

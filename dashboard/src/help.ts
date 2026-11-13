@@ -27,7 +27,7 @@ export const TOOLTIPS: Record<string, string> = {
     "Exported outputs = real backend run. Sample fixtures = bundled demo data when no run is present.",
 
   risk_dial:
-    "A shadow stamp, full or half, set by one price rule on SPY. Nothing reads it. The macro reading and the VIX alarm sit beside it as context.",
+    "A stamp, full or half, set by one price rule on SPY. One paper-only book of the screener follows the month decision (half its positions in cash when the dial says half); no real-money book, order or size reads it. The macro reading and the VIX alarm sit beside it as context.",
   data_health:
     "How old the inputs behind the latest reading are, which late releases were carried forward, what the daily run warned about, and whether the sector prices are fresh.",
 
@@ -104,7 +104,7 @@ export const EVIDENCE = {
     "This label describes the present state. It has predicted turbulence, not direction: after a high recession-plus-stagflation reading the market's next-three-month volatility was 22% against 14%.",
   sectorRanking:
     "Tested, no predictive skill: the ranking's rank correlation with the next 1, 3 and 6 months' sector returns was +0.002, −0.016 and −0.038 over about 310 months. It is shown as a description and drives nothing.",
-  dialShadow: "Shadow: nothing reads this. No book, size, buy or sell changes with it.",
+  dialShadow: "One paper-only book of the screener follows the month decision (half its positions in cash when the dial says half). No real-money book, order or size reads this.",
   dialRule: "Half when the market (SPY) is below its 200-day average, otherwise full.",
   dialContext: "Context: watched, not in the dial.",
   // Shown only while risk_state.json reports this verdict and sample (MIXED, 320 months).

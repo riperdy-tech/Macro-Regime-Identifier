@@ -53,8 +53,8 @@ OPTIONAL_OUTPUT_FILES = [
     # (N1.6), read straight from daily_diagnostic_summary.json. A local run
     # can still produce this file, so it stays optional rather than removed.
     "news_source_coverage_report.json",
-    # WO_MS1: the shadow risk dial. Read by nothing but the dashboard panel; a run that did not
-    # write it (or wrote it degraded) shows that on the page and changes no other consumer.
+    # WO_MS1: the shadow risk dial. Read by the dashboard panel and by one paper-only screener book
+    # (no real-money book); a run that did not write it (or wrote it degraded) shows that on the page.
     "risk_state.json",
 ]
 HISTORY_INDEX_FILE = "history_index.json"

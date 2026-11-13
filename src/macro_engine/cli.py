@@ -1788,7 +1788,7 @@ def write_risk_state_cli(
     db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
 ) -> None:
     """Write the shadow risk dial (outputs/risk_state.json and its dated archive copy). Read-only on the store;
-    nothing reads the file yet (PREREG_risk_dial_v1: MIXED, the dial is the price rule alone)."""
+    one paper-only screener book follows its month decision; no real-money book reads it (PREREG_risk_dial_v1: MIXED, the dial is the price rule alone)."""
     from macro_engine.risk_state import write_risk_state
 
     json_path, archive_path = write_risk_state(db_path=db_path, outputs_dir=outputs_dir)

@@ -86,7 +86,16 @@ export type RiskState = {
   asof?: string | null;
   built_at?: string;
   status?: string;
+  consumers?: string[];
   dial?: { state?: "full" | "half" | null; rule?: string; since?: string | null };
+  month_decision?: {
+    month?: string | null;
+    dial?: "full" | "half" | null;
+    decided_on?: string | null;
+    spy_close?: number;
+    spy_mean_200?: number;
+    reason?: string;
+  };
   price_rule?: { spy_close?: number; mean_200?: number; below?: boolean; closes_used?: number } | null;
   macro_reading?: {
     month?: string;

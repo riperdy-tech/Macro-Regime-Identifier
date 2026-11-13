@@ -111,7 +111,7 @@ Step "daily diagnostic (local config)" {
     & $Py -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline_local.yaml --archive
 }
 
-# Shadow risk dial (WO_RD2): a stamp for the record, read by nothing yet. Not in the screener export list.
+# Shadow risk dial (WO_RD2): a stamp for the record, read by one paper-only screener book (no real-money book). Not in the screener export list.
 Step "shadow risk dial (write-risk-state)" {
     & $Py -m macro_engine.cli write-risk-state
 } -NonFatal
