@@ -193,6 +193,11 @@ class LongRunGrowthAnchor(BaseModel):
     leg_ages: dict[str, dict[str, Any]] = Field(default_factory=dict)
     # The largest `age_days` among the legs that have one; null when none has.
     oldest_leg_age_days: int | None = None
+    # Ruling B8 (2026-11-13): the forward real-potential leg published BESIDE the trailing one: the trend of the stored
+    # potential-output projection over the next ten years, and the rung step the same 0.85 x (real + inflation) rule
+    # would give. Annotation only (status "published_beside_not_used"): nothing reads it for terminal_g_suggestion, the
+    # rung or any other field.
+    forward_leg: dict[str, Any] | None = None
     source_files: list[str] = Field(default_factory=list)
     provenance: AnchorProvenance = Field(default_factory=AnchorProvenance)
     deprecations: list[str] = Field(default_factory=list)

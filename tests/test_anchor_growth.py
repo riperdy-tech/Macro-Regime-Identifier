@@ -11,7 +11,9 @@ actually release the rung, and the label must have no code path to any numeric f
 
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -622,7 +624,83 @@ def test_adding_leg_ages_moves_no_existing_field():
         (Path(__file__).parent / "fixtures" / "growth_anchor_before_leg_ages.json").read_text(encoding="utf-8")
     )
     after = _build(_fixture_observations()).model_dump(mode="json")
-    assert set(after) - set(before) == _NEW_LEG_AGE_FIELDS
+    assert set(after) - set(before) == _NEW_LEG_AGE_FIELDS | {"forward_leg"}
     assert set(before) <= set(after)
     for key, value in before.items():
         assert json.dumps(after[key], sort_keys=True) == json.dumps(value, sort_keys=True), key
+
+
+# --- WO_MX2 build 3 (ruling B8): the forward real-potential leg is published beside the trailing one -------------
+
+def _with_future_path(past_rate: float, future_rate: float) -> pd.DataFrame:
+    """Potential output at `past_rate` up to the 2026-04-01 build month, then at `future_rate` for ten more years (a projection)."""
+    dates = pd.date_range("2006-01-01", "2036-10-01", freq="QS")
+    values, level = [], 100.0
+    for index, date in enumerate(dates):
+        if index:
+            rate = past_rate if date <= pd.Timestamp("2026-04-01") else future_rate
+            level *= math.exp(rate / 4)
+        values.append(level)
+    return pd.DataFrame({"date": dates, "value": values})
+
+
+def _fixture_with_future(past_rate: float, future_rate: float):
+    return _observations(
+        {"GDPPOT": _with_future_path(past_rate, future_rate), "T5YIFR": _flat_monthly_series(2.30, AS_OF)}
+    )
+
+
+def test_the_forward_leg_is_the_trend_of_the_projected_quarters_after_the_build_month():
+    anchor = _build(_fixture_with_future(0.010, 0.030))
+    leg = anchor.forward_leg
+    assert leg["status"] == "published_beside_not_used"
+    assert leg["series"] == "GDPPOT"
+    # a ten-year window from the first day of the build month (2026-04-01), quarters dated inside it, both ends included
+    assert leg["window"]["start"] == "2026-04-01" and leg["window"]["end"] == "2036-04-01"
+    assert leg["window"]["first_observation"] == "2026-04-01" and leg["window"]["last_observation"] == "2036-04-01"
+    assert leg["window"]["n_observations"] == 41
+    # the study's definition: the compounded annual rate exp(slope) - 1 of the log-linear fit
+    assert leg["real_potential"] == pytest.approx(math.exp(0.030) - 1, abs=1e-5)
+    assert leg["raw_trend_g"] == pytest.approx(0.85 * (leg["real_potential"] + 0.023), abs=1e-6)
+    assert leg["terminal_g_step"] == 0.045
+    # the trailing leg and the published rung do not see the projection at all
+    assert anchor.components["real_potential"] == pytest.approx(0.010, abs=2e-4)
+
+
+def test_the_forward_step_uses_the_anchors_clamp_and_25bp_rounding():
+    # 1.8% for ever: forward real 1.8163%, + 2.30% inflation, x 0.85 = 3.5%, a rung of exactly 3.50%
+    leg = _build(_fixture_with_future(0.018, 0.018)).forward_leg
+    assert leg["real_potential"] == pytest.approx(0.018163, abs=2e-6)
+    assert leg["raw_trend_g"] == pytest.approx(0.85 * (0.018163 + 0.023), abs=1e-5)
+    assert leg["terminal_g_step"] == 0.035
+
+
+def test_the_forward_leg_is_unavailable_not_zero_when_the_store_holds_no_projection():
+    anchor = _build(_fixture_observations())  # potential output ends 2025-10-01: nothing after the build month
+    leg = anchor.forward_leg
+    assert leg["status"] == "unavailable"
+    assert leg["real_potential"] is None and leg["raw_trend_g"] is None and leg["terminal_g_step"] is None
+    assert leg["reason"]
+    assert anchor.terminal_g_suggestion is not None  # the anchor itself is unaffected
+
+
+def test_no_forward_projection_moves_any_existing_field():
+    low = _build(_fixture_with_future(0.018, 0.000)).model_dump(mode="json")
+    high = _build(_fixture_with_future(0.018, 0.100)).model_dump(mode="json")
+    assert low["forward_leg"] != high["forward_leg"]
+    for key in set(low) - {"forward_leg"}:
+        assert json.dumps(low[key], sort_keys=True) == json.dumps(high[key], sort_keys=True), key
+
+
+def test_adding_the_forward_leg_changes_no_existing_field_byte_for_byte():
+    """The fixture build before this change (GDPPOT with a projection to 2036), field for field."""
+    before = json.loads(
+        (Path(__file__).parent / "fixtures" / "growth_anchor_before_forward_leg.json").read_text(encoding="utf-8")
+    )
+    after = _build(
+        _observations({"GDPPOT": _potential_output(0.018, years=30), "T5YIFR": _flat_monthly_series(2.30, AS_OF)})
+    ).model_dump(mode="json")
+    assert set(after) - set(before) == {"forward_leg"}
+    for key, value in before.items():
+        assert json.dumps(after[key], sort_keys=True) == json.dumps(value, sort_keys=True), key
+    assert after["forward_leg"]["status"] == "published_beside_not_used"

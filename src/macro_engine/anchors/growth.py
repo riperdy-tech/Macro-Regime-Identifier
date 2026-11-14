@@ -103,6 +103,50 @@ def log_linear_trend_annualized(
     return slope, last_date, len(frame)
 
 
+def forward_log_linear_trend(
+    values: pd.Series,
+    dates: pd.Series,
+    *,
+    window_years: int,
+    min_observations: int,
+    start: pd.Timestamp,
+) -> tuple[float | None, str | None, str | None, int]:
+    """Annual growth of a stored projection over the `window_years` from `start` (ruling B8, REPORT_DS2).
+
+    The forward counterpart of `log_linear_trend_annualized`, with the definition the rates-design study used: OLS of
+    log(level) on time over the observations dated in [start, start + window_years], both ends included, returned as
+    the compounded annual rate exp(slope) - 1 (the trailing leg's figure is the continuously-compounded slope itself;
+    the two differ by about 2 bp at 2% growth, which is why the published block says so). The dates after `start` are a
+    projection as of the latest stored vintage, not point-in-time.
+
+    Returns (annual_rate, first_observation_iso, last_observation_iso, n_observations); the rate is None when fewer
+    than `min_observations` quarters fall in the window.
+    """
+    frame = pd.DataFrame({"date": pd.to_datetime(dates, errors="coerce"), "value": values})
+    frame["value"] = pd.to_numeric(frame["value"], errors="coerce")
+    frame = frame.dropna(subset=["date", "value"])
+    begin = normalize_asof(start)
+    frame = frame[(frame["date"] >= begin) & (frame["date"] <= begin + pd.DateOffset(years=int(window_years)))]
+    frame = frame[frame["value"] > 0]
+    if len(frame) < min_observations:
+        return None, None, None, len(frame)
+    x = (frame["date"] - frame["date"].min()).dt.days.astype(float) / 365.25
+    y = frame["value"].map(math.log)
+    x_mean, y_mean = x.mean(), y.mean()
+    denominator = float(((x - x_mean) ** 2).sum())
+    if denominator == 0.0:
+        return None, None, None, len(frame)
+    slope = float(((x - x_mean) * (y - y_mean)).sum() / denominator)
+    if not math.isfinite(slope):
+        return None, None, None, len(frame)
+    return (
+        math.exp(slope) - 1.0,
+        frame["date"].min().date().isoformat(),
+        frame["date"].max().date().isoformat(),
+        len(frame),
+    )
+
+
 def trailing_12m_mean_of_monthly_mean(
     values: pd.Series,
     dates: pd.Series,
@@ -559,6 +603,52 @@ def build_long_run_growth_anchor(
         }
     known_ages = [leg["age_days"] for leg in leg_ages.values() if leg["age_days"] is not None]
 
+    # Ruling B8: the forward real-potential leg, published beside the trailing one and used by nothing here.
+    forward_window_end = month_m + pd.DateOffset(years=int(growth.real_potential.trend_window_years))
+    forward_real, forward_first, forward_last, forward_n = forward_log_linear_trend(
+        real_frame["value"] if not real_frame.empty else pd.Series(dtype="float64"),
+        real_frame["date"] if not real_frame.empty else pd.Series(dtype="datetime64[ns]"),
+        window_years=growth.real_potential.trend_window_years,
+        min_observations=growth.real_potential.min_observations,
+        start=month_m,
+    )
+    forward_raw = None
+    forward_step = None
+    if forward_real is not None and inflation_expectation is not None:
+        forward_raw = (forward_real + inflation_expectation) * clamp.max_share_of_nominal_trend
+        forward_clamped = min(max(forward_raw, clamp.floor), clamp.ceiling)
+        forward_step = round(round(forward_clamped / clamp.round_to) * clamp.round_to, 6)
+    forward_reason = None
+    if forward_real is None:
+        forward_reason = (
+            f"{real_series} has {forward_n} stored observations dated in the ten years from "
+            f"{month_m.date().isoformat()}; {growth.real_potential.min_observations} required to fit a forward trend"
+        )
+    elif inflation_expectation is None:
+        forward_reason = "no inflation-expectation leg, so no raw trend or step"
+    forward_leg: dict[str, Any] = {
+        "status": "published_beside_not_used" if forward_reason is None else "unavailable",
+        "series": real_series,
+        "real_potential": None if forward_real is None else round(forward_real, 6),
+        "window": {
+            "start": month_m.date().isoformat(),
+            "end": forward_window_end.date().isoformat(),
+            "first_observation": forward_first,
+            "last_observation": forward_last,
+            "n_observations": forward_n,
+        },
+        "raw_trend_g": None if forward_raw is None else round(forward_raw, 6),
+        "terminal_g_step": forward_step,
+        "method": (
+            "real_potential = exp(slope) - 1 of the log-linear fit over the stored quarters dated in the window "
+            "(the trailing leg in `components` is the slope itself); raw_trend_g = max_share_of_nominal_trend x "
+            "(real_potential + the trailing inflation-expectation leg); terminal_g_step = clamp, then round_to. "
+            "The projection is the latest stored vintage, not point-in-time. Not used by terminal_g_suggestion."
+        ),
+    }
+    if forward_reason is not None:
+        forward_leg["reason"] = forward_reason
+
     prior = growth.downstream_prior_in_use
     delta = None if suggestion is None or prior is None else round(suggestion - prior, 6)
     degraded = nominal_trend is None
@@ -590,6 +680,7 @@ def build_long_run_growth_anchor(
         degraded=degraded,
         leg_ages=leg_ages,
         oldest_leg_age_days=max(known_ages) if known_ages else None,
+        forward_leg=forward_leg,
         source_files=list(source_files or []),
         provenance=AnchorProvenance(
             scoring_mode=scoring_mode,
