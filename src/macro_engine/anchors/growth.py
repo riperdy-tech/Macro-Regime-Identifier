@@ -472,6 +472,7 @@ def build_long_run_growth_anchor(
     inflation_expectation_spot = None
     inflation_series_used = None
     inflation_months_used = 0
+    inflation_last_observed = None
     for ref in growth.inflation_expectation.candidates:
         frame = _series_slice(observations, ref.series)
         smoothed, month_end, n_months = trailing_12m_mean_of_monthly_mean(
@@ -498,6 +499,10 @@ def build_long_run_growth_anchor(
         inflation_series_used = ref.series
         inflation_months_used = n_months
         input_dates[ref.series] = month_end
+        # The leg's own newest observation: the last one inside the trailing window (the build month
+        # is not in it), not the month-end `input_dates` carries.
+        used_dates = frame.loc[frame["date"] <= last_complete_month_end, "date"]
+        inflation_last_observed = None if used_dates.empty else used_dates.max().date().isoformat()
         break
     if inflation_expectation is None:
         reasons.append(
@@ -538,6 +543,22 @@ def build_long_run_growth_anchor(
 
 
 
+    # Annotation only: the age of each leg's own observation as of the build date. Nothing here
+    # withholds a leg or changes a value.
+    as_of_day = as_of_dt.normalize()
+    leg_ages: dict[str, dict[str, Any]] = {}
+    for leg_name, leg_series, leg_observed in (
+        ("real_potential", real_series, real_date),
+        ("inflation_expectation", inflation_series_used, inflation_last_observed),
+    ):
+        leg_age = None if not leg_observed else (as_of_day - pd.Timestamp(leg_observed).normalize()).days
+        leg_ages[leg_name] = {
+            "series": leg_series,
+            "observed": leg_observed or None,
+            "age_days": leg_age,
+        }
+    known_ages = [leg["age_days"] for leg in leg_ages.values() if leg["age_days"] is not None]
+
     prior = growth.downstream_prior_in_use
     delta = None if suggestion is None or prior is None else round(suggestion - prior, 6)
     degraded = nominal_trend is None
@@ -567,6 +588,8 @@ def build_long_run_growth_anchor(
         downstream_prior_in_use=prior,
         delta=delta,
         degraded=degraded,
+        leg_ages=leg_ages,
+        oldest_leg_age_days=max(known_ages) if known_ages else None,
         source_files=list(source_files or []),
         provenance=AnchorProvenance(
             scoring_mode=scoring_mode,

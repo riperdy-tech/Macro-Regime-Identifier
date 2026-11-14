@@ -558,3 +558,71 @@ def test_v02_or_unversioned_prior_triggers_replay():
     assert rebuilt.rung_state["method_version"] == 1
     assert rebuilt.rung_state["rule"] == "candidate"
     assert rebuilt.rung_state["last_evaluated_month"] == "2026-03"
+
+
+# ── leg ages (annotation only) ─────────────────────────────────────────────────────
+
+_NEW_LEG_AGE_FIELDS = {"leg_ages", "oldest_leg_age_days"}
+
+
+def _fixture_observations():
+    return _observations(
+        {
+            "GDPPOT": _potential_output(0.018),
+            "T5YIFR": _flat_monthly_series(2.30, AS_OF),
+        }
+    )
+
+
+def test_growth_legs_carry_their_own_observation_date_and_age():
+    anchor = _build(_fixture_observations())
+    potential = anchor.leg_ages["real_potential"]
+    assert potential["series"] == "GDPPOT"
+    assert potential["observed"] == "2025-10-01"
+    assert potential["age_days"] == (AS_OF - pd.Timestamp("2025-10-01")).days
+    # The inflation leg is the mean over the complete months before the build month: its newest
+    # observation is the last one on or before 2026-03-31, not the build date.
+    inflation = anchor.leg_ages["inflation_expectation"]
+    assert inflation["series"] == "T5YIFR"
+    assert inflation["observed"] == "2026-03-31"
+    assert inflation["age_days"] == 30
+    assert anchor.oldest_leg_age_days == potential["age_days"]
+
+
+def test_a_leg_age_comes_from_the_legs_own_date_not_the_build_date():
+    short = _flat_monthly_series(2.30, pd.Timestamp("2026-01-15"))
+    anchor = _build(_observations({"GDPPOT": _potential_output(0.018), "T5YIFR": short}))
+    inflation = anchor.leg_ages["inflation_expectation"]
+    assert inflation["observed"] == "2026-01-15"
+    assert inflation["age_days"] == (AS_OF - pd.Timestamp("2026-01-15")).days == 105
+    # Annotation only: an old leg is neither withheld nor does it degrade the anchor.
+    assert anchor.components["inflation_expectation"] == pytest.approx(0.023)
+    assert anchor.degraded is False
+
+
+def test_a_leg_with_no_date_has_no_age_not_zero():
+    no_potential = _build(_observations({"T5YIFR": _flat_monthly_series(2.30, AS_OF)}))
+    leg = no_potential.leg_ages["real_potential"]
+    assert leg["observed"] is None
+    assert leg["age_days"] is None
+    assert no_potential.leg_ages["inflation_expectation"]["age_days"] == 30
+    assert no_potential.oldest_leg_age_days == 30
+
+    neither = _build(_observations({"OTHER": _flat_monthly_series(1.0, AS_OF)}))
+    assert all(leg["age_days"] is None for leg in neither.leg_ages.values())
+    assert neither.oldest_leg_age_days is None
+
+
+def test_adding_leg_ages_moves_no_existing_field():
+    """The fixture build before this change, field for field (generated on the code before it)."""
+    import json
+    from pathlib import Path
+
+    before = json.loads(
+        (Path(__file__).parent / "fixtures" / "growth_anchor_before_leg_ages.json").read_text(encoding="utf-8")
+    )
+    after = _build(_fixture_observations()).model_dump(mode="json")
+    assert set(after) - set(before) == _NEW_LEG_AGE_FIELDS
+    assert set(before) <= set(after)
+    for key, value in before.items():
+        assert json.dumps(after[key], sort_keys=True) == json.dumps(value, sort_keys=True), key

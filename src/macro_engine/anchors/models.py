@@ -187,6 +187,12 @@ class LongRunGrowthAnchor(BaseModel):
     downstream_prior_in_use: float | None = None
     delta: float | None = None
     degraded: bool = False
+    # Per leg (real_potential, inflation_expectation): the series, the date of its own newest observation
+    # and that observation's age in calendar days at `asof`. Annotation only: no leg is withheld for its
+    # age. A leg with no date has null `observed` and `age_days`, not 0.
+    leg_ages: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    # The largest `age_days` among the legs that have one; null when none has.
+    oldest_leg_age_days: int | None = None
     source_files: list[str] = Field(default_factory=list)
     provenance: AnchorProvenance = Field(default_factory=AnchorProvenance)
     deprecations: list[str] = Field(default_factory=list)
