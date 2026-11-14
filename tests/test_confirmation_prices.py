@@ -360,3 +360,30 @@ def test_named_ticker_with_no_bars_at_all_stays_missing_and_a_failure(tmp_path):
     rep = _ended_run(tmp_path, {"GONE": _payload("GONE", [], [], last_trade="2026-10-02")})
     assert rep["instruments"]["GONE"]["status"] == "missing"
     assert rep["ended_at_source"] == [] and rep["not_fresh"] == ["GONE"] and rep["ok"] is False
+
+
+class _Http(Exception):
+    def __init__(self, code):
+        super().__init__(f"{code} Client Error")
+        self.response = type("R", (), {"status_code": code})()
+
+
+def test_named_ticker_the_source_does_not_know_is_marked_and_does_not_fail_the_refresh(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _Http(404)})
+    inst = rep["instruments"]["GONE"]
+    assert inst["status"] == "not_found_at_source" and inst["fetch"]["http_status"] == 404
+    assert "404" in inst["fetch"]["error"]
+    assert rep["not_found_at_source"] == ["GONE"] and rep["fetch_errors"] == [] and rep["not_fresh"] == []
+    assert rep["ok"] is True
+
+
+def test_named_ticker_with_another_http_error_stays_a_failure(tmp_path):
+    rep = _ended_run(tmp_path, {"GONE": _Http(429)})
+    assert rep["instruments"]["GONE"]["status"] == "missing"
+    assert rep["not_found_at_source"] == [] and rep["fetch_errors"] == ["GONE"] and rep["ok"] is False
+
+
+def test_base_instrument_not_found_at_the_source_stays_a_failure(tmp_path):
+    rep = _ended_run(tmp_path, {"KBE": _Http(404)}, named=())
+    assert rep["instruments"]["KBE"]["status"] == "missing"
+    assert rep["not_found_at_source"] == [] and rep["fetch_errors"] == ["KBE"] and rep["ok"] is False

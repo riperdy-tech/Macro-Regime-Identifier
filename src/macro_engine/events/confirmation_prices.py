@@ -320,7 +320,8 @@ def refresh_confirmation_prices(
                              if not close.empty else None}
         except Exception as exc:  # noqa: BLE001 - one bad symbol must not stop the rest
             outcomes[sym] = {"range": range_, "rows_fetched": 0, "error": f"{type(exc).__name__}: {exc}",
-                             "repull_reason": None, "repull_error": None, "history_complete_since_listing": None}
+                             "repull_reason": None, "repull_error": None, "history_complete_since_listing": None,
+                             "http_status": getattr(getattr(exc, "response", None), "status_code", None)}
 
     report = freshness_report(db_path, symbols, cfg, now=now)
     for sym, out in outcomes.items():
@@ -344,7 +345,17 @@ def refresh_confirmation_prices(
         if weekday_lag(date.fromisoformat(last_trade), expected) > inst["limit"] and inst["newest"] >= newest_bar:
             inst["status"] = "ended_at_source"
             ended.append(sym)
+    # The same holds for a named ticker the source does not know at all (HTTP 404 on its chart: the symbol was
+    # removed, or the entity resolver named a symbol Yahoo never had). Retrying tomorrow gives the same answer, so
+    # it is recorded on the instrument and listed, and it is not a failed refresh. Any other fetch error (a timeout,
+    # a 429, a 5xx) stays a failure, and so does a 404 on a base instrument or sector ETF.
+    unknown = [sym for sym, out in outcomes.items()
+               if sym not in core and out.get("error") and out.get("http_status") == 404]
+    for sym in unknown:
+        report["instruments"][sym]["status"] = "not_found_at_source"
     report["ended_at_source"] = ended
-    report["not_fresh"] = [s for s in report["not_fresh"] if s not in ended]
+    report["not_found_at_source"] = sorted(unknown)
+    report["not_fresh"] = [s for s in report["not_fresh"] if s not in ended and s not in unknown]
+    report["fetch_errors"] = [s for s in report["fetch_errors"] if s not in unknown]
     report["ok"] = not report["not_fresh"] and not report["fetch_errors"] and not report["repull_errors"]
     return report
