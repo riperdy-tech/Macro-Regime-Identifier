@@ -117,6 +117,8 @@ export type DataHealthInput = {
   age_days?: number | null;
   used?: boolean | null;
   reason?: string | null;
+  extended_by_fallback?: boolean | null;
+  fallback_months?: number | null;
 };
 export type DataHealthGroup = {
   group?: string;

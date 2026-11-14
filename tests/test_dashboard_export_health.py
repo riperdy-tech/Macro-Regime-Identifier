@@ -285,6 +285,8 @@ def test_input_groups_come_from_the_store_read_only(tmp_path: Path):
         "age_days": 92,
         "used": True,
         "reason": "carried_forward",
+        "extended_by_fallback": False,
+        "fallback_months": None,
     }
 
     # 0 days is an age, not an absence.
@@ -370,3 +372,59 @@ def test_export_passes_the_store_through_and_writes_strict_json(tmp_path: Path):
     health = _strict(data_dir / DATA_HEALTH_FILE)
     assert health["schema"] == "mri.dashboard_data_health.v1"
     assert health["input_groups"][0]["group"] == "yield_curve"
+
+
+def _fallback_store(path: Path, day: date, *, with_column: bool) -> None:
+    _store(
+        path,
+        contributions=[
+            ("dollar", "usd", day, True, "extended_by_fallback"),
+            ("dollar", "usd_other", day, True, "ok"),
+            ("yield_curve", "curve", day, True, "ok"),
+        ],
+        asof=[
+            (day, "usd", date(2026, 8, 31), 62),
+            (day, "usd_other", date(2026, 10, 1), 31),
+            (day, "curve", day, 0),
+        ],
+        health=[("usd", "NNUSBIS"), ("usd_other", "DTWEXBGS"), ("curve", "T10Y2Y")],
+    )
+    if with_column:
+        con = duckdb.connect(str(path))
+        con.execute("ALTER TABLE asof_feature_values ADD COLUMN fallback_months INTEGER")
+        con.execute("UPDATE asof_feature_values SET fallback_months = 2 WHERE feature_id = 'usd'")
+        con.close()
+
+
+def test_an_input_extended_by_its_fallback_carries_the_flag_and_the_months(tmp_path: Path):
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    db = tmp_path / "store.duckdb"
+    day = date(2026, 11, 1)
+    _fallback_store(db, day, with_column=True)
+    before = _sha(db)
+
+    health = build_data_health(outputs, db_path=db, today=TODAY)
+
+    assert _sha(db) == before
+    inputs = {item["feature_id"]: item for group in health["input_groups"] for item in group["inputs"]}
+    assert inputs["usd"]["extended_by_fallback"] is True
+    assert inputs["usd"]["fallback_months"] == 2
+    for other in ("usd_other", "curve"):
+        assert inputs[other]["extended_by_fallback"] is False
+        assert inputs[other]["fallback_months"] is None
+
+
+def test_a_store_without_the_months_column_still_reports_the_flag(tmp_path: Path):
+    outputs = tmp_path / "outputs"
+    outputs.mkdir()
+    db = tmp_path / "store.duckdb"
+    day = date(2026, 11, 1)
+    _fallback_store(db, day, with_column=False)
+
+    health = build_data_health(outputs, db_path=db, today=TODAY)
+
+    assert health["input_groups_reason"] is None
+    inputs = {item["feature_id"]: item for group in health["input_groups"] for item in group["inputs"]}
+    assert inputs["usd"]["extended_by_fallback"] is True
+    assert inputs["usd"]["fallback_months"] is None

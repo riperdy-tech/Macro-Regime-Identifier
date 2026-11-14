@@ -38,6 +38,7 @@ import {
   asArray,
   combinedRows,
   dimensionLabel,
+  fallbackNote,
   dimensionSeries,
   formatCount,
   formatPct,
@@ -675,6 +676,10 @@ function DataHealthCard({ data }: { data: DashboardData }) {
                   (input) =>
                     `${seriesName(input.series_id || input.feature_id || "")} not used (${text(input.reason, NOT_REPORTED)})`,
                 ),
+                ...(group.inputs ?? []).flatMap((input) => {
+                  const note = fallbackNote(input);
+                  return note ? [`${seriesName(input.series_id || input.feature_id || "")} ${note}`] : [];
+                }),
               ];
               return (
                 <li key={group.group}>
@@ -740,6 +745,13 @@ function MacroPanel({ data }: { data: DashboardData }) {
   const [dimId, setDimId] = useState<string | null>(null);
   const activeDim = dims.find((d) => d.dimension_id === dimId) ?? dims[0];
   const held = Boolean(reported && raw && reported !== raw);
+  const fallbackNotes = (data.dataHealth?.input_groups ?? [])
+    .filter((group) => group.group === activeDim?.dimension_id)
+    .flatMap((group) => group.inputs ?? [])
+    .flatMap((input) => {
+      const note = fallbackNote(input);
+      return note ? [`${seriesName(input.series_id || input.feature_id || "")} ${note}`] : [];
+    });
   const note = regimeConfidenceNote(confidence, prettyRegime(reported));
 
   const featureEnd = text(getObject(data.macroFeatures).end_date, "");
@@ -810,6 +822,11 @@ function MacroPanel({ data }: { data: DashboardData }) {
               ))}
             </div>
             <p className="caption">Each line is a z-score: 0 is average, above 0 elevated, below 0 depressed.</p>
+            {fallbackNotes.map((item) => (
+              <p key={item} className="caption">
+                {item}
+              </p>
+            ))}
           </>
         ) : (
           <Missing />

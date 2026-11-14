@@ -209,7 +209,7 @@ def _sector_price_health(validation: dict[str, Any], today: date) -> dict[str, A
 
 _INPUT_GROUPS_SQL = """
 SELECT c.date, c.dimension_id, c.feature_id, h.series_id, c.valid, c.reason,
-       a.source_observation_date, a.lag_days
+       a.source_observation_date, a.lag_days, {fallback_months}
 FROM dimension_feature_contributions c
 LEFT JOIN asof_feature_values a
        ON a.feature_id = c.feature_id AND a.evaluation_date = CAST(c.date AS DATE)
@@ -236,7 +236,17 @@ def _input_groups(
 
         con = duckdb.connect(str(db_path), read_only=True)
         try:
-            rows = con.execute(_INPUT_GROUPS_SQL).fetchall()
+            # A store older than WO_MF3 has no `fallback_months` column: the months stay absent.
+            columns = {
+                row[0]
+                for row in con.execute(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'asof_feature_values'"
+                ).fetchall()
+            }
+            fallback_months = (
+                "CAST(a.fallback_months AS INTEGER)" if "fallback_months" in columns else "CAST(NULL AS INTEGER)"
+            )
+            rows = con.execute(_INPUT_GROUPS_SQL.format(fallback_months=fallback_months)).fetchall()
         finally:
             con.close()
     except Exception as exc:  # a locked store, or one without these tables: named, never fatal
@@ -246,7 +256,7 @@ def _input_groups(
 
     groups: dict[str, dict[str, Any]] = {}
     carried: list[dict[str, Any]] = []
-    for _, dimension_id, feature_id, series_id, valid, reason, observed, lag_days in rows:
+    for _, dimension_id, feature_id, series_id, valid, reason, observed, lag_days, fallback_months in rows:
         entry = {
             "feature_id": feature_id,
             "series_id": series_id,
@@ -254,6 +264,8 @@ def _input_groups(
             "age_days": None if lag_days is None else int(lag_days),
             "used": None if valid is None else bool(valid),
             "reason": reason,
+            "extended_by_fallback": reason == "extended_by_fallback",
+            "fallback_months": None if fallback_months is None else int(fallback_months),
         }
         group = groups.setdefault(
             dimension_id,

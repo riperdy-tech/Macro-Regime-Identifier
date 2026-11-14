@@ -250,3 +250,18 @@ const SERIES_NAMES: Record<string, string> = {
 export function seriesName(seriesId: string): string {
   return SERIES_NAMES[seriesId] ?? seriesId;
 }
+
+// Said where an input's score is shown, only when the reading was extended by its fallback series.
+export function fallbackNote(input: {
+  series_id?: string | null;
+  extended_by_fallback?: boolean | null;
+  fallback_months?: number | null;
+}): string | null {
+  if (input.extended_by_fallback !== true) return null;
+  const months =
+    typeof input.fallback_months === "number" ? ` for ${input.fallback_months} month${input.fallback_months === 1 ? "" : "s"}` : "";
+  if (input.series_id === "NNUSBIS") {
+    return `extended with the Fed's broad dollar index${months} (the narrow index has not been published)`;
+  }
+  return `extended with its fallback series${months}`;
+}
