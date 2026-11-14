@@ -111,6 +111,12 @@ Step "daily diagnostic (local config)" {
     & $Py -m macro_engine.cli run-daily-diagnostic --config config/daily_pipeline_local.yaml --archive
 }
 
+# Rewrites outputs\sector_validation.json/.md from the store tables the diagnostic just refreshed (the cloud job runs the same command; this
+# PC's copy stopped at 2026-09-18 because nothing here wrote it).
+Step "sector validation report (write-sector-validation-report)" {
+    & $Py -m macro_engine.cli write-sector-validation-report --config config/sector_validation.yaml
+} -NonFatal
+
 # Shadow risk dial (WO_RD2): a stamp for the record, read by one paper-only screener book (no real-money book). Exported below as an optional file.
 Step "shadow risk dial (write-risk-state)" {
     & $Py -m macro_engine.cli write-risk-state
