@@ -42,6 +42,10 @@ class PipelineSummary:
     outputs: list[str] | None = None
     vintage_deferred_pairs: int = 0
     warnings: tuple[str, ...] = ()
+    # Facts about the run that are not warnings (WO_MX2): features switched off in config, and how many invalid
+    # dimension/regime months lie before the warning window (the start of a series' history).
+    disabled_features: tuple[str, ...] = ()
+    history_invalid_months: int = 0
 
     def to_dict(self) -> dict:
         return {
@@ -61,6 +65,8 @@ class PipelineSummary:
             "outputs": self.outputs or [],
             "vintage_deferred_pairs": self.vintage_deferred_pairs,
             "warnings": list(self.warnings),
+            "disabled_features": list(self.disabled_features),
+            "history_invalid_months": self.history_invalid_months,
         }
 
 
@@ -90,6 +96,9 @@ def run_pipeline(
     report_config = load_report_config(config_path)
     output_dir = report_config.output_dir
     warnings: list[str] = []
+    disabled_features: list[str] = []
+    history_invalid_months = 0
+    as_of = pd.Timestamp(end) if end else pd.Timestamp.now(tz="UTC").tz_localize(None)
     outputs: list[str] = []
     ingestion_summary = None
     failed_step: str | None = None
@@ -119,7 +128,7 @@ def run_pipeline(
             run_id=run_id,
         )
         print("pipeline: build-features done", flush=True)
-        _collect_invalid_feature_warnings(feature_result.feature_health, warnings)
+        disabled_features = _collect_invalid_feature_warnings(feature_result.feature_health, warnings)
 
         failed_step = "vintages"
         print("pipeline: vintages start", flush=True)
@@ -186,7 +195,9 @@ def run_pipeline(
             parquet_dir=parquet_dir,
         )
         print("pipeline: build-dimensions done", flush=True)
-        _collect_invalid_dimension_warnings(dimension_result.dimension_scores, warnings)
+        history_invalid_months += _collect_invalid_dimension_warnings(
+            dimension_result.dimension_scores, warnings, as_of=as_of
+        )
 
         failed_step = "build-regimes"
         print("pipeline: build-regimes start", flush=True)
@@ -197,7 +208,9 @@ def run_pipeline(
             run_id=run_id,
         )
         print("pipeline: build-regimes done", flush=True)
-        _collect_invalid_regime_warnings(regime_result.regime_scores, warnings)
+        history_invalid_months += _collect_invalid_regime_warnings(
+            regime_result.regime_scores, warnings, as_of=as_of
+        )
 
         failed_step = "run-historical-diagnostic"
         print("pipeline: historical-diagnostic start", flush=True)
@@ -245,6 +258,8 @@ def run_pipeline(
             outputs=outputs,
             vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
             warnings=tuple(warnings),
+            disabled_features=tuple(disabled_features),
+            history_invalid_months=history_invalid_months,
         )
     except Exception:
         status = "failed"
@@ -259,6 +274,8 @@ def run_pipeline(
             outputs=outputs,
             vintage_deferred_pairs=getattr(vintage_summary, "deferred_count", 0) if "vintage_summary" in locals() else 0,
             warnings=tuple(warnings),
+            disabled_features=tuple(disabled_features),
+            history_invalid_months=history_invalid_months,
         )
         _record_pipeline_summary(store, summary, started_at)
         raise
@@ -276,27 +293,51 @@ def _vintage_partial_warnings(vintage_summary) -> list[str]:
     return [f"vintage_partial:{series}" for series in vintage_summary.failed_series]
 
 
-def _collect_invalid_feature_warnings(feature_health: pd.DataFrame, warnings: list[str]) -> None:
+def _collect_invalid_feature_warnings(feature_health: pd.DataFrame, warnings: list[str]) -> list[str]:
+    """Warn for each unusable feature, except one switched off in config: that is configuration, and its ids are
+    returned to be listed once under `disabled_features`."""
+    disabled: list[str] = []
     if feature_health.empty:
-        return
+        return disabled
     for row in feature_health[~feature_health["usable"]].to_dict(orient="records"):
+        if row["reason"] == "disabled_feature":
+            disabled.append(str(row["feature_id"]))
+            continue
         warnings.append(f"invalid_feature:{row['feature_id']}:{row['reason']}")
+    return disabled
 
 
-def _collect_invalid_dimension_warnings(dimension_scores: pd.DataFrame, warnings: list[str]) -> None:
+def _invalid_months_in_window(scores: pd.DataFrame, as_of: pd.Timestamp) -> tuple[pd.DataFrame, int]:
+    """Invalid rows dated within the last 12 months of `as_of`, newest first, and how many older ones there are.
+
+    The older ones (the start of a series' history, years back) are a fact about the history, not a warning about
+    today; they are counted, never listed, and no recent month is ever dropped by a cap."""
+    invalid = scores[~scores["valid"]].copy()
+    invalid["date"] = pd.to_datetime(invalid["date"])
+    recent = invalid["date"] > as_of.normalize() - pd.DateOffset(months=12)
+    return invalid[recent].sort_values("date", ascending=False, kind="stable"), int((~recent).sum())
+
+
+def _collect_invalid_dimension_warnings(
+    dimension_scores: pd.DataFrame, warnings: list[str], *, as_of: pd.Timestamp
+) -> int:
     if dimension_scores.empty:
-        return
-    invalid = dimension_scores[~dimension_scores["valid"]]
-    for row in invalid.tail(25).to_dict(orient="records"):
-        warnings.append(f"invalid_dimension:{row['dimension_id']}:{row['reason']}")
+        return 0
+    recent, older = _invalid_months_in_window(dimension_scores, as_of)
+    for row in recent.to_dict(orient="records"):
+        warnings.append(f"invalid_dimension:{row['dimension_id']}:{row['date']:%Y-%m}:{row['reason']}")
+    return older
 
 
-def _collect_invalid_regime_warnings(regime_scores: pd.DataFrame, warnings: list[str]) -> None:
+def _collect_invalid_regime_warnings(
+    regime_scores: pd.DataFrame, warnings: list[str], *, as_of: pd.Timestamp
+) -> int:
     if regime_scores.empty:
-        return
-    invalid = regime_scores[~regime_scores["valid"]]
-    for row in invalid.tail(25).to_dict(orient="records"):
-        warnings.append(f"invalid_regime:{row['regime_id']}:{row['reason']}")
+        return 0
+    recent, older = _invalid_months_in_window(regime_scores, as_of)
+    for row in recent.to_dict(orient="records"):
+        warnings.append(f"invalid_regime:{row['regime_id']}:{row['date']:%Y-%m}:{row['reason']}")
+    return older
 
 
 def _latest_current_regime(store: DuckDBStore) -> dict:

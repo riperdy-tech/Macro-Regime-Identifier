@@ -434,6 +434,8 @@ def test_pipeline_summary_is_deterministic_shape(tmp_path):
         "outputs",
         "vintage_deferred_pairs",
         "warnings",
+        "disabled_features",
+        "history_invalid_months",
     }
     assert summary["mode"] == "mock"
 

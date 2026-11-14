@@ -79,6 +79,7 @@ def run_daily_diagnostic(
     run_deadline = time.monotonic() + config.safety.overall_run_timeout_minutes * 60.0
     outputs: list[str] = []
     warnings: list[str] = []
+    macro_facts: dict[str, Any] = {}
     errors: list[str] = []
     profile = source_profile or config.news.source_profile
     statuses = {
@@ -113,6 +114,7 @@ def run_daily_diagnostic(
                     services,
                     run_deadline=run_deadline,
                     warnings=warnings,
+                    facts=macro_facts,
                 ),
                 fail=True,
                 deadline=run_deadline,
@@ -367,6 +369,7 @@ def run_daily_diagnostic(
         archive_path=None,
         news_history=news_history_result,
         news_health=news_health_result,
+        macro_facts=macro_facts,
     )
     summary_json, summary_md = write_daily_summary(summary_payload, output_dir)
     outputs.extend([str(summary_json), str(summary_md)])
@@ -440,6 +443,7 @@ def build_daily_summary_payload(
     archive_path: str | None,
     news_history: dict[str, Any] | None = None,
     news_health: dict[str, Any] | None = None,
+    macro_facts: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     from macro_engine.ingest.service import compute_vintage_backlog
 
@@ -469,6 +473,8 @@ def build_daily_summary_payload(
             "news_health": news_health or {},
             "warnings": warnings,
             "warning_count": len(warnings),
+            # facts the macro step reports that are not warnings (disabled_features, history_invalid_months)
+            **(macro_facts or {}),
             # steps that failed without taking the run down (`failed_optional`): visible here, not only in
             # step_statuses, so a monitor does not have to know which steps are optional
             "non_fatal_failures": [
@@ -777,6 +783,7 @@ def _run_macro(
     *,
     run_deadline: float | None = None,
     warnings: list[str] | None = None,
+    facts: dict[str, Any] | None = None,
 ) -> None:
     runner = services.get("run_pipeline", run_pipeline)
     print("daily: macro pipeline (ingest -> features -> dimensions -> regimes -> reports)", flush=True)
@@ -812,6 +819,11 @@ def _run_macro(
     if warnings is not None:
         for w in getattr(summary, "warnings", ()):
             warnings.append(str(w))
+    if facts is not None:
+        for key in ("disabled_features", "history_invalid_months"):
+            if hasattr(summary, key):
+                value = getattr(summary, key)
+                facts[key] = list(value) if isinstance(value, (tuple, list)) else value
 
     if summary.status == "success_with_warnings":
         return

@@ -6,7 +6,10 @@ sources:
     frequency: monthly
     required: true
     enabled: true
-    stale_after_days: 45
+    # stale limit = release lag 45 + 30 (one month between releases) + 15 days of margin = 90. The lag 45 is
+    # `publication_lag_days` below (the lag RR_MX1 I2 lists for this series, 45 days, 2026-11-14). The old limit 45
+    # was shorter than the lag itself, so the series was 'stale' on every day of the gap between one release and the next.
+    stale_after_days: 90
     unusable_after_days: 120
     publication_lag_days: 45
 
@@ -50,7 +53,10 @@ sources:
     frequency: monthly
     required: true
     enabled: true
-    stale_after_days: 45
+    # stale limit = release lag 58 + 30 (one month between releases) + 15 days of margin = 103. The lag 58 is
+    # `publication_lag_days` below (the lag RR_MX1 I2 lists for this series, 58 days, 2026-11-14). The old limit 45
+    # was shorter than the lag itself, so the series was 'stale' on every day of the gap between one release and the next.
+    stale_after_days: 103
     unusable_after_days: 120
     publication_lag_days: 58
 
@@ -153,7 +159,10 @@ sources:
     frequency: monthly
     required: false
     enabled: true
-    stale_after_days: 45
+    # stale limit = release lag 55 + 30 (one month between releases) + 15 days of margin = 100. The lag 55 is
+    # `publication_lag_days` below (the lag RR_MX1 I2 lists for this series, 55 days, 2026-11-14). The old limit 45
+    # was shorter than the lag itself, so the series was 'stale' on every day of the gap between one release and the next.
+    stale_after_days: 100
     unusable_after_days: 120
     publication_lag_days: 55
 
@@ -164,7 +173,10 @@ sources:
     frequency: monthly
     required: false
     enabled: true
-    stale_after_days: 45
+    # stale limit = release lag 47 + 30 (one month between releases) + 15 days of margin = 92. The lag 47 is
+    # `publication_lag_days` below (the lag RR_MX1 I2 lists for this series, 47 days, 2026-11-14). The old limit 45
+    # was shorter than the lag itself, so the series was 'stale' on every day of the gap between one release and the next.
+    stale_after_days: 92
     unusable_after_days: 120
     publication_lag_days: 47
 
@@ -310,7 +322,10 @@ sources:
     frequency: daily
     required: false
     enabled: true
-    stale_after_days: 5
+    # The Fed publishes this index weekly, not daily: the newest observation is 7 to 8 days old on a normal day
+    # (measured 2026-11-14, RR_MX1 / RR_MF3), so the daily limit 5 made it stale every week. 10 = a week plus the
+    # publication gap; a missed week is stale. `frequency` and `publication_lag_days` are unchanged.
+    stale_after_days: 10
     unusable_after_days: 15
     publication_lag_days: 1
 
