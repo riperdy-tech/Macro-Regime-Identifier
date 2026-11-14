@@ -1,6 +1,6 @@
 {
   "schema": "mri.dashboard_data_health.v1",
-  "generated_at": "2026-11-13T08:26:19.862112+00:00",
+  "generated_at": "2026-11-14T03:02:09.355793+00:00",
   "reading_date": "2026-11-01",
   "input_groups": [
     {
@@ -49,19 +49,19 @@
     },
     {
       "group": "dollar",
-      "oldest_input_date": "2026-07-01",
-      "oldest_input_age_days": 123,
+      "oldest_input_date": "2026-09-01",
+      "oldest_input_age_days": 61,
       "input_count": 1,
       "carried_forward_count": 0,
-      "not_used_count": 1,
+      "not_used_count": 0,
       "inputs": [
         {
           "feature_id": "usd_narrow_yoy_z",
           "series_id": "NNUSBIS",
-          "observation_date": "2026-07-01",
-          "age_days": 123,
-          "used": false,
-          "reason": "stale_asof_value"
+          "observation_date": "2026-09-01",
+          "age_days": 61,
+          "used": true,
+          "reason": "extended_by_fallback"
         }
       ]
     },
@@ -243,7 +243,7 @@
   "input_groups_reason": null,
   "carried_forward": [],
   "daily": {
-    "run_date": "2026-11-13",
+    "run_date": "2026-11-14",
     "status": "success_with_warnings",
     "warning_count": 32,
     "warnings": [
@@ -273,11 +273,11 @@
       },
       {
         "warning": "invalid_dimension:real_rates:below_min_valid_features",
-        "count": 23
+        "count": 24
       },
       {
         "warning": "invalid_dimension:dollar:below_min_valid_features",
-        "count": 2
+        "count": 1
       },
       {
         "warning": "news_health_degraded:source_dead:nasdaq_markets_rss",
@@ -288,13 +288,13 @@
     "non_fatal_failures": [],
     "feature_freshness": {
       "gap_days": 0,
-      "max_feature_date": "2026-11-12",
-      "max_raw_observation_date": "2026-11-12",
+      "max_feature_date": "2026-11-13",
+      "max_raw_observation_date": "2026-11-13",
       "stale": false
     }
   },
   "sector_prices": {
-    "last_price_date": "2026-11-12",
+    "last_price_date": "2026-11-13",
     "age_days": 1,
     "fresh": true,
     "fresh_within_days": 5,

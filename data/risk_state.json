@@ -1,17 +1,27 @@
 {
   "schema": "mri.risk_state.v1",
-  "asof": "2026-11-12",
-  "built_at": "2026-11-13T08:26:06Z",
+  "asof": "2026-11-13",
+  "built_at": "2026-11-14T03:01:56Z",
   "status": "shadow",
-  "changes": "nothing: no book, size, buy, sell or hold reads this file",
+  "changes": "one paper-only book of the screener follows the month decision (half its positions in cash when the dial says half); no real-money book, order or size reads it",
+  "consumers": [
+    "screener paper book equal_dial"
+  ],
   "dial": {
     "state": "full",
     "rule": "price_200d",
     "since": "2026-04-08"
   },
+  "month_decision": {
+    "month": "2026-11",
+    "dial": "full",
+    "decided_on": "2026-10-30",
+    "spy_close": 755.719970703125,
+    "spy_mean_200": 728.8540991210938
+  },
   "price_rule": {
-    "spy_close": 757.1199951171875,
-    "mean_200": 731.6158990478516,
+    "spy_close": 754.3699951171875,
+    "mean_200": 731.9175491333008,
     "below": false,
     "closes_used": 200
   },
@@ -32,7 +42,7 @@
     "n_months": 320
   },
   "inputs": {
-    "spy_last_date": "2026-11-12",
+    "spy_last_date": "2026-11-13",
     "regime_month": "2026-11"
   },
   "degraded": false,
