@@ -1,6 +1,6 @@
 {
   "schema": "mri.dashboard_data_health.v1",
-  "generated_at": "2026-11-14T03:02:09.355793+00:00",
+  "generated_at": "2026-11-15T02:25:41.252532+00:00",
   "reading_date": "2026-11-01",
   "input_groups": [
     {
@@ -17,7 +17,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -35,7 +37,9 @@
           "observation_date": "2026-10-29",
           "age_days": 3,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "nfci_level_z",
@@ -43,7 +47,9 @@
           "observation_date": "2026-10-23",
           "age_days": 9,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -61,7 +67,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "extended_by_fallback"
+          "reason": "extended_by_fallback",
+          "extended_by_fallback": true,
+          "fallback_months": 2
         }
       ]
     },
@@ -79,7 +87,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "initial_claims_level_z",
@@ -87,7 +97,9 @@
           "observation_date": "2026-10-24",
           "age_days": 8,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "payrolls_yoy_z",
@@ -95,7 +107,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "unemployment_6m_change_z",
@@ -103,7 +117,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -121,7 +137,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -139,7 +157,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "pce_price_yoy_z",
@@ -147,7 +167,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -165,7 +187,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -183,7 +207,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "fed_funds_level_z",
@@ -191,7 +217,9 @@
           "observation_date": "2026-09-01",
           "age_days": 61,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -209,7 +237,9 @@
           "observation_date": "2026-10-29",
           "age_days": 3,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         },
         {
           "feature_id": "real_rate_10y_level_z",
@@ -217,7 +247,9 @@
           "observation_date": "2026-10-29",
           "age_days": 3,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     },
@@ -235,7 +267,9 @@
           "observation_date": "2026-10-30",
           "age_days": 2,
           "used": true,
-          "reason": "ok"
+          "reason": "ok",
+          "extended_by_fallback": false,
+          "fallback_months": null
         }
       ]
     }
@@ -243,40 +277,28 @@
   "input_groups_reason": null,
   "carried_forward": [],
   "daily": {
-    "run_date": "2026-11-14",
+    "run_date": "2026-11-15",
     "status": "success_with_warnings",
-    "warning_count": 32,
+    "warning_count": 6,
     "warnings": [
       {
-        "warning": "stale_source:INDPRO",
+        "warning": "invalid_dimension:housing_activity:2026-02:below_min_valid_features",
         "count": 1
       },
       {
-        "warning": "stale_source:PCEPI",
+        "warning": "invalid_dimension:inflation_pressure:2026-01:below_min_valid_features",
         "count": 1
       },
       {
-        "warning": "stale_source:M2SL",
+        "warning": "invalid_dimension:housing_activity:2026-01:below_min_valid_features",
         "count": 1
       },
       {
-        "warning": "stale_source:HOUST",
+        "warning": "invalid_dimension:inflation_pressure:2025-12:below_min_valid_features",
         "count": 1
       },
       {
-        "warning": "stale_source:DTWEXBGS",
-        "count": 1
-      },
-      {
-        "warning": "invalid_feature:disabled_leading_index_level_z:disabled_feature",
-        "count": 1
-      },
-      {
-        "warning": "invalid_dimension:real_rates:below_min_valid_features",
-        "count": 24
-      },
-      {
-        "warning": "invalid_dimension:dollar:below_min_valid_features",
+        "warning": "invalid_dimension:housing_activity:2025-12:below_min_valid_features",
         "count": 1
       },
       {
@@ -295,7 +317,7 @@
   },
   "sector_prices": {
     "last_price_date": "2026-11-13",
-    "age_days": 1,
+    "age_days": 2,
     "fresh": true,
     "fresh_within_days": 5,
     "market_observed": true,
