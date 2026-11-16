@@ -1,6 +1,6 @@
 {
   "schema": "mri.dashboard_data_health.v1",
-  "generated_at": "2026-11-15T02:25:41.252532+00:00",
+  "generated_at": "2026-11-16T02:38:45.617320+00:00",
   "reading_date": "2026-11-01",
   "input_groups": [
     {
@@ -277,10 +277,30 @@
   "input_groups_reason": null,
   "carried_forward": [],
   "daily": {
-    "run_date": "2026-11-15",
+    "run_date": "2026-11-16",
     "status": "success_with_warnings",
-    "warning_count": 6,
+    "warning_count": 11,
     "warnings": [
+      {
+        "warning": "stale_source:PAYEMS",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:UNRATE",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:CPIAUCSL",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:FEDFUNDS",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:MCOILWTICO",
+        "count": 1
+      },
       {
         "warning": "invalid_dimension:housing_activity:2026-02:below_min_valid_features",
         "count": 1
@@ -317,7 +337,7 @@
   },
   "sector_prices": {
     "last_price_date": "2026-11-13",
-    "age_days": 2,
+    "age_days": 3,
     "fresh": true,
     "fresh_within_days": 5,
     "market_observed": true,
