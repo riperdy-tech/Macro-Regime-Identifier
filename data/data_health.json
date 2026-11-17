@@ -1,6 +1,6 @@
 {
   "schema": "mri.dashboard_data_health.v1",
-  "generated_at": "2026-11-16T02:38:45.617320+00:00",
+  "generated_at": "2026-11-17T05:06:31.584927+00:00",
   "reading_date": "2026-11-01",
   "input_groups": [
     {
@@ -277,9 +277,9 @@
   "input_groups_reason": null,
   "carried_forward": [],
   "daily": {
-    "run_date": "2026-11-16",
+    "run_date": "2026-11-17",
     "status": "success_with_warnings",
-    "warning_count": 11,
+    "warning_count": 14,
     "warnings": [
       {
         "warning": "stale_source:PAYEMS",
@@ -298,7 +298,19 @@
         "count": 1
       },
       {
+        "warning": "stale_source:THREEFYTP10",
+        "count": 1
+      },
+      {
         "warning": "stale_source:MCOILWTICO",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:NNUSBIS",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:DCOILWTICO",
         "count": 1
       },
       {
@@ -330,14 +342,14 @@
     "non_fatal_failures": [],
     "feature_freshness": {
       "gap_days": 0,
-      "max_feature_date": "2026-11-13",
-      "max_raw_observation_date": "2026-11-13",
+      "max_feature_date": "2026-11-16",
+      "max_raw_observation_date": "2026-11-16",
       "stale": false
     }
   },
   "sector_prices": {
-    "last_price_date": "2026-11-13",
-    "age_days": 3,
+    "last_price_date": "2026-11-16",
+    "age_days": 1,
     "fresh": true,
     "fresh_within_days": 5,
     "market_observed": true,

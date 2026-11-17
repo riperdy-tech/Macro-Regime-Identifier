@@ -1,7 +1,7 @@
 {
   "anchor_id": "cost_of_capital",
-  "asof": "2026-11-16",
-  "built_at": "2026-11-16T02:38:15.288774+00:00",
+  "asof": "2026-11-17",
+  "built_at": "2026-11-17T05:06:00.910426+00:00",
   "degraded": true,
   "equity_aggregate": null,
   "erp_basis": "unavailable",
@@ -23,7 +23,7 @@
   "loading_source": "beta_vs_SPY_5y",
   "market_implied_coe": null,
   "market_implied_erp": null,
-  "oldest_leg_age_days": 76,
+  "oldest_leg_age_days": 77,
   "provenance": {
     "degradation_reasons": [
       "inflation: CPIAUCSL yoy unavailable",
@@ -32,10 +32,10 @@
     ],
     "input_dates": {
       "CPIAUCSL": "2026-10-01",
-      "DFII10": "2026-11-10",
-      "DGS10": "2026-11-10",
+      "DFII10": "2026-11-13",
+      "DGS10": "2026-11-13",
       "PCEPI": "2026-09-01",
-      "T10YIE": "2026-11-12",
+      "T10YIE": "2026-11-16",
       "THREEFYTP10": "2026-11-06",
       "sector_proxy_prices": "2026-11-13"
     },
@@ -46,13 +46,13 @@
     "scoring_mode": "point_in_time"
   },
   "risk_free": {
-    "breakeven_10y": 0.0224,
-    "nominal_10y": 0.0498,
-    "real_10y": 0.0278,
+    "breakeven_10y": 0.022,
+    "nominal_10y": 0.0515,
+    "real_10y": 0.0291,
     "term_premium": 0.008738
   },
   "sector_loadings": {
-    "banks": 1.0,
+    "banks": 0.999,
     "biotech": 1.142,
     "communication_services": 0.986,
     "consumer_discretionary": 1.216,
@@ -63,7 +63,7 @@
     "homebuilders": 1.115,
     "industrials": 0.866,
     "information_technology": 1.388,
-    "materials": 0.841,
+    "materials": 0.84,
     "oil_gas_ep": 0.799,
     "real_estate": 0.692,
     "semiconductors": 1.76,
@@ -71,7 +71,7 @@
     "utilities": 0.431
   },
   "sector_loadings_adjusted": {
-    "banks": 1.0,
+    "banks": 0.999,
     "biotech": 1.095,
     "communication_services": 0.991,
     "consumer_discretionary": 1.145,
