@@ -47,6 +47,60 @@ def compute_composition_signature(dimension_rows: pd.DataFrame) -> tuple[str | N
     return digest, "ok"
 
 
+# WO_MD1 Part 2: direction beside level. A direction is the change of a dimension's stored score over
+# three and six months, and the same change divided by the standard deviation of that change over all
+# months up to the report month (an expanding window, so nothing looks ahead). The window needs
+# DIRECTION_MIN_HISTORY changes before a standardised value is given. These are facts about the stored
+# scores; no label, probability or anchor reads them.
+DIRECTION_MIN_HISTORY = 60
+DIRECTION_HORIZONS = {"3": 3, "6": 6}
+
+
+def compute_dimension_direction(
+    dimension_scores: pd.DataFrame, as_of: Any
+) -> dict[str, dict[str, Any]]:
+    """For each dimension in `dimension_scores`, `{d3, d6, z3, z6, as_of, reasons}` at month `as_of`.
+
+    A value that cannot be computed is None and `reasons` names why (a score of 0.0 is a value, so
+    nothing here defaults a number). Invalid score rows are treated as missing months."""
+    month = pd.Timestamp(as_of).to_period("M")
+    frame = dimension_scores.copy()
+    frame["_month"] = pd.to_datetime(frame["date"]).dt.to_period("M")
+    out: dict[str, dict[str, Any]] = {}
+    for dimension_id in sorted(frame["dimension_id"].dropna().unique()):
+        rows = frame[frame["dimension_id"] == dimension_id]
+        usable = rows[rows["valid"].astype(bool) & rows["score"].notna()]
+        series = usable.drop_duplicates("_month", keep="last").set_index("_month")["score"].astype(float)
+        series = series[series.index <= month].sort_index()
+        entry: dict[str, Any] = {"d3": None, "d6": None, "z3": None, "z6": None,
+                                 "as_of": month.to_timestamp().strftime("%Y-%m-%d"),
+                                 "reasons": {}}
+        out[dimension_id] = entry
+        if series.empty or series.index[-1] != month:
+            for key in ("d3", "d6", "z3", "z6"):
+                entry["reasons"][key] = "score_invalid_or_missing_at_as_of"
+            continue
+        full = series.reindex(pd.period_range(series.index[0], month, freq="M"))
+        for name, months in DIRECTION_HORIZONS.items():
+            change = full - full.shift(months)
+            current = change.iloc[-1]
+            if pd.isna(current):
+                entry["reasons"][f"d{name}"] = f"score_missing_{months}_months_before_as_of"
+                entry["reasons"][f"z{name}"] = f"score_missing_{months}_months_before_as_of"
+                continue
+            entry[f"d{name}"] = float(current)
+            history = change.dropna()
+            if len(history) < DIRECTION_MIN_HISTORY:
+                entry["reasons"][f"z{name}"] = f"history_short:{len(history)}_of_{DIRECTION_MIN_HISTORY}_changes"
+                continue
+            spread = float(history.std())
+            if not spread > 0:
+                entry["reasons"][f"z{name}"] = "zero_dispersion"
+                continue
+            entry[f"z{name}"] = float(current) / spread
+    return out
+
+
 def build_current_regime_report(
     *,
     regime_scores: pd.DataFrame,
@@ -237,6 +291,9 @@ def build_current_regime_report(
             }
             for row in latest_dimensions.to_dict(orient="records")
         },
+        # WO_MD1 Part 2: additive, so schema_version stays 2 (earlier added keys such as
+        # active_shocks_register_date did not bump it either; a bump is for removed or re-meant keys).
+        "dimension_direction": compute_dimension_direction(dimension_scores, latest_date),
         "data_health_warnings": _health_warnings(feature_health, source_health),
         "explanation": _build_explanation(dominant, supporting, opposing, config.max_contributors),
         "reasons": reasons,
