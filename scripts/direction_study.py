@@ -168,7 +168,6 @@ def build_r3_table(spy: pd.Series, tb3: pd.Series, months: pd.DatetimeIndex) -> 
     """Forward SPY outcomes per month (independent of any variant). Same logic as the 2026-11-12 study (m4.py, m9.py)."""
     idx = spy.index
     logret = np.log(spy).diff()
-    ma = spy.rolling(200).mean()
     tbd = tb3.reindex(idx).ffill()
     rows = []
     for d in months:
