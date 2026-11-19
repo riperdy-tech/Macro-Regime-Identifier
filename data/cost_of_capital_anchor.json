@@ -1,7 +1,7 @@
 {
   "anchor_id": "cost_of_capital",
-  "asof": "2026-11-18",
-  "built_at": "2026-11-18T04:22:09.477564+00:00",
+  "asof": "2026-11-19",
+  "built_at": "2026-11-19T04:19:24.830587+00:00",
   "degraded": true,
   "equity_aggregate": null,
   "erp_basis": "unavailable",
@@ -23,7 +23,7 @@
   "loading_source": "beta_vs_SPY_5y",
   "market_implied_coe": null,
   "market_implied_erp": null,
-  "oldest_leg_age_days": 78,
+  "oldest_leg_age_days": 79,
   "provenance": {
     "degradation_reasons": [
       "inflation: CPIAUCSL yoy unavailable",
@@ -32,12 +32,12 @@
     ],
     "input_dates": {
       "CPIAUCSL": "2026-10-01",
-      "DFII10": "2026-11-16",
-      "DGS10": "2026-11-16",
+      "DFII10": "2026-11-17",
+      "DGS10": "2026-11-17",
       "PCEPI": "2026-09-01",
-      "T10YIE": "2026-11-17",
+      "T10YIE": "2026-11-18",
       "THREEFYTP10": "2026-11-13",
-      "sector_proxy_prices": "2026-11-16"
+      "sector_proxy_prices": "2026-11-17"
     },
     "notes": [
       "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
@@ -46,48 +46,48 @@
     "scoring_mode": "point_in_time"
   },
   "risk_free": {
-    "breakeven_10y": 0.0221,
-    "nominal_10y": 0.0512,
-    "real_10y": 0.0292,
+    "breakeven_10y": 0.0219,
+    "nominal_10y": 0.051,
+    "real_10y": 0.0289,
     "term_premium": 0.009864
   },
   "sector_loadings": {
-    "banks": 0.998,
+    "banks": 0.999,
     "biotech": 1.143,
-    "communication_services": 0.986,
+    "communication_services": 0.987,
     "consumer_discretionary": 1.215,
-    "consumer_staples": 0.349,
+    "consumer_staples": 0.35,
     "energy": 0.553,
     "financials": 0.834,
     "health_care": 0.527,
     "homebuilders": 1.114,
-    "industrials": 0.867,
+    "industrials": 0.866,
     "information_technology": 1.389,
-    "materials": 0.84,
+    "materials": 0.841,
     "oil_gas_ep": 0.8,
-    "real_estate": 0.69,
-    "semiconductors": 1.762,
-    "software": 1.311,
-    "utilities": 0.43
+    "real_estate": 0.691,
+    "semiconductors": 1.761,
+    "software": 1.312,
+    "utilities": 0.431
   },
   "sector_loadings_adjusted": {
     "banks": 0.999,
     "biotech": 1.096,
     "communication_services": 0.991,
     "consumer_discretionary": 1.144,
-    "consumer_staples": 0.564,
+    "consumer_staples": 0.565,
     "energy": 0.701,
     "financials": 0.889,
     "health_care": 0.683,
     "homebuilders": 1.076,
-    "industrials": 0.911,
+    "industrials": 0.91,
     "information_technology": 1.261,
     "materials": 0.893,
     "oil_gas_ep": 0.866,
-    "real_estate": 0.792,
-    "semiconductors": 1.511,
-    "software": 1.208,
-    "utilities": 0.618
+    "real_estate": 0.793,
+    "semiconductors": 1.51,
+    "software": 1.209,
+    "utilities": 0.619
   },
   "source_files": [
     "config/phase_b_sources.yaml",

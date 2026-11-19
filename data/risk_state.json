@@ -1,16 +1,16 @@
 {
   "schema": "mri.risk_state.v1",
-  "asof": "2026-11-17",
-  "built_at": "2026-11-18T04:22:33Z",
+  "asof": "2026-11-18",
+  "built_at": "2026-11-19T04:19:57Z",
   "status": "shadow",
   "changes": "one paper-only book of the screener follows the month decision (half its positions in cash when the dial says half); no real-money book, order or size reads it",
   "consumers": [
     "screener paper book equal_dial"
   ],
   "dial": {
-    "state": "full",
+    "state": "half",
     "rule": "price_200d",
-    "since": "2026-04-08"
+    "since": "2026-11-18"
   },
   "month_decision": {
     "month": "2026-11",
@@ -20,15 +20,15 @@
     "spy_mean_200": 728.8540991210938
   },
   "price_rule": {
-    "spy_close": 732.4400024414062,
-    "mean_200": 732.3425994873047,
-    "below": false,
+    "spy_close": 730.2000122070312,
+    "mean_200": 732.5459494018555,
+    "below": true,
     "closes_used": 200
   },
   "macro_reading": {
     "month": "2026-11",
-    "recession_plus_stagflation": 0.22946341165471246,
-    "top_third_threshold": 0.4514904699625621,
+    "recession_plus_stagflation": 0.22941699917998085,
+    "top_third_threshold": 0.45138775882553867,
     "in_top_third": false,
     "role": "context, watched; not in the dial (PREREG_risk_dial_v1: MIXED)"
   },
@@ -42,7 +42,7 @@
     "n_months": 320
   },
   "inputs": {
-    "spy_last_date": "2026-11-17",
+    "spy_last_date": "2026-11-18",
     "regime_month": "2026-11"
   },
   "degraded": false,
