@@ -122,6 +122,11 @@ Step "shadow risk dial (write-risk-state)" {
     & $Py -m macro_engine.cli write-risk-state
 } -NonFatal
 
+# Daily market state (WO_MK1): stress step and driver from stored prices. Additive; exported below as an optional file.
+Step "market state (write-market-state)" {
+    & $Py -m macro_engine.cli write-market-state
+} -NonFatal
+
 Step "anchor check" {
     & $Py -c @"
 import json, sys
@@ -147,7 +152,7 @@ foreach ($name in @("current_sector_ranking.json", "current_regime.json", "cost_
 # Optional (D5, 2026-10-22): the shock register; and the risk dial (2026-11-13: the screener's paper-only book equal_dial reads
 # its month_decision). A missing file is skipped, never a failure of this run.
 foreach ($name in @("shock_register.json", "risk_state.json", "daily_diagnostic_summary.json", "regime_timeline.json",
-                   "macro_features_timeline.json", "sector_validation.json")) {   # the last four: the stockpeak macro page (WO_MP1)
+                   "macro_features_timeline.json", "sector_validation.json", "market_state.json")) {   # the last four: the stockpeak macro page (WO_MP1)
     $src = Join-Path $RepoRoot "outputs\$name"
     if (-not (Test-Path $src)) { Log "export skipped (optional): $src is missing"; continue }
     Copy-Item $src (Join-Path $ExportDir "$name.tmp") -Force

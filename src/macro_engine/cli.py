@@ -1795,6 +1795,19 @@ def write_risk_state_cli(
     console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
 
 
+@app.command("write-market-state")
+def write_market_state_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Write the daily market state (outputs/market_state.json and its dated archive copy): stress step and driver from
+    stored prices and FRED series (WO_MK1). Read-only on the store; additive, nothing reads it yet."""
+    from macro_engine.market_state import write_market_state
+
+    json_path, archive_path = write_market_state(db_path=db_path, outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
+
+
 @app.command("health-watch")
 def health_watch_cli(
     outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
