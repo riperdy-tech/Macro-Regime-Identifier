@@ -142,7 +142,7 @@ def rise_from_low(u: dict[int, float]) -> tuple[float | None, int | None]:
     prev = [p for p in (mean3(t) for t in range(last - 12, last)) if p is not None]
     if cur is None or len(prev) < 9:
         return None, last
-    return cur - min(prev), last
+    return round(cur - min(prev), 6), last  # six decimals: float noise is not a rise
 
 
 def jobs_state(rise: float | None) -> str | None:
