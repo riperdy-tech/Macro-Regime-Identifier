@@ -1808,6 +1808,19 @@ def write_market_state_cli(
     console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
 
 
+@app.command("write-economy-state")
+def write_economy_state_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Write the daily economy state (outputs/economy_state.json and its dated archive copy): inflation, policy, jobs
+    and growth against fixed references, from stored FRED series (WO_ME1). Read-only on the store; additive."""
+    from macro_engine.economy_state import write_economy_state
+
+    json_path, archive_path = write_economy_state(db_path=db_path, outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
+
+
 @app.command("health-watch")
 def health_watch_cli(
     outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",

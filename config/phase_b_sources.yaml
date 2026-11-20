@@ -253,6 +253,31 @@ sources:
     unusable_after_days: 30
     publication_lag_days: 5
 
+  # --- Economy-state inputs (WO_ME1, dimension: economy_state) ----------------
+  # Core price indexes for outputs/economy_state.json ONLY. required:false, referenced by no feature, no dimension
+  # and no regime, so they cannot move the regime classification or any stored score. Lags as PCEPI and CPIAUCSL.
+  - series_id: PCEPILFE
+    name: Personal Consumption Expenditures Excluding Food and Energy (Chain-Type Price Index)
+    provider: FRED
+    dimension: economy_state
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 103
+    unusable_after_days: 120
+    publication_lag_days: 58
+
+  - series_id: CPILFESL
+    name: Consumer Price Index for All Urban Consumers Less Food and Energy
+    provider: FRED
+    dimension: economy_state
+    frequency: monthly
+    required: false
+    enabled: true
+    stale_after_days: 45
+    unusable_after_days: 120
+    publication_lag_days: 44
+
   # --- S5 shadow inputs (MRI_S5_SPEC.md) ------------------------------------
   - series_id: MCOILWTICO
     name: Crude Oil Prices, West Texas Intermediate (WTI) - Cushing, Oklahoma, monthly average
