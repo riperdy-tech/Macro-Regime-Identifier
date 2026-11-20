@@ -147,11 +147,11 @@ def test_duplicate_titles_offered_once(tmp_path):
     assert [i["title"] for i in items] == ["fed holds rates", "Other"]
 
 
-def test_cap_of_sixty(tmp_path):
-    rows = [dict(news_id=f"n{i}", title=f"Title {i}", hours_ago=1 + i * 0.1, severity=0.5, confidence=0.5) for i in range(75)]
+def test_cap_on_items_offered(tmp_path):
+    rows = [dict(news_id=f"n{i}", title=f"Title {i}", hours_ago=1 + i * 0.1, severity=0.5, confidence=0.5) for i in range(dr.MAX_ITEMS + 15)]
     make_store(tmp_path / "s.duckdb", rows)
     items = dr.select_items(tmp_path / "s.duckdb", NOW)
-    assert len(items) == 60 and items[-1]["id"] == "N60"
+    assert len(items) == dr.MAX_ITEMS and items[-1]["id"] == f"N{dr.MAX_ITEMS}"
 
 
 def test_too_few_items_no_call(tmp_path):
