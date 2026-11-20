@@ -387,3 +387,22 @@ def test_cli_with_fake_ask(env, monkeypatch):
     res = CliRunner().invoke(app, ["write-daily-read", "--db-path", str(db), "--outputs-dir", str(out)])
     assert res.exit_code == 0, res.output
     assert json.loads((out / dr.FILENAME).read_text(encoding="utf-8"))["status"] == "fresh"
+
+
+def test_fallback_is_asked_only_when_the_first_gives_no_reply(env):
+    db, out = env
+    calls = []
+
+    def second(prompt):
+        calls.append(prompt)
+        return reply(), "claude: SUCCESS"
+
+    ask = dr.with_fallback(fake(reply()), second)
+    doc = dr.build_daily_read(db, out, NOW, ask)
+    assert doc["status"] == "fresh" and doc["model"] == dr.MODEL and calls == []
+    ask = dr.with_fallback(fake(None, "agy: QUOTA"), second)
+    doc = dr.build_daily_read(db, out, NOW, ask)
+    assert doc["status"] == "fresh" and doc["model"] == dr.FALLBACK_MODEL and len(calls) == 1
+    assert doc["detail"] == "agy: QUOTA; claude: SUCCESS"
+    both = dr.build_daily_read(db, out, NOW, dr.with_fallback(fake(None, "agy: QUOTA"), fake(None, "claude: error")))
+    assert both["status"] == "none" and both["detail"] == "agy: QUOTA; claude: error"

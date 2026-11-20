@@ -6,8 +6,10 @@ Every quote the model gives is copied back to its news item by code; a quote not
 read with fewer than two verified quotes from two different items is not published.
 
 The invocation of the model (tag, effort, stream-json in and out, sandbox) is the one `rs2-local/tools/site/gemini_ondemand.py`
-uses; it is written out here and nothing is imported from there. The model is never the "Argon" model, and if `agy` is
-missing or out of quota the call fails and the read says so: no other model or tool is tried.
+uses; it is written out here and nothing is imported from there. The model is never the "Argon" model. When the `agy`
+call fails (missing, out of quota), the same prompt goes once to Claude Sonnet through the Claude Code command line, as
+that file's fallback does (operator 2026-11-19 and 2026-11-21); the read records which model answered. Nothing else is
+tried.
 """
 from __future__ import annotations
 
@@ -29,6 +31,7 @@ HISTORY_FILENAME = "daily_read_history.jsonl"
 ARCHIVE_SUBDIR = "daily_read"
 PROMPT_VERSION = 1
 MODEL = "gemini-4-hydrogen-high"  # the tag gemini_ondemand.py's "gemini" arm uses
+FALLBACK_MODEL = "claude-sonnet-5-5"  # the tag gemini_ondemand.py's "sonnet" arm uses
 EFFORT = "high"
 CALL_TIMEOUT_SECONDS = 600
 WINDOW_HOURS = 72
@@ -82,6 +85,53 @@ def make_agy_ask(cwd: Path) -> Ask:
             return res["response"], "agy: SUCCESS"
         return None, f"agy: {(res or {}).get('status')} {(res or {}).get('error') or (r.stderr or '')[-300:]}".strip()
 
+    return ask
+
+
+def claude_exe() -> str:
+    path = (os.environ.get("CLAUDE_EXE") or shutil.which("claude")
+            or str(Path.home() / ".local" / "bin" / "claude.exe"))
+    if not Path(path).exists():
+        raise RuntimeError(f"claude not found (CLAUDE_EXE, PATH, ~/.local/bin): {path}")
+    return path
+
+
+def make_claude_ask(cwd: Path) -> Ask:
+    """The same prompt to Claude Sonnet through the Claude Code command line: no tools, no settings, no session kept."""
+
+    def ask(prompt: str) -> tuple[str | None, str]:
+        try:
+            cwd.mkdir(parents=True, exist_ok=True)
+            r = subprocess.run(
+                [claude_exe(), "-p", "--model", FALLBACK_MODEL, "--effort", EFFORT, "--system-prompt",
+                 "You are an analyst. Do exactly what the message asks, in one reply.", "--tools", "",
+                 "--setting-sources", "", "--disable-slash-commands", "--strict-mcp-config", "--no-session-persistence",
+                 "--output-format", "json"],
+                input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(cwd),
+                timeout=CALL_TIMEOUT_SECONDS)
+            d = json.loads(r.stdout[r.stdout.index("{"):])
+        except Exception as exc:  # noqa: BLE001  a failed call is recorded, never fatal
+            return None, f"claude: {type(exc).__name__}: {str(exc)[:300]}"
+        if not d.get("is_error") and d.get("subtype") == "success" and (d.get("result") or "").strip():
+            return d["result"], "claude: SUCCESS"
+        return None, f"claude: {d.get('api_error_status') or d.get('subtype')} {str(d.get('result'))[:200]}".strip()
+
+    return ask
+
+
+def with_fallback(first: Ask, second: Ask) -> Ask:
+    """`first`, and when it gives no reply, `second` once. `ask.model` names the model whose reply (or last failure) is returned."""
+
+    def ask(prompt: str) -> tuple[str | None, str]:
+        ask.model = MODEL
+        reply, detail = first(prompt)
+        if reply is not None:
+            return reply, detail
+        ask.model = FALLBACK_MODEL
+        reply, detail2 = second(prompt)
+        return reply, f"{detail}; {detail2}"
+
+    ask.model = MODEL
     return ask
 
 
@@ -394,7 +444,8 @@ def build_daily_read(db_path: str | Path, outputs_dir: str | Path = "outputs", n
     previous = _previous(outputs)
     prompt = build_prompt(market, economy, exposures, previous, items)
     if ask is None:
-        ask = make_agy_ask(Path(tempfile.gettempdir()) / "mri_daily_read_agy")
+        cwd = Path(tempfile.gettempdir()) / "mri_daily_read_agy"
+        ask = with_fallback(make_agy_ask(cwd), make_claude_ask(cwd))
     reply_text, detail = ask(prompt)
     read, good, rejected, why_not = None, [], 0, ""
     if reply_text is None:
@@ -409,6 +460,7 @@ def build_daily_read(db_path: str | Path, outputs_dir: str | Path = "outputs", n
         reasons.append(f"call_not_accepted: {why_not}")
 
     doc = _empty(now, as_of, "none", detail, reasons, len(items))
+    doc["model"] = getattr(ask, "model", MODEL)  # the model that answered today's call
     doc["prices"] = _prices(market)
     doc["quotes_rejected"] = rejected
     if read is not None:
