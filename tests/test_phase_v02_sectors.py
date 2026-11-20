@@ -357,6 +357,10 @@ def test_sector_report_schema_v2_fields_are_present_and_validation_key_always_ex
     assert payload["process_id"] == "MRI-07"
     assert payload["scoring_mode"] == "calendar_asof"
     assert payload["parameter_vintage"] == "none:softmax_v1"
+    # WO_MD1: additive retirement stamp on the hand-set matrix; no number changes.
+    assert payload["status"] == "retired_no_skill"
+    assert payload["status_note"].startswith("Hand-set exposures; tested 2026-11-20:")
+    assert payload["status_note"].endswith("Superseded by driver_exposures.json.")
     # No validation_summary supplied -- must be null-with-reasons, not absent.
     assert payload["validation"]["reasons"] == ["validation_missing"]
     assert payload["validation"]["horizon_3m"]["rank_ic"] is None

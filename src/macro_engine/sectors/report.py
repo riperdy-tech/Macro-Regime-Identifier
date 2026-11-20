@@ -23,6 +23,13 @@ SECTOR_DISCLAIMER = (
     "selection guidance. Proxy tickers are reporting references only."
 )
 
+# WO_MD1: the hand-set matrix is retired; the numbers are unchanged.
+SECTOR_STATUS = "retired_no_skill"
+SECTOR_STATUS_NOTE = (
+    "Hand-set exposures; tested 2026-11-20: no skill at 1 or 3 months under any sign "
+    "(MRI_REVIEW_2026-11-20 section 7). Superseded by driver_exposures.json."
+)
+
 # C1 (MRI_S1_APPROVAL.md §6): the method description published on the `validation` block,
 # so a consumer reading the block does not have to go find sectors/validation.py to know
 # what `rank_ic`/`t_overlap_corrected` mean.
@@ -179,6 +186,8 @@ def build_current_sector_report(
             "schema_version": 2,
             "valid": True,
             "process_id": "MRI-07",
+            "status": SECTOR_STATUS,
+            "status_note": SECTOR_STATUS_NOTE,
             "date": str(latest_date.date()),
             "built_at": datetime.now(timezone.utc).isoformat(),
             "source_run_id": source_run_id,

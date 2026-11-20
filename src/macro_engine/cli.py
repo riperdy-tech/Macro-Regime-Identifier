@@ -1821,6 +1821,20 @@ def write_economy_state_cli(
     console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
 
 
+@app.command("write-driver-exposures")
+def write_driver_exposures_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Write the measured driver exposures (outputs/driver_exposures.json and its dated archive copy): how each sector
+    and sub-industry fund responds to the market, the 10-year yield and oil, from stored prices (WO_MD1). Read-only on
+    the store; additive."""
+    from macro_engine.driver_exposures import write_driver_exposures
+
+    json_path, archive_path = write_driver_exposures(db_path=db_path, outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
+
+
 @app.command("health-watch")
 def health_watch_cli(
     outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
