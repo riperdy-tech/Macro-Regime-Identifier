@@ -1835,6 +1835,20 @@ def write_driver_exposures_cli(
     console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
 
 
+@app.command("write-daily-read")
+def write_daily_read_cli(
+    outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
+    db_path: Annotated[str, typer.Option("--db-path")] = "data/macro_engine.duckdb",
+) -> None:
+    """Write the daily read (outputs/daily_read.json, its dated archive copy and one line of daily_read_history.jsonl):
+    one cloud-model call that says why the market is where it is, from the day's classified news, with every quote
+    checked against its item by code (WO_MN1). Moves no number. Read-only on the store; additive."""
+    from macro_engine.daily_read import write_daily_read
+
+    json_path, archive_path = write_daily_read(db_path=db_path, outputs_dir=outputs_dir)
+    console.print_json(data={"json_path": str(json_path), "archive_path": str(archive_path)})
+
+
 @app.command("health-watch")
 def health_watch_cli(
     outputs_dir: Annotated[str, typer.Option("--outputs-dir")] = "outputs",
