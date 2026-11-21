@@ -1,7 +1,7 @@
 {
   "anchor_id": "cost_of_capital",
-  "asof": "2026-11-20",
-  "built_at": "2026-11-20T04:09:28.851655+00:00",
+  "asof": "2026-11-21",
+  "built_at": "2026-11-21T03:53:06.348508+00:00",
   "degraded": true,
   "equity_aggregate": null,
   "erp_basis": "unavailable",
@@ -23,7 +23,7 @@
   "loading_source": "beta_vs_SPY_5y",
   "market_implied_coe": null,
   "market_implied_erp": null,
-  "oldest_leg_age_days": 80,
+  "oldest_leg_age_days": 81,
   "provenance": {
     "degradation_reasons": [
       "inflation: CPIAUCSL yoy unavailable",
@@ -32,12 +32,12 @@
     ],
     "input_dates": {
       "CPIAUCSL": "2026-10-01",
-      "DFII10": "2026-11-18",
-      "DGS10": "2026-11-18",
+      "DFII10": "2026-11-19",
+      "DGS10": "2026-11-19",
       "PCEPI": "2026-09-01",
-      "T10YIE": "2026-11-19",
+      "T10YIE": "2026-11-20",
       "THREEFYTP10": "2026-11-13",
-      "sector_proxy_prices": "2026-11-18"
+      "sector_proxy_prices": "2026-11-19"
     },
     "notes": [
       "Cost of EQUITY, not WACC: the downstream cash flow (NI + D&A - capex) is levered and is compared against market cap, so a firm-level WACC would double-count the debt claim."
@@ -46,47 +46,47 @@
     "scoring_mode": "point_in_time"
   },
   "risk_free": {
-    "breakeven_10y": 0.0216,
-    "nominal_10y": 0.0507,
+    "breakeven_10y": 0.0215,
+    "nominal_10y": 0.0504,
     "real_10y": 0.0288,
     "term_premium": 0.009864
   },
   "sector_loadings": {
     "banks": 0.999,
-    "biotech": 1.142,
+    "biotech": 1.14,
     "communication_services": 0.986,
-    "consumer_discretionary": 1.214,
-    "consumer_staples": 0.35,
-    "energy": 0.554,
+    "consumer_discretionary": 1.215,
+    "consumer_staples": 0.351,
+    "energy": 0.553,
     "financials": 0.835,
-    "health_care": 0.528,
-    "homebuilders": 1.114,
+    "health_care": 0.529,
+    "homebuilders": 1.115,
     "industrials": 0.867,
-    "information_technology": 1.389,
+    "information_technology": 1.387,
     "materials": 0.841,
-    "oil_gas_ep": 0.801,
+    "oil_gas_ep": 0.8,
     "real_estate": 0.691,
-    "semiconductors": 1.761,
-    "software": 1.311,
+    "semiconductors": 1.76,
+    "software": 1.309,
     "utilities": 0.431
   },
   "sector_loadings_adjusted": {
     "banks": 0.999,
-    "biotech": 1.095,
+    "biotech": 1.094,
     "communication_services": 0.991,
-    "consumer_discretionary": 1.143,
+    "consumer_discretionary": 1.144,
     "consumer_staples": 0.565,
     "energy": 0.701,
     "financials": 0.889,
     "health_care": 0.684,
-    "homebuilders": 1.076,
+    "homebuilders": 1.077,
     "industrials": 0.911,
-    "information_technology": 1.261,
+    "information_technology": 1.259,
     "materials": 0.893,
-    "oil_gas_ep": 0.867,
+    "oil_gas_ep": 0.866,
     "real_estate": 0.793,
-    "semiconductors": 1.51,
-    "software": 1.208,
+    "semiconductors": 1.509,
+    "software": 1.207,
     "utilities": 0.619
   },
   "source_files": [
