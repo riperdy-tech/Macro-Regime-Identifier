@@ -1,6 +1,6 @@
 {
   "schema": "mri.dashboard_data_health.v1",
-  "generated_at": "2026-11-22T02:55:52.125414+00:00",
+  "generated_at": "2026-11-23T03:21:15.729202+00:00",
   "reading_date": "2026-11-01",
   "input_groups": [
     {
@@ -277,9 +277,9 @@
   "input_groups_reason": null,
   "carried_forward": [],
   "daily": {
-    "run_date": "2026-11-22",
+    "run_date": "2026-11-23",
     "status": "success_with_warnings",
-    "warning_count": 13,
+    "warning_count": 14,
     "warnings": [
       {
         "warning": "stale_source:PAYEMS",
@@ -307,6 +307,10 @@
       },
       {
         "warning": "stale_source:NNUSBIS",
+        "count": 1
+      },
+      {
+        "warning": "stale_source:DCOILWTICO",
         "count": 1
       },
       {
@@ -345,7 +349,7 @@
   },
   "sector_prices": {
     "last_price_date": "2026-11-20",
-    "age_days": 2,
+    "age_days": 3,
     "fresh": true,
     "fresh_within_days": 5,
     "market_observed": true,
