@@ -1,6 +1,6 @@
 {
-  "asof": "2026-11-22",
-  "built_at": "2026-11-23T03:20:46.899662+00:00",
+  "asof": "2026-11-23",
+  "built_at": "2026-11-24T06:49:56.133833+00:00",
   "cadence": "daily",
   "composition_id": null,
   "deprecations": [],
@@ -13,7 +13,7 @@
   ],
   "risk_flags": [
     {
-      "active": false,
+      "active": true,
       "id": "elevated_volatility_ahead",
       "meaning": "Expect higher market turbulence over the next 3 months. No evidence of lower returns or deeper drawdowns.",
       "measured_effect": {
@@ -35,18 +35,18 @@
   "scoring_mode": "calendar_asof",
   "shocks": [
     {
-      "active": false,
-      "age_days": null,
-      "direction": "none",
-      "episode_direction": null,
-      "intensity": 0.9480000000000001,
+      "active": true,
+      "age_days": 3,
+      "direction": "up",
+      "episode_direction": "up",
+      "intensity": 1.1963333333333332,
       "lag_trading_days": 2,
       "max_lag_trading_days": 2,
       "measure": "month-end / latest level",
       "narrative": {
-        "classifier_confidence": 0.6169870129870129,
-        "direction_agreement": null,
-        "item_count": 356,
+        "classifier_confidence": 0.6161224489795918,
+        "direction_agreement": 0.7219387755102041,
+        "item_count": 364,
         "source_run_id": null,
         "summary": "OCC outlines regulatory priorities around AI, chartering, and community banks, emphasizing tailored risk and allowing new entrants. The read-through is mostly regulatory and sector-specific for financials, while broader financial-stability implications are ambiguous.",
         "theme_ids": [
@@ -54,19 +54,19 @@
           "geopolitical_risk"
         ]
       },
-      "onset_date": null,
-      "peak_date": null,
-      "peak_intensity": null,
-      "peak_severity": null,
-      "peak_value": null,
+      "onset_date": "2026-11-20",
+      "peak_date": "2026-11-20",
+      "peak_intensity": 1.1963333333333332,
+      "peak_severity": 1,
+      "peak_value": 35.89,
       "provisional": false,
       "proxy": false,
       "reason": null,
       "series_id": "VIXCLS",
-      "severity": 0,
+      "severity": 1,
       "shock_id": "volatility_shock",
       "stale_input": false,
-      "state": "inactive",
+      "state": "active",
       "thresholds": {
         "up": {
           "severity_1": {
@@ -83,8 +83,8 @@
           }
         }
       },
-      "value": 28.44,
-      "value_date": "2026-11-19",
+      "value": 35.89,
+      "value_date": "2026-11-20",
       "value_source": "fred",
       "values_revised": false
     },
@@ -93,14 +93,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": -0.1599999999999997,
+      "intensity": -0.05999999999999961,
       "lag_trading_days": 2,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp",
       "narrative": {
-        "classifier_confidence": 0.5640384615384616,
+        "classifier_confidence": 0.5675438596491228,
         "direction_agreement": null,
-        "item_count": 52,
+        "item_count": 57,
         "source_run_id": null,
         "summary": "Article covers FHA mortgage insurance rules and industry proposals to reduce premiums or allow cancellation; HUD reports the insurance fund remains well capitalized. The event points to potential targeted relief in housing credit conditions, but policy changes remain uncertain.",
         "theme_ids": [
@@ -137,8 +137,8 @@
           }
         }
       },
-      "value": -7.999999999999985,
-      "value_date": "2026-11-19",
+      "value": -2.9999999999999805,
+      "value_date": "2026-11-20",
       "value_source": "fred",
       "values_revised": false
     },
@@ -147,14 +147,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.7066666666666663,
+      "intensity": 0.5599999999999999,
       "lag_trading_days": 2,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp, signed",
       "narrative": {
-        "classifier_confidence": 0.6316666666666666,
+        "classifier_confidence": 0.6395588235294118,
         "direction_agreement": null,
-        "item_count": 64,
+        "item_count": 66,
         "source_run_id": null,
         "summary": "Japan's Q3 GDP unexpectedly contracted as elevated energy import costs weighed on consumption and net exports, complicating the BOJ's policy normalization path amid rising inflation and expectations of a December rate hike.",
         "theme_ids": [
@@ -239,8 +239,8 @@
           }
         }
       },
-      "value": 52.99999999999998,
-      "value_date": "2026-11-19",
+      "value": 41.99999999999999,
+      "value_date": "2026-11-20",
       "value_source": "fred",
       "values_revised": false
     },
@@ -249,14 +249,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.09895510448167234,
+      "intensity": 0.00035982234173375326,
       "lag_trading_days": 0,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day log change, %, signed",
       "narrative": {
-        "classifier_confidence": 0.6228138528138528,
+        "classifier_confidence": 0.6229487179487179,
         "direction_agreement": null,
-        "item_count": 165,
+        "item_count": 168,
         "source_run_id": null,
         "summary": "Japan's Q3 GDP unexpectedly contracted as elevated energy import costs weighed on consumption and net exports, complicating the BOJ's policy normalization path amid rising inflation and expectations of a December rate hike.",
         "theme_ids": [
@@ -307,8 +307,8 @@
           }
         }
       },
-      "value": 2.9686531344501703,
-      "value_date": "2026-11-22",
+      "value": -0.010794670252012598,
+      "value_date": "2026-11-23",
       "value_source": "yahoo_cl_chained",
       "values_revised": false
     },
@@ -317,8 +317,8 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.5732397392849091,
-      "lag_trading_days": 6,
+      "intensity": 0.8838225399609015,
+      "lag_trading_days": 2,
       "max_lag_trading_days": 7,
       "measure": "63-trading-day log change, %, signed",
       "onset_date": null,
@@ -364,8 +364,8 @@
           }
         }
       },
-      "value": 2.8661986964245454,
-      "value_date": "2026-11-13",
+      "value": 4.419112699804508,
+      "value_date": "2026-11-20",
       "value_source": "fred",
       "values_revised": false
     },
@@ -375,13 +375,13 @@
       "direction": "none",
       "episode_direction": null,
       "intensity": 0.15432098765432092,
-      "lag_trading_days": 6,
+      "lag_trading_days": 7,
       "max_lag_trading_days": 9,
       "measure": "4-week mean / trailing 52-week min - 1, %",
       "narrative": {
-        "classifier_confidence": 0.5253658536585366,
+        "classifier_confidence": 0.5281818181818182,
         "direction_agreement": null,
-        "item_count": 40,
+        "item_count": 43,
         "source_run_id": null,
         "summary": "Immigration policy signals remain mixed, with enforcement disruptions and uncertain bipartisan reform clouding the labor supply outlook for homebuilders.",
         "theme_ids": [
@@ -428,14 +428,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.42222222222222205,
-      "lag_trading_days": 1,
+      "intensity": 0.46666666666666656,
+      "lag_trading_days": 0,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp, signed",
       "narrative": {
-        "classifier_confidence": 0.5678231292517006,
+        "classifier_confidence": 0.5722666666666667,
         "direction_agreement": null,
-        "item_count": 138,
+        "item_count": 141,
         "source_run_id": null,
         "summary": "Article covers FHA mortgage insurance rules and industry proposals to reduce premiums or allow cancellation; HUD reports the insurance fund remains well capitalized. The event points to potential targeted relief in housing credit conditions, but policy changes remain uncertain.",
         "theme_ids": [
@@ -486,8 +486,8 @@
           }
         }
       },
-      "value": -18.999999999999993,
-      "value_date": "2026-11-20",
+      "value": -20.999999999999996,
+      "value_date": "2026-11-23",
       "value_source": "fred",
       "values_revised": false
     }
@@ -501,18 +501,18 @@
       "theme_id": "fiscal_drag"
     },
     {
-      "classifier_confidence": 0.4431818181818182,
-      "item_count": 22,
+      "classifier_confidence": 0.465,
+      "item_count": 20,
       "theme_id": "fiscal_expansion"
     },
     {
-      "classifier_confidence": 0.5006666666666667,
-      "item_count": 75,
+      "classifier_confidence": 0.49873417721518987,
+      "item_count": 79,
       "theme_id": "growth_acceleration"
     },
     {
-      "classifier_confidence": 0.48736263736263746,
-      "item_count": 91,
+      "classifier_confidence": 0.4957894736842104,
+      "item_count": 95,
       "theme_id": "growth_slowdown"
     }
   ]
