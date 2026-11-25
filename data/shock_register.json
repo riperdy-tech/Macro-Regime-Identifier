@@ -1,6 +1,6 @@
 {
-  "asof": "2026-11-23",
-  "built_at": "2026-11-24T06:49:56.133833+00:00",
+  "asof": "2026-11-24",
+  "built_at": "2026-11-25T05:26:49.694172+00:00",
   "cadence": "daily",
   "composition_id": null,
   "deprecations": [],
@@ -13,7 +13,7 @@
   ],
   "risk_flags": [
     {
-      "active": true,
+      "active": false,
       "id": "elevated_volatility_ahead",
       "meaning": "Expect higher market turbulence over the next 3 months. No evidence of lower returns or deeper drawdowns.",
       "measured_effect": {
@@ -36,17 +36,17 @@
   "shocks": [
     {
       "active": true,
-      "age_days": 3,
-      "direction": "up",
+      "age_days": 4,
+      "direction": "none",
       "episode_direction": "up",
-      "intensity": 1.1963333333333332,
-      "lag_trading_days": 2,
+      "intensity": 0.8873333333333334,
+      "lag_trading_days": 1,
       "max_lag_trading_days": 2,
       "measure": "month-end / latest level",
       "narrative": {
-        "classifier_confidence": 0.6161224489795918,
-        "direction_agreement": 0.7219387755102041,
-        "item_count": 364,
+        "classifier_confidence": 0.6236666666666667,
+        "direction_agreement": null,
+        "item_count": 363,
         "source_run_id": null,
         "summary": "OCC outlines regulatory priorities around AI, chartering, and community banks, emphasizing tailored risk and allowing new entrants. The read-through is mostly regulatory and sector-specific for financials, while broader financial-stability implications are ambiguous.",
         "theme_ids": [
@@ -63,7 +63,7 @@
       "proxy": false,
       "reason": null,
       "series_id": "VIXCLS",
-      "severity": 1,
+      "severity": 0,
       "shock_id": "volatility_shock",
       "stale_input": false,
       "state": "active",
@@ -83,8 +83,8 @@
           }
         }
       },
-      "value": 35.89,
-      "value_date": "2026-11-20",
+      "value": 26.62,
+      "value_date": "2026-11-23",
       "value_source": "fred",
       "values_revised": false
     },
@@ -93,14 +93,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": -0.05999999999999961,
-      "lag_trading_days": 2,
+      "intensity": -0.07999999999999963,
+      "lag_trading_days": 1,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp",
       "narrative": {
-        "classifier_confidence": 0.5675438596491228,
+        "classifier_confidence": 0.5703225806451613,
         "direction_agreement": null,
-        "item_count": 57,
+        "item_count": 62,
         "source_run_id": null,
         "summary": "Article covers FHA mortgage insurance rules and industry proposals to reduce premiums or allow cancellation; HUD reports the insurance fund remains well capitalized. The event points to potential targeted relief in housing credit conditions, but policy changes remain uncertain.",
         "theme_ids": [
@@ -137,8 +137,8 @@
           }
         }
       },
-      "value": -2.9999999999999805,
-      "value_date": "2026-11-20",
+      "value": -3.9999999999999813,
+      "value_date": "2026-11-23",
       "value_source": "fred",
       "values_revised": false
     },
@@ -147,14 +147,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.5599999999999999,
-      "lag_trading_days": 2,
+      "intensity": 0.5200000000000002,
+      "lag_trading_days": 1,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp, signed",
       "narrative": {
-        "classifier_confidence": 0.6395588235294118,
+        "classifier_confidence": 0.633888888888889,
         "direction_agreement": null,
-        "item_count": 66,
+        "item_count": 70,
         "source_run_id": null,
         "summary": "Japan's Q3 GDP unexpectedly contracted as elevated energy import costs weighed on consumption and net exports, complicating the BOJ's policy normalization path amid rising inflation and expectations of a December rate hike.",
         "theme_ids": [
@@ -239,8 +239,8 @@
           }
         }
       },
-      "value": 41.99999999999999,
-      "value_date": "2026-11-20",
+      "value": 39.000000000000014,
+      "value_date": "2026-11-23",
       "value_source": "fred",
       "values_revised": false
     },
@@ -249,14 +249,14 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.00035982234173375326,
+      "intensity": 0.023418552006818475,
       "lag_trading_days": 0,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day log change, %, signed",
       "narrative": {
-        "classifier_confidence": 0.6229487179487179,
+        "classifier_confidence": 0.6293191489361701,
         "direction_agreement": null,
-        "item_count": 168,
+        "item_count": 169,
         "source_run_id": null,
         "summary": "Japan's Q3 GDP unexpectedly contracted as elevated energy import costs weighed on consumption and net exports, complicating the BOJ's policy normalization path amid rising inflation and expectations of a December rate hike.",
         "theme_ids": [
@@ -307,8 +307,8 @@
           }
         }
       },
-      "value": -0.010794670252012598,
-      "value_date": "2026-11-23",
+      "value": 0.7025565602045543,
+      "value_date": "2026-11-24",
       "value_source": "yahoo_cl_chained",
       "values_revised": false
     },
@@ -379,11 +379,11 @@
       "max_lag_trading_days": 9,
       "measure": "4-week mean / trailing 52-week min - 1, %",
       "narrative": {
-        "classifier_confidence": 0.5281818181818182,
+        "classifier_confidence": 0.5466666666666666,
         "direction_agreement": null,
-        "item_count": 43,
+        "item_count": 38,
         "source_run_id": null,
-        "summary": "Immigration policy signals remain mixed, with enforcement disruptions and uncertain bipartisan reform clouding the labor supply outlook for homebuilders.",
+        "summary": "AI equity weakness and Fed hawkish guidance keep mortgage rates elevated, while inflation, geopolitical tension, and tariffs complicate the path to lower yields.",
         "theme_ids": [
           "labor_weakness",
           "labor_strength"
@@ -428,12 +428,12 @@
       "age_days": null,
       "direction": "none",
       "episode_direction": null,
-      "intensity": 0.46666666666666656,
+      "intensity": 0.4444444444444438,
       "lag_trading_days": 0,
       "max_lag_trading_days": 3,
       "measure": "63-trading-day change, bp, signed",
       "narrative": {
-        "classifier_confidence": 0.5722666666666667,
+        "classifier_confidence": 0.5724489795918368,
         "direction_agreement": null,
         "item_count": 141,
         "source_run_id": null,
@@ -486,8 +486,8 @@
           }
         }
       },
-      "value": -20.999999999999996,
-      "value_date": "2026-11-23",
+      "value": -19.99999999999997,
+      "value_date": "2026-11-24",
       "value_source": "fred",
       "values_revised": false
     }
@@ -496,23 +496,23 @@
   "taxonomy_version": "89f5ea590d371f040bd58ea15c98d28a46bb85bdc7849c297acc17df4d6f5336",
   "unmeasured_narratives": [
     {
-      "classifier_confidence": 0.5029411764705882,
-      "item_count": 17,
+      "classifier_confidence": 0.5289473684210527,
+      "item_count": 19,
       "theme_id": "fiscal_drag"
     },
     {
-      "classifier_confidence": 0.465,
-      "item_count": 20,
+      "classifier_confidence": 0.4880952380952382,
+      "item_count": 21,
       "theme_id": "fiscal_expansion"
     },
     {
-      "classifier_confidence": 0.49873417721518987,
-      "item_count": 79,
+      "classifier_confidence": 0.5084415584415585,
+      "item_count": 77,
       "theme_id": "growth_acceleration"
     },
     {
-      "classifier_confidence": 0.4957894736842104,
-      "item_count": 95,
+      "classifier_confidence": 0.5133695652173913,
+      "item_count": 92,
       "theme_id": "growth_slowdown"
     }
   ]
